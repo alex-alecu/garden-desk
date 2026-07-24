@@ -132,11 +132,7 @@ async function writeRun(
   const runRoot = join(root, "logs", records.run.id);
   const artifacts = [];
   for (const artifact of records.artifacts) {
-    const relativePath = join(
-      "artifacts",
-      records.run.id,
-      `${artifact.id}-${safeArtifactName(artifact.name)}`,
-    );
+    const relativePath = `artifacts/${records.run.id}/${artifact.id}-${safeArtifactName(artifact.name)}`;
     const bytes = await readVerifiedArtifact(
       internalRoot,
       artifact.contentHash,

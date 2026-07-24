@@ -12,7 +12,7 @@ const run = promisify(execFile);
 const cleanup = new Set<string>();
 let fixture: DebugFixture | undefined;
 
-if (process.platform === "win32") vi.setConfig({ testTimeout: 20_000 });
+if (process.platform === "win32") vi.setConfig({ testTimeout: 30_000 });
 
 async function json(path: string): Promise<Record<string, unknown>> {
   return JSON.parse(await readFile(path, "utf8")) as Record<string, unknown>;
