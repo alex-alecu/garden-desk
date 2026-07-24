@@ -36,11 +36,15 @@ $root = [Environment]::GetEnvironmentVariable('VAULT_TEST_SNAPSHOT_PATH', 'Proce
 $sid = [Security.Principal.WindowsIdentity]::GetCurrent().User.Value
 $items = @((Get-Item -LiteralPath $root -Force)) + @(Get-ChildItem -LiteralPath $root -Recurse -Force)
 foreach ($item in $items) {
-  $acl = Get-Acl -LiteralPath $item.FullName
+  if ($item.PSIsContainer) {
+    $acl = [IO.Directory]::GetAccessControl($item.FullName)
+  } else {
+    $acl = [IO.File]::GetAccessControl($item.FullName)
+  }
   $rules = @($acl.GetAccessRules($true, $true, [Security.Principal.SecurityIdentifier]))
   if ($rules.Count -eq 0 -or @($rules | Where-Object { $_.IdentityReference.Value -ne $sid }).Count -ne 0) { throw 'non-owner snapshot access rule' }
 }
-$rootAcl = Get-Acl -LiteralPath $root
+$rootAcl = [IO.Directory]::GetAccessControl($root)
 if (-not $rootAcl.AreAccessRulesProtected) { throw 'snapshot root inherits access rules' }
 `;
   await run("powershell.exe", ["-NoLogo", "-NoProfile", "-NonInteractive", "-Command", script], {

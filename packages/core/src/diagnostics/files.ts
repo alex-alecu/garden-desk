@@ -24,11 +24,11 @@ $inheritance = [Security.AccessControl.InheritanceFlags]::ContainerInherit -bor 
 $rule = [Security.AccessControl.FileSystemAccessRule]::new($sid, [Security.AccessControl.FileSystemRights]::FullControl, $inheritance, [Security.AccessControl.PropagationFlags]::None, [Security.AccessControl.AccessControlType]::Allow)
 [void]$acl.AddAccessRule($rule)
 if (Test-Path -LiteralPath $path) {
-  Set-Acl -LiteralPath $path -AclObject $acl
+  [IO.Directory]::SetAccessControl($path, $acl)
 } else {
   [void][IO.Directory]::CreateDirectory($path, $acl)
 }
-$actual = Get-Acl -LiteralPath $path
+$actual = [IO.Directory]::GetAccessControl($path)
 $rules = @($actual.GetAccessRules($true, $false, [Security.Principal.SecurityIdentifier]))
 if (-not $actual.AreAccessRulesProtected -or $actual.GetOwner([Security.Principal.SecurityIdentifier]).Value -ne $sid.Value -or $rules.Count -ne 1 -or $rules[0].IdentityReference.Value -ne $sid.Value -or $rules[0].AccessControlType -ne [Security.AccessControl.AccessControlType]::Allow) { throw 'snapshot DACL verification failed' }
 `;
