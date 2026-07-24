@@ -879,6 +879,50 @@ textarea:focus-visible {
   color: #8a847f;
 }
 
+.technical-details-item .debug-snapshot-purpose {
+  margin-top: 10px;
+  color: #4f4945;
+  font-weight: 600;
+}
+
+.debug-snapshot-controls {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.debug-snapshot-controls button {
+  min-height: 34px;
+  padding: 0 10px;
+  border-radius: 8px;
+  color: #fff;
+  background: #6159d9;
+  cursor: pointer;
+}
+
+.debug-snapshot-controls button:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
+
+.debug-snapshot-controls input {
+  min-width: 0;
+  padding: 8px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  color: #4f4945;
+  background: #fff;
+  font:
+    11px / 1.4 ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    monospace;
+}
+
+.debug-snapshot-controls p[role="alert"] {
+  color: #a33a32;
+}
+
 .execution-heading {
   display: flex;
   align-items: flex-start;

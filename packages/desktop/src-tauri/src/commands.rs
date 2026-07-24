@@ -1,11 +1,19 @@
 use crate::{CoreBridge, path_text};
 use serde_json::{Value, json};
+use std::path::Path;
 use tauri::{AppHandle, State};
 use tauri_plugin_dialog::DialogExt;
 use tauri_plugin_shell::ShellExt;
 
 #[tauri::command]
 pub(crate) async fn desktop_bootstrap(core: State<'_, CoreBridge>) -> Result<Value, String> {
+    let status = core.call("status", json!({}))?;
+    let workspace_root = status
+        .get("workspace")
+        .and_then(|workspace| workspace.get("rootPath"))
+        .and_then(Value::as_str)
+        .ok_or_else(|| "Vault Core returned an invalid workspace path.".to_owned())?;
+    let catalog_path = path_text(&Path::new(workspace_root).join(".vault/catalog.sqlite"))?;
     let folders = core.call("folders.list", json!({}))?;
     let global_sessions = core.call("sessions.list", json!({ "folderId": null, "limit": 5 }))?;
     let mut folder_sessions = Vec::new();
@@ -24,6 +32,7 @@ pub(crate) async fn desktop_bootstrap(core: State<'_, CoreBridge>) -> Result<Val
         folder_sessions.push(json!({ "folderId": folder_id, "page": page }));
     }
     Ok(json!({
+        "catalogPath": catalog_path,
         "folders": folders,
         "globalSessions": global_sessions,
         "folderSessions": folder_sessions,

@@ -132,10 +132,12 @@ export function App() {
         />
         <TechnicalDetails
           artifacts={state.artifacts}
+          catalogPath={state.catalogPath}
           executions={state.executions}
           key={`${state.activeSessionId ?? `new:${state.newSessionFolderId ?? "global"}`}:${technicalDetailsOpen ? "open" : "closed"}`}
           onClose={() => setTechnicalDetailsOpen(false)}
           open={technicalDetailsOpen}
+          sessionId={state.activeSessionId}
           timeline={state.timeline}
         />
         {desktopError === undefined ? null : (

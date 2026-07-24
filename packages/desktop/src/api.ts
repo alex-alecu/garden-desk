@@ -26,6 +26,7 @@ export interface FolderSessionPage {
 }
 
 export interface DesktopBootstrap {
+  catalogPath: string;
   folders: FolderSummary[];
   globalSessions: SessionPage;
   folderSessions: FolderSessionPage[];
@@ -53,6 +54,12 @@ function parseBootstrap(value: unknown): DesktopBootstrap {
       })
     : [];
   return {
+    catalogPath:
+      typeof input.catalogPath === "string"
+        ? input.catalogPath
+        : (() => {
+            throw new Error("Invalid catalog path.");
+          })(),
     folders: FolderSummarySchema.array().parse(input.folders),
     globalSessions: SessionPageSchema.parse(input.globalSessions),
     folderSessions,
@@ -63,6 +70,7 @@ function parseBootstrap(value: unknown): DesktopBootstrap {
 export async function bootstrapDesktop(): Promise<DesktopBootstrap> {
   if (!hasTauriHost()) {
     return {
+      catalogPath: "",
       folders: [],
       globalSessions: { items: [], nextCursor: null },
       folderSessions: [],
@@ -172,4 +180,16 @@ export async function listAgentRuns(sessionId: string): Promise<AgentRunSummary[
 export async function cancelAgent(jobId: string): Promise<boolean> {
   const value = record(await invoke("cancel_agent", { jobId }));
   return value.cancelled === true;
+}
+
+export async function createDebugSnapshot(sessionId: string): Promise<string> {
+  const value = record(await invoke("create_debug_snapshot", { sessionId }));
+  if (typeof value.path !== "string" || value.path.length === 0) {
+    throw new Error("The desktop bridge returned an invalid debug snapshot path.");
+  }
+  return value.path;
+}
+
+export async function revealDebugSnapshot(sessionId: string): Promise<void> {
+  await invoke("reveal_debug_snapshot", { sessionId });
 }

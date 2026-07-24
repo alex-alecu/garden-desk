@@ -69,6 +69,7 @@ The conversation timeline supports:
 - Concise model-planning, execution-purpose, completion, failure, and cancellation activity inline in chronological order without code or logs.
 - Generated scratch artifacts inline with the surrounding task activity and response.
 - A top-right **Technical details** control that opens a right-side drawer on **Overview**. Overview contains limits, compact execution summaries, collapsed code or commands, termination evidence, guest capabilities, and generated-file metadata without rendering log bodies.
+- Technical details retains the local session ID and catalog path and identifies the snapshot as a handoff for AI coding agents such as Codex or Claude Code, including the selected session's SQLite-backed records and bounded microVM logs. It provides **Create debug snapshot** plus **Reveal snapshot**. The webview supplies only the session ID; the desktop host derives the catalog and can reveal only the latest snapshot it created for that session. The selectable result path and privacy warning reset when the conversation changes.
 - A separate **Logs** tab lists executions newest first and collapsed by default. Selecting Logs auto-expands only the active execution. Each row selects one stream at a time: Output, Errors, or typed VM diagnostics, with byte counts, explicit state text, and truncation text.
 - Active output follows only while the viewer remains within 40 pixels of the bottom. Manual scrolling is preserved and exposes **Jump to latest**. Reopening the drawer or switching conversations resets it to Overview.
 - Plain-language running, cancelling, cancelled, timed-out, failed, and completed states.
@@ -127,3 +128,4 @@ Runtime, quantization, context-window, endpoint, and model-file vocabulary stays
 | 2026-07-22 | Restored concise activity and generated files to the conversation and reserved the renamed Technical details drawer for low-level evidence. |
 | 2026-07-23 | Replaced folder snapshots and disposable scratch with the live read-only source mount and persistent session workspace. |
 | 2026-07-23 | Added the Overview-first Technical details drawer with collapsed execution logs, selectable bounded streams, typed VM diagnostics, and scroll-follow controls. |
+| 2026-07-24 | Added installed-app private debug snapshot creation and reveal without webview path or process authority. |

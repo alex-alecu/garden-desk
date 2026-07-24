@@ -10,6 +10,7 @@ use tauri_plugin_shell::ShellExt;
 use tauri_plugin_shell::process::CommandChild;
 
 mod commands;
+mod diagnostics;
 
 const MAX_RESPONSE_BYTES: u64 = 192 * 1024 * 1024;
 
@@ -208,6 +209,7 @@ fn main() {
         .setup(|app| {
             let core = CoreBridge::start(app.handle()).map_err(std::io::Error::other)?;
             app.manage(core);
+            app.manage(diagnostics::DebugSnapshots::default());
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -216,6 +218,7 @@ fn main() {
             commands::choose_folder,
             commands::choose_files,
             commands::create_session,
+            diagnostics::create_debug_snapshot,
             commands::delete_session,
             commands::desktop_bootstrap,
             commands::get_agent_run,
@@ -228,6 +231,7 @@ fn main() {
             commands::open_folder,
             commands::remove_attachment,
             commands::revoke_folder,
+            diagnostics::reveal_debug_snapshot,
             commands::save_draft,
             commands::start_agent,
             commands::unload_model,

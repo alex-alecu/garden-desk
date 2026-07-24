@@ -1,6 +1,7 @@
 import type { DesktopState } from "./state.js";
 
 export const initialDesktopState: DesktopState = {
+  catalogPath: "",
   folders: [],
   globalSessions: [],
   activeSessionId: undefined,

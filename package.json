@@ -41,8 +41,7 @@
     "workers:windows:build": "node --import tsx packages/workers/native/windows-hcs-helper/build.ts",
     "workers:windows-native:build": "node --import tsx packages/workers/native/windows-appcontainer-launcher/build.ts",
     "verify": "pnpm check:source && pnpm lint && pnpm typecheck && pnpm core:windows-pipe-guard:build && pnpm workers:windows-native:build && pnpm test && pnpm test:native && pnpm verify:rust && pnpm workers:macos:build && pnpm workers:windows:build",
-    "daemon": "node --import tsx packages/core/src/daemon/main.ts",
-    "vault": "node --import tsx packages/cli/src/main.ts"
+    "daemon": "node --import tsx packages/core/src/daemon/main.ts"
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.4",

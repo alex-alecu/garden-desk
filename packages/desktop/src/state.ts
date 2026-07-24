@@ -34,6 +34,7 @@ export interface TimelineItem {
 }
 
 export interface DesktopState {
+  catalogPath: string;
   folders: FolderGroup[];
   globalSessions: SessionSummary[];
   activeSessionId: string | undefined;
@@ -79,6 +80,7 @@ function hydrate(state: DesktopState, snapshot: DesktopBootstrap): DesktopState 
   const pages = new Map(snapshot.folderSessions.map((item) => [item.folderId, item.page]));
   return {
     ...state,
+    catalogPath: snapshot.catalogPath,
     loaded: true,
     folders: snapshot.folders.map((folder) => {
       const page = pages.get(folder.id);

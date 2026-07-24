@@ -1,8 +1,13 @@
 import { AgentArtifactSummarySchema, AgentExecutionSnapshotSchema } from "@vault/shared";
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it } from "vitest";
-import { shouldFollowLog, TechnicalDetails } from "./components/technical-details.js";
+import { expect, it } from "vitest";
+import {
+  DebugSnapshotPanel,
+  shouldFollowLog,
+  TechnicalDetails,
+} from "./components/technical-details.js";
 import { LogsPanel } from "./components/technical-logs.js";
+import { initialDebugSnapshotState } from "./debug-snapshot.js";
 import type { TimelineItem } from "./state.js";
 
 const timestamp = "2026-07-20T12:00:00.000Z";
@@ -105,48 +110,95 @@ function renderTechnicalDetails(): string {
   return renderToStaticMarkup(
     <TechnicalDetails
       artifacts={[artifact]}
+      catalogPath="/Users/alex/Library/Application Support/dev.vaultdesk.desktop/state/.vault/catalog.sqlite"
       executions={[execution]}
       onClose={() => undefined}
       open
+      sessionId="da911f87-ff26-46d8-9a58-bad222a584ab"
       timeline={timeline}
     />,
   );
 }
 
-describe("technical details drawer", () => {
-  it("shows low-level evidence without generic progress", () => {
-    const markup = renderTechnicalDetails();
+it("shows low-level evidence without generic progress", () => {
+  const markup = renderTechnicalDetails();
 
-    expect(markup).toContain("Technical details");
-    expect(markup).toContain('aria-label="Close technical details"');
-    expect(markup).toContain("4 CPUs, 4 GiB memory, 128 MiB persistent workspace");
-    expect(markup).toContain("Certified guest capabilities");
-    expect(markup).toContain("Python: 3.14.5");
-    expect(markup).toContain("/usr/bin/patch");
-    expect(markup).toContain("print(&#x27;ok&#x27;)");
-    expect(markup).toContain("Termination: completed");
-    expect(markup).toContain("text/csv");
-    expect(markup).toContain("42 bytes");
-    expect(markup).not.toContain("Planning the task");
-    expect(markup).not.toContain("Response completed");
-    expect(markup).not.toContain("private output");
-    expect(markup).toContain('aria-selected="true" role="tab"');
-    expect(markup).toContain("Overview</button>");
-  });
+  expect(markup).toContain("Technical details");
+  expect(markup).toContain("Local session ID: da911f87-ff26-46d8-9a58-bad222a584ab");
+  expect(markup).toContain("Catalog path:");
+  expect(markup).toContain("Create debug snapshot");
+  expect(markup).toContain("AI agent debugging snapshot");
+  expect(markup).toContain("Codex or Claude Code");
+  expect(markup).toContain("SQLite-backed records");
+  expect(markup).toContain("bounded microVM logs");
+  expect(markup).toContain("approved channel");
+  expect(markup).toContain('aria-label="Close technical details"');
+  expect(markup).toContain("4 CPUs, 4 GiB memory, 128 MiB persistent workspace");
+  expect(markup).toContain("Certified guest capabilities");
+  expect(markup).toContain("Python: 3.14.5");
+  expect(markup).toContain("/usr/bin/patch");
+  expect(markup).toContain("print(&#x27;ok&#x27;)");
+  expect(markup).toContain("Termination: completed");
+  expect(markup).toContain("text/csv");
+  expect(markup).toContain("42 bytes");
+  expect(markup).not.toContain("Planning the task");
+  expect(markup).not.toContain("Response completed");
+  expect(markup).not.toContain("private output");
+  expect(markup).toContain('aria-selected="true" role="tab"');
+  expect(markup).toContain("Overview</button>");
+});
 
-  it("follows only while the viewer remains near the bottom", () => {
-    expect(shouldFollowLog(1_000, 760, 200)).toBe(true);
-    expect(shouldFollowLog(1_000, 600, 200)).toBe(false);
-  });
+it("shows pending, success, reveal, and failure states", () => {
+  const pending = renderToStaticMarkup(
+    <DebugSnapshotPanel
+      onCreate={() => undefined}
+      onReveal={() => undefined}
+      state={{ ...initialDebugSnapshotState, creating: true }}
+    />,
+  );
+  expect(pending).toContain("Creating snapshot…");
+  expect(pending).toContain("disabled");
 
-  it("opens only the active execution after Logs is selected", () => {
-    const markup = renderToStaticMarkup(<LogsPanel executions={[execution, activeExecution]} />);
+  const ready = renderToStaticMarkup(
+    <DebugSnapshotPanel
+      onCreate={() => undefined}
+      onReveal={() => undefined}
+      state={{
+        ...initialDebugSnapshotState,
+        path: "/tmp/vault-session-debug-ready",
+      }}
+    />,
+  );
+  expect(ready).toContain('aria-label="Debug snapshot path"');
+  expect(ready).toContain("/tmp/vault-session-debug-ready");
+  expect(ready).toContain("Reveal snapshot");
 
-    expect(markup).toContain('aria-expanded="true"');
-    expect(markup).toContain('aria-expanded="false"');
-    expect(markup).toContain('aria-label="Output for execution 2"');
-    expect(markup).toContain("live output");
-    expect(markup).not.toContain("private output");
-    expect(markup).toContain("readOnly");
-  });
+  const failed = renderToStaticMarkup(
+    <DebugSnapshotPanel
+      onCreate={() => undefined}
+      onReveal={() => undefined}
+      state={{
+        ...initialDebugSnapshotState,
+        error: "The debug snapshot could not be created.",
+      }}
+    />,
+  );
+  expect(failed).toContain('role="alert"');
+  expect(failed).toContain("could not be created");
+});
+
+it("follows only while the viewer remains near the bottom", () => {
+  expect(shouldFollowLog(1_000, 760, 200)).toBe(true);
+  expect(shouldFollowLog(1_000, 600, 200)).toBe(false);
+});
+
+it("opens only the active execution after Logs is selected", () => {
+  const markup = renderToStaticMarkup(<LogsPanel executions={[execution, activeExecution]} />);
+
+  expect(markup).toContain('aria-expanded="true"');
+  expect(markup).toContain('aria-expanded="false"');
+  expect(markup).toContain('aria-label="Output for execution 2"');
+  expect(markup).toContain("live output");
+  expect(markup).not.toContain("private output");
+  expect(markup).toContain("readOnly");
 });

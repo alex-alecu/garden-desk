@@ -35,6 +35,7 @@ describe("desktop navigation state", () => {
     const state = desktopReducer(initialDesktopState, {
       type: "desktop.hydrate",
       snapshot: {
+        catalogPath: "/tmp/state/.vault/catalog.sqlite",
         folders: [folder],
         globalSessions: { items: [], nextCursor: null },
         folderSessions: [
@@ -52,6 +53,7 @@ describe("desktop navigation state", () => {
       },
     });
     expect(state.loaded).toBe(true);
+    expect(state.catalogPath).toBe("/tmp/state/.vault/catalog.sqlite");
     expect(state.folders[0]?.sessions).toEqual([firstSession]);
     expect(state.folders[0]?.nextCursor).toBe("next");
   });

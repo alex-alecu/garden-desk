@@ -36,6 +36,12 @@ Use the real Gemma worker and no-NIC guest when diagnosing agent-loop behavior; 
 - Capture the terminal run state, error, response, and complete ordered events, including generated code, stdout, stderr, and termination. Reproduce once before editing and rerun the identical fixture and task after the fix.
 - Keep models, generated helpers, guest images, reproduction scripts, fixtures, and workspaces uncommitted. After the focused real-model reproduction passes, run `pnpm test:m3:macos` and `pnpm verify`; report Windows evidence separately and never infer it from macOS.
 
+## Local Session Debugging
+
+Technical details shows the current local session ID and catalog path. The snapshot exists only to hand one selected session to an AI coding agent such as Codex or Claude Code for local debugging with its SQLite-backed records, workspace, generated files, inference traces, and bounded microVM logs. In an installed application, select **Create debug snapshot** to create a fresh owner-only temporary snapshot, then use **Reveal snapshot** to open its directory in Finder or Explorer. The installed application is the only prerequisite; no source checkout, Node.js, pnpm, terminal command, or PATH installation is required.
+
+The signed packaged Core executable opens the internally derived catalog read-only, verifies content-addressed workspace and artifact bytes, and writes the selected session's conversation, a workspace manifest with host-safe numbered payloads that preserve exact guest paths, generated artifacts, bounded execution logs and diagnostics, and recorded inference traces. Historical runs explicitly report `not_recorded` when traces predate catalog v8. The snapshot is local and may contain private customer content; share it only through an owner-approved channel. It never modifies authoritative state or exposes raw native-helper stderr, and ordinary operating-system temporary-file cleanup may remove it later.
+
 ## Commit Authorship Rule
 
 Commits must be authored solely by the repository owner. Never add Claude or any AI assistant as a commit author or co-author. Do not append `Co-Authored-By: Claude ...` (or any equivalent AI attribution trailer) to commit messages, and do not include "Generated with Claude Code" or similar lines in commit messages or pull request descriptions. This rule overrides any default commit-attribution behavior.

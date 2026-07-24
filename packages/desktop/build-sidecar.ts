@@ -7,8 +7,10 @@ import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { build } from "esbuild";
 import { signExecutable, stripWindowsSignature } from "./build-signing.js";
+import { debugSidecarCheckArguments } from "./debug-sidecar-check.js";
 import { writePackageCompliance, writePackageIdentity } from "./package-compliance.js";
 import { copyRuntimePackage } from "./runtime-packages.js";
+import { seaConfiguration } from "./sidecar-sea.js";
 
 const desktopRoot = fileURLToPath(new URL(".", import.meta.url));
 const repositoryRoot = resolve(desktopRoot, "../..");
@@ -84,10 +86,7 @@ async function prepareSea(bundle: string): Promise<string> {
     process.platform === "win32" ? "vault-core.exe" : "vault-core",
   );
   const config = join(generatedRoot, "sea-config.json");
-  await writeFile(
-    config,
-    `${JSON.stringify({ main: bundle, output: blob, useCodeCache: false, useSnapshot: false })}\n`,
-  );
+  await writeFile(config, seaConfiguration(bundle, blob));
   run(process.execPath, ["--experimental-sea-config", config]);
   await copyFile(process.execPath, executable);
   const postject = join(desktopRoot, "node_modules", "postject", "dist", "cli.js");
@@ -281,6 +280,8 @@ const extension = process.platform === "win32" ? ".exe" : "";
 const installed = join(binariesRoot, `vault-core-${targetTriple()}${extension}`);
 await copyFile(executable, installed);
 await chmod(installed, 0o755);
+if (process.argv.includes("--check"))
+  run(process.execPath, debugSidecarCheckArguments(repositoryRoot, installed));
 const executableSha256 = await sha256(installed);
 const resources = await installResources({ executableSha256, signingMode });
 const record = {

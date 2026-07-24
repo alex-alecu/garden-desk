@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { rename, unlink, writeFile } from "node:fs/promises";
 import { createVaultCore } from "../compose.js";
+import { runDebugSessionMode } from "../diagnostics/process.js";
 import { initializeEmptyModelStore } from "../runtime/models.js";
 import { monitorParent, openWithWorkspaceRetry } from "./lifecycle.js";
 import { startDaemon } from "./server.js";
@@ -91,7 +92,7 @@ function openCore(options: LaunchOptions) {
   );
 }
 
-async function main(args: string[]): Promise<void> {
+async function startServer(args: string[]): Promise<void> {
   const options = launchOptions(args);
   if (!options.packagedModelStore) await initializeEmptyModelStore(options.modelStoreDir);
   const core = await openCore(options);
@@ -131,7 +132,14 @@ async function main(args: string[]): Promise<void> {
   process.once("SIGTERM", () => void shutdown().then(() => process.exit(0)));
 }
 
-void main(process.argv.slice(2)).catch((error: unknown) => {
-  console.error(error instanceof Error ? error.message : "Vault Core failed to start.");
-  process.exitCode = 1;
-});
+const args = process.argv.slice(2);
+if (args[0] === "debug-session") {
+  void runDebugSessionMode(args).then((code) => {
+    process.exitCode = code;
+  });
+} else {
+  void startServer(args).catch((error: unknown) => {
+    console.error(error instanceof Error ? error.message : "Vault Core failed to start.");
+    process.exitCode = 1;
+  });
+}
