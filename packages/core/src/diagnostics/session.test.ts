@@ -4,13 +4,15 @@ import { chmod, lstat, readdir, readFile, rm, writeFile } from "node:fs/promises
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { promisify } from "node:util";
-import { afterEach, expect, it } from "vitest";
+import { afterEach, expect, it, vi } from "vitest";
 import { createSessionDebugSnapshot } from "./session.js";
 import { createDebugFixture, type DebugFixture, IDS } from "./session-fixture.js";
 
 const run = promisify(execFile);
 const cleanup = new Set<string>();
 let fixture: DebugFixture | undefined;
+
+if (process.platform === "win32") vi.setConfig({ testTimeout: 20_000 });
 
 async function json(path: string): Promise<Record<string, unknown>> {
   return JSON.parse(await readFile(path, "utf8")) as Record<string, unknown>;
