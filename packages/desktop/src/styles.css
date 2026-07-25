@@ -614,14 +614,10 @@ textarea:focus-visible {
   list-style: none;
 }
 
-.assistant-markdown .task-list-item {
-  display: flex;
-  align-items: flex-start;
-}
-
 .task-list-item input {
   margin: 0.28em 0.55em 0 0;
   accent-color: var(--accent);
+  vertical-align: text-top;
 }
 
 .assistant-markdown del {

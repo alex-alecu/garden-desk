@@ -164,7 +164,7 @@ describe("conversation Markdown presentation", () => {
             createdAt: "2026-07-20T12:00:01.000Z",
             id: "assistant",
             kind: "assistant",
-            text: "## Result\n\n| Item | Status |\n| --- | --- |\n| Report | **Ready** |\n\n- [x] Verified\n\n~~Draft~~ Final\n\n[Reference](https://example.test/page)\n\nhttps://example.test/auto\n\n![remote](https://example.test/image.png)\n\n<script>alert('no')</script>",
+            text: "## Result\n\n| Item | Status |\n| --- | --- |\n| Report | **Ready** |\n\n- [x] Verified\n  - Nested evidence\n\n- [ ] Follow up\n\n  Second paragraph\n\n~~Draft~~ Final\n\n[Reference](https://example.test/page)\n\nhttps://example.test/auto\n\n![remote](https://example.test/image.png)\n\n<script>alert('no')</script>",
             runId: "run",
           },
         ],
@@ -184,6 +184,8 @@ describe("conversation Markdown presentation", () => {
     expect(markup).toContain("<td><strong>Ready</strong></td>");
     expect(markup).toContain('type="checkbox"');
     expect(markup).toContain("disabled");
+    expect(markup).toContain("<li>Nested evidence</li>");
+    expect(markup).toContain("<p>Second paragraph</p>");
     expect(markup).toContain("<del>Draft</del> Final");
     expect(markup).toContain("<p>Reference</p>");
     expect(markup).toContain("https://example.test/auto");
