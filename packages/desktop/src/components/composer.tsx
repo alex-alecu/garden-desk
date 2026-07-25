@@ -6,6 +6,7 @@ interface ComposerProps {
   attachments: AttachmentSummary[];
   disabled: boolean;
   draft: string;
+  nativeActionMessage?: string | undefined;
   removableAttachmentIds: string[];
   running: boolean;
   onAttach(): void;
@@ -17,9 +18,13 @@ interface ComposerProps {
 
 function AttachmentList({
   attachments,
+  nativeActionMessage,
   removableAttachmentIds,
   onRemoveAttachment,
-}: Pick<ComposerProps, "attachments" | "removableAttachmentIds" | "onRemoveAttachment">) {
+}: Pick<
+  ComposerProps,
+  "attachments" | "nativeActionMessage" | "removableAttachmentIds" | "onRemoveAttachment"
+>) {
   if (attachments.length === 0) return null;
   return (
     <ul aria-label="Attached files" className="attachment-list">
@@ -29,7 +34,9 @@ function AttachmentList({
           {removableAttachmentIds.includes(item.id) ? (
             <button
               aria-label={`Remove ${item.name}`}
+              disabled={nativeActionMessage !== undefined}
               onClick={() => onRemoveAttachment(item.id)}
+              title={nativeActionMessage}
               type="button"
             >
               ×
@@ -41,10 +48,12 @@ function AttachmentList({
   );
 }
 
+// biome-ignore lint/complexity/noExcessiveLinesPerFunction: one compact form keeps composer state and accessibility relationships visible.
 export function Composer({
   attachments,
   disabled,
   draft,
+  nativeActionMessage,
   removableAttachmentIds,
   running,
   onAttach,
@@ -65,6 +74,7 @@ export function Composer({
     <form className="composer" onSubmit={submit}>
       <AttachmentList
         attachments={attachments}
+        nativeActionMessage={nativeActionMessage}
         onRemoveAttachment={onRemoveAttachment}
         removableAttachmentIds={removableAttachmentIds}
       />
@@ -80,8 +90,9 @@ export function Composer({
         <button
           aria-label="Attach files"
           className="icon-button"
-          disabled={disabled || running}
+          disabled={disabled || running || nativeActionMessage !== undefined}
           onClick={onAttach}
+          title={nativeActionMessage}
           type="button"
         >
           <Icon name="add" />

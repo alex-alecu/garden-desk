@@ -1,0 +1,129 @@
+html,
+body,
+#root {
+  min-height: 0;
+}
+
+body {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  height: 100vh;
+  overflow: hidden;
+}
+
+.demo-frame {
+  display: flex;
+  min-height: 42px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 16px;
+  color: #dcebe7;
+  background: radial-gradient(circle at 15% 0%, rgb(118 183 170 / 24%), transparent 16rem), #071f25;
+  border-bottom: 1px solid rgb(118 183 170 / 22%);
+  font-size: 13px;
+  font-weight: 650;
+  letter-spacing: 0.005em;
+}
+
+.demo-frame span {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.demo-frame span::before {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #e07750;
+  box-shadow: 0 0 0 0 rgb(224 119 80 / 35%);
+  animation: demo-status-pulse 2.4s ease-out infinite;
+  content: "";
+}
+
+.demo-frame a {
+  padding: 6px 10px;
+  border: 1px solid rgb(255 255 255 / 13%);
+  border-radius: 999px;
+  color: #fffaf0;
+  text-decoration: none;
+  transition:
+    border-color 180ms ease,
+    background 180ms ease,
+    transform 180ms ease;
+}
+
+.demo-frame a::before {
+  margin-right: 6px;
+  content: "←";
+}
+
+.demo-frame a:hover {
+  transform: translateX(-2px);
+  border-color: rgb(118 183 170 / 50%);
+  background: rgb(255 255 255 / 7%);
+}
+
+.demo-frame a:focus-visible {
+  outline: 3px solid #e07750;
+  outline-offset: 2px;
+}
+
+#root {
+  height: auto;
+}
+
+@keyframes demo-status-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgb(224 119 80 / 35%);
+  }
+
+  70%,
+  100% {
+    box-shadow: 0 0 0 8px rgb(224 119 80 / 0%);
+  }
+}
+
+@media (max-width: 700px) {
+  .sidebar {
+    width: 174px;
+    min-width: 154px;
+    padding-inline: 7px;
+    resize: none;
+  }
+
+  .brand {
+    font-size: 16px;
+  }
+
+  .workspace {
+    --chat-content-gutter: 28px;
+  }
+
+  .unload-action span {
+    display: none;
+  }
+
+  .guided-examples {
+    padding-inline: 14px;
+  }
+}
+
+@media (max-width: 470px) {
+  .demo-frame {
+    align-items: flex-start;
+    flex-direction: column;
+    padding-block: 9px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .demo-frame span::before {
+    animation: none;
+  }
+
+  .demo-frame a {
+    transition: none;
+  }
+}

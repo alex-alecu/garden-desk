@@ -46,6 +46,8 @@ Current community targets:
 - Windows generation uses the complete GPU VRAM capacity reported by the pinned runtime and requires a supported GPU.
 - Active context is fitted automatically inside the selected budget rather than configured by the user.
 
+The public V1 launch baseline is intentionally simpler than the internal memory tiers: an Apple silicon Mac with at least 16 GB unified memory, or a Windows PC with an NVIDIA GPU and at least 12 GB VRAM. These remain launch targets until physical certification is complete. The website and download surfaces must not describe an untested configuration as certified or imply that installers are available before the signed release gate passes.
+
 The product should degrade by reducing active context pressure, multimodal usage, or concurrency rather than exposing low-level runtime choices to ordinary users. Hardware tiers must not differ by verification strictness, citation requirements, supported workflows, or safety policy.
 
 Current model target:
@@ -164,3 +166,4 @@ Avoid company-wide exclusivity. Vendor-specific SKUs are acceptable, but the com
 | 2026-07-10 | Recentered certification on Local 12 and Local 16 with Gemma 4 12B QAT and context size as the only product capability difference. |
 | 2026-07-11 | Aligned the first desktop runtime with ADR 0013 and made hardware capability classification an implementation gate. |
 | 2026-07-22 | Added automatic macOS 10/12/16 GiB model-plus-context budgets, an unsupported 8 GB state, complete Windows GPU VRAM use, and automatic context fitting. |
+| 2026-07-25 | Added the public V1 launch baseline of Apple silicon with at least 16 GB unified memory or Windows with NVIDIA and at least 12 GB VRAM, explicitly pending physical certification and signed installers. |

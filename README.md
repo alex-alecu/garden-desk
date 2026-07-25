@@ -31,6 +31,18 @@ The same platform is planned as a free community desktop app, a supported person
 
 Document-specific parsing, OCR, retrieval, citations, and deterministic optimizations are one post-V1 follow-up. They are not prerequisites for the generic desktop agent.
 
+## Public website
+
+The static launch website is built from [`site/`](site/) for the project URL at
+<https://alex-alecu.github.io/vault-desk/>. It includes the public route, legal and security pages,
+unavailable download cards, and a browser-only interactive demo that reuses the desktop React app,
+reducer, components, and stylesheet with synthetic in-memory fixtures. The demo does not run a
+model, transmit entered text, persist data, or import the Tauri adapter.
+
+Run `pnpm site:dev` for the local site at `http://127.0.0.1:4173/`, `pnpm site:build` to create the
+Pages artifact, and `pnpm site:check` to build and validate its public contracts. Signed desktop
+installers remain unavailable until the separate release gate is complete.
+
 ## Open source and acknowledgements
 
 Current pinned dependencies, development tools, native components, versions, licenses, and uses are recorded in the [machine-readable compliance inventory](compliance/inventory.json); transitive JavaScript, Rust, and Swift package resolutions are owned by repository lockfiles. Planned components are not installed dependencies until reviewed and consumed.

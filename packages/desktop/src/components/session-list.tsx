@@ -7,6 +7,7 @@ interface SessionListProps {
   activeSessionId: string | undefined;
   disabled: boolean;
   folder: FolderGroup;
+  nativeActionMessage?: string | undefined;
   onNewSession(folderId: string | null): void;
   onDeleteSession(session: SessionSummary): void;
   onSelectSession(sessionId: string): void;
@@ -32,6 +33,7 @@ export function SessionList(props: SessionListProps) {
           disabled={props.disabled}
           key={session.id}
           label={session.title}
+          nativeActionMessage={props.nativeActionMessage}
           onDelete={() => props.onDeleteSession(session)}
           onSelect={() => props.onSelectSession(session.id)}
         />

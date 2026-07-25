@@ -1,0 +1,23 @@
+{
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "composite": false,
+    "declaration": false,
+    "declarationMap": false,
+    "jsx": "react-jsx",
+    "lib": ["DOM", "DOM.Iterable", "ES2024"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "noEmit": true,
+    "paths": {
+      "@vault/shared": ["../packages/shared/dist/index.d.ts"],
+      "react": ["../packages/desktop/node_modules/@types/react/index.d.ts"],
+      "react/jsx-runtime": ["../packages/desktop/node_modules/@types/react/jsx-runtime.d.ts"],
+      "react-dom/client": ["../packages/desktop/node_modules/@types/react-dom/client.d.ts"]
+    },
+    "types": ["react", "react-dom"],
+    "typeRoots": ["../packages/desktop/node_modules/@types"]
+  },
+  "include": ["demo/**/*.ts", "demo/**/*.tsx", "env.d.ts"],
+  "exclude": ["demo/**/*.test.ts", "demo/**/*.test.tsx"]
+}

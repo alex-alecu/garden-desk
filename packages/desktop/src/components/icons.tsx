@@ -1,10 +1,25 @@
 interface IconProps {
-  name: "activity" | "add" | "close" | "folder" | "message" | "power" | "send" | "trash";
+  name:
+    | "activity"
+    | "add"
+    | "appearance-dark"
+    | "appearance-light"
+    | "appearance-system"
+    | "close"
+    | "folder"
+    | "message"
+    | "power"
+    | "send"
+    | "trash";
 }
 
 const paths: Record<IconProps["name"], string> = {
   activity: "M5 7h14M5 12h14M5 17h8",
   add: "M12 5v14M5 12h14",
+  "appearance-dark": "M20 15.5A8 8 0 0 1 8.5 4 8.5 8.5 0 1 0 20 15.5z",
+  "appearance-light":
+    "M12 2v2m0 16v2M2 12h2m16 0h2M4.9 4.9l1.4 1.4m11.4 11.4 1.4 1.4m0-14.2-1.4 1.4M6.3 17.7l-1.4 1.4M16 12a4 4 0 1 1-8 0 4 4 0 0 1 8 0",
+  "appearance-system": "M4 5h16v12H4zM9 21h6M12 17v4",
   close: "M6 6l12 12M18 6 6 18",
   folder: "M3 7h6l2 2h10v10H3z",
   message: "M4 5h16v11H8l-4 4z",

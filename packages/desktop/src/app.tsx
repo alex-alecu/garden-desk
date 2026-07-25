@@ -1,10 +1,13 @@
 import type { ModelRuntimeStatus } from "@vault/shared";
 import { useEffect, useReducer, useState } from "react";
-import { bootstrapDesktop, cancelAgent, getModelStatus, revokeFolder, unloadModel } from "./api.js";
+import type { DesktopApi } from "./api.js";
+import { useAppearance } from "./appearance.js";
+import type { DesktopCapabilities } from "./capabilities.js";
 import { ChatHeader } from "./components/chat-header.js";
 import { Composer } from "./components/composer.js";
 import { Confirmation } from "./components/confirmation.js";
 import { Conversation } from "./components/conversation.js";
+import { GuidedExamples } from "./components/guided-examples.js";
 import { Sidebar } from "./components/sidebar.js";
 import { TechnicalDetails } from "./components/technical-details.js";
 import {
@@ -27,8 +30,10 @@ interface ConfirmationRequest {
   onConfirm(): void;
 }
 
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: this is the single view-composition boundary for explicit desktop capabilities.
 // biome-ignore lint/complexity/noExcessiveLinesPerFunction: this is the single view-composition boundary; workflow logic remains in the small helpers above.
-export function App() {
+export function App({ api, capabilities }: { api: DesktopApi; capabilities: DesktopCapabilities }) {
+  const appearance = useAppearance();
   const [state, dispatch] = useReducer(desktopReducer, initialDesktopState);
   const [desktopError, setDesktopError] = useState<string>();
   const [submitting, setSubmitting] = useState(false);
@@ -41,51 +46,76 @@ export function App() {
     thinkingSupported: true,
   });
   useEffect(() => {
-    void bootstrapDesktop()
+    void api
+      .bootstrapDesktop()
       .then((snapshot) => {
         setModel(snapshot.model);
         if (snapshot.model.state === "unsupported" && snapshot.model.message !== undefined) {
           setDesktopError(snapshot.model.message);
         }
         dispatch({ type: "desktop.hydrate", snapshot });
+        if (snapshot.initialSessionId !== undefined) {
+          void selectSession(api, snapshot.initialSessionId, dispatch, setDesktopError);
+        }
       })
       .catch(() => setDesktopError("Vault Core could not be started."));
-  }, []);
+  }, [api]);
   useEffect(() => {
     if (!state.loaded) return;
     const running = state.activeRun?.state === "queued" || state.activeRun?.state === "running";
     const refresh = () =>
-      void getModelStatus()
+      void api
+        .getModelStatus()
         .then(setModel)
         .catch(() => undefined);
     refresh();
     if (!running) return;
     const timer = window.setInterval(refresh, 700);
     return () => window.clearInterval(timer);
-  }, [state.activeRun?.state, state.loaded]);
+  }, [api, state.activeRun?.state, state.loaded]);
+  const nativeUnavailable = capabilities.nativeActions
+    ? undefined
+    : (capabilities.unavailableReason ?? "Unavailable in the public demo");
   const folderName = state.folders.find(
     (folder) =>
       folder.id === state.newSessionFolderId ||
       folder.sessions.some((session) => session.id === state.activeSessionId),
   )?.name;
+  const running =
+    submitting || state.activeRun?.state === "queued" || state.activeRun?.state === "running";
+  const runTask = (text: string) =>
+    void send({
+      api,
+      text,
+      activeSessionId: state.activeSessionId,
+      newSessionFolderId: state.newSessionFolderId,
+      dispatch,
+      setError: setDesktopError,
+      setSubmitting,
+    });
   return (
-    <div className="app-shell">
+    <div
+      className="app-shell"
+      data-appearance={appearance.preference}
+      data-theme={appearance.resolved}
+    >
       <Sidebar
         activeSessionId={state.activeSessionId}
         disabled={!state.loaded}
         dispatch={dispatch}
         folders={state.folders}
         globalSessions={state.globalSessions}
-        onAddFolder={() => void addFolder(dispatch, setDesktopError)}
+        nativeActionMessage={nativeUnavailable}
+        onAddFolder={() => void addFolder(api, dispatch, setDesktopError)}
         onNewSession={(folderId) => dispatch({ type: "session.new", folderId })}
-        onOpenFolder={(folderId) => void showFolder(folderId, setDesktopError)}
+        onOpenFolder={(folderId) => void showFolder(api, folderId, setDesktopError)}
         onDeleteSession={(session) =>
           setConfirmation({
             title: `Delete “${session.title}”?`,
             description:
               "This permanently removes the conversation, its activity, and its generated-file records. This cannot be undone.",
             confirmLabel: "Delete conversation",
-            onConfirm: () => void deleteConversation(session.id, dispatch, setDesktopError),
+            onConfirm: () => void deleteConversation(api, session.id, dispatch, setDesktopError),
           })
         }
         onRevokeFolder={(folderId) => {
@@ -96,7 +126,8 @@ export function App() {
               "Vault Desk will remove access to this folder. Files on your computer and existing conversation history are not deleted.",
             confirmLabel: "Remove folder",
             onConfirm: () => {
-              void revokeFolder(folderId)
+              void api
+                .revokeFolder(folderId)
                 .then((revoked) => {
                   if (revoked) dispatch({ type: "folder.revoked", folderId });
                 })
@@ -104,28 +135,35 @@ export function App() {
             },
           });
         }}
-        onSelectSession={(sessionId) => void selectSession(sessionId, dispatch, setDesktopError)}
+        onSelectSession={(sessionId) =>
+          void selectSession(api, sessionId, dispatch, setDesktopError)
+        }
         onShowMore={(folderId) =>
-          void showMore(
+          void showMore({
+            api,
             folderId,
-            state.folders.find((folder) => folder.id === folderId)?.nextCursor ?? null,
+            cursor: state.folders.find((folder) => folder.id === folderId)?.nextCursor ?? null,
             dispatch,
-            setDesktopError,
-          )
+            setError: setDesktopError,
+          })
         }
       />
       <main aria-busy={!state.loaded} className="workspace">
         <div aria-hidden="true" className="window-drag-region" data-tauri-drag-region="" />
         <ChatHeader
+          appearance={appearance.preference}
           technicalDetailsOpen={technicalDetailsOpen}
           model={model}
+          nativeActionMessage={nativeUnavailable}
+          onAppearanceChange={appearance.cycle}
           onTechnicalDetailsOpen={() => setTechnicalDetailsOpen(true)}
           onUnload={() => {
-            void unloadModel()
+            void api
+              .unloadModel()
               .then(async (unloaded) => {
                 if (!unloaded)
                   setDesktopError("The model is still in use and could not be unloaded.");
-                setModel(await getModelStatus());
+                setModel(await api.getModelStatus());
               })
               .catch(() => setDesktopError("The model could not be unloaded."));
           }}
@@ -135,10 +173,17 @@ export function App() {
           catalogPath={state.catalogPath}
           executions={state.executions}
           key={`${state.activeSessionId ?? `new:${state.newSessionFolderId ?? "global"}`}:${technicalDetailsOpen ? "open" : "closed"}`}
+          api={api}
+          nativeActionMessage={nativeUnavailable}
           onClose={() => setTechnicalDetailsOpen(false)}
           open={technicalDetailsOpen}
           sessionId={state.activeSessionId}
           timeline={state.timeline}
+        />
+        <GuidedExamples
+          disabled={!state.loaded || running}
+          examples={capabilities.guidedExamples ?? []}
+          onRun={runTask}
         />
         {desktopError === undefined ? null : (
           <div className="error-banner" role="alert">
@@ -158,7 +203,13 @@ export function App() {
           key={state.activeSessionId ?? `new:${state.newSessionFolderId ?? "global"}`}
           ready={state.loaded}
           onSuggestion={(draft) =>
-            changeDraft(draft, state.activeSessionId, dispatch, setDesktopError)
+            changeDraft({
+              api,
+              draft,
+              sessionId: state.activeSessionId,
+              dispatch,
+              setError: setDesktopError,
+            })
           }
           timeline={state.timeline}
           performance={state.activeRun?.performance ?? null}
@@ -169,17 +220,32 @@ export function App() {
           attachments={state.attachments}
           draft={state.draft}
           disabled={!state.loaded || model.state === "unsupported"}
+          nativeActionMessage={nativeUnavailable}
           onAttach={() =>
-            void attach(state.activeSessionId, state.newSessionFolderId, dispatch, setDesktopError)
+            void attach({
+              api,
+              activeSessionId: state.activeSessionId,
+              newSessionFolderId: state.newSessionFolderId,
+              dispatch,
+              setError: setDesktopError,
+            })
           }
           onCancel={() => {
             if (state.activeRun !== undefined) {
-              void cancelAgent(state.activeRun.jobId).catch(() =>
-                setDesktopError("The task could not be cancelled."),
-              );
+              void api
+                .cancelAgent(state.activeRun.jobId)
+                .catch(() => setDesktopError("The task could not be cancelled."));
             }
           }}
-          onChange={(draft) => changeDraft(draft, state.activeSessionId, dispatch, setDesktopError)}
+          onChange={(draft) =>
+            changeDraft({
+              api,
+              draft,
+              sessionId: state.activeSessionId,
+              dispatch,
+              setError: setDesktopError,
+            })
+          }
           onRemoveAttachment={(attachmentId) => {
             if (state.activeSessionId !== undefined) {
               const attachmentName = state.attachments.find(
@@ -191,26 +257,20 @@ export function App() {
                 description:
                   "This removes the attachment from the conversation. The original file on your computer is unchanged.",
                 confirmLabel: "Remove attachment",
-                onConfirm: () => void remove(sessionId, attachmentId, dispatch, setDesktopError),
+                onConfirm: () =>
+                  void remove({
+                    api,
+                    sessionId,
+                    attachmentId,
+                    dispatch,
+                    setError: setDesktopError,
+                  }),
               });
             }
           }}
-          onSend={(text) =>
-            void send({
-              text,
-              activeSessionId: state.activeSessionId,
-              newSessionFolderId: state.newSessionFolderId,
-              dispatch,
-              setError: setDesktopError,
-              setSubmitting,
-            })
-          }
+          onSend={runTask}
           removableAttachmentIds={state.removableAttachmentIds}
-          running={
-            submitting ||
-            state.activeRun?.state === "queued" ||
-            state.activeRun?.state === "running"
-          }
+          running={running}
         />
       </main>
       <Confirmation

@@ -5,6 +5,7 @@ interface SidebarItemRowProps {
   active?: boolean;
   deleteLabel: string;
   disabled: boolean;
+  nativeActionMessage?: string | undefined;
   expanded?: boolean;
   label: string;
   startActionLabel?: string;
@@ -22,8 +23,9 @@ export function SidebarItemRow(props: SidebarItemRowProps) {
         <button
           aria-label={props.startActionLabel}
           className="sidebar-item-start"
-          disabled={props.disabled}
+          disabled={props.disabled || props.nativeActionMessage !== undefined}
           onClick={props.onStartAction}
+          title={props.nativeActionMessage}
           type="button"
         >
           <Icon name={props.startIcon ?? "folder"} />
@@ -42,8 +44,9 @@ export function SidebarItemRow(props: SidebarItemRowProps) {
       <button
         aria-label={props.deleteLabel}
         className="sidebar-item-delete"
-        disabled={props.disabled}
+        disabled={props.disabled || props.nativeActionMessage !== undefined}
         onClick={props.onDelete}
+        title={props.nativeActionMessage}
         type="button"
       >
         <Icon name="trash" />
