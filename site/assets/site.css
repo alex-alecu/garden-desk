@@ -833,7 +833,7 @@ iframe:focus-visible {
     0 24px 54px rgb(0 12 16 / 24%);
 }
 
-.privacy-number {
+.privacy-icon {
   display: grid;
   width: 46px;
   height: 46px;
@@ -842,10 +842,13 @@ iframe:focus-visible {
   border-radius: 14px;
   color: var(--teal-bright);
   background: rgb(118 183 170 / 8%);
-  font-size: 11px;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-  letter-spacing: 0.08em;
+}
+
+.privacy-icon svg {
+  width: 23px;
+  height: 23px;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .privacy-list h3 {
