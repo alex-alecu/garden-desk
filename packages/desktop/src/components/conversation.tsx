@@ -1,6 +1,7 @@
 import type { AgentArtifactSummary, AgentRunPerformance } from "@vault/shared";
 import { useLayoutEffect, useRef } from "react";
-import Markdown from "react-markdown";
+import Markdown, { type Components } from "react-markdown";
+import remarkGfm from "remark-gfm";
 import type { TimelineItem } from "../state.js";
 
 interface ConversationProps {
@@ -123,10 +124,28 @@ function ResponseMetrics({ performance }: { performance: AgentRunPerformance }) 
   );
 }
 
+// biome-ignore-start lint/a11y/noNoninteractiveTabindex: Overflowing tables need a keyboard scroll target.
+const assistantMarkdownComponents: Components = {
+  table({ children }) {
+    return (
+      <section aria-label="Response table" className="assistant-table-scroll" tabIndex={0}>
+        <table>{children}</table>
+      </section>
+    );
+  },
+};
+// biome-ignore-end lint/a11y/noNoninteractiveTabindex: Overflowing tables need a keyboard scroll target.
+
 function AssistantResponse({ children }: { children: string }) {
   return (
     <div className="assistant-markdown">
-      <Markdown disallowedElements={["a", "img"]} skipHtml unwrapDisallowed>
+      <Markdown
+        components={assistantMarkdownComponents}
+        disallowedElements={["a", "img"]}
+        remarkPlugins={[remarkGfm]}
+        skipHtml
+        unwrapDisallowed
+      >
         {children}
       </Markdown>
     </div>

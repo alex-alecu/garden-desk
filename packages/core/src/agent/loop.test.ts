@@ -229,7 +229,9 @@ function expectObservationPrompts(prompts: string[]): void {
   expect(prompts[1]).toContain("path.suffix.lower()");
   expect(prompts[1]).toContain("print(path.name, sheet.title, row)");
   expect(prompts[1]).toContain("smallest repair");
-  expect(prompts[1]).toContain("CommonMark Markdown when formatting improves readability");
+  expect(prompts[1]).toContain(
+    "Always return final responses as concise GitHub Flavored Markdown, including single-line answers",
+  );
   expect(prompts[0]).toContain("Current required phase: inspect before calculating.");
   expect(prompts[1]).not.toContain("Current required phase: inspect before calculating.");
   expect(prompts[1]).toContain("Current required phase: calculate and verify");

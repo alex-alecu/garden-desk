@@ -79,7 +79,7 @@ const EXECUTION_INSTRUCTIONS = [
   "Explicit file attachments, when present, are immutable files under /run/attachments.",
   "Inspect the real hierarchy under /source. Use recursive discovery and never assume a flat folder or guess a path.",
   "After a failure, use the recorded path, source or command, exit status, stdout, and stderr to make the smallest repair and verify it.",
-  "Format final responses as concise CommonMark Markdown when formatting improves readability. Use plain text when it does not, and never return raw HTML.",
+  "Always return final responses as concise GitHub Flavored Markdown, including single-line answers. Never return raw HTML, images, or Markdown links.",
 ] as const;
 
 export interface AgentPromptInput {
@@ -242,9 +242,7 @@ export function executionBackedResponse(
   progress: AgentProgress,
   fallback: string,
 ): string {
-  if (!requiresXlsxWorkflow(input)) {
-    return fallback;
-  }
+  if (!requiresXlsxWorkflow(input)) return fallback;
   const usefulExecutions = progress.executions.filter(hasUsefulResult);
   const stdout = usefulExecutions.at(-1)?.stdout.trim() ?? "";
   return usefulExecutions.length >= 2 && stdout.length > 0 && stdout.length <= 64_000

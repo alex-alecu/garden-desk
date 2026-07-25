@@ -64,7 +64,7 @@ Switching sessions restores conversation turns, agent activity summaries, artifa
 The conversation timeline supports:
 
 - User and assistant messages.
-- CommonMark rendering for assistant responses, while user messages remain literal text. Raw HTML and images are not rendered, and links remain non-navigating text.
+- All assistant responses render as GitHub Flavored Markdown, including single-line answers, tables, task lists, and strikethrough, while user messages remain literal text. Raw HTML and images are not rendered, and links remain non-navigating text.
 - Streaming assistant text.
 - Concise model-planning, execution-purpose, completion, failure, and cancellation activity inline in chronological order without code or logs.
 - Generated scratch artifacts inline with the surrounding task activity and response.
@@ -79,6 +79,8 @@ The conversation timeline supports:
 When the approved model and runtime expose a typed thought segment, the current segment may stream into a clearly labeled transient card while generation is active. It is held only in memory and disappears at the terminal result. Hidden or unsegmented internal reasoning is never inferred, exposed, or persisted. Activity describes observable actions and results only.
 
 The empty state uses one short prompt and a few task suggestions relevant to the current context, such as exploring files, reviewing and suggesting improvements, comparing documents or data, or diagnosing a failure. Folder conversations include the folder name directly in the prompt; global chats use the prompt without folder context.
+
+On wide windows, the welcome state, conversation, and composer share a 1,040-pixel maximum content width. Assistant responses may use that full width for code and tables. User messages remain right-aligned in a narrower warm-neutral bubble; narrow windows retain compact gutters and allow the bubble to expand without horizontal page overflow.
 
 ## Composer
 
@@ -129,3 +131,4 @@ Runtime, quantization, context-window, endpoint, and model-file vocabulary stays
 | 2026-07-23 | Replaced folder snapshots and disposable scratch with the live read-only source mount and persistent session workspace. |
 | 2026-07-23 | Added the Overview-first Technical details drawer with collapsed execution logs, selectable bounded streams, typed VM diagnostics, and scroll-follow controls. |
 | 2026-07-24 | Added installed-app private debug snapshot creation and reveal without webview path or process authority. |
+| 2026-07-25 | Added safe GFM tables and richer chat typography within a wider unified conversation layout. |

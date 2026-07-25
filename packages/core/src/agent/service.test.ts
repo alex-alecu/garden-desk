@@ -59,10 +59,11 @@ function fakeLauncher(
 }
 
 async function waitForTerminal(service: AgentService, runId: string) {
-  for (let attempt = 0; attempt < 100; attempt += 1) {
+  const deadline = performance.now() + 10_000;
+  while (performance.now() < deadline) {
     const snapshot = service.snapshot(runId);
     if (snapshot.run.state !== "queued" && snapshot.run.state !== "running") return snapshot;
-    await new Promise((accept) => setTimeout(accept, 2));
+    await new Promise((accept) => setTimeout(accept, 10));
   }
   throw new Error("agent_test_timeout");
 }

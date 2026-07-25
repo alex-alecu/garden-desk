@@ -96,8 +96,8 @@ describe("AgentLoop repairs", () => {
   });
 });
 
-describe("AgentLoop execution-backed results", () => {
-  it("returns the verified XLSX result without model retyping", async () => {
+describe("AgentLoop verified results", () => {
+  it("returns the final XLSX stdout without model reformatting", async () => {
     const inspection = { ...completed, source: "print('rows')", stdout: "rows\n" };
     const resultEvidence = {
       ...completed,
@@ -172,6 +172,7 @@ describe("AgentLoop selected-folder XLSX", () => {
     expect(prompts[1]).toContain("Current required phase: calculate and verify");
     expect(schemas[0]).not.toHaveProperty("oneOf");
     expect(schemas[1]).not.toHaveProperty("oneOf");
+    expect(schemas).toHaveLength(2);
   });
 });
 
