@@ -1,9 +1,15 @@
+import { resolve } from "node:path";
 import { defineConfig } from "vitest/config";
 
 export default defineConfig({
   test: {
     projects: [
       {
+        resolve: {
+          alias: {
+            "@vault/shared": resolve("packages/shared/src/index.ts"),
+          },
+        },
         test: {
           name: "unit",
           include: [
@@ -14,6 +20,8 @@ export default defineConfig({
             "packages/desktop/src/**/*.test.ts",
             "packages/desktop/src/**/*.test.tsx",
             "packages/eval/src/gates/**/*.test.ts",
+            "site/**/*.test.ts",
+            "site/**/*.test.tsx",
           ],
           exclude: [
             "**/node_modules/**",

@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <title>Vault Desk</title>
+  <rect width="64" height="64" rx="15" fill="#101d2c"/>
+  <path d="M19 23v24h8V32h10v15h8V23H19Z" fill="#f5f0e7"/>
+  <path d="M24 23v-7l16-4v11" fill="#68a0a8"/>
+  <circle cx="32" cy="39" r="5" fill="#68a0a8"/>
+</svg>

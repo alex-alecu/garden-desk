@@ -141,6 +141,13 @@ textarea:focus-visible {
   line-height: 1.5;
 }
 
+.demo-unavailable-note {
+  margin: 4px 10px 10px;
+  color: #8b8580;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
 .folder-group {
   margin-bottom: 6px;
 }
@@ -263,6 +270,43 @@ textarea:focus-visible {
   min-height: 0;
   flex: 1 1 auto;
   background: #fff;
+}
+
+.workspace:has(.guided-examples) {
+  grid-template-rows: 68px auto minmax(0, 1fr) auto;
+}
+
+.guided-examples {
+  padding: 10px 22px 11px;
+  border-bottom: 1px solid var(--border-color);
+  background: #faf9f8;
+}
+
+.guided-examples p {
+  margin: 0 0 7px;
+  color: #7b746f;
+  font-size: 11px;
+  font-weight: 680;
+  letter-spacing: 0.035em;
+  text-transform: uppercase;
+}
+
+.guided-examples div {
+  display: flex;
+  gap: 7px;
+  overflow-x: auto;
+}
+
+.guided-examples button {
+  min-height: 30px;
+  flex: 0 0 auto;
+  padding: 0 11px;
+  border: 1px solid rgb(101 88 217 / 13%);
+  border-radius: 999px;
+  color: #5147b5;
+  background: #f4f1ff;
+  cursor: pointer;
+  font-size: 12px;
 }
 
 .chat-header {

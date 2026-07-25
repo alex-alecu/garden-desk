@@ -1,0 +1,64 @@
+html,
+body,
+#root {
+  min-height: 0;
+}
+
+body {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  height: 100vh;
+  overflow: hidden;
+}
+
+.demo-frame {
+  display: flex;
+  min-height: 42px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 18px;
+  color: #443d39;
+  background: #f2efff;
+  border-bottom: 1px solid rgb(101 88 217 / 16%);
+  font-size: 13px;
+  font-weight: 650;
+  letter-spacing: 0.005em;
+}
+
+.demo-frame::before {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #6558d9;
+  content: "";
+}
+
+#root {
+  height: auto;
+}
+
+@media (max-width: 700px) {
+  .sidebar {
+    width: 174px;
+    min-width: 154px;
+    padding-inline: 7px;
+    resize: none;
+  }
+
+  .brand {
+    font-size: 16px;
+  }
+
+  .workspace {
+    --chat-content-gutter: 28px;
+  }
+
+  .unload-action span {
+    display: none;
+  }
+
+  .guided-examples {
+    padding-inline: 14px;
+  }
+}

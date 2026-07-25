@@ -1,7 +1,7 @@
 import type { AgentArtifactSummary, AgentExecutionSnapshot } from "@vault/shared";
 import { useReducer, useState } from "react";
 import capabilities from "../../../workers/images/agent/capabilities.json" with { type: "json" };
-import { createDebugSnapshot, revealDebugSnapshot } from "../api.js";
+import type { DesktopApi } from "../api.js";
 import {
   type DebugSnapshotState,
   debugSnapshotReducer,
@@ -15,12 +15,14 @@ import { ExecutionStatus, LogsPanel } from "./technical-logs.js";
 export { shouldFollowLog } from "./technical-logs.js";
 
 interface TechnicalDetailsProps {
+  api: DesktopApi;
   artifacts: AgentArtifactSummary[];
   catalogPath: string;
   executions: AgentExecutionSnapshot[];
   open: boolean;
   sessionId: string | undefined;
   timeline: TimelineItem[];
+  nativeActionMessage?: string | undefined;
   onClose(): void;
 }
 
@@ -91,12 +93,20 @@ export function DebugSnapshotPanel({
   );
 }
 
-function DebugSnapshotControls({ sessionId }: { sessionId: string }) {
+function DebugSnapshotControls({
+  api,
+  nativeActionMessage,
+  sessionId,
+}: {
+  api: DesktopApi;
+  nativeActionMessage?: string | undefined;
+  sessionId: string;
+}) {
   const [state, dispatch] = useReducer(debugSnapshotReducer, initialDebugSnapshotState);
   const create = async () => {
     dispatch({ type: "create.start" });
     try {
-      dispatch({ type: "create.succeeded", path: await createDebugSnapshot(sessionId) });
+      dispatch({ type: "create.succeeded", path: await api.createDebugSnapshot(sessionId) });
     } catch {
       dispatch({ type: "create.failed" });
     }
@@ -104,12 +114,22 @@ function DebugSnapshotControls({ sessionId }: { sessionId: string }) {
   const reveal = async () => {
     dispatch({ type: "reveal.start" });
     try {
-      await revealDebugSnapshot(sessionId);
+      await api.revealDebugSnapshot(sessionId);
       dispatch({ type: "reveal.succeeded" });
     } catch {
       dispatch({ type: "reveal.failed" });
     }
   };
+  if (nativeActionMessage !== undefined) {
+    return (
+      <div className="debug-snapshot-controls">
+        <button disabled title={nativeActionMessage} type="button">
+          Create debug snapshot
+        </button>
+        <p>{nativeActionMessage}</p>
+      </div>
+    );
+  }
   return (
     <DebugSnapshotPanel
       onCreate={() => void create()}
@@ -120,14 +140,22 @@ function DebugSnapshotControls({ sessionId }: { sessionId: string }) {
 }
 
 function Overview({
+  api,
   artifacts,
   catalogPath,
   executions,
+  nativeActionMessage,
   sessionId,
   timeline,
 }: Pick<
   TechnicalDetailsProps,
-  "artifacts" | "catalogPath" | "executions" | "sessionId" | "timeline"
+  | "api"
+  | "artifacts"
+  | "catalogPath"
+  | "executions"
+  | "nativeActionMessage"
+  | "sessionId"
+  | "timeline"
 >) {
   const limits = timeline.find((item) => item.eventType === "run.started")?.text;
   return (
@@ -145,7 +173,12 @@ function Overview({
             session&apos;s SQLite-backed records, workspace, generated files, inference traces, and
             bounded microVM logs. Share it only through an approved channel.
           </p>
-          <DebugSnapshotControls key={sessionId} sessionId={sessionId} />
+          <DebugSnapshotControls
+            api={api}
+            key={sessionId}
+            nativeActionMessage={nativeActionMessage}
+            sessionId={sessionId}
+          />
         </article>
       )}
       <article className="technical-details-item">

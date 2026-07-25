@@ -4,6 +4,7 @@ import { Icon } from "./icons.js";
 interface ChatHeaderProps {
   technicalDetailsOpen: boolean;
   model: ModelRuntimeStatus;
+  nativeActionMessage?: string | undefined;
   onTechnicalDetailsOpen(): void;
   onUnload(): void;
 }
@@ -45,6 +46,7 @@ function modelUsage(model: ModelRuntimeStatus) {
 export function ChatHeader({
   technicalDetailsOpen,
   model,
+  nativeActionMessage,
   onTechnicalDetailsOpen,
   onUnload,
 }: ChatHeaderProps) {
@@ -72,9 +74,12 @@ export function ChatHeader({
       <div className="header-actions">
         <button
           className="header-action unload-action"
-          disabled={model.state !== "ready"}
+          disabled={model.state !== "ready" || nativeActionMessage !== undefined}
           onClick={onUnload}
-          title={model.state === "ready" ? "Unload model from memory" : modelStatus}
+          title={
+            nativeActionMessage ??
+            (model.state === "ready" ? "Unload model from memory" : modelStatus)
+          }
           type="button"
         >
           <Icon name="power" />

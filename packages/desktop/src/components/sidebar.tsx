@@ -11,6 +11,7 @@ interface SidebarProps {
   dispatch: Dispatch<DesktopAction>;
   folders: FolderGroup[];
   globalSessions: SessionSummary[];
+  nativeActionMessage?: string | undefined;
   onAddFolder(): void;
   onNewSession(folderId: string | null): void;
   onOpenFolder(folderId: string): void;
@@ -31,6 +32,7 @@ function FolderSection(props: SidebarProps) {
         disabled={props.disabled}
         expanded={folder.expanded}
         label={folder.name}
+        nativeActionMessage={props.nativeActionMessage}
         onDelete={() => props.onRevokeFolder(folder.id)}
         onSelect={() => props.dispatch({ type: "folder.toggle", folderId: folder.id })}
         onStartAction={() => props.onOpenFolder(folder.id)}
@@ -42,6 +44,7 @@ function FolderSection(props: SidebarProps) {
           activeSessionId={props.activeSessionId}
           disabled={props.disabled}
           folder={folder}
+          nativeActionMessage={props.nativeActionMessage}
           onNewSession={props.onNewSession}
           onDeleteSession={props.onDeleteSession}
           onSelectSession={props.onSelectSession}
@@ -76,6 +79,7 @@ export function Sidebar(props: SidebarProps) {
               disabled={props.disabled}
               key={session.id}
               label={session.title}
+              nativeActionMessage={props.nativeActionMessage}
               onDelete={() => props.onDeleteSession(session)}
               onSelect={() => props.onSelectSession(session.id)}
             />
@@ -84,13 +88,17 @@ export function Sidebar(props: SidebarProps) {
         <h2 className="sidebar-label">Folders</h2>
         <button
           className="nav-action"
-          disabled={props.disabled}
+          disabled={props.disabled || props.nativeActionMessage !== undefined}
           onClick={props.onAddFolder}
+          title={props.nativeActionMessage}
           type="button"
         >
           <Icon name="add" />
           Add folder
         </button>
+        {props.nativeActionMessage === undefined ? null : (
+          <p className="demo-unavailable-note">{props.nativeActionMessage}</p>
+        )}
         <div className="folder-scroll">
           <FolderSection {...props} />
         </div>

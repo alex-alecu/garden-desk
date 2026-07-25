@@ -1,6 +1,6 @@
 # Milestone M3 Status
 
-Updated: 2026-07-24
+Updated: 2026-07-25
 
 The persistent-workspace M3 implementation is complete and certified on physical Apple silicon. The cross-platform M3 and Community Desktop V1 launch gate remain open until Windows HCS Plan9 integration and physical Windows acceptance pass.
 
@@ -8,10 +8,18 @@ The persistent-workspace M3 implementation is complete and certified on physical
 
 - Goal: let the local agent inspect a selected folder live, work iteratively in a durable session workspace, and run Python, Node.js, or installed shell commands inside one reusable offline microVM.
 - Authority: M3 was activated by the repository owner on 2026-07-20; the owner explicitly reopened ADR 0018 for the persistent-workspace revision on 2026-07-23.
-- Product surface: New chat, immutable file attachments, folder groups, recent persistent sessions, drafts, durable messages, normalized execution records, durable inference traces, warm-session restoration, cancellation, artifacts, and Overview-first Technical details with live logs.
+- Product surface: New chat, immutable file attachments, folder groups, recent persistent sessions, drafts, durable messages, normalized execution records, durable inference traces, warm-session restoration, cancellation, artifacts, Overview-first Technical details with live logs, and the static public launch website with its synthetic interactive demo.
 - Security boundary: the webview has no host authority; Vault Core owns grants, policy, audit, inference mediation, VM lifecycle, and workspace manifests; the guest has zero NICs, an immutable root, a live read-only `/source`, and writable access only to bounded `/workspace` and ephemeral `/run/user`.
 - Platform scope: certified macOS VirtioFS now; Windows HCS Plan9 with host and guest read-only enforcement remains the active platform handoff.
 - Explicitly deferred: host shell, writable source mounts, networking, package installation, Git tooling, document intelligence, external integrations, and arbitrary downloadable libraries.
+
+## Public Launch Website
+
+- The static site serves `/`, `/demo/`, `/downloads/`, `/privacy/`, `/terms/`, and `/security/` from the GitHub Pages project path. It includes canonical and social metadata, a 1200×630 branded preview, structured application metadata, robots and sitemap files, a branded 404 page, and accurate “Coming soon” macOS Apple Silicon and Windows x64 download cards.
+- The embedded and full-window demos reuse the desktop React app, reducer, components, and stylesheet through an injected `DesktopApi`. Production continues to pass the Tauri adapter explicitly; the demo bundle does not import Tauri.
+- Demo fixtures contain invented financial, agreement, health-administration, and CV content. Guided tasks move deterministically through queued, running, and succeeded states in browser memory. Other prompts receive an immediate explanation that no model runs. Reloading resets the adapter.
+- Native or destructive controls remain visible but disabled with an “Unavailable in the public demo” explanation. The demo performs no fetch, upload, persistence, browser storage, telemetry, or form submission.
+- `pnpm site:check` builds and validates the route, link, metadata, sitemap, download, iframe, remote-asset, tracker, form, network, and no-Tauri contracts. GitHub Pages deployment is commit-pinned and begins from `main`; production activation and route smoke tests remain post-merge work.
 
 ## Implemented Mac Product
 

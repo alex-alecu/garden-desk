@@ -12,5 +12,5 @@
     "outDir": ".generated/types",
     "types": ["vite/client"]
   },
-  "include": ["src/**/*.ts", "src/**/*.tsx", "vite.config.ts"]
+  "include": ["src/**/*.ts", "src/**/*.tsx", "vite.config.ts", "site.vite.config.ts"]
 }

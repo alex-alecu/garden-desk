@@ -1,6 +1,7 @@
 import { AgentArtifactSummarySchema, AgentExecutionSnapshotSchema } from "@vault/shared";
 import { renderToStaticMarkup } from "react-dom/server";
 import { expect, it } from "vitest";
+import type { DesktopApi } from "./api.js";
 import {
   DebugSnapshotPanel,
   shouldFollowLog,
@@ -109,6 +110,7 @@ const timeline = [
 function renderTechnicalDetails(): string {
   return renderToStaticMarkup(
     <TechnicalDetails
+      api={{} as DesktopApi}
       artifacts={[artifact]}
       catalogPath="/Users/alex/Library/Application Support/dev.vaultdesk.desktop/state/.vault/catalog.sqlite"
       executions={[execution]}
