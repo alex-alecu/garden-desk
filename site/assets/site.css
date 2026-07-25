@@ -454,7 +454,6 @@ iframe:focus-visible {
 .hero-card::before,
 .hero-card::after {
   position: absolute;
-  border: 1px solid rgb(255 255 255 / 8%);
   border-radius: 50%;
   content: "";
 }
@@ -462,12 +461,23 @@ iframe:focus-visible {
 .hero-card::before {
   width: 380px;
   height: 380px;
+  background: conic-gradient(
+    from 10deg,
+    transparent 0 28%,
+    rgb(118 183 170 / 46%) 36%,
+    transparent 44% 70%,
+    rgb(217 104 67 / 38%) 78%,
+    transparent 86%
+  );
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 2px), #000 0);
+  mask: radial-gradient(farthest-side, transparent calc(100% - 2px), #000 0);
   animation: ring-turn 24s linear infinite;
 }
 
 .hero-card::after {
   width: 265px;
   height: 265px;
+  border: 1px solid rgb(255 255 255 / 8%);
 }
 
 .hero-card img {
@@ -478,6 +488,87 @@ iframe:focus-visible {
   border-radius: 28px;
   box-shadow: 0 28px 75px rgb(0 0 0 / 38%);
   animation: mark-float 6s ease-in-out infinite;
+}
+
+.format-cloud {
+  position: absolute;
+  z-index: 2;
+  inset: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  pointer-events: none;
+}
+
+.format-chip {
+  --chip-color: var(--teal-bright);
+  position: absolute;
+  display: flex;
+  min-width: 76px;
+  min-height: 42px;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 10px;
+  border: 1px solid rgb(255 255 255 / 45%);
+  border-radius: 13px;
+  color: var(--chip-color);
+  background: rgb(255 250 240 / 91%);
+  box-shadow:
+    0 14px 34px rgb(0 10 14 / 27%),
+    inset 0 1px 0 rgb(255 255 255 / 72%);
+  backdrop-filter: blur(12px) saturate(1.2);
+  animation: file-float 5.8s ease-in-out infinite;
+}
+
+.format-chip svg {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.format-chip strong {
+  color: #153238;
+  font-size: 10px;
+  font-weight: 760;
+  letter-spacing: 0.08em;
+}
+
+.format-docx {
+  --chip-color: #3979cb;
+  top: 44px;
+  left: 20px;
+  animation-delay: -1.1s;
+}
+
+.format-xlsx {
+  --chip-color: #267a5b;
+  top: 42px;
+  right: 18px;
+  animation-delay: -3.7s;
+}
+
+.format-pdf {
+  --chip-color: #ce5a43;
+  top: 205px;
+  right: 6px;
+  animation-delay: -2.2s;
+}
+
+.format-image {
+  --chip-color: #9c672c;
+  bottom: 54px;
+  left: 34px;
+  animation-delay: -4.5s;
+}
+
+.format-csv {
+  --chip-color: #247c7b;
+  top: 210px;
+  left: 5px;
+  animation-delay: -0.4s;
 }
 
 .private-note {
@@ -1229,6 +1320,17 @@ iframe:focus-visible {
   }
 }
 
+@keyframes file-float {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-1deg);
+  }
+
+  50% {
+    transform: translateY(-9px) rotate(1deg);
+  }
+}
+
 @keyframes ring-turn {
   to {
     transform: rotate(360deg);
@@ -1371,6 +1473,43 @@ iframe:focus-visible {
     max-width: 210px;
   }
 
+  .format-chip {
+    min-width: 68px;
+    min-height: 38px;
+    gap: 6px;
+    padding: 7px 8px;
+  }
+
+  .format-chip svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .format-docx {
+    top: 27px;
+    left: 10px;
+  }
+
+  .format-xlsx {
+    top: 26px;
+    right: 9px;
+  }
+
+  .format-pdf {
+    top: 150px;
+    right: 3px;
+  }
+
+  .format-csv {
+    top: 154px;
+    left: 2px;
+  }
+
+  .format-image {
+    bottom: 44px;
+    left: 16px;
+  }
+
   .section {
     padding: 72px 0;
   }
@@ -1422,6 +1561,7 @@ iframe:focus-visible {
   .hero-art,
   .hero-card::before,
   .hero-card img,
+  .format-chip,
   .private-note,
   .demo-toolbar span::before,
   .section-heading,
