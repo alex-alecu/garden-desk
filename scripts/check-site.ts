@@ -16,6 +16,7 @@ const routeFiles = [
   "robots.txt",
   "sitemap.xml",
   "assets/social-card.png",
+  "assets/fonts/IBM-Plex-OFL.txt",
 ];
 
 async function text(path: string): Promise<string> {
@@ -149,6 +150,13 @@ for (const forbidden of [
   if (assetText.includes(forbidden)) failures.push(`bundle: contains forbidden ${forbidden}`);
 }
 if (/\bfetch\s*\(/u.test(assetText)) failures.push("bundle: contains a network fetch");
+if (/url\(["']?https?:/iu.test(assetText)) failures.push("bundle: contains a remote asset URL");
+
+const bundledFonts = (await files(join(output, "assets"))).filter(
+  (path) => extname(path) === ".woff2",
+);
+if (bundledFonts.length !== 8)
+  failures.push(`fonts: expected 8 bundled faces, found ${bundledFonts.length}`);
 
 const demoHtml = await text("demo/index.html");
 requireText(demoHtml, 'href="../"', "demo back link");

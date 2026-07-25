@@ -41,6 +41,12 @@
       "use": "desktop_typed_ipc"
     },
     {
+      "name": "IBM Plex",
+      "version": "2f9ba1b25957d958db71a849e85d72e3ecfb845a",
+      "license": "OFL-1.1",
+      "use": "self_hosted_desktop_and_public_site_typography"
+    },
+    {
       "name": "@types/react",
       "version": "19.2.17",
       "license": "MIT",

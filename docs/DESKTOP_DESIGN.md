@@ -27,7 +27,9 @@ Vault Desk V1 is a calm, conversation-centered desktop agent inspired by the str
 └──────────────────────┴─────────────────────────────────────────────────────┘
 ```
 
-The two stable regions are a compact, horizontally resizable white sidebar and a white conversation workspace, separated with the shared low-contrast border color. On macOS the sidebar background extends beneath the native traffic-light controls, which use equal top and left insets and align vertically with the model title, and the native title text is hidden. The header remains draggable around its controls. The composer stays anchored to the bottom of the workspace. A lightweight conversation header shows the approved model name, subtle live VRAM with context beneath it when the worker reports them, on-device state, manual unload action, and Technical details control without displacing folder navigation.
+The two stable regions are a compact, horizontally resizable petroleum sidebar and a warm, low-glare conversation workspace. Dark surrounding chrome reduces nighttime glare and visually contains navigation and technical controls; the reading pane uses a muted paper surface with dark ink, comfortable line height, and higher-luminance cards only where separation helps scanning. Teal identifies selection, progress, and ordinary actions, while ember is reserved for warnings and destructive actions. Self-hosted IBM Plex Sans carries interface and prose, Plex Serif distinguishes reading headings, and Plex Mono keeps code and technical evidence precise. The OFL-1.1 faces are bundled locally with no font service or runtime request. Focus colors remain visible against both dark chrome and warm paper.
+
+On macOS the sidebar background extends beneath the native traffic-light controls, which use equal top and left insets and align vertically with the model title, and the native title text is hidden. The header remains draggable around its controls. The composer stays anchored to the bottom of the workspace. A lightweight conversation header shows the approved model name, subtle live VRAM with context beneath it when the worker reports them, on-device state, manual unload action, and Technical details control without displacing folder navigation.
 
 ## Sidebar
 
@@ -132,3 +134,4 @@ Runtime, quantization, context-window, endpoint, and model-file vocabulary stays
 | 2026-07-23 | Added the Overview-first Technical details drawer with collapsed execution logs, selectable bounded streams, typed VM diagnostics, and scroll-follow controls. |
 | 2026-07-24 | Added installed-app private debug snapshot creation and reveal without webview path or process authority. |
 | 2026-07-25 | Added safe GFM tables and richer chat typography within a wider unified conversation layout. |
+| 2026-07-25 | Replaced the high-glare white shell with website-aligned petroleum chrome, warm reading surfaces, and self-hosted IBM Plex typography. |
