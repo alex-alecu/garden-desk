@@ -16,7 +16,6 @@ import { createGenerationRequest } from "../runtime/inference.js";
 import {
   type AgentProgress,
   type AgentPromptInput,
-  executionBackedResponse,
   generationInput,
   MAX_EXECUTIONS,
   parseDecision,
@@ -196,7 +195,7 @@ export class AgentLoop {
   private finish(input: AgentRunInput, progress: AgentProgress, response: string): AgentRunResult {
     input.onEvent?.("assistant.completed", "Response completed.");
     return AgentRunResultSchema.parse({
-      response: executionBackedResponse(input, progress, response),
+      response,
       ...progress,
     });
   }
@@ -232,8 +231,6 @@ export class AgentLoop {
       }
       this.recordOutcome(input, traced.turnId, "accepted_execution", progress.executions.length);
       await this.execute(input, decision, progress);
-      const verifiedResponse = executionBackedResponse(input, progress, "");
-      if (verifiedResponse.length > 0) return this.finish(input, progress, verifiedResponse);
     }
     input.signal?.throwIfAborted();
     const traced = await this.decide(input, progress, true);

@@ -236,18 +236,3 @@ export function parseDecision(value: unknown): AgentDecision {
   }
   return AgentDecisionSchema.parse(value);
 }
-
-export function executionBackedResponse(
-  input: AgentPromptInput,
-  progress: AgentProgress,
-  fallback: string,
-): string {
-  if (!requiresXlsxWorkflow(input)) {
-    return fallback;
-  }
-  const usefulExecutions = progress.executions.filter(hasUsefulResult);
-  const stdout = usefulExecutions.at(-1)?.stdout.trim() ?? "";
-  return usefulExecutions.length >= 2 && stdout.length > 0 && stdout.length <= 64_000
-    ? stdout
-    : fallback;
-}
