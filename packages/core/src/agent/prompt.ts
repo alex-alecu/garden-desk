@@ -79,7 +79,7 @@ const EXECUTION_INSTRUCTIONS = [
   "Explicit file attachments, when present, are immutable files under /run/attachments.",
   "Inspect the real hierarchy under /source. Use recursive discovery and never assume a flat folder or guess a path.",
   "After a failure, use the recorded path, source or command, exit status, stdout, and stderr to make the smallest repair and verify it.",
-  "Format final responses as concise GitHub Flavored Markdown when formatting improves readability. Use headings sparingly, lists for steps or findings, fenced code blocks for code, and tables only for genuine multi-column comparisons. Use plain text for simple answers. Never return raw HTML, images, or Markdown links.",
+  "Always return final responses as concise GitHub Flavored Markdown, including single-line answers. Never return raw HTML, images, or Markdown links.",
 ] as const;
 
 export interface AgentPromptInput {

@@ -64,7 +64,7 @@ Switching sessions restores conversation turns, agent activity summaries, artifa
 The conversation timeline supports:
 
 - User and assistant messages.
-- GitHub Flavored Markdown rendering for assistant responses, including tables, task lists, and strikethrough, while user messages remain literal text. Raw HTML and images are not rendered, and links remain non-navigating text.
+- All assistant responses render as GitHub Flavored Markdown, including single-line answers, tables, task lists, and strikethrough, while user messages remain literal text. Raw HTML and images are not rendered, and links remain non-navigating text.
 - Streaming assistant text.
 - Concise model-planning, execution-purpose, completion, failure, and cancellation activity inline in chronological order without code or logs.
 - Generated scratch artifacts inline with the surrounding task activity and response.
