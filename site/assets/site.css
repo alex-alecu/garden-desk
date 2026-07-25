@@ -913,14 +913,10 @@ iframe:focus-visible {
 .comparison-board {
   display: block;
   width: 100%;
-  overflow: hidden;
-  border: 1px solid rgb(7 46 52 / 13%);
+  border: 0;
   border-collapse: separate;
   border-spacing: 0;
-  border-radius: 26px 26px 26px 9px;
-  background: rgb(255 250 240 / 64%);
-  box-shadow: 0 26px 70px rgb(7 31 37 / 9%);
-  backdrop-filter: blur(10px);
+  background: transparent;
 }
 
 .comparison-board caption {
@@ -940,14 +936,33 @@ iframe:focus-visible {
   width: 100%;
 }
 
+.comparison-board tbody {
+  display: grid;
+  gap: 10px;
+}
+
 .comparison-row {
   display: grid;
   grid-template-columns: minmax(145px, 0.62fr) repeat(2, minmax(0, 1fr));
-  border-bottom: 1px solid rgb(7 46 52 / 10%);
+  overflow: hidden;
+  border: 1px solid rgb(7 46 52 / 11%);
+  border-radius: 18px;
+  background: rgb(255 250 240 / 66%);
+  box-shadow: 0 12px 28px rgb(7 31 37 / 5%);
+  backdrop-filter: blur(10px);
 }
 
-.comparison-row:last-child {
-  border-bottom: 0;
+.comparison-board tbody .comparison-row {
+  transition:
+    transform 220ms ease,
+    border-color 220ms ease,
+    box-shadow 220ms ease;
+}
+
+.comparison-board tbody .comparison-row:hover {
+  transform: translateY(-3px);
+  border-color: rgb(46 124 120 / 24%);
+  box-shadow: 0 17px 36px rgb(7 31 37 / 8%);
 }
 
 .comparison-row > * {
@@ -975,22 +990,28 @@ iframe:focus-visible {
 
 .comparison-row .comparison-vault {
   color: var(--ink);
-  background: linear-gradient(110deg, rgb(118 183 170 / 13%), rgb(255 250 240 / 34%));
+  background: linear-gradient(110deg, rgb(118 183 170 / 16%), rgb(234 240 232 / 38%));
   font-weight: 620;
 }
 
 .comparison-header {
-  color: #f7f3ea;
-  background: linear-gradient(110deg, #102f35, #071f25);
+  margin-bottom: 10px;
+  border-color: rgb(118 183 170 / 22%);
+  color: #e7f0eb;
+  background: linear-gradient(110deg, #12383d, #071f25 72%);
+  box-shadow: 0 18px 42px rgb(7 31 37 / 12%);
 }
 
 .comparison-header > * {
   min-height: 56px;
-  color: inherit;
   font-size: 11px;
   font-weight: 750;
   letter-spacing: 0.09em;
   text-transform: uppercase;
+}
+
+.comparison-header > th {
+  color: #e7f0eb;
 }
 
 .comparison-header > :last-child {
@@ -1116,18 +1137,28 @@ iframe:focus-visible {
 
 .model-facts {
   display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-self: center;
   align-content: center;
-  gap: 1px;
+  gap: 10px;
   margin: 0;
-  overflow: hidden;
-  border: 1px solid rgb(255 255 255 / 11%);
-  border-radius: 22px;
-  background: rgb(255 255 255 / 10%);
+  overflow: visible;
+  border: 0;
+  background: transparent;
 }
 
 .model-facts div {
-  padding: 19px 22px;
-  background: rgb(7 31 37 / 66%);
+  display: flex;
+  min-height: 118px;
+  flex-direction: column;
+  justify-content: center;
+  padding: 20px;
+  border: 1px solid rgb(255 255 255 / 11%);
+  border-radius: 18px;
+  background: linear-gradient(145deg, rgb(255 255 255 / 9%), rgb(7 31 37 / 46%));
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 6%),
+    0 14px 32px rgb(0 12 16 / 12%);
 }
 
 .model-facts dt,
@@ -2086,6 +2117,14 @@ iframe:focus-visible {
     border-radius: 26px 26px 9px 26px;
   }
 
+  .model-facts {
+    grid-template-columns: 1fr;
+  }
+
+  .model-facts div {
+    min-height: 0;
+  }
+
   .requirement-card {
     min-height: 0;
     gap: 18px;
@@ -2172,6 +2211,7 @@ iframe:focus-visible {
   .privacy-list article,
   .privacy-link,
   .privacy-link span,
+  .comparison-board tbody .comparison-row,
   .demo-wrap,
   .demo-toolbar a::after,
   .open-source-meta div {
@@ -2185,6 +2225,7 @@ iframe:focus-visible {
   .step-card:hover,
   .download-card:hover,
   .privacy-list article:hover,
+  .comparison-board tbody .comparison-row:hover,
   .dark .benefit-card:nth-child(2),
   .dark .benefit-card:nth-child(2):hover,
   .demo-wrap:hover,
