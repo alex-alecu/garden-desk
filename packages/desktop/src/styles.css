@@ -73,6 +73,8 @@
   --reading-raised: #ebe7dd;
   --reading-soft: #d0cdc5;
   --reading-border: rgb(18 50 56 / 14%);
+  --navigation-hover: rgb(40 111 109 / 8%);
+  --navigation-selected: #c8ddd6;
   --ink: #183238;
   --ink-soft: #4c5f61;
   --accent: #397f79;
@@ -91,7 +93,7 @@
     "IBM Plex Sans", ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
-  background: var(--shell);
+  background: var(--reading);
 }
 
 * {
@@ -140,7 +142,7 @@ textarea:focus-visible {
   width: 100%;
   height: 100%;
   min-width: 0;
-  background: var(--shell);
+  background: var(--reading);
 }
 
 .sidebar {
@@ -154,10 +156,9 @@ textarea:focus-visible {
   padding: 54px 12px 14px;
   overflow: hidden;
   resize: horizontal;
-  color: var(--chrome-text);
-  background:
-    radial-gradient(circle at 0 0, rgb(57 127 121 / 17%), transparent 15rem), var(--shell);
-  border-right: 1px solid var(--chrome-border);
+  color: var(--ink);
+  background: var(--reading-raised);
+  border-right: 1px solid var(--reading-border);
 }
 
 .window-drag-region {
@@ -173,7 +174,7 @@ textarea:focus-visible {
 .brand {
   padding: 7px 10px 17px;
   font-size: 18px;
-  color: #fff9ef;
+  color: var(--ink);
   font-family: "IBM Plex Serif", Charter, "Iowan Old Style", Georgia, serif;
   font-weight: 600;
   letter-spacing: -0.02em;
@@ -204,17 +205,17 @@ textarea:focus-visible {
 
 .nav-action:hover,
 .sidebar-item-select:hover {
-  background: var(--shell-hover);
+  background: var(--navigation-hover);
 }
 
 .new-folder-session:hover,
 .show-more:hover {
-  background: var(--shell-hover);
+  background: var(--navigation-hover);
 }
 
 .sidebar-label {
   margin: 18px 10px 8px;
-  color: var(--chrome-muted);
+  color: var(--ink-soft);
   font-size: 13px;
   font-weight: 600;
   letter-spacing: 0.02em;
@@ -232,14 +233,14 @@ textarea:focus-visible {
 
 .sidebar-empty {
   margin: 10px;
-  color: var(--chrome-muted);
+  color: var(--ink-soft);
   font-size: 13px;
   line-height: 1.5;
 }
 
 .demo-unavailable-note {
   margin: 4px 10px 10px;
-  color: var(--chrome-muted);
+  color: var(--ink-soft);
   font-size: 11px;
   line-height: 1.4;
 }
@@ -276,13 +277,13 @@ textarea:focus-visible {
 }
 
 .sidebar-item-row:hover {
-  background: var(--shell-hover);
+  background: var(--navigation-hover);
 }
 
 .sidebar-item-row:focus-within,
 .sidebar-item-row:has(.sidebar-item-select[aria-current="page"]) {
-  background: #194147;
-  box-shadow: inset 3px 0 var(--accent-soft);
+  background: var(--navigation-selected);
+  box-shadow: inset 3px 0 var(--accent);
 }
 
 .sidebar-item-select,
@@ -290,7 +291,7 @@ textarea:focus-visible {
 .show-more {
   min-height: 34px;
   padding: 0 10px;
-  color: #b7c6c3;
+  color: #3d5557;
   font-size: 13px;
 }
 
@@ -306,7 +307,7 @@ textarea:focus-visible {
   align-self: center;
   place-items: center;
   border-radius: 8px;
-  color: var(--chrome-muted);
+  color: var(--ink-soft);
   background: transparent;
   cursor: pointer;
 }
@@ -325,21 +326,21 @@ textarea:focus-visible {
 }
 
 .sidebar-item-delete:hover {
-  color: #f3aa8e;
-  background: rgb(217 104 67 / 16%);
+  color: #8d3825;
+  background: rgb(217 104 67 / 12%);
 }
 
 .sidebar-item-start:hover {
-  color: #a8d3cb;
-  background: rgb(57 127 121 / 22%);
+  color: var(--accent-strong);
+  background: rgb(57 127 121 / 10%);
 }
 
 .new-folder-session {
-  color: var(--chrome-muted);
+  color: var(--ink-soft);
 }
 
 .sidebar-item-select[aria-current="page"] {
-  color: #fffaf0;
+  color: var(--ink);
   background: transparent;
 }
 
@@ -360,7 +361,7 @@ textarea:focus-visible {
 }
 
 .show-more {
-  color: var(--chrome-muted);
+  color: var(--ink-soft);
 }
 
 .workspace {
@@ -429,9 +430,9 @@ textarea:focus-visible {
   align-items: center;
   justify-content: space-between;
   padding: 10px 20px 8px 22px;
-  color: var(--chrome-text);
-  border-bottom: 1px solid var(--chrome-border);
-  background: rgb(7 31 37 / 94%);
+  color: var(--ink);
+  border-bottom: 1px solid var(--reading-border);
+  background: rgb(235 231 221 / 92%);
   backdrop-filter: blur(18px) saturate(1.15);
   user-select: none;
 }
@@ -477,7 +478,7 @@ textarea:focus-visible {
   flex-direction: column;
   align-items: flex-start;
   overflow: hidden;
-  color: var(--chrome-muted);
+  color: var(--ink-soft);
   font-size: 10px;
   font-weight: 500;
   line-height: 1.15;
@@ -489,7 +490,7 @@ textarea:focus-visible {
 .model-state {
   gap: 6px;
   margin-top: 3px;
-  color: var(--chrome-muted);
+  color: var(--ink-soft);
   font-size: 11px;
 }
 
@@ -525,10 +526,10 @@ textarea:focus-visible {
   min-height: 34px;
   justify-content: center;
   gap: 7px;
-  border: 1px solid var(--chrome-border);
+  border: 1px solid var(--reading-border);
   border-radius: 10px;
-  color: #c4d2cf;
-  background: rgb(255 255 255 / 5%);
+  color: var(--ink-soft);
+  background: rgb(255 250 240 / 28%);
   cursor: pointer;
   transition:
     color 160ms ease,
@@ -537,9 +538,9 @@ textarea:focus-visible {
 }
 
 .header-action:hover:not(:disabled) {
-  border-color: rgb(118 183 170 / 32%);
-  color: #fffaf0;
-  background: rgb(57 127 121 / 22%);
+  border-color: rgb(40 111 109 / 28%);
+  color: var(--accent-strong);
+  background: var(--navigation-hover);
 }
 
 .unload-action {
@@ -1470,7 +1471,7 @@ textarea:focus-visible {
     resize: none;
     padding-top: 54px;
     border-right: 0;
-    border-bottom: 1px solid var(--chrome-border);
+    border-bottom: 1px solid var(--reading-border);
   }
 
   .folder-scroll {
