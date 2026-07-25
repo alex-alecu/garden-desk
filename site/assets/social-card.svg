@@ -1,26 +1,34 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
   <title>Vault Desk — Private work stays private</title>
   <defs>
-    <radialGradient id="glow" cx="70%" cy="30%" r="70%">
-      <stop offset="0" stop-color="#5d929a" stop-opacity=".35"/>
-      <stop offset=".65" stop-color="#101d2c" stop-opacity="0"/>
+    <radialGradient id="glow" cx="74%" cy="28%" r="70%">
+      <stop offset="0" stop-color="#76b7aa" stop-opacity=".42"/>
+      <stop offset=".68" stop-color="#071f25" stop-opacity="0"/>
     </radialGradient>
     <linearGradient id="panel" x1="0" x2="1" y1="0" y2="1">
-      <stop stop-color="#1b3044"/>
-      <stop offset="1" stop-color="#0b1522"/>
+      <stop stop-color="#123c41"/>
+      <stop offset="1" stop-color="#071f25"/>
     </linearGradient>
   </defs>
-  <rect width="1200" height="630" fill="#f7f4ed"/>
-  <rect x="34" y="34" width="1132" height="562" rx="42" fill="url(#panel)"/>
-  <rect x="34" y="34" width="1132" height="562" rx="42" fill="url(#glow)"/>
-  <circle cx="930" cy="315" r="202" fill="none" stroke="#ffffff" stroke-opacity=".08"/>
-  <circle cx="930" cy="315" r="146" fill="none" stroke="#ffffff" stroke-opacity=".08"/>
-  <image href="product-icon.png" x="795" y="180" width="270" height="270"/>
-  <text x="104" y="145" fill="#8db9be" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="22" font-weight="700" letter-spacing="4">VAULT DESK</text>
-  <text x="104" y="253" fill="#f7f3ea" font-family="Georgia, serif" font-size="66">Private work</text>
-  <text x="104" y="330" fill="#f7f3ea" font-family="Georgia, serif" font-size="66">stays private.</text>
-  <text x="108" y="407" fill="#b9c2c8" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="25">A local, offline-first desktop workspace</text>
-  <text x="108" y="445" fill="#b9c2c8" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="25">for sensitive files and reviewable results.</text>
-  <rect x="104" y="497" width="224" height="48" rx="24" fill="#f7f3ea"/>
-  <text x="136" y="529" fill="#101d2c" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="18" font-weight="700">Explore the demo</text>
+  <rect width="1200" height="630" fill="#f3eee3"/>
+  <path d="M76 34h1048a42 42 0 0 1 42 42v478a42 42 0 0 1-42 42H34V76a42 42 0 0 1 42-42Z" fill="url(#panel)"/>
+  <path d="M76 34h1048a42 42 0 0 1 42 42v478a42 42 0 0 1-42 42H34V76a42 42 0 0 1 42-42Z" fill="url(#glow)"/>
+  <circle cx="1112" cy="78" r="104" fill="#d96843" fill-opacity=".18"/>
+  <circle cx="930" cy="315" r="202" fill="none" stroke="#76b7aa" stroke-opacity=".15"/>
+  <circle cx="930" cy="315" r="146" fill="none" stroke="#ffffff" stroke-opacity=".09"/>
+  <path d="M713 72h270" stroke="#d96843" stroke-width="4" stroke-linecap="round"/>
+  <g aria-label="Vault Desk product mark">
+    <path d="M850 227v-34l157-39v73" fill="#76b7aa"/>
+    <path d="M815 253a25 25 0 0 1 25-25h180a25 25 0 0 1 25 25v162h-45V283H860v132h-45Z" fill="#fffaf0"/>
+    <circle cx="930" cy="348" r="65" fill="none" stroke="#fffaf0" stroke-width="22"/>
+    <circle cx="930" cy="348" r="25" fill="#76b7aa"/>
+    <path d="M930 298v-14m0 128v-14m-50-50h-14m128 0h-14" stroke="#fffaf0" stroke-width="9" stroke-linecap="round"/>
+  </g>
+  <text x="104" y="145" fill="#76b7aa" font-family="Avenir Next, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="22" font-weight="700" letter-spacing="4">VAULT DESK</text>
+  <text x="104" y="253" fill="#fffaf0" font-family="Charter, Georgia, serif" font-size="66">Private work</text>
+  <text x="104" y="330" fill="#76b7aa" font-family="Charter, Georgia, serif" font-size="66" font-style="italic">stays private.</text>
+  <text x="108" y="407" fill="#bfd0ce" font-family="Avenir Next, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="25">A local, offline-first desktop workspace</text>
+  <text x="108" y="445" fill="#bfd0ce" font-family="Avenir Next, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="25">for sensitive files and reviewable results.</text>
+  <rect x="104" y="497" width="224" height="48" rx="24" fill="#d96843"/>
+  <text x="136" y="529" fill="#fffaf0" font-family="Avenir Next, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="18" font-weight="700">Explore the demo</text>
 </svg>

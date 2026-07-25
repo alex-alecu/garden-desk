@@ -151,6 +151,8 @@ for (const forbidden of [
 if (/\bfetch\s*\(/u.test(assetText)) failures.push("bundle: contains a network fetch");
 
 const demoHtml = await text("demo/index.html");
+requireText(demoHtml, 'href="../"', "demo back link");
+requireText(demoHtml, 'target="_top"', "demo back link");
 const demoScript = demoHtml.match(/src="([^"]+\.js)"/u)?.[1];
 if (demoScript === undefined) {
   failures.push("demo: missing bundled script");
