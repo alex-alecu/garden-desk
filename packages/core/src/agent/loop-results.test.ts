@@ -97,7 +97,7 @@ describe("AgentLoop repairs", () => {
 });
 
 describe("AgentLoop verified results", () => {
-  it("asks the model for a final XLSX response after verified execution", async () => {
+  it("returns the final XLSX stdout without model reformatting", async () => {
     const inspection = { ...completed, source: "print('rows')", stdout: "rows\n" };
     const resultEvidence = {
       ...completed,
@@ -115,10 +115,6 @@ describe("AgentLoop verified results", () => {
             source: resultEvidence.source,
             summary: "Calculate",
           },
-          {
-            action: "respond",
-            response: "| Count | Total |\n| ---: | ---: |\n| 1 | 4 |",
-          },
         ],
         [],
         schemas,
@@ -132,11 +128,10 @@ describe("AgentLoop verified results", () => {
       inputNames: ["input.xlsx"],
     });
 
-    expect(result.response).toBe("| Count | Total |\n| ---: | ---: |\n| 1 | 4 |");
+    expect(result.response).toBe(resultEvidence.stdout.trim());
     expect(schemas[0]).not.toHaveProperty("oneOf");
     expect(schemas[1]).not.toHaveProperty("oneOf");
-    expect(schemas[2]).toHaveProperty("oneOf");
-    expect(schemas).toHaveLength(3);
+    expect(schemas).toHaveLength(2);
   });
 });
 
@@ -160,7 +155,6 @@ describe("AgentLoop selected-folder XLSX", () => {
             source: resultEvidence.source,
             summary: "Calculate",
           },
-          { action: "respond", response: "**Match count:** 1" },
         ],
         prompts,
         schemas,
@@ -173,12 +167,12 @@ describe("AgentLoop selected-folder XLSX", () => {
       modelId: "test-model",
     });
 
-    expect(result.response).toBe("**Match count:** 1");
+    expect(result.response).toBe("Match count: 1");
     expect(prompts[0]).toContain("Current required phase: inspect before calculating.");
     expect(prompts[1]).toContain("Current required phase: calculate and verify");
     expect(schemas[0]).not.toHaveProperty("oneOf");
     expect(schemas[1]).not.toHaveProperty("oneOf");
-    expect(schemas[2]).toHaveProperty("oneOf");
+    expect(schemas).toHaveLength(2);
   });
 });
 
