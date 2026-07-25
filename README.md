@@ -4,6 +4,8 @@
 
 Vault Desk is building a local-first AI coworker for private folders and files. The M3 product target lets you select a folder or attach files to a chat; its local agent can inspect them and run Python, Node.js, or installed guest shell tools without sending the work to a cloud service.
 
+[Visit the public website](https://alex-alecu.github.io/vault-desk/) for a nontechnical overview, privacy and security information, and release availability.
+
 > The community software is free. Vault Desk sells certainty.
 
 > [!IMPORTANT]

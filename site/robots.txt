@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://alex-alecu.github.io/vault-desk/sitemap.xml
