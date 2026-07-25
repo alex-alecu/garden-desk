@@ -118,6 +118,8 @@ requireText(home, "social-card.png", "home");
 requireText(home, "Zero application telemetry", "home differentiation");
 requireText(home, "tracks absolutely nothing", "home differentiation");
 requireText(home, "No runtime configuration", "home differentiation");
+requireText(home, 'class="principle-cloud"', "home principle animation");
+requireText(home, 'class="format-strip"', "home static format strip");
 requireText(home, "Gemma 4 12B QAT", "home model");
 requireText(home, "16 GB unified memory", "home macOS requirement");
 requireText(home, "12 GB GPU VRAM", "home Windows requirement");
