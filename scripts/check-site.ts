@@ -115,6 +115,12 @@ requireText(home, 'src="./demo/"', "home");
 requireText(home, 'href="./demo/"', "home");
 requireText(home, "SoftwareApplication", "home");
 requireText(home, "social-card.png", "home");
+requireText(home, "Zero application telemetry", "home differentiation");
+requireText(home, "tracks absolutely nothing", "home differentiation");
+requireText(home, "No runtime configuration", "home differentiation");
+requireText(home, "Gemma 4 12B QAT", "home model");
+requireText(home, "16 GB unified memory", "home macOS requirement");
+requireText(home, "12 GB GPU VRAM", "home Windows requirement");
 
 const downloads = await text("downloads/index.html");
 if ((downloads.match(/Coming soon/gu) ?? []).length < 2) {

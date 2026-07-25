@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       name="description"
-      content="Vault Desk is a private desktop workspace for reviewing sensitive files with local AI—without sending them to a cloud service."
+      content="Vault Desk is a zero-telemetry AI desktop that works fully offline with no cloud fallback and no runtime configuration."
     />
     <meta name="theme-color" content="#071f25" />
     <meta name="robots" content="index,follow" />
@@ -14,10 +14,10 @@
     <link rel="stylesheet" href="./assets/site.css" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Vault Desk" />
-    <meta property="og:title" content="Vault Desk — Private work stays private" />
+    <meta property="og:title" content="Vault Desk — The AI desktop that tracks nothing" />
     <meta
       property="og:description"
-      content="Review sensitive work locally, with clear evidence and no silent cloud fallback."
+      content="Zero telemetry, no cloud fallback, and no runtime configuration. Your work stays on your computer."
     />
     <meta property="og:url" content="https://alex-alecu.github.io/vault-desk/" />
     <meta
@@ -34,13 +34,13 @@
         "name": "Vault Desk",
         "applicationCategory": "BusinessApplication",
         "operatingSystem": "macOS, Windows",
-        "description": "A private, offline-first desktop workspace for reviewing sensitive files with local AI.",
+        "description": "A zero-telemetry AI desktop that works fully offline with no cloud fallback and no runtime configuration.",
         "url": "https://alex-alecu.github.io/vault-desk/",
         "codeRepository": "https://github.com/alex-alecu/vault-desk",
         "license": "https://www.apache.org/licenses/LICENSE-2.0"
       }
     </script>
-    <title>Vault Desk — Private work stays private</title>
+    <title>Vault Desk — The AI desktop that tracks nothing</title>
   </head>
   <body>
     <a class="skip-link" href="#main">Skip to content</a>
@@ -50,8 +50,9 @@
         Vault Desk
       </a>
       <nav aria-label="Main navigation" class="site-nav">
-        <a href="#how-it-works">How it works</a>
+        <a href="#difference">Why Vault Desk</a>
         <a href="#privacy">Privacy</a>
+        <a href="#requirements">Requirements</a>
         <a href="./downloads/">Downloads</a>
         <a class="nav-button" href="./demo/">Try the demo</a>
       </nav>
@@ -59,11 +60,11 @@
     <main id="main">
       <section class="hero">
         <div class="hero-copy">
-          <p class="eyebrow">Private, offline-first desktop work</p>
-          <h1>Your private work <span class="hero-accent">stays private.</span></h1>
+          <p class="eyebrow">Zero telemetry. Fully local. No configuration.</p>
+          <h1>The AI desktop that <span class="hero-accent">tracks nothing.</span></h1>
           <p class="hero-lede">
-            Review sensitive files, trace how a result was produced, and keep the work on your
-            computer—without a mandatory account or silent cloud fallback.
+            Vault Desk never measures which features you use, never sends crash or usage reports,
+            and never falls back to the cloud. Your files and the model stay on your computer.
           </p>
           <div class="hero-actions">
             <a class="button button-primary" href="#demo">Explore the interactive demo</a>
@@ -101,8 +102,8 @@
             </ul>
           </div>
           <aside class="private-note">
-            <strong>Designed for sensitive work</strong>
-            No application telemetry. Selected source folders stay read-only.
+            <strong>Zero means zero</strong>
+            No feature analytics. No crash reporting. No background usage metrics.
           </aside>
         </div>
         <div class="hero-formats">
@@ -151,31 +152,106 @@
         <div class="section-inner">
           <div class="section-heading">
             <div>
-              <p class="eyebrow">A calmer way to work with local AI</p>
-              <h2>Useful help without handing over your files.</h2>
+              <p class="eyebrow">The difference is the architecture</p>
+              <h2>Private without settings, opt-outs, or caveats.</h2>
             </div>
             <p>
-              Vault Desk is built around a simple promise: your source material remains under your
-              control, while the application makes every task visible and reviewable.
+              Cloud products often measure usage or process work remotely. Local tools often expose
+              model servers and developer settings. Vault Desk does neither.
             </p>
           </div>
           <div class="benefit-grid">
             <article class="benefit-card">
               <span>01</span>
-              <h3>Local by design</h3>
-              <p>Core work runs on your device. There is no silent cloud fallback.</p>
+              <h3>Zero application telemetry</h3>
+              <p>We collect no feature usage, analytics, crash reports, or background metrics. There is nothing to opt out of.</p>
             </article>
             <article class="benefit-card">
               <span>02</span>
-              <h3>Evidence you can inspect</h3>
-              <p>See activity, generated files, limits, and technical details when you need them.</p>
+              <h3>No cloud fallback</h3>
+              <p>The model and generated tools run locally. Your files are never sent to a hosted model behind your back.</p>
             </article>
             <article class="benefit-card">
               <span>03</span>
-              <h3>Your files stay yours</h3>
-              <p>Selected source folders are read-only, and consequential actions stay controlled.</p>
+              <h3>No runtime configuration</h3>
+              <p>No API keys, model servers, endpoints, quantization, or context settings. Select your work and ask.</p>
             </article>
           </div>
+        </div>
+      </section>
+
+      <section class="section difference-section" id="difference">
+        <div class="section-inner">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">A different kind of local AI</p>
+              <h2>Control without turning you into the administrator.</h2>
+            </div>
+            <p>
+              Vault Desk combines the privacy of a local tool with the simplicity people expect from
+              a finished desktop application.
+            </p>
+          </div>
+          <table class="comparison-board">
+            <caption>Common AI product tradeoffs compared with Vault Desk</caption>
+            <thead>
+              <tr class="comparison-row comparison-header">
+                <th scope="col">What matters</th>
+                <th scope="col">Common AI products</th>
+                <th scope="col">Vault Desk</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="comparison-row">
+                <th scope="row">Data collection</th>
+                <td class="comparison-common">
+                <small>Common AI products</small>
+                Feature analytics, crash reporting, or usage metrics may be enabled.
+                </td>
+                <td class="comparison-vault">
+                <small>Vault Desk</small>
+                No application telemetry—ever.
+                </td>
+              </tr>
+              <tr class="comparison-row">
+                <th scope="row">Where work runs</th>
+                <td class="comparison-common">
+                <small>Common AI products</small>
+                Cloud or hybrid workflows often depend on remote services.
+                </td>
+                <td class="comparison-vault">
+                <small>Vault Desk</small>
+                Fully local and offline, with no silent cloud fallback.
+                </td>
+              </tr>
+              <tr class="comparison-row">
+                <th scope="row">Setup</th>
+                <td class="comparison-common">
+                <small>Common AI products</small>
+                Choose providers, model files, servers, endpoints, and memory settings.
+                </td>
+                <td class="comparison-vault">
+                <small>Vault Desk</small>
+                No runtime configuration. Hardware-aware defaults are automatic.
+                </td>
+              </tr>
+              <tr class="comparison-row">
+                <th scope="row">Who it is for</th>
+                <td class="comparison-common">
+                <small>Common AI products</small>
+                Interfaces are often organized around models and developer controls.
+                </td>
+                <td class="comparison-vault">
+                <small>Vault Desk</small>
+                An outcome-first workspace for ordinary, sensitive work.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <p class="comparison-note">
+            Some local products also offer zero telemetry. Vault Desk’s distinction is combining that
+            promise with offline execution, bounded tools, and no model administration.
+          </p>
         </div>
       </section>
 
@@ -220,40 +296,65 @@
         <div class="section-inner">
           <div class="section-heading">
             <div>
-              <p class="eyebrow">How it works</p>
-              <h2>From folder to reviewable result.</h2>
+              <p class="eyebrow">No setup ritual</p>
+              <h2>From install to useful work in three steps.</h2>
             </div>
-            <p>A direct workflow for people who want useful output without managing infrastructure.</p>
+            <p>No providers, endpoints, model files, or infrastructure to configure.</p>
           </div>
           <div class="step-grid">
             <article class="step-card">
               <span>1</span>
+              <h3>Open Vault Desk</h3>
+              <p>No account, API key, or separate model server is required.</p>
+            </article>
+            <article class="step-card">
+              <span>2</span>
               <h3>Select your work</h3>
               <p>Choose a folder or attach files. The selected source folder remains read-only.</p>
             </article>
             <article class="step-card">
-              <span>2</span>
-              <h3>Describe the outcome</h3>
-              <p>Ask for a review, comparison, explanation, or practical transformation.</p>
-            </article>
-            <article class="step-card">
               <span>3</span>
-              <h3>Inspect and verify</h3>
-              <p>Review the answer, generated files, task activity, and bounded technical evidence.</p>
+              <h3>Ask and review</h3>
+              <p>Describe the outcome, then inspect the answer, generated files, and task activity.</p>
             </article>
           </div>
+        </div>
+      </section>
+
+      <section class="section model-section">
+        <div class="section-inner model-panel">
+          <div class="model-copy">
+            <p class="eyebrow">Open model. Managed for you.</p>
+            <h2>Gemma 4 runs entirely on your computer.</h2>
+            <p>
+              Vault Desk V1 is built around Gemma 4 12B QAT, an Apache-2.0 open model from Google.
+              It is packaged with a pinned local runtime, so the model works offline without an
+              account, API key, endpoint, or separate model server.
+            </p>
+            <p>
+              Gemma 4 is the V1 default, not a permanent lock-in. Vault Desk’s product contracts are
+              model-agnostic, and we intend to keep the app current with the best open models as they
+              are released—after each one passes the same privacy, quality, and hardware gates.
+            </p>
+          </div>
+          <dl class="model-facts">
+            <div><dt>V1 default</dt><dd>Gemma 4 12B QAT</dd></div>
+            <div><dt>License</dt><dd>Apache 2.0</dd></div>
+            <div><dt>Operation</dt><dd>Completely offline</dd></div>
+            <div><dt>Setup</dt><dd>No configuration</dd></div>
+          </dl>
         </div>
       </section>
 
       <section class="section dark privacy-section" id="privacy">
         <div class="section-inner privacy-grid">
           <div class="privacy-copy-block">
-            <p class="eyebrow">Privacy and security</p>
-            <h2>Private is an architecture choice.</h2>
+            <p class="eyebrow">Privacy without an opt-out</p>
+            <h2>We cannot track what we never collect.</h2>
             <p class="section-copy">
-              The desktop is designed to work locally and offline. Tools run inside a restricted
-              environment with no network interface, while the application controls access and keeps
-              a local record of what happened.
+              Vault Desk tracks absolutely nothing about how you use the app. It contains no
+              application analytics or telemetry pipeline. The desktop works locally and offline,
+              while generated tools run inside a restricted environment with no network interface.
             </p>
             <div class="privacy-actions">
               <a class="privacy-link" href="./security/">
@@ -273,8 +374,8 @@
                 </svg>
               </span>
               <div>
-                <h3>No application telemetry</h3>
-                <p>Vault Desk does not send analytics, crash reports, or background usage metrics.</p>
+                <h3>No feature tracking</h3>
+                <p>We do not count which buttons, workflows, file types, or features you use.</p>
               </div>
             </article>
             <article>
@@ -285,8 +386,8 @@
                 </svg>
               </span>
               <div>
-                <h3>No host shell for generated work</h3>
-                <p>Executable tasks are bounded inside a no-network virtual machine.</p>
+                <h3>No crash or background reporting</h3>
+                <p>The application sends no automatic crash reports, diagnostics, or usage metrics.</p>
               </div>
             </article>
             <article>
@@ -332,6 +433,54 @@
         </div>
       </section>
 
+      <section class="section requirements-section" id="requirements">
+        <div class="section-inner">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">V1 launch requirements</p>
+              <h2>Enough local hardware. Nothing in the cloud.</h2>
+            </div>
+            <p>
+              Vault Desk uses your computer for private inference. The launch targets below keep the
+              experience local, predictable, and configuration-free.
+            </p>
+          </div>
+          <div class="requirements-grid">
+            <article class="requirement-card">
+              <span class="requirement-icon" aria-hidden="true">
+                <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <rect x="4" y="4" width="16" height="12" rx="2" />
+                  <path d="M2 20h20M9 16v4M15 16v4" />
+                </svg>
+              </span>
+              <div>
+                <small>macOS</small>
+                <h3>Apple silicon Mac</h3>
+                <p><strong>16 GB unified memory</strong> or more</p>
+              </div>
+            </article>
+            <article class="requirement-card">
+              <span class="requirement-icon" aria-hidden="true">
+                <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <rect x="3" y="5" width="18" height="14" rx="2" />
+                  <circle cx="9" cy="12" r="3" />
+                  <path d="M15 9h3M15 12h3M15 15h3" />
+                </svg>
+              </span>
+              <div>
+                <small>Windows</small>
+                <h3>PC with NVIDIA graphics</h3>
+                <p><strong>12 GB GPU VRAM</strong> or more</p>
+              </div>
+            </article>
+          </div>
+          <p class="requirements-note">
+            These are V1 launch targets while final physical certification is completed. Downloads
+            remain unavailable until signed installers and the certified configuration list are ready.
+          </p>
+        </div>
+      </section>
+
       <section class="section source-section">
         <div class="section-inner open-source-panel">
           <div>
@@ -360,11 +509,11 @@
 
       <section class="section final-cta">
         <div class="section-inner">
-          <p class="eyebrow">A private desktop for important work</p>
-          <h2>See how Vault Desk feels before launch.</h2>
+          <p class="eyebrow">No tracking. No cloud. No configuration.</p>
+          <h2>See what genuinely private AI feels like.</h2>
           <p>
-            Try the synthetic demo today. Signed desktop installers for macOS Apple Silicon and
-            Windows x64 are coming soon.
+            Try the synthetic interface today. Signed desktop installers for supported Apple silicon
+            Macs and NVIDIA Windows PCs are coming soon.
           </p>
           <div class="section-actions">
             <a class="button button-primary" href="./demo/">Try the interactive demo</a>

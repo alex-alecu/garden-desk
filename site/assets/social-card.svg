@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
-  <title>Vault Desk — Private work stays private</title>
+  <title>Vault Desk — The AI desktop that tracks nothing</title>
   <defs>
     <radialGradient id="glow" cx="74%" cy="28%" r="70%">
       <stop offset="0" stop-color="#76b7aa" stop-opacity=".42"/>
@@ -25,10 +25,10 @@
     <path d="M930 298v-14m0 128v-14m-50-50h-14m128 0h-14" stroke="#fffaf0" stroke-width="9" stroke-linecap="round"/>
   </g>
   <text x="104" y="145" fill="#76b7aa" font-family="Avenir Next, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="22" font-weight="700" letter-spacing="4">VAULT DESK</text>
-  <text x="104" y="253" fill="#fffaf0" font-family="Charter, Georgia, serif" font-size="66">Private work</text>
-  <text x="104" y="330" fill="#76b7aa" font-family="Charter, Georgia, serif" font-size="66" font-style="italic">stays private.</text>
-  <text x="108" y="407" fill="#bfd0ce" font-family="Avenir Next, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="25">A local, offline-first desktop workspace</text>
-  <text x="108" y="445" fill="#bfd0ce" font-family="Avenir Next, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="25">for sensitive files and reviewable results.</text>
+  <text x="104" y="253" fill="#fffaf0" font-family="Charter, Georgia, serif" font-size="66">The AI desktop</text>
+  <text x="104" y="330" fill="#76b7aa" font-family="Charter, Georgia, serif" font-size="66" font-style="italic">that tracks nothing.</text>
+  <text x="108" y="407" fill="#bfd0ce" font-family="Avenir Next, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="25">Zero telemetry. Fully local. No configuration.</text>
+  <text x="108" y="445" fill="#bfd0ce" font-family="Avenir Next, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="25">Your work never needs the cloud.</text>
   <rect x="104" y="497" width="224" height="48" rx="24" fill="#d96843"/>
   <text x="136" y="529" fill="#fffaf0" font-family="Avenir Next, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="18" font-weight="700">Explore the demo</text>
 </svg>
