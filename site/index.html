@@ -184,7 +184,7 @@
 
       <section class="section dark privacy-section" id="privacy">
         <div class="section-inner privacy-grid">
-          <div>
+          <div class="privacy-copy-block">
             <p class="eyebrow">Privacy and security</p>
             <h2>Private is an architecture choice.</h2>
             <p class="section-copy">
@@ -192,23 +192,36 @@
               environment with no network interface, while the application controls access and keeps
               a local record of what happened.
             </p>
-            <div class="section-actions">
-              <a class="button button-secondary" href="./security/">Read the security overview</a>
-              <a class="button button-secondary" href="./privacy/">Read the privacy notice</a>
+            <div class="privacy-actions">
+              <a class="privacy-link" href="./security/">
+                Security overview <span aria-hidden="true">&#8599;</span>
+              </a>
+              <a class="privacy-link" href="./privacy/">
+                Privacy notice <span aria-hidden="true">&#8599;</span>
+              </a>
             </div>
           </div>
           <div class="privacy-list">
             <article>
-              <h3>No application telemetry</h3>
-              <p>Vault Desk does not send analytics, crash reports, or background usage metrics.</p>
+              <span class="privacy-number" aria-hidden="true">01</span>
+              <div>
+                <h3>No application telemetry</h3>
+                <p>Vault Desk does not send analytics, crash reports, or background usage metrics.</p>
+              </div>
             </article>
             <article>
-              <h3>No host shell for generated work</h3>
-              <p>Executable tasks are bounded inside a no-network virtual machine.</p>
+              <span class="privacy-number" aria-hidden="true">02</span>
+              <div>
+                <h3>No host shell for generated work</h3>
+                <p>Executable tasks are bounded inside a no-network virtual machine.</p>
+              </div>
             </article>
             <article>
-              <h3>Local audit records stay local</h3>
-              <p>Records are not transmitted unless the owner explicitly exports them.</p>
+              <span class="privacy-number" aria-hidden="true">03</span>
+              <div>
+                <h3>Local audit records stay local</h3>
+                <p>Records are not transmitted unless the owner explicitly exports them.</p>
+              </div>
             </article>
           </div>
         </div>
