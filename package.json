@@ -11,6 +11,7 @@
     "build": "pnpm --filter @vault/desktop build",
     "check:site": "node --import tsx scripts/check-site.ts",
     "check:source": "node --import tsx scripts/check-source-limits.ts",
+    "site:serve": "node --import tsx scripts/serve-site.ts",
     "lint": "biome check .",
     "lint:boundaries": "biome lint packages/shared/src packages/core/src packages/workers packages/cli/src packages/eval/src scripts",
     "typecheck": "tsc -b packages/shared packages/workers packages/core packages/cli packages/eval packages/desktop",
