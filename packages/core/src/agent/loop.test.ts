@@ -229,7 +229,9 @@ function expectObservationPrompts(prompts: string[]): void {
   expect(prompts[1]).toContain("path.suffix.lower()");
   expect(prompts[1]).toContain("print(path.name, sheet.title, row)");
   expect(prompts[1]).toContain("smallest repair");
-  expect(prompts[1]).toContain("CommonMark Markdown when formatting improves readability");
+  expect(prompts[1]).toContain("GitHub Flavored Markdown when formatting improves readability");
+  expect(prompts[1]).toContain("tables only for genuine multi-column comparisons");
+  expect(prompts[1]).toContain("Use plain text for simple answers");
   expect(prompts[0]).toContain("Current required phase: inspect before calculating.");
   expect(prompts[1]).not.toContain("Current required phase: inspect before calculating.");
   expect(prompts[1]).toContain("Current required phase: calculate and verify");
