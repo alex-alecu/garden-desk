@@ -29,7 +29,7 @@ Vault Desk V1 is a calm, conversation-centered desktop agent inspired by the str
 
 The two stable regions are a compact, horizontally resizable sidebar and a low-glare conversation workspace that share one continuous surface. Light appearance uses warm paper and dark ink. Dark appearance uses neutral graphite layers, soft ivory type, satin depth, and restrained jade accents rather than a green or blue wash. Subtle hairlines and a softly raised selection pill provide structure without a heavy chrome block or active-item edge rule. Teal identifies selection, progress, and ordinary actions, while ember is reserved for warnings and destructive actions. Self-hosted IBM Plex Sans carries interface and prose, Plex Serif distinguishes reading headings, and Plex Mono keeps code and technical evidence precise. The OFL-1.1 faces are bundled locally with no font service or runtime request. Focus colors remain visible against both appearance palettes.
 
-On macOS the sidebar background extends beneath the native traffic-light controls, which use equal top and left insets and align vertically with the model title, and the native title text is hidden. The header remains draggable around its controls. The composer stays anchored to the bottom of the workspace. A lightweight conversation header shows the approved model name, subtle live VRAM with context beneath it when the worker reports them, on-device state, manual unload action, a compact appearance control, and Technical details without displacing folder navigation. The appearance control sits between Unload and Technical details and cycles **System → Light → Dark**. System follows live operating-system appearance changes; explicit Light and Dark override them. The preference remains in UI memory and resets to System on reload, so the public demo adds no storage or persistence.
+On macOS the sidebar background extends beneath the native traffic-light controls, which use equal top and left insets and align vertically with the model title, and the native title text is hidden. The header remains draggable around its controls. The composer stays anchored to the bottom of the workspace. A lightweight conversation header shows the approved model name, hardware-selected memory budget, measured combined allocation and context when the worker reports them, on-device state, manual unload action, a compact appearance control, and Technical details without displacing folder navigation. The appearance control sits between Unload and Technical details and cycles **System → Light → Dark**. System follows live operating-system appearance changes; explicit Light and Dark override them. The preference remains in UI memory and resets to System on reload, so the public demo adds no storage or persistence.
 
 ## Sidebar
 
@@ -42,6 +42,7 @@ Each folder group:
 - Shows its five most recently active sessions, newest first.
 - Shows **Show more** only when older sessions exist; activation appends the next bounded page.
 - Highlights the active session and may show concise running, failed, or unread status.
+- Shows a reduced-motion-aware activity pulse for every queued or running conversation, including conversations working in the background.
 - Opens the granted folder in Finder on macOS or Explorer on Windows when its folder icon is activated, without a confirmation step.
 - Reveals a delete control on session hover or keyboard focus; deletion always requires explicit confirmation and is unavailable while that conversation is running.
 
@@ -91,6 +92,7 @@ The composer is multiline and anchored to the bottom of the conversation pane.
 - The add button opens attachment actions; folder selection remains a separate grant action.
 - Context chips show the active folder or explicit attachments.
 - Send becomes Stop while a run is active.
+- Switching conversations does not stop a run. Other conversations may start work up to the RAM-derived VM capacity; additional work stays queued without booting another guest.
 - Drafts survive session and folder switching, daemon reconnect, and application restart.
 - Submitting without a folder or attachment remains valid for conversational tasks.
 
@@ -137,3 +139,4 @@ Runtime, quantization, context-window, endpoint, and model-file vocabulary stays
 | 2026-07-25 | Replaced the high-glare white shell with website-aligned petroleum chrome, warm reading surfaces, and self-hosted IBM Plex typography. |
 | 2026-07-25 | Unified the sidebar and conversation header with the warm reading surface while retaining petroleum for technical evidence. |
 | 2026-07-25 | Added System, Light, and graphite Dark appearance modes and replaced the active sidebar edge rule with a softly raised selection pill. |
+| 2026-07-25 | Added background conversation activity pulses, RAM-bounded parallel sessions, and clear memory budget versus live-allocation labels. |

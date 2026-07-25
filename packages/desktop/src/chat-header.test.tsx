@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { ChatHeader } from "./components/chat-header.js";
 
 describe("model hardware status", () => {
-  it("shows live VRAM with context beneath it beside a loaded model", () => {
+  it("distinguishes the memory budget from live allocation beside a loaded model", () => {
     const markup = renderToStaticMarkup(
       <ChatHeader
         appearance="system"
@@ -13,6 +13,7 @@ describe("model hardware status", () => {
           name: "Gemma 4 12B QAT",
           state: "ready",
           thinkingSupported: true,
+          memoryBudgetBytes: 16 * 1024 ** 3,
           cpuRamBytes: 1024 ** 3,
           gpuVramBytes: 11.5 * 1024 ** 3,
           contextSizeTokens: 262_144,
@@ -24,9 +25,9 @@ describe("model hardware status", () => {
     );
 
     expect(markup).toContain(
-      '<span class="model-usage"><span>11.5 GiB VRAM</span><span>256K context</span></span>',
+      '<span class="model-usage"><span>16.0 GiB budget</span><span>12.5 GiB allocated</span><span>256K context</span></span>',
     );
-    expect(markup).not.toContain("1.0 GiB RAM");
+    expect(markup).not.toContain("VRAM");
   });
 });
 

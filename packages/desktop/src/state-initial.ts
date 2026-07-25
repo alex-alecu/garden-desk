@@ -11,6 +11,7 @@ export const initialDesktopState: DesktopState = {
   attachments: [],
   removableAttachmentIds: [],
   activeRun: undefined,
+  workingSessionIds: [],
   artifacts: [],
   executions: [],
   thinking: null,

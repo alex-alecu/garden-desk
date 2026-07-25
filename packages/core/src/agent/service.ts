@@ -7,7 +7,6 @@ import type {
   AgentTrace,
   AttachmentSummary,
   SessionDraft,
-  WorkerLimits,
 } from "@vault/shared";
 import type { CodeAgentLauncher } from "@vault/workers";
 import type { AuditLog } from "../audit/log.js";
@@ -18,22 +17,14 @@ import type { ArtifactStore } from "../workspace/artifacts.js";
 import type { DatabasePort } from "../workspace/database.js";
 import { historyForSession } from "./history.js";
 import { AgentInputResolver } from "./inputs.js";
+import { AGENT_WORKER_LIMITS } from "./limits.js";
 import { AgentLoop } from "./loop.js";
+import { AgentRunCapacity } from "./run-capacity.js";
 import { agentFailureEvent, agentFailureText, tokenRate } from "./service-results.js";
 import { AgentSessionManager } from "./session-manager.js";
 import type { AgentStore } from "./store.js";
 
 const MODEL_ID = "gemma-4-12b-it-qat-q4_0";
-const LIMITS: WorkerLimits = {
-  wallTimeMs: 120_000,
-  inputCount: 64,
-  inputBytes: 8 * 1024 * 1024 * 1024,
-  memoryBytes: 4 * 1024 * 1024 * 1024,
-  scratchBytes: 128 * 1024 * 1024,
-  outputBytes: 16 * 1024 * 1024,
-  cpuCount: 4,
-};
-
 interface ActiveRun {
   controller: AbortController;
   finished: Promise<void>;
@@ -46,6 +37,7 @@ export class AgentService {
   private readonly active = new Map<string, ActiveRun>();
   private closed = false;
   private readonly sessions: AgentSessionManager;
+  private readonly runCapacity: AgentRunCapacity;
 
   // biome-ignore lint/complexity/useMaxParams: explicit ports keep security authorities visible at construction.
   constructor(
@@ -58,12 +50,15 @@ export class AgentService {
       Partial<Pick<InferenceService, "modelStatus">>,
     launcher: CodeAgentLauncher,
     private readonly audit: AuditLog,
+    maximumConcurrentRuns = 1,
   ) {
     this.sessions = new AgentSessionManager(
       launcher,
       new AgentInputResolver(database, store),
-      LIMITS,
+      AGENT_WORKER_LIMITS,
+      maximumConcurrentRuns,
     );
+    this.runCapacity = new AgentRunCapacity(maximumConcurrentRuns);
   }
 
   saveDraft(sessionId: string, content: string): SessionDraft {
@@ -75,7 +70,8 @@ export class AgentService {
   }
 
   async addAttachment(sessionId: string, path: string): Promise<AttachmentSummary> {
-    if (this.active.size > 0) throw new Error("agent_busy");
+    if ([...this.active.values()].some((run) => run.sessionId === sessionId))
+      throw new Error("agent_busy");
     const item = await this.store.addAttachment(sessionId, path);
     await this.sessions.closeSession(sessionId);
     this.audit.append({
@@ -91,7 +87,8 @@ export class AgentService {
   }
 
   async removeAttachment(sessionId: string, attachmentId: string): Promise<boolean> {
-    if (this.active.size > 0) throw new Error("agent_busy");
+    if ([...this.active.values()].some((run) => run.sessionId === sessionId))
+      throw new Error("agent_busy");
     const removed = this.store.removeAttachment(sessionId, attachmentId);
     if (removed) await this.sessions.closeSession(sessionId);
     this.audit.append({
@@ -104,7 +101,8 @@ export class AgentService {
 
   start(sessionId: string, task: string): AgentRunSummary {
     if (this.closed) throw new Error("agent_service_closed");
-    if (this.active.size > 0) throw new Error("agent_busy");
+    if ([...this.active.values()].some((run) => run.sessionId === sessionId))
+      throw new Error("agent_busy");
     const run = this.database.transaction(() => {
       this.conversations.appendMessage(sessionId, "user", task);
       this.store.saveDraft(sessionId, "");
@@ -160,7 +158,8 @@ export class AgentService {
   }
   warmSession(sessionId: string): Promise<void> {
     if (this.closed) return Promise.reject(new Error("agent_service_closed"));
-    if (this.active.size > 0) return Promise.resolve();
+    if ([...this.active.values()].some((run) => run.sessionId === sessionId))
+      return Promise.resolve();
     return this.sessions.warmSession(sessionId);
   }
   async closeSession(sessionId: string, deleteWorkspace = false): Promise<void> {
@@ -179,7 +178,10 @@ export class AgentService {
   }
   // biome-ignore lint/complexity/noExcessiveLinesPerFunction: the run lifecycle stays linear so cleanup and terminal persistence remain paired.
   private async execute(run: AgentRunSummary, task: string, signal: AbortSignal): Promise<void> {
+    let releaseCapacity: (() => void) | undefined;
     try {
+      releaseCapacity = await this.runCapacity.acquire(signal);
+      signal.throwIfAborted();
       this.database.transaction(() => {
         this.jobs.transition(run.jobId, "running");
         this.store.transitionRun(run.id, { state: "running" });
@@ -276,6 +278,8 @@ export class AgentService {
         outcome: "failed",
         metadata: { runId: run.id, jobId: run.jobId, code: detail },
       });
+    } finally {
+      releaseCapacity?.();
     }
   }
 

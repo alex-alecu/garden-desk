@@ -72,13 +72,13 @@ Every supported tier uses:
 - Page, section, and table summary trees.
 - Evidence packs rather than raw folder stuffing.
 - Claim-level verification.
-- One interactive job at a time by default.
+- One Gemma generation at a time through the shared resident worker; independent conversations may overlap microVM work within the hardware-derived RAM cap.
 - Conservative multimodal page inspection.
 - The same supported workflows.
 - The same citation and approval requirements.
 - The same context-compaction architecture.
 
-The runtime fits the active generation context from an 8K minimum through Gemma's 256K trained maximum after applying the tier budget. macOS fitting uses combined CPU and GPU estimates and rejects a measured allocation above the selected total budget. Windows generation uses the complete GPU VRAM capacity reported by the pinned runtime, and the typed response records detected VRAM separately from the applied cap. The actual memory budget and allocated context are returned as typed evidence. Stability remains a validation question until measured on physical hardware under the full workload.
+The runtime fits the active generation context from an 8K minimum through Gemma's 256K trained maximum after applying the tier budget. macOS fitting uses combined CPU and GPU estimates and rejects a measured allocation above the selected total budget. The budget is a ceiling, not a target allocation: a 48 GiB Mac selects 16 GiB even when the model reaches its trained context maximum with less memory. Windows generation uses the complete GPU VRAM capacity reported by the pinned runtime, and the typed response records detected VRAM separately from the applied cap. The actual memory budget and allocated context are returned as typed evidence. Stability remains a validation question until measured on physical hardware under the full workload.
 
 The goal is reliability on professional documents, not maximum context-window marketing.
 

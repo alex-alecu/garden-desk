@@ -84,7 +84,7 @@ Examples of unsafe default capabilities:
 
 ## Worker Isolation Requirements
 
-Hostile document parsing and model-requested executable tools must run in certified no-NIC microVMs. Document jobs may use disposable job-scoped guests; the V1 development agent uses one session-scoped guest with a durable bounded workspace. Network denial must come from the absence of a NIC and general network proxy, not from matching commands, executables, domains, URLs, addresses, or protocols.
+Hostile document parsing and model-requested executable tools must run in certified no-NIC microVMs. Document jobs may use disposable job-scoped guests; each active V1 development-agent conversation uses a session-scoped guest with a durable bounded workspace, within a RAM-derived least-recently-used pool. Network denial must come from the absence of a NIC and general network proxy, not from matching commands, executables, domains, URLs, addresses, or protocols.
 
 MicroVM workers receive immutable explicit attachments or one Core-validated live read-only folder share and communicate over a versioned typed host/guest socket. Their root filesystem is immutable. The dev agent's 128 MiB writable `/workspace` is session-owned and survives only through validated content-addressed manifests; a separate 16 MiB `/run/user` tmpfs is ephemeral, and `/tmp` is read-only to task processes. Neither grants selected-folder or general host writes. Executed child processes inherit no control descriptor and an OS-enforced syscall filter denies creation of new sockets, including VSOCK. Each execution retains time, memory, CPU, process, writable-storage, and output limits.
 

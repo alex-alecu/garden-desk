@@ -10,10 +10,10 @@ import type {
   SessionPage,
   SessionSummary,
 } from "@vault/shared";
+import { applyAgentSnapshot } from "./agent-state.js";
 import type { DesktopBootstrap } from "./api.js";
 import { appendMessage } from "./message-state.js";
 import { emptyConversation } from "./state-initial.js";
-import { eventItem } from "./timeline.js";
 
 export { initialDesktopState } from "./state-initial.js";
 
@@ -44,6 +44,7 @@ export interface DesktopState {
   attachments: AttachmentSummary[];
   removableAttachmentIds: string[];
   activeRun: AgentRunSummary | undefined;
+  workingSessionIds: string[];
   artifacts: AgentArtifactSummary[];
   executions: AgentExecutionSnapshot[];
   thinking: string | null;
@@ -188,6 +189,7 @@ export function desktopReducer(state: DesktopState, action: DesktopAction): Desk
         ...folder,
         sessions: folder.sessions.filter((session) => session.id !== action.sessionId),
       })),
+      workingSessionIds: state.workingSessionIds.filter((id) => id !== action.sessionId),
       ...(activeDeleted ? emptyConversation(null) : {}),
     };
   }
@@ -263,30 +265,14 @@ export function desktopReducer(state: DesktopState, action: DesktopAction): Desk
     return {
       ...state,
       activeRun: action.run,
+      workingSessionIds: [...new Set([...state.workingSessionIds, action.run.sessionId])],
       thinking: null,
       draft: "",
       removableAttachmentIds: [],
     };
   }
   if (action.type === "agent.snapshot") {
-    if (action.snapshot.run.sessionId !== state.activeSessionId) return state;
-    const known = new Set(state.timeline.map((item) => item.id));
-    const knownArtifacts = new Set(state.artifacts.map((item) => item.id));
-    const activity = action.snapshot.events.filter((item) => !known.has(item.id)).map(eventItem);
-    const otherExecutions = state.executions.filter(
-      (item) => item.runId !== action.snapshot.run.id,
-    );
-    return {
-      ...state,
-      activeRun: action.snapshot.run,
-      thinking: action.snapshot.thinking,
-      artifacts: [
-        ...state.artifacts,
-        ...action.snapshot.artifacts.filter((item) => !knownArtifacts.has(item.id)),
-      ],
-      executions: [...otherExecutions, ...action.snapshot.executions],
-      timeline: [...state.timeline, ...activity],
-    };
+    return applyAgentSnapshot(state, action.snapshot);
   }
   if (action.type === "draft.load") {
     return state.activeSessionId === action.sessionId && state.draft.length === 0

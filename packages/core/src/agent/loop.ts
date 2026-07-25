@@ -24,6 +24,8 @@ import {
 import type { AgentTraceStore } from "./trace-store.js";
 
 const MAX_DECISIONS = 12;
+const STRUCTURED_RETRY_SUFFIX =
+  "\nYour previous attempt did not call a function. Call exactly one available function with your answer.";
 
 export interface AgentExecutor {
   execute(input: AgentSessionExecution, signal?: AbortSignal): Promise<AgentExecutionResult>;
@@ -70,6 +72,35 @@ export class AgentLoop {
     this.contextTokens = Math.max(8_192, contextTokens);
   }
 
+  private async generateDecision(
+    input: AgentRunInput,
+    finalResponse: boolean,
+    initialRequest: PreparedGeneration,
+  ): Promise<{ generated: StructuredGenerationResult; turnId: string | undefined }> {
+    let request = initialRequest;
+    let turnId = await input.trace?.store.begin(
+      input.trace.runId,
+      finalResponse ? "final_response" : "decision",
+      { input: request.input, ...request.identity },
+    );
+    try {
+      return { generated: await this.generate(input, request, turnId), turnId };
+    } catch (error) {
+      if (!(error instanceof Error) || error.message !== "structured_tool_call_required")
+        throw error;
+      request = createGenerationRequest({
+        ...request.input,
+        prompt: `${request.input.prompt}${STRUCTURED_RETRY_SUFFIX}`,
+      });
+      turnId = await input.trace?.store.begin(
+        input.trace.runId,
+        finalResponse ? "final_response" : "decision",
+        { input: request.input, ...request.identity },
+      );
+      return { generated: await this.generate(input, request, turnId), turnId };
+    }
+  }
+
   private async decide(
     input: AgentRunInput,
     progress: AgentProgress,
@@ -88,12 +119,7 @@ export class AgentLoop {
     const request = createGenerationRequest(
       generationInput(input, progress, finalResponse, this.contextTokens),
     );
-    const turnId = await input.trace?.store.begin(
-      input.trace.runId,
-      finalResponse ? "final_response" : "decision",
-      { input: request.input, ...request.identity },
-    );
-    const generated = await this.generate(input, request, turnId);
+    const { generated, turnId } = await this.generateDecision(input, finalResponse, request);
     if (turnId !== undefined) {
       await input.trace?.store.captureResponse(
         turnId,

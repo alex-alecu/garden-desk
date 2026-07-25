@@ -55,7 +55,7 @@ Current model target:
 - Gemma 4 12B QAT as the single default across the supported hardware-derived tiers.
 - Approximate Q4_0 model-load memory target: 6.7 GB before KV cache and product overhead.
 - Retrieval-first prompting and bounded active context.
-- One foreground reasoning job by default.
+- One resident Gemma generation at a time, with different conversations allowed to overlap guest work within the RAM-derived VM capacity.
 - Background ingestion throttled around available memory.
 - Automatic active context from an 8K floor through the model's 256K trained maximum.
 - One first desktop runtime and model format across Windows and macOS: node-llama-cpp with the pinned official Gemma 4 QAT GGUF, per [ADR 0013](adr/0013-first-desktop-runtime.md).

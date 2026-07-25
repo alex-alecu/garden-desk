@@ -163,7 +163,10 @@ describe("background agent updates", () => {
       events: [],
       artifacts: [],
     });
-    expect(desktopReducer(selected, { type: "agent.snapshot", snapshot })).toBe(selected);
+    const updated = desktopReducer(selected, { type: "agent.snapshot", snapshot });
+    expect(updated.activeRun).toBeUndefined();
+    expect(updated.timeline).toEqual([]);
+    expect(updated.workingSessionIds).toEqual([firstSession.id]);
   });
 });
 

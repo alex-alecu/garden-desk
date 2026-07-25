@@ -3,6 +3,8 @@ import type { InferenceProfile } from "@vault/shared";
 
 const GiB = 1024 * 1024 * 1024;
 const PROFILE_BUDGETS = { local12: 12 * GiB, local16: 16 * GiB } as const;
+const AGENT_GUEST_MEMORY_BYTES = 4 * GiB;
+const MINIMUM_HOST_RESERVE_BYTES = 4 * GiB;
 
 export type InferenceHardwarePolicy =
   | { supported: true; memoryBudgetBytes: number }
@@ -35,4 +37,13 @@ export function resolveInferenceHardwarePolicy(
     return { supported: true, memoryBudgetBytes: 12 * GiB };
   }
   return { supported: true, memoryBudgetBytes: 16 * GiB };
+}
+
+export function resolveAgentSessionCapacity(
+  memoryBudgetBytes: number,
+  totalMemoryBytes: number = totalmem(),
+): number {
+  const hostReserveBytes = Math.max(MINIMUM_HOST_RESERVE_BYTES, totalMemoryBytes * 0.2);
+  const guestBudgetBytes = totalMemoryBytes - memoryBudgetBytes - hostReserveBytes;
+  return Math.max(1, Math.floor(guestBudgetBytes / AGENT_GUEST_MEMORY_BYTES));
 }

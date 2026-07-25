@@ -41,14 +41,40 @@ function formatContext(tokens: number): string {
 
 function modelUsage(model: ModelRuntimeStatus) {
   if (model.state !== "ready" && model.state !== "busy") return undefined;
-  if (model.gpuVramBytes === undefined && model.contextSizeTokens === undefined) return undefined;
+  if (
+    model.memoryBudgetBytes === undefined &&
+    model.cpuRamBytes === undefined &&
+    model.gpuVramBytes === undefined &&
+    model.contextSizeTokens === undefined
+  )
+    return undefined;
+  const allocatedBytes = (model.cpuRamBytes ?? 0) + (model.gpuVramBytes ?? 0);
   return {
-    vram: model.gpuVramBytes === undefined ? undefined : `${formatMemory(model.gpuVramBytes)} VRAM`,
+    budget:
+      model.memoryBudgetBytes === undefined
+        ? undefined
+        : `${formatMemory(model.memoryBudgetBytes)} budget`,
+    allocated:
+      model.cpuRamBytes === undefined && model.gpuVramBytes === undefined
+        ? undefined
+        : `${formatMemory(allocatedBytes)} allocated`,
     context:
       model.contextSizeTokens === undefined
         ? undefined
         : `${formatContext(model.contextSizeTokens)} context`,
   };
+}
+
+function ModelUsage({ model }: { model: ModelRuntimeStatus }) {
+  const usage = modelUsage(model);
+  if (usage === undefined) return null;
+  return (
+    <span className="model-usage">
+      {usage.budget === undefined ? null : <span>{usage.budget}</span>}
+      {usage.allocated === undefined ? null : <span>{usage.allocated}</span>}
+      {usage.context === undefined ? null : <span>{usage.context}</span>}
+    </span>
+  );
 }
 
 function AppearanceControl({
@@ -82,19 +108,13 @@ export function ChatHeader({
   onUnload,
 }: ChatHeaderProps) {
   const modelStatus = model.message ?? statusText[model.state];
-  const usage = modelUsage(model);
   return (
     <header className="chat-header" data-tauri-drag-region="">
       <div className="model-identity">
         <div className="model-copy">
           <div className="model-title-row">
             <strong>{model.name}</strong>
-            {usage === undefined ? null : (
-              <span className="model-usage">
-                {usage.vram === undefined ? null : <span>{usage.vram}</span>}
-                {usage.context === undefined ? null : <span>{usage.context}</span>}
-              </span>
-            )}
+            <ModelUsage model={model} />
           </div>
           <span className={`model-state model-state-${model.state}`}>
             <i aria-hidden="true" />

@@ -1,12 +1,5 @@
 import { resolve } from "node:path";
-import { fileURLToPath } from "node:url";
-import { type InferenceProfile, InferenceProfileSchema, type WorkspaceStatus } from "@vault/shared";
-import {
-  InferenceWorkerClient,
-  MacOsNativeWorkerLauncher,
-  WindowsNativeWorkerLauncher,
-  windowsNativeWorkerEntryPath,
-} from "@vault/workers";
+import type { InferenceProfile, WorkspaceStatus } from "@vault/shared";
 import { createCodeAgentLauncher } from "./agent/launcher.js";
 import { AgentService } from "./agent/service.js";
 import { AgentStore } from "./agent/store.js";
@@ -19,10 +12,8 @@ import {
 import { ConversationStore } from "./conversations/store.js";
 import { createFacade, type VaultCore, type VaultCorePorts } from "./facade.js";
 import { JobStore } from "./jobs/jobs.js";
-import { resolveInferenceHardwarePolicy } from "./runtime/hardware.js";
-import { ModelResolver } from "./runtime/models.js";
-import { ResourceScheduler } from "./runtime/scheduler.js";
-import { InferenceSupervisor } from "./runtime/supervisor.js";
+import { createInferenceService, unavailableInference } from "./runtime/compose.js";
+import type { InferenceSupervisor } from "./runtime/supervisor.js";
 import { ArtifactStore } from "./workspace/artifacts.js";
 import { openWorkspaceCatalog } from "./workspace/catalog.js";
 import { WorkspaceScope } from "./workspace/scope.js";
@@ -39,51 +30,6 @@ export interface VaultCoreOptions {
   agentHelperPath?: string;
   agentImageRoot?: string;
 }
-async function createInference(options: VaultCoreOptions, workspaceRoot: string, audit: AuditLog) {
-  const policy = resolveInferenceHardwarePolicy(InferenceProfileSchema.parse(options.profile));
-  if (!policy.supported)
-    return { service: unavailableInference(policy.message), available: false } as const;
-  const modelResolver = await ModelResolver.open(options.modelStoreDir);
-  const launcher =
-    process.platform === "win32"
-      ? new WindowsNativeWorkerLauncher()
-      : new MacOsNativeWorkerLauncher([workspaceRoot], options.inferenceRuntimePath);
-  const workerEntryPath =
-    options.workerEntryPath ??
-    (process.platform === "win32"
-      ? windowsNativeWorkerEntryPath()
-      : fileURLToPath(new URL("../../workers/dist/inference/worker.js", import.meta.url)));
-  return {
-    service: new InferenceSupervisor(
-      new InferenceWorkerClient(launcher, workerEntryPath),
-      modelResolver,
-      new ResourceScheduler(policy.memoryBudgetBytes),
-      (event) => audit.append(event),
-    ),
-    available: true,
-  } as const;
-}
-function unavailableInference(message?: string) {
-  const unsupported = async (): Promise<never> => {
-    throw Object.assign(new Error("inference_not_packaged"), { code: "unsupported" });
-  };
-  return {
-    generate: unsupported,
-    embed: unsupported,
-    async modelStatus() {
-      return {
-        modelId: "gemma-4-12b-it-qat-q4_0",
-        name: "Gemma 4 12B QAT",
-        state: message === undefined ? ("unloaded" as const) : ("unsupported" as const),
-        thinkingSupported: true,
-        ...(message === undefined ? {} : { message }),
-      };
-    },
-    unloadModel: async () => false,
-    async close() {},
-  };
-}
-
 function createConversationPorts(
   conversations: ConversationStore,
   audit: AuditLog,
@@ -253,13 +199,15 @@ export async function createVaultCore(options: VaultCoreOptions): Promise<VaultC
   agentStore.recoverInterrupted();
   let inference: InferenceSupervisor | ReturnType<typeof unavailableInference>;
   let inferenceAvailable = false;
+  let agentSessionCapacity = 0;
   try {
     const configured =
       options.sessionsOnly === true
-        ? { service: unavailableInference(), available: false as const }
-        : await createInference(options, workspaceRoot, audit);
+        ? { service: unavailableInference(), available: false as const, agentSessionCapacity: 0 }
+        : await createInferenceService(options, workspaceRoot, audit);
     inference = configured.service;
     inferenceAvailable = configured.available;
+    agentSessionCapacity = configured.agentSessionCapacity;
   } catch (error) {
     catalog.close();
     throw error;
@@ -280,6 +228,7 @@ export async function createVaultCore(options: VaultCoreOptions): Promise<VaultC
             resolve(workspaceRoot, ".vault", "agent-workspaces"),
           ),
           audit,
+          agentSessionCapacity,
         );
   const restoredSessionId = conversations.mostRecentSessionId();
   if (agent !== undefined && restoredSessionId !== undefined) {
