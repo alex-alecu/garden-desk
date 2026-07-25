@@ -74,7 +74,8 @@
   --reading-soft: #d0cdc5;
   --reading-border: rgb(18 50 56 / 14%);
   --navigation-hover: rgb(40 111 109 / 8%);
-  --navigation-selected: #c8ddd6;
+  --navigation-selected: #d7e2de;
+  --navigation-selected-shadow: 0 1px 2px rgb(7 31 37 / 6%), inset 0 0 0 1px rgb(40 111 109 / 10%);
   --ink: #183238;
   --ink-soft: #4c5f61;
   --accent: #397f79;
@@ -143,6 +144,38 @@ textarea:focus-visible {
   height: 100%;
   min-width: 0;
   background: var(--reading);
+  color-scheme: light;
+  transition:
+    color 220ms ease,
+    background 220ms ease;
+}
+
+.app-shell[data-theme="dark"] {
+  --shell: #131517;
+  --shell-raised: #1d2022;
+  --shell-hover: #292c2e;
+  --chrome-border: rgb(244 240 232 / 11%);
+  --chrome-text: #eeece7;
+  --chrome-muted: #9d9e9b;
+  --reading: #17191a;
+  --reading-raised: #202224;
+  --reading-soft: #27292b;
+  --reading-border: rgb(246 241 232 / 10%);
+  --navigation-hover: rgb(255 250 240 / 6%);
+  --navigation-selected: #303938;
+  --navigation-selected-shadow: 0 1px 3px rgb(0 0 0 / 30%), inset 0 0 0 1px rgb(134 190 180 / 12%);
+  --ink: #f1eee8;
+  --ink-soft: #aaa9a4;
+  --accent: #6fa9a0;
+  --accent-strong: #86beb4;
+  --accent-soft: #2d4542;
+  --ember: #df7958;
+  --ember-soft: #442a24;
+  --success: #7ab68e;
+  --focus: #f39a78;
+  --border-color: var(--reading-border);
+  --surface-shadow: 0 14px 36px rgb(0 0 0 / 28%);
+  color-scheme: dark;
 }
 
 .sidebar {
@@ -283,7 +316,7 @@ textarea:focus-visible {
 .sidebar-item-row:focus-within,
 .sidebar-item-row:has(.sidebar-item-select[aria-current="page"]) {
   background: var(--navigation-selected);
-  box-shadow: inset 3px 0 var(--accent);
+  box-shadow: var(--navigation-selected-shadow);
 }
 
 .sidebar-item-select,
@@ -549,6 +582,7 @@ textarea:focus-visible {
   font-weight: 620;
 }
 
+.appearance-action,
 .technical-details-action {
   width: 36px;
 }
@@ -1039,6 +1073,14 @@ textarea:focus-visible {
   height: 16px;
 }
 
+.appearance-action .icon {
+  transition: transform 220ms ease;
+}
+
+.appearance-action:hover:not(:disabled) .icon {
+  transform: rotate(8deg) scale(1.04);
+}
+
 .sidebar-item-delete .icon {
   width: 15px;
   height: 15px;
@@ -1428,6 +1470,223 @@ textarea:focus-visible {
   gap: 12px;
 }
 
+.app-shell[data-theme="dark"] * {
+  scrollbar-color: rgb(108 169 158 / 48%) transparent;
+}
+
+.app-shell[data-theme="dark"] ::selection {
+  color: #071f25;
+  background: #91c8bd;
+}
+
+.app-shell[data-theme="dark"] .sidebar-item-select,
+.app-shell[data-theme="dark"] .new-folder-session,
+.app-shell[data-theme="dark"] .show-more {
+  color: #d0cfca;
+}
+
+.app-shell[data-theme="dark"] .sidebar-item-delete:hover {
+  color: #f1a287;
+  background: rgb(228 123 88 / 14%);
+}
+
+.app-shell[data-theme="dark"] .sidebar-item-start:hover {
+  color: #a8d0c8;
+  background: rgb(111 169 160 / 13%);
+}
+
+.app-shell[data-theme="dark"] .workspace {
+  background:
+    radial-gradient(circle at 88% 4%, rgb(111 169 160 / 7%), transparent 32rem),
+    linear-gradient(145deg, #202224, #161719 52%);
+}
+
+.app-shell[data-theme="dark"] .guided-examples {
+  box-shadow: inset 0 1px rgb(255 255 255 / 3%);
+}
+
+.app-shell[data-theme="dark"] .guided-examples button {
+  border-color: rgb(134 190 180 / 17%);
+  color: #c2d4d0;
+  background: #2a2d2e;
+}
+
+.app-shell[data-theme="dark"] .guided-examples button:hover:not(:disabled) {
+  border-color: rgb(134 190 180 / 29%);
+  background: #333738;
+}
+
+.app-shell[data-theme="dark"] .chat-header {
+  background: rgb(31 33 35 / 92%);
+}
+
+.app-shell[data-theme="dark"] .model-state i {
+  background: #71817f;
+  box-shadow: 0 0 0 3px rgb(113 129 127 / 12%);
+}
+
+.app-shell[data-theme="dark"] .model-state-ready i {
+  background: var(--success);
+  box-shadow: 0 0 0 3px rgb(119 189 145 / 13%);
+}
+
+.app-shell[data-theme="dark"] .model-state-busy i,
+.app-shell[data-theme="dark"] .model-state-loading i {
+  background: var(--accent-strong);
+  box-shadow: 0 0 0 3px rgb(145 200 189 / 13%);
+}
+
+.app-shell[data-theme="dark"] .header-action {
+  background: rgb(255 255 255 / 4%);
+}
+
+.app-shell[data-theme="dark"] .header-action:hover:not(:disabled) {
+  border-color: rgb(134 190 180 / 26%);
+  background: rgb(111 169 160 / 11%);
+}
+
+.app-shell[data-theme="dark"] .suggestions button {
+  background: rgb(35 37 39 / 92%);
+}
+
+.app-shell[data-theme="dark"] .suggestions button:hover {
+  border-color: rgb(134 190 180 / 20%);
+  background: #2b2e30;
+  box-shadow: 0 16px 38px rgb(0 0 0 / 30%);
+}
+
+.app-shell[data-theme="dark"] .timeline-user {
+  border-color: rgb(134 190 180 / 14%);
+  color: #eff2ee;
+  background: #304542;
+  box-shadow: 0 7px 20px rgb(0 0 0 / 24%);
+}
+
+.app-shell[data-theme="dark"] .assistant-markdown {
+  color: #deddd9;
+}
+
+.app-shell[data-theme="dark"] .assistant-markdown h1,
+.app-shell[data-theme="dark"] .assistant-markdown h2,
+.app-shell[data-theme="dark"] .assistant-markdown h3,
+.app-shell[data-theme="dark"] .assistant-markdown h4,
+.app-shell[data-theme="dark"] .assistant-markdown h5,
+.app-shell[data-theme="dark"] .assistant-markdown h6 {
+  color: #f4f1eb;
+}
+
+.app-shell[data-theme="dark"] .assistant-markdown code {
+  color: #d2dfdc;
+  background: #292c2e;
+}
+
+.app-shell[data-theme="dark"] .assistant-markdown pre code {
+  color: inherit;
+  background: transparent;
+}
+
+.app-shell[data-theme="dark"] .assistant-markdown blockquote {
+  color: #aaa9a5;
+}
+
+.app-shell[data-theme="dark"] .assistant-table-scroll {
+  background: #202224;
+  box-shadow: 0 8px 22px rgb(0 0 0 / 22%);
+}
+
+.app-shell[data-theme="dark"] .assistant-table-scroll th {
+  color: #d5dfdc;
+  background: #2b3332;
+}
+
+.app-shell[data-theme="dark"] .assistant-table-scroll tbody tr:nth-child(even) td {
+  background: #242627;
+}
+
+.app-shell[data-theme="dark"] .response-metrics span {
+  background: rgb(39 41 43 / 78%);
+}
+
+.app-shell[data-theme="dark"] .response-metrics strong {
+  color: #cdccc8;
+}
+
+.app-shell[data-theme="dark"] .thinking-stream {
+  border-color: rgb(134 190 180 / 14%);
+  color: #babbb7;
+  background: linear-gradient(135deg, rgb(43 50 49 / 92%), rgb(36 38 40 / 94%));
+  box-shadow: 0 9px 30px rgb(0 0 0 / 22%);
+}
+
+.app-shell[data-theme="dark"] .timeline-activity {
+  color: #b9b9b5;
+  background: rgb(38 40 42 / 84%);
+}
+
+.app-shell[data-theme="dark"] .timeline-artifact {
+  border-color: rgb(134 190 180 / 16%);
+  color: #c4d3cf;
+  background: #293332;
+}
+
+.app-shell[data-theme="dark"] .composer {
+  background: rgb(35 37 39 / 97%);
+  box-shadow:
+    0 16px 42px rgb(0 0 0 / 32%),
+    inset 0 1px rgb(255 255 255 / 4%);
+}
+
+.app-shell[data-theme="dark"] .composer:focus-within {
+  border-color: rgb(134 190 180 / 31%);
+  box-shadow:
+    0 18px 46px rgb(0 0 0 / 36%),
+    0 0 0 3px rgb(111 169 160 / 10%);
+}
+
+.app-shell[data-theme="dark"] .composer textarea::placeholder {
+  color: #82918f;
+}
+
+.app-shell[data-theme="dark"] .attachment-chip {
+  color: #bdcbc8;
+  background: rgb(48 52 53 / 74%);
+}
+
+.app-shell[data-theme="dark"] .attachment-chip button,
+.app-shell[data-theme="dark"] .icon-button:disabled {
+  color: #82918f;
+}
+
+.app-shell[data-theme="dark"] .confirmation-dialog {
+  box-shadow: 0 26px 72px rgb(0 0 0 / 42%);
+}
+
+.app-shell[data-theme="dark"] .confirmation-actions button {
+  color: var(--ink);
+  background: #2b2d2f;
+}
+
+.app-shell[data-theme="dark"] .confirmation-actions .confirmation-remove {
+  color: #17191a;
+  background: var(--ember);
+}
+
+.app-shell[data-theme="dark"] .technical-details-drawer {
+  background:
+    radial-gradient(circle at 100% 0, rgb(111 169 160 / 10%), transparent 20rem),
+    rgb(19 21 23 / 98%);
+}
+
+.app-shell[data-theme="dark"] .technical-details-item {
+  color: #c8c7c3;
+  background: rgb(36 38 40 / 92%);
+}
+
+.app-shell[data-theme="dark"] .error-banner {
+  color: #ffd6c7;
+  box-shadow: 0 12px 30px rgb(0 0 0 / 24%);
+}
+
 @keyframes status-pulse {
   0%,
   100% {
@@ -1545,6 +1804,8 @@ textarea:focus-visible {
   }
 
   .nav-action,
+  .app-shell,
+  .appearance-action .icon,
   .sidebar-item-select,
   .new-folder-session,
   .show-more,
@@ -1558,6 +1819,7 @@ textarea:focus-visible {
   }
 
   .suggestions button:hover,
+  .appearance-action:hover:not(:disabled) .icon,
   .send-button:hover:not(:disabled) {
     transform: none;
   }

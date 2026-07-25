@@ -31,6 +31,9 @@ describe("desktop window layout", () => {
     expect(markup).toContain("Gemma 4 12B QAT");
     expect(markup).not.toContain("Thinking on");
     expect(markup).not.toContain(">G4<");
-    expect(markup).toMatch(/<button[^>]*class="header-action unload-action"[^>]*>.*Unload/s);
+    expect(markup).toMatch(
+      /<button[^>]*class="header-action unload-action"[^>]*>.*Unload.*<button[^>]*class="header-action appearance-action"[^>]*>.*<button[^>]*class="header-action technical-details-action"/s,
+    );
+    expect(markup).toContain('data-appearance="system" data-theme="light"');
   });
 });

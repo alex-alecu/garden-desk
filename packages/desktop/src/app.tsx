@@ -1,6 +1,7 @@
 import type { ModelRuntimeStatus } from "@vault/shared";
 import { useEffect, useReducer, useState } from "react";
 import type { DesktopApi } from "./api.js";
+import { useAppearance } from "./appearance.js";
 import type { DesktopCapabilities } from "./capabilities.js";
 import { ChatHeader } from "./components/chat-header.js";
 import { Composer } from "./components/composer.js";
@@ -32,6 +33,7 @@ interface ConfirmationRequest {
 // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: this is the single view-composition boundary for explicit desktop capabilities.
 // biome-ignore lint/complexity/noExcessiveLinesPerFunction: this is the single view-composition boundary; workflow logic remains in the small helpers above.
 export function App({ api, capabilities }: { api: DesktopApi; capabilities: DesktopCapabilities }) {
+  const appearance = useAppearance();
   const [state, dispatch] = useReducer(desktopReducer, initialDesktopState);
   const [desktopError, setDesktopError] = useState<string>();
   const [submitting, setSubmitting] = useState(false);
@@ -92,7 +94,11 @@ export function App({ api, capabilities }: { api: DesktopApi; capabilities: Desk
       setSubmitting,
     });
   return (
-    <div className="app-shell">
+    <div
+      className="app-shell"
+      data-appearance={appearance.preference}
+      data-theme={appearance.resolved}
+    >
       <Sidebar
         activeSessionId={state.activeSessionId}
         disabled={!state.loaded}
@@ -145,9 +151,11 @@ export function App({ api, capabilities }: { api: DesktopApi; capabilities: Desk
       <main aria-busy={!state.loaded} className="workspace">
         <div aria-hidden="true" className="window-drag-region" data-tauri-drag-region="" />
         <ChatHeader
+          appearance={appearance.preference}
           technicalDetailsOpen={technicalDetailsOpen}
           model={model}
           nativeActionMessage={nativeUnavailable}
+          onAppearanceChange={appearance.cycle}
           onTechnicalDetailsOpen={() => setTechnicalDetailsOpen(true)}
           onUnload={() => {
             void api

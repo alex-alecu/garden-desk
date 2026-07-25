@@ -1,10 +1,13 @@
 import type { ModelRuntimeStatus } from "@vault/shared";
+import { type AppearancePreference, nextAppearance } from "../appearance.js";
 import { Icon } from "./icons.js";
 
 interface ChatHeaderProps {
+  appearance: AppearancePreference;
   technicalDetailsOpen: boolean;
   model: ModelRuntimeStatus;
   nativeActionMessage?: string | undefined;
+  onAppearanceChange(): void;
   onTechnicalDetailsOpen(): void;
   onUnload(): void;
 }
@@ -19,6 +22,11 @@ const statusText: Record<ModelRuntimeStatus["state"], string> = {
 
 const MIB = 1024 ** 2;
 const GIB = 1024 ** 3;
+const appearanceLabels: Record<AppearancePreference, string> = {
+  system: "System",
+  light: "Light",
+  dark: "Dark",
+};
 
 function formatMemory(bytes: number): string {
   if (bytes === 0) return "0 GiB";
@@ -43,10 +51,33 @@ function modelUsage(model: ModelRuntimeStatus) {
   };
 }
 
+function AppearanceControl({
+  appearance,
+  onChange,
+}: {
+  appearance: AppearancePreference;
+  onChange(): void;
+}) {
+  const next = nextAppearance(appearance);
+  return (
+    <button
+      aria-label={`Appearance: ${appearanceLabels[appearance]}. Switch to ${appearanceLabels[next]}`}
+      className="header-action appearance-action"
+      onClick={onChange}
+      title={`Appearance: ${appearanceLabels[appearance]} · Next: ${appearanceLabels[next]}`}
+      type="button"
+    >
+      <Icon name={`appearance-${appearance}`} />
+    </button>
+  );
+}
+
 export function ChatHeader({
+  appearance,
   technicalDetailsOpen,
   model,
   nativeActionMessage,
+  onAppearanceChange,
   onTechnicalDetailsOpen,
   onUnload,
 }: ChatHeaderProps) {
@@ -85,6 +116,7 @@ export function ChatHeader({
           <Icon name="power" />
           <span>Unload</span>
         </button>
+        <AppearanceControl appearance={appearance} onChange={onAppearanceChange} />
         <button
           aria-label="Open technical details"
           className="header-action technical-details-action"
