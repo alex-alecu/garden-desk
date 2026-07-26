@@ -23,6 +23,12 @@ function failureSummary(detail: string): string {
   if (detail === "agent_model_failed") {
     return "The local model could not be loaded or did not respond.";
   }
+  if (detail === "agent_stalled_duplicate") {
+    return "The local model repeated the same program and could not make further progress.";
+  }
+  if (detail === "agent_decision_limit_exceeded") {
+    return "The local model could not produce a new executable plan within the planning limit.";
+  }
   return "The local task could not be completed safely.";
 }
 

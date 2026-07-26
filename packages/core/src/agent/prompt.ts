@@ -7,6 +7,14 @@ import {
 import capabilities from "../../../workers/images/agent/capabilities.json" with { type: "json" };
 import { effectiveGenerationInput, type GenerationInput } from "../runtime/inference.js";
 import { assembleHistory, type DurableAgentHistory } from "./history.js";
+import {
+  completedSuccessfully,
+  hasUsefulResult,
+  missingOutputLabels,
+  requiredOutputLabels,
+  type XlsxWorkflowPhase,
+  xlsxWorkflowPhase,
+} from "./output-contract.js";
 import { agentDecisionJsonSchema } from "./prompt-schema.js";
 
 export const MAX_EXECUTIONS = 6;
@@ -15,11 +23,12 @@ const XLSX_SEARCH_EXAMPLE = [
   "from pathlib import Path",
   "import os",
   "from openpyxl import load_workbook",
+  "needle = 'search term'.casefold()",
   "for path in Path(os.environ['VAULT_SOURCE_DIR']).rglob('*'):",
   "    if path.suffix.lower() != '.xlsx': continue",
   "    for sheet in load_workbook(path, data_only=True).worksheets:",
   "        for row in sheet.iter_rows(values_only=True):",
-  "            if any('search term' in str(value).lower() for value in row if value is not None):",
+  "            if any(needle in str(value).casefold() for value in row if value is not None):",
   "                print(path.name, sheet.title, row)",
 ].join("\n");
 const XLSX_EXECUTION_INSTRUCTIONS = [
@@ -28,32 +37,43 @@ const XLSX_EXECUTION_INSTRUCTIONS = [
 ] as const;
 const XLSX_INSPECTION_PHASE = [
   "Current required phase: inspect before calculating.",
-  "If this is an XLSX text-search task, execute only one short search program now: copy the XLSX search example, replace 'search term' with the requested text, and print every complete matching row with its file and sheet.",
+  "If this is an XLSX text-search task, execute only one short search program now: copy the XLSX search example, replace only the 'search term' literal with the requested text, and print every complete matching row with its file and sheet.",
   "Do not add break or stop after the first match. Do not calculate totals, infer headers, normalize numbers, build a transaction list, use try/except, or add comments in this phase.",
 ] as const;
 const XLSX_RESULT_EXAMPLE = [
-  "For the verified XLSX result, adapt these complete source lines and replace only the search term and observed amount index:",
+  "For the verified XLSX result, adapt these complete source lines and replace only the search term and requested output labels:",
   "from pathlib import Path",
   "import os",
   "from openpyxl import load_workbook",
+  "needle = 'search term'.casefold()",
   "count = 0",
   "total = 0.0",
   "for path in Path(os.environ['VAULT_SOURCE_DIR']).rglob('*'):",
-  "    if path.suffix.lower() != '.xlsx': continue",
-  "    for sheet in load_workbook(path, data_only=True).worksheets:",
-  "        for row in sheet.iter_rows(values_only=True):",
-  "            if any('search term' in str(value).lower() for value in row if value is not None):",
-  "                print(path.name, sheet.title, row)",
-  "                count += 1",
-  "                total += float(row[AMOUNT_INDEX])",
-  "print('Match count:', count)",
-  "print('Total:', total)",
+  "    if path.suffix.lower() == '.xlsx':",
+  "        for sheet in load_workbook(path, data_only=True).worksheets:",
+  "            rows = sheet.iter_rows(values_only=True)",
+  "            header = next(rows, ())",
+  "            amount_index = next(index for index, value in enumerate(header) if str(value).strip().casefold() == 'amount')",
+  "            for row in rows:",
+  "                if any(needle in str(value).casefold() for value in row if value is not None):",
+  "                    print(path.name, sheet.title, row)",
+  "                    count += 1",
+  "                    total += float(row[amount_index])",
+  "print('Match count:', count, sep='')",
+  "print('Total:', total, sep='')",
 ].join("\n");
 const XLSX_RESULT_PHASE = [
   "Current required phase: calculate and verify from the inspected structure before responding.",
   "Execute one short program that repeats the search and prints every requested summary row, the match count, and any requested total.",
-  "Use plain comma-separated print calls. Do not build lists or dictionaries, format Markdown, use f-strings, sort, add comments, or close workbooks.",
-  "Select indexes from the observed row structure and calculate from workbook values. Do not copy values into source or normalize values that are already numeric.",
+  "Copy every requested output label exactly. For LABEL=<value> output, use print('LABEL=', value, sep='') so no extra whitespace is inserted. Preserve the casefold calls when replacing the search-term literal.",
+  "Complete every non-XLSX requirement in the same program. Add other file formats as sibling branches under the recursive path loop; never place them after a continue that excludes non-XLSX files.",
+  "Use plain print calls with sep=''. Do not build lists or dictionaries, format Markdown, use f-strings, sort, add comments, or close workbooks.",
+  "Discover the amount index from each worksheet header and calculate from workbook values. Do not copy values into source or normalize values that are already numeric.",
+  XLSX_RESULT_EXAMPLE,
+] as const;
+const XLSX_RESULT_REPAIR_PHASE = [
+  "Current required phase: repair the calculation before responding.",
+  "The last completed calculation produced no verifiable stdout. Repair it at the same path and print every requested output label and value with no extra whitespace.",
   XLSX_RESULT_EXAMPLE,
 ] as const;
 const RUNTIME_CAPABILITIES = Object.entries(capabilities.runtimes)
@@ -107,14 +127,6 @@ interface PromptBounds {
   requestOverheadTokens: number;
 }
 
-export function hasUsefulResult(result: AgentExecutionResult): boolean {
-  return (
-    result.exitCode === 0 &&
-    result.termination === "completed" &&
-    (result.stdout.trim().length > 0 || result.artifacts.length > 0)
-  );
-}
-
 function observations(executions: AgentExecutionResult[]) {
   return executions.map((result, index) => ({
     step: index + 1,
@@ -133,7 +145,8 @@ function observations(executions: AgentExecutionResult[]) {
 function phaseInstructions(
   finalResponse: boolean,
   hasXlsxInput: boolean,
-  usefulExecutionCount: number,
+  xlsxPhase: XlsxWorkflowPhase,
+  missingLabels: string[],
 ): readonly string[] {
   if (finalResponse) {
     return [
@@ -141,8 +154,14 @@ function phaseInstructions(
     ];
   }
   if (!hasXlsxInput) return [];
-  if (usefulExecutionCount === 0) return XLSX_INSPECTION_PHASE;
-  if (usefulExecutionCount === 1) return XLSX_RESULT_PHASE;
+  if (xlsxPhase === "inspect") return XLSX_INSPECTION_PHASE;
+  if (xlsxPhase === "calculate") return XLSX_RESULT_PHASE;
+  if (xlsxPhase === "repair-result") {
+    return [
+      ...XLSX_RESULT_REPAIR_PHASE,
+      `Missing required output labels: ${missingLabels.join(", ")}.`,
+    ];
+  }
   return [];
 }
 
@@ -158,23 +177,28 @@ function prompt(
     result.artifacts.map((artifact) => artifact.name),
   );
   const hasXlsxInput = requiresXlsxWorkflow(input);
-  const usefulExecutionCount = executions.filter(hasUsefulResult).length;
+  const requiredLabels = requiredOutputLabels(input.task);
+  const successfulExecutionCount = executions.filter(completedSuccessfully).length;
+  const completed = executions.filter(completedSuccessfully);
+  const missingLabels = missingOutputLabels(completed.at(-1)?.stdout ?? "", requiredLabels);
+  const xlsxPhase = xlsxWorkflowPhase(executions, requiredLabels);
   const current = [
     ...EXECUTION_INSTRUCTIONS,
     ...(hasXlsxInput ? XLSX_EXECUTION_INSTRUCTIONS : []),
     `Selected input count: ${inputNames.length}.`,
     `Task: ${input.task}`,
     `Completed execution observations: ${JSON.stringify(observations(executions))}`,
-    `Successful execution count: ${executions.filter((item) => item.exitCode === 0 && item.termination === "completed").length}.`,
+    `Successful execution count: ${successfulExecutionCount}.`,
     `Remaining execution capacity: ${Math.max(0, MAX_EXECUTIONS - executions.length)}.`,
     `Rejected exact duplicate programs: ${rejectedDuplicates}. A rejected program was not executed and does not advance the task. After a rejection, repair the failed step or implement the next missing task step with different code.`,
+    `Required output labels: ${JSON.stringify(requiredLabels)}. A result is complete only when stdout contains every label exactly as LABEL=value with no spaces around the equals sign.`,
     `Produced artifact names: ${JSON.stringify(artifacts)}.`,
     "These observations are authoritative. Never repeat completed code or a completed task step.",
     "When an execution failed or produced no useful output, repair its recorded source or command at the same path instead of starting over.",
     "For ordered task steps, completed execution 1 means step 1 is done; the next action must implement step 2.",
     "Choose execute only if a requested step is still missing from the observations.",
     "If every requested execution and artifact is evidenced, you must choose respond now and must not execute again.",
-    ...phaseInstructions(finalResponse, hasXlsxInput, usefulExecutionCount),
+    ...phaseInstructions(finalResponse, hasXlsxInput, xlsxPhase, missingLabels),
   ].join("\n");
   const usableTokens = Math.max(0, bounds.contextTokens - 4_096 - bounds.requestOverheadTokens);
   const requiredTokens = Math.ceil(current.length / 4);
@@ -191,10 +215,11 @@ export function generationInput(
   finalResponse = false,
   contextTokens = 8_192,
 ): GenerationInput {
+  const requiredLabels = requiredOutputLabels(input.task);
   const requiresXlsxExecution =
     !finalResponse &&
     requiresXlsxWorkflow(input) &&
-    progress.executions.filter(hasUsefulResult).length < 2;
+    xlsxWorkflowPhase(progress.executions, requiredLabels) !== "complete";
   const jsonSchema = agentDecisionJsonSchema(input.task, finalResponse, requiresXlsxExecution);
   let requestOverheadTokens = Math.ceil(
     JSON.stringify({ modelId: input.modelId, jsonSchema, contextSize: "auto", maxTokens: 4096 })
@@ -243,9 +268,15 @@ export function executionBackedResponse(
   fallback: string,
 ): string {
   if (!requiresXlsxWorkflow(input)) return fallback;
-  const usefulExecutions = progress.executions.filter(hasUsefulResult);
-  const stdout = usefulExecutions.at(-1)?.stdout.trim() ?? "";
-  return usefulExecutions.length >= 2 && stdout.length > 0 && stdout.length <= 64_000
+  const requiredLabels = requiredOutputLabels(input.task);
+  const completed = progress.executions.filter(completedSuccessfully);
+  const last = completed.at(-1);
+  const stdout = last?.stdout.trim() ?? "";
+  return completed.length >= 2 &&
+    last !== undefined &&
+    hasUsefulResult(last) &&
+    missingOutputLabels(stdout, requiredLabels).length === 0 &&
+    stdout.length <= 64_000
     ? stdout
     : fallback;
 }
