@@ -14,6 +14,8 @@ const helper = join(
 const images = join(repositoryRoot, "packages/workers/images");
 const modelRoot = join(repositoryRoot, "packages/eval/.generated/models");
 const modelPath = join(modelRoot, "gemma-4-12b-it-qat-q4_0.gguf");
+type RealLanguage = "python" | "node";
+
 async function prepareModelStore(): Promise<void> {
   const manifest = await readCanonicalModelManifest();
   const model = manifest.models.find((candidate) => candidate.id === "gemma-4-12b-it-qat-q4_0");
@@ -37,18 +39,76 @@ async function prepareModelStore(): Promise<void> {
   );
 }
 
-async function awaitRun(
-  getSnapshot: () => Promise<AgentRunSnapshot>,
+function retainTerminalSnapshots(
+  snapshots: Map<RealLanguage, AgentRunSnapshot>,
+  polled: Array<{ language: RealLanguage; snapshot: AgentRunSnapshot }>,
+): void {
+  for (const { language, snapshot } of polled) {
+    if (snapshot.run.state !== "queued" && snapshot.run.state !== "running") {
+      snapshots.set(language, snapshot);
+    }
+  }
+}
+
+async function awaitConcurrentRuns(
+  core: Awaited<ReturnType<typeof createVaultCore>>,
+  runs: { language: RealLanguage; id: string }[],
   deadlineMs: number,
-): Promise<AgentRunSnapshot> {
+): Promise<{
+  maximumOverlappingVms: number;
+  snapshots: Map<RealLanguage, AgentRunSnapshot>;
+}> {
   const deadline = performance.now() + deadlineMs;
-  let snapshot: AgentRunSnapshot | undefined;
-  while (performance.now() < deadline) {
-    snapshot = await getSnapshot();
-    if (snapshot.run.state !== "queued" && snapshot.run.state !== "running") return snapshot;
+  const snapshots = new Map<RealLanguage, AgentRunSnapshot>();
+  while (snapshots.size < runs.length && performance.now() < deadline) {
+    const polled = await Promise.all(
+      runs.map(async (run) => ({ ...run, snapshot: await core.getAgentRun(run.id) })),
+    );
+    retainTerminalSnapshots(snapshots, polled);
     await new Promise((accept) => setTimeout(accept, 500));
   }
-  throw new Error(`Real agent run timed out: ${JSON.stringify(snapshot)}`);
+  if (snapshots.size !== runs.length) {
+    throw new Error(`Concurrent real agent runs timed out: ${JSON.stringify([...snapshots])}`);
+  }
+  const refreshed = await Promise.all(
+    runs.map(async (run) => ({ ...run, snapshot: await core.getAgentRun(run.id) })),
+  );
+  for (const { language, snapshot } of refreshed) snapshots.set(language, snapshot);
+  const maximumOverlappingVms = maximumVmOverlap([...snapshots.values()], Date.now());
+  if (maximumOverlappingVms < 2) {
+    throw new Error("Real agent VM lifetimes did not overlap.");
+  }
+  return { maximumOverlappingVms, snapshots };
+}
+
+function maximumVmOverlap(snapshots: AgentRunSnapshot[], observedAt: number): number {
+  const intervals = snapshots.map((snapshot) => {
+    const diagnostics = snapshot.executions.flatMap((execution) => execution.vmDiagnostics);
+    const startedAt = diagnostics
+      .filter((diagnostic) => diagnostic.code === "vm_start")
+      .map((diagnostic) => Date.parse(diagnostic.createdAt))
+      .sort((left, right) => left - right)[0];
+    const completedAt = diagnostics
+      .filter((diagnostic) => diagnostic.code === "teardown")
+      .map((diagnostic) => Date.parse(diagnostic.createdAt))
+      .sort((left, right) => right - left)[0];
+    if (startedAt === undefined || !Number.isFinite(startedAt)) {
+      throw new Error(`Real agent VM start evidence is missing: ${JSON.stringify(snapshot)}`);
+    }
+    return { startedAt, completedAt: completedAt ?? observedAt };
+  });
+  const boundaries = intervals.flatMap((interval) => [
+    { at: interval.startedAt, change: 1 },
+    { at: interval.completedAt, change: -1 },
+  ]);
+  boundaries.sort((left, right) => left.at - right.at || left.change - right.change);
+  let active = 0;
+  let maximum = 0;
+  for (const boundary of boundaries) {
+    active += boundary.change;
+    maximum = Math.max(maximum, active);
+  }
+  return maximum;
 }
 
 async function automaticModelEvidence(core: Awaited<ReturnType<typeof createVaultCore>>) {
@@ -91,7 +151,7 @@ async function workspaceLifecycleEvidence(
   return { folderRevocation: "workspace_retained", sessionDeletion: "workspace_removed" };
 }
 
-function requireRealAgentResult(snapshot: AgentRunSnapshot, language: "python" | "node") {
+function requireRealAgentResult(snapshot: AgentRunSnapshot, language: RealLanguage) {
   const attempts = snapshot.events.filter((event) => event.type === "execution.completed");
   const executions = attempts.filter(
     (event) => event.language === language && event.termination === "completed",
@@ -106,30 +166,37 @@ function requireRealAgentResult(snapshot: AgentRunSnapshot, language: "python" |
   return { attempts, executions };
 }
 
-async function runRealAgent(root: string, language: "python" | "node") {
-  const workspace = join(root, `${language}-workspace`);
+async function prepareRealAgent(
+  core: Awaited<ReturnType<typeof createVaultCore>>,
+  root: string,
+  language: RealLanguage,
+) {
   const source = join(root, `${language}-source`);
-  await Promise.all([mkdir(workspace), mkdir(source)]);
+  await mkdir(source);
   await writeFile(join(source, `${language}-input.txt`), "M3 passed");
-  const core = await createVaultCore({
-    workspaceDir: workspace,
-    modelStoreDir: modelRoot,
-    profile: "auto",
-    agentHelperPath: helper,
-    agentImageRoot: images,
-  });
-  try {
-    const folder = await core.addFolder(source);
-    const session = await core.createSession(folder.id);
-    const run = await core.startAgent(
-      session.id,
-      `Use exactly two separate source executions. Every execution must set language to ${language} and provide source and path; never choose shell or command. Execution 1: read /source/${language}-input.txt and print its exact contents. Execution 2: read it and write the exact contents to /workspace/${language}-result.txt. After one successful observation, do not repeat execution 1. Do not respond before both executions succeed.`,
-    );
-    const snapshot = await awaitRun(() => core.getAgentRun(run.id), 10 * 60_000);
-    const { attempts, executions } = requireRealAgentResult(snapshot, language);
-    const model = await automaticModelEvidence(core);
-    const lifecycle = await workspaceLifecycleEvidence(core, workspace, session.id, folder.id);
-    return {
+  const folder = await core.addFolder(source);
+  const session = await core.createSession(folder.id);
+  return { folder, session, language };
+}
+
+async function collectRealAgentEvidence(input: {
+  core: Awaited<ReturnType<typeof createVaultCore>>;
+  workspace: string;
+  target: Awaited<ReturnType<typeof prepareRealAgent>>;
+  snapshot: AgentRunSnapshot;
+  model: Awaited<ReturnType<typeof automaticModelEvidence>>;
+}) {
+  const { core, model, snapshot, target, workspace } = input;
+  const { attempts, executions } = requireRealAgentResult(snapshot, target.language);
+  const lifecycle = await workspaceLifecycleEvidence(
+    core,
+    workspace,
+    target.session.id,
+    target.folder.id,
+  );
+  return [
+    target.language,
+    {
       executions: executions.length,
       attempts: attempts.length,
       artifacts: snapshot.artifacts.length,
@@ -138,6 +205,49 @@ async function runRealAgent(root: string, language: "python" | "node") {
       gpuVramBytes: model.gpuVramBytes,
       contextSizeTokens: model.contextSizeTokens,
       ...lifecycle,
+    },
+  ] as const;
+}
+
+async function runRealAgents(root: string) {
+  const workspace = join(root, "agent-workspace");
+  await mkdir(workspace);
+  const core = await createVaultCore({
+    workspaceDir: workspace,
+    modelStoreDir: modelRoot,
+    profile: "auto",
+    agentHelperPath: helper,
+    agentImageRoot: images,
+  });
+  try {
+    const targets = [
+      await prepareRealAgent(core, root, "python"),
+      await prepareRealAgent(core, root, "node"),
+    ];
+    const runs = await Promise.all(
+      targets.map(async ({ language, session }) => ({
+        language,
+        ...(await core.startAgent(
+          session.id,
+          `Use exactly two separate source executions. Every execution must set language to ${language} and provide source and path; never choose shell or command. Execution 1: read /source/${language}-input.txt and print its exact contents. Execution 2: read it and write the exact contents to /workspace/${language}-result.txt. After one successful observation, do not repeat execution 1. Do not respond before both executions succeed.`,
+        )),
+      })),
+    );
+    const concurrent = await awaitConcurrentRuns(core, runs, 10 * 60_000);
+    const model = await automaticModelEvidence(core);
+    const results = Object.fromEntries(
+      await Promise.all(
+        targets.map(async (target) => {
+          const snapshot = concurrent.snapshots.get(target.language);
+          if (snapshot === undefined) throw new Error(`Missing ${target.language} agent result.`);
+          return collectRealAgentEvidence({ core, workspace, target, snapshot, model });
+        }),
+      ),
+    );
+    return {
+      maximumOverlappingVms: concurrent.maximumOverlappingVms,
+      realPython: results.python,
+      realNode: results.node,
     };
   } finally {
     await core.close();
@@ -152,14 +262,12 @@ async function main(): Promise<void> {
   try {
     const guest = await runMacOsGuestEvidence(root, helper, images);
     await prepareModelStore();
-    const realPython = await runRealAgent(root, "python");
-    const realNode = await runRealAgent(root, "node");
+    const realAgents = await runRealAgents(root);
     console.log(
       JSON.stringify({
         classification: "certified",
         guest,
-        realPython,
-        realNode,
+        ...realAgents,
       }),
     );
   } finally {

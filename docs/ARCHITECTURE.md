@@ -51,7 +51,7 @@ Unit tests may use the programmatic facade, but every desktop capability also cr
 
 ## Agent MicroVM
 
-Each agent session starts or reuses one microVM under ADR 0012. Only one execution runs at a time. The VM configuration contains no virtual network adapter, DNS, route, NAT, bridge, or generic host proxy.
+Each agent session starts or reuses one microVM under ADR 0012. Only one execution runs at a time per conversation, while independent conversations may overlap within the hardware-derived VM capacity. The VM configuration contains no virtual network adapter, DNS, route, NAT, bridge, or generic host proxy.
 
 The guest receives:
 
@@ -77,7 +77,7 @@ Vault Core owns the loop; the guest owns execution.
 4. The model proposes Python, Node.js, a guest-shell command, or a final response; Core validates the typed shape.
 5. For an execution proposal, Core sends only the source or command and limits to the guest.
 6. The guest returns a structured result and workspace delta, and Core decides whether another model step is allowed.
-7. Core records observable activity, validates and commits the workspace manifest, and retains the guest as the single warm idle VM.
+7. Core records observable activity, validates and commits the workspace manifest, and retains the guest in a least-recently-used warm pool bounded by total RAM, the inference cap, a host reserve, and the fixed guest limit.
 
 OpenCode informs interaction and loop design but is not a runtime dependency. A dependency may be adopted later only after a separate review proves that it reduces maintained code without weakening these boundaries.
 
@@ -85,7 +85,7 @@ OpenCode informs interaction and loop design but is not a runtime dependency. A 
 
 The first runtime is node-llama-cpp with an approved hash-pinned local model. It remains host-native for Metal, CUDA, HIP, or Vulkan acceleration, but runs under an operating-system capability boundary with no external networking, credentials, shell, tools, arbitrary workspace access, or approval authority.
 
-The agent guest never connects directly to inference. Vault Core mediates each request, enforces model identity, schema, token and output limits, cancellation, memory budget, and audit. The packaged desktop selects the budget automatically: 10 GiB on Macs through 16 GB, 12 GiB through 24 GB, 16 GiB above 24 GB, and the complete runtime-reported GPU VRAM capacity on Windows. An 8 GB Mac exposes an unsupported status and cannot start agent inference. Within the selected budget, the worker fits the largest generation context from 8K through the model's 256K ceiling. macOS fitting accounts for combined model and context CPU-plus-GPU allocation and verifies the measured post-creation total. Windows reports detected VRAM separately from the applied cap. After a successful request, the worker process and approved model remain resident for the next turn. An idle-only typed unload command, a model switch, a contained failure, or Core shutdown terminates the complete worker; the operating system then reclaims the model and cached contexts as one process-scoped unit.
+The agent guest never connects directly to inference. Vault Core mediates each request, enforces model identity, schema, token and output limits, cancellation, memory budget, and audit. Concurrent conversations queue model turns through the same resident worker, so parallel guests never multiply the Gemma allocation. The packaged desktop selects the budget automatically: 10 GiB on Macs through 16 GB, 12 GiB through 24 GB, 16 GiB above 24 GB, and the complete runtime-reported GPU VRAM capacity on Windows. An 8 GB Mac exposes an unsupported status and cannot start agent inference. Within the selected budget, the worker fits the largest generation context from 8K through the model's 256K ceiling. macOS fitting accounts for combined model and context CPU-plus-GPU allocation and verifies the measured post-creation total. Windows reports detected VRAM separately from the applied cap. After a successful request, the worker process and approved model remain resident for the next turn. An idle-only typed unload command, a model switch, a contained failure, or Core shutdown terminates the complete worker; the operating system then reclaims the model and cached contexts as one process-scoped unit.
 
 Gemma 4 reasoning is enabled through its supported chat wrapper. Only explicitly typed `thought` segments may cross the worker stream into bounded, transient active-run memory for live display. Those segments never enter the workspace database, conversation, agent event, or audit log. Token counts and timing measurements cross in the terminal typed response and are aggregated into persisted numeric run metrics.
 
@@ -133,3 +133,4 @@ The same control-plane boundaries may later support supported personal computers
 | 2026-07-20 | Made the generic offline dev-agent desktop the V1 architecture and moved document intelligence after launch. |
 | 2026-07-22 | Grouped sidebar creation actions under their Chats and Folders sections. |
 | 2026-07-22 | Added hardware-derived model-plus-context budgets, full Windows GPU VRAM use, automatic context fitting, and the unsupported 8 GB Mac state. |
+| 2026-07-25 | Added RAM-bounded parallel conversation guests and serialized model-turn reuse of one resident Gemma worker. |

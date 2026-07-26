@@ -103,6 +103,29 @@ describe("agent workspace deltas", () => {
     const beforeHash = createHash("sha256").update(before).digest("hex");
     await expect(stat(join(root, "blobs", beforeHash))).rejects.toMatchObject({ code: "ENOENT" });
   });
+
+  it("preserves concurrent commits from different agent sessions", async () => {
+    const root = await mkdtemp(join(tmpdir(), "vault-workspace-store-concurrent-"));
+    roots.push(root);
+    const store = await AgentWorkspaceStore.create(root);
+    const bytes = Buffer.alloc(4 * 1024 * 1024, "shared");
+    const sessionIds = Array.from({ length: 4 }, () => randomUUID());
+
+    await Promise.all(
+      sessionIds.map((sessionId, index) =>
+        store.applyDelta(sessionId, {
+          entries: [file(`result-${index}.txt`, bytes)],
+          removedPaths: [],
+        }),
+      ),
+    );
+
+    await Promise.all(
+      sessionIds.map(async (sessionId, index) => {
+        expect(await store.load(sessionId)).toEqual([file(`result-${index}.txt`, bytes)]);
+      }),
+    );
+  });
 });
 
 describe("agent workspace blob integrity", () => {

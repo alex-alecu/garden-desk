@@ -11,6 +11,7 @@ interface SidebarProps {
   dispatch: Dispatch<DesktopAction>;
   folders: FolderGroup[];
   globalSessions: SessionSummary[];
+  workingSessionIds: string[];
   nativeActionMessage?: string | undefined;
   onAddFolder(): void;
   onNewSession(folderId: string | null): void;
@@ -44,6 +45,7 @@ function FolderSection(props: SidebarProps) {
           activeSessionId={props.activeSessionId}
           disabled={props.disabled}
           folder={folder}
+          workingSessionIds={props.workingSessionIds}
           nativeActionMessage={props.nativeActionMessage}
           onNewSession={props.onNewSession}
           onDeleteSession={props.onDeleteSession}
@@ -76,9 +78,11 @@ export function Sidebar(props: SidebarProps) {
             <SidebarItemRow
               active={session.id === props.activeSessionId}
               deleteLabel={`Delete ${session.title}`}
+              deleteDisabled={props.workingSessionIds.includes(session.id)}
               disabled={props.disabled}
               key={session.id}
               label={session.title}
+              working={props.workingSessionIds.includes(session.id)}
               nativeActionMessage={props.nativeActionMessage}
               onDelete={() => props.onDeleteSession(session)}
               onSelect={() => props.onSelectSession(session.id)}

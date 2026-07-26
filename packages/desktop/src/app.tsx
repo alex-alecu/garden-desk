@@ -105,6 +105,7 @@ export function App({ api, capabilities }: { api: DesktopApi; capabilities: Desk
         dispatch={dispatch}
         folders={state.folders}
         globalSessions={state.globalSessions}
+        workingSessionIds={state.workingSessionIds}
         nativeActionMessage={nativeUnavailable}
         onAddFolder={() => void addFolder(api, dispatch, setDesktopError)}
         onNewSession={(folderId) => dispatch({ type: "session.new", folderId })}

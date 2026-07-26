@@ -5,6 +5,7 @@ export type { VaultCore, VaultCorePorts } from "./facade.js";
 export { createVaultCoreHarness } from "./harness.js";
 export {
   type InferenceHardwarePolicy,
+  resolveAgentSessionCapacity,
   resolveInferenceHardwarePolicy,
 } from "./runtime/hardware.js";
 export type {

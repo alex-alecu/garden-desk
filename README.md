@@ -7,7 +7,7 @@ Vault Desk is building a local-first AI coworker for private folders and files. 
 > The community software is free. Vault Desk sells certainty.
 
 > [!IMPORTANT]
-> Vault Desk completed M0, cross-platform M1, and cross-platform M2. The M3 macOS desktop agent uses one session-scoped no-NIC microVM for Python, Node.js, and installed guest shell tools, with a live read-only selected folder and durable bounded workspace. The global M3 launch gate remains open for Windows product integration and physical certification. [The M3 status](docs/M3_STATUS.md) records exact evidence and deferrals.
+> Vault Desk completed M0, cross-platform M1, and cross-platform M2. The M3 macOS desktop agent uses a RAM-bounded pool of session-scoped no-NIC microVMs for Python, Node.js, and installed guest shell tools, with a live read-only selected folder and durable bounded workspace per conversation. The global M3 launch gate remains open for Windows product integration and physical certification. [The M3 status](docs/M3_STATUS.md) records exact evidence and deferrals.
 
 ## Why
 

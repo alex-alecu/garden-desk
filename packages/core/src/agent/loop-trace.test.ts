@@ -104,6 +104,24 @@ function runInput(store: AgentTraceStore) {
 
 // biome-ignore lint/complexity/noExcessiveLinesPerFunction: focused cases cover one fail-closed trace boundary.
 describe("AgentLoop fail-closed trace outcomes", () => {
+  it("records a missing function call before the traced retry succeeds", async () => {
+    const trace = traceRecorder();
+    const result = await new AgentLoop(
+      inference([
+        new Error("structured_tool_call_required"),
+        { action: "respond", response: "Recovered." },
+      ]),
+      executor([]),
+    ).run(runInput(trace.store));
+
+    expect(result.response).toBe("Recovered.");
+    expect(trace.outcomes).toEqual([
+      { outcome: "inference_failed" },
+      { outcome: "accepted_response" },
+    ]);
+    expect(trace.responses).toEqual([{ action: "respond", response: "Recovered." }]);
+  });
+
   it("records accepted, duplicate, and final response decisions before continuing", async () => {
     const calls: string[] = [];
     const trace = traceRecorder();

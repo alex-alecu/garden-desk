@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { resolveInferenceHardwarePolicy } from "./hardware.js";
+import { resolveAgentSessionCapacity, resolveInferenceHardwarePolicy } from "./hardware.js";
 
 const GiB = 1024 * 1024 * 1024;
 
@@ -40,5 +40,24 @@ describe("automatic inference hardware policy", () => {
       supported: true,
       memoryBudgetBytes: 16 * GiB,
     });
+  });
+});
+
+describe("agent VM memory policy", () => {
+  it.each([
+    [16, 10, 1],
+    [24, 12, 1],
+    [32, 16, 2],
+    [48, 16, 5],
+  ])("allows %d GiB Macs %d GiB inference and %d agent VMs", (memory, inference, sessions) => {
+    expect(resolveAgentSessionCapacity(inference * GiB, memory * GiB, "darwin")).toBe(sessions);
+  });
+
+  it.each([
+    [32, 5],
+    [64, 12],
+    [128, 25],
+  ])("keeps discrete GPU VRAM outside the %d GiB Windows host RAM pool", (memory, sessions) => {
+    expect(resolveAgentSessionCapacity(memory * GiB, memory * GiB, "win32")).toBe(sessions);
   });
 });

@@ -185,6 +185,8 @@ async function removeUnreferencedBlobs(root: string, retained: Set<string>): Pro
 }
 
 export class AgentWorkspaceStore {
+  private serial: Promise<void> = Promise.resolve();
+
   private constructor(private readonly root: string) {}
 
   static async create(root: string): Promise<AgentWorkspaceStore> {
@@ -209,7 +211,21 @@ export class AgentWorkspaceStore {
     return output;
   }
 
-  async commit(sessionId: string, entries: AgentWorkspaceEntry[]): Promise<void> {
+  private async mutate(operation: () => Promise<void>): Promise<void> {
+    const previous = this.serial;
+    let release = (): void => undefined;
+    this.serial = new Promise<void>((accept) => {
+      release = accept;
+    });
+    await previous;
+    try {
+      await operation();
+    } finally {
+      release();
+    }
+  }
+
+  private async commitUnlocked(sessionId: string, entries: AgentWorkspaceEntry[]): Promise<void> {
     const paths = new Set<string>();
     const stored: StoredEntry[] = [];
     let total = 0;
@@ -230,18 +246,26 @@ export class AgentWorkspaceStore {
     await removeUnreferencedBlobs(this.root, await retainedBlobHashes(this.root));
   }
 
-  async applyDelta(sessionId: string, delta: AgentWorkspaceDelta): Promise<void> {
-    const entries = new Map((await this.load(sessionId)).map((entry) => [entry.path, entry]));
-    for (const path of delta.removedPaths) {
-      AgentWorkspacePathSchema.parse(path);
-      entries.delete(path);
-    }
-    for (const entry of delta.entries) entries.set(entry.path, entry);
-    await this.commit(sessionId, [...entries.values()]);
+  commit(sessionId: string, entries: AgentWorkspaceEntry[]): Promise<void> {
+    return this.mutate(() => this.commitUnlocked(sessionId, entries));
   }
 
-  async delete(sessionId: string): Promise<void> {
-    await rm(join(this.root, "manifests", `${sessionName(sessionId)}.json`), { force: true });
-    await removeUnreferencedBlobs(this.root, await retainedBlobHashes(this.root));
+  applyDelta(sessionId: string, delta: AgentWorkspaceDelta): Promise<void> {
+    return this.mutate(async () => {
+      const entries = new Map((await this.load(sessionId)).map((entry) => [entry.path, entry]));
+      for (const path of delta.removedPaths) {
+        AgentWorkspacePathSchema.parse(path);
+        entries.delete(path);
+      }
+      for (const entry of delta.entries) entries.set(entry.path, entry);
+      await this.commitUnlocked(sessionId, [...entries.values()]);
+    });
+  }
+
+  delete(sessionId: string): Promise<void> {
+    return this.mutate(async () => {
+      await rm(join(this.root, "manifests", `${sessionName(sessionId)}.json`), { force: true });
+      await removeUnreferencedBlobs(this.root, await retainedBlobHashes(this.root));
+    });
   }
 }

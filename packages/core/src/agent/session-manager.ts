@@ -8,34 +8,50 @@ import type {
 } from "@vault/workers";
 import type { AgentInputResolver, ResolvedAgentInputs } from "./inputs.js";
 
+class LifecycleRelay implements AgentExecutionObserver {
+  readonly executionId = "00000000-0000-4000-8000-000000000000";
+  private readonly pending: AgentExecutionUpdate[] = [];
+  private target: AgentExecutionObserver | undefined;
+
+  async onUpdate(update: AgentExecutionUpdate): Promise<void> {
+    if (this.target !== undefined) await this.target.onUpdate(update);
+    else if (update.kind === "diagnostic") this.pending.push(update);
+  }
+
+  async activate(target: AgentExecutionObserver | undefined): Promise<void> {
+    if (target === undefined) return;
+    this.target = target;
+    for (const update of this.pending.splice(0)) await target.onUpdate(update);
+  }
+
+  clear(): void {
+    this.target = undefined;
+    this.pending.length = 0;
+  }
+}
+
 interface WarmSession {
   id: string;
   handle: CodeAgentSession;
   inputs: ResolvedAgentInputs;
+  lifecycle: LifecycleRelay;
+  busy: boolean;
+  usedAt: number;
 }
 
 export class AgentSessionManager {
-  private lifecycleSessionId: string | undefined;
-  private lifecycleTarget: AgentExecutionObserver | undefined;
-  private readonly pendingLifecycle: AgentExecutionUpdate[] = [];
-  private warm: WarmSession | undefined;
+  private readonly warm = new Map<string, WarmSession>();
   private serial: Promise<void> = Promise.resolve();
-  private readonly lifecycleObserver: AgentExecutionObserver = {
-    executionId: "00000000-0000-4000-8000-000000000000",
-    onUpdate: async (update) => {
-      if (this.lifecycleTarget !== undefined) {
-        await this.lifecycleTarget.onUpdate(update);
-      } else if (update.kind === "diagnostic") {
-        this.pendingLifecycle.push(update);
-      }
-    },
-  };
+  private clock = 0;
 
   constructor(
     private readonly launcher: CodeAgentLauncher,
     private readonly resolver: Pick<AgentInputResolver, "resolve">,
     private readonly limits: WorkerLimits,
-  ) {}
+    private readonly capacity = 1,
+  ) {
+    if (!Number.isSafeInteger(capacity) || capacity < 1) throw new Error("invalid_agent_capacity");
+  }
 
   private async exclusive<T>(operation: () => Promise<T>): Promise<T> {
     const previous = this.serial;
@@ -51,21 +67,36 @@ export class AgentSessionManager {
     }
   }
 
+  private touch(session: WarmSession): void {
+    this.clock += 1;
+    session.usedAt = this.clock;
+  }
+
+  private async makeRoom(): Promise<boolean> {
+    if (this.warm.size < this.capacity) return true;
+    const idle = [...this.warm.values()]
+      .filter((session) => !session.busy)
+      .sort((left, right) => left.usedAt - right.usedAt)[0];
+    if (idle === undefined) return false;
+    await this.closeWarm(idle);
+    return true;
+  }
+
   private async ensure(
     sessionId: string,
     signal?: AbortSignal,
     observer?: AgentExecutionObserver,
-  ): Promise<WarmSession> {
+  ): Promise<WarmSession | undefined> {
     signal?.throwIfAborted();
-    if (this.warm?.id === sessionId) {
-      await this.activateLifecycle(observer);
-      return this.warm;
+    const existing = this.warm.get(sessionId);
+    if (existing !== undefined) {
+      this.touch(existing);
+      await existing.lifecycle.activate(observer);
+      return existing;
     }
-    await this.closeWarm();
-    this.lifecycleTarget = undefined;
-    if (this.lifecycleSessionId !== sessionId) this.pendingLifecycle.length = 0;
-    this.lifecycleSessionId = sessionId;
-    await this.activateLifecycle(observer);
+    if (!(await this.makeRoom())) return undefined;
+    const lifecycle = new LifecycleRelay();
+    await lifecycle.activate(observer);
     const inputs = await this.resolver.resolve(sessionId);
     try {
       const handle = await this.launcher.openAgentSession({
@@ -73,21 +104,18 @@ export class AgentSessionManager {
         sourceFolder: inputs.sourceFolder,
         readonlyInputs: inputs.attachments,
         limits: this.limits,
-        observer: this.lifecycleObserver,
+        observer: lifecycle,
         ...(signal === undefined ? {} : { signal }),
       });
-      this.warm = { id: sessionId, handle, inputs };
-      return this.warm;
+      const session = { id: sessionId, handle, inputs, lifecycle, busy: false, usedAt: 0 };
+      this.touch(session);
+      this.warm.set(sessionId, session);
+      return session;
     } catch (error) {
+      lifecycle.clear();
       await inputs.dispose();
       throw error;
     }
-  }
-
-  private async activateLifecycle(observer: AgentExecutionObserver | undefined): Promise<void> {
-    if (observer === undefined) return;
-    this.lifecycleTarget = observer;
-    for (const update of this.pendingLifecycle.splice(0)) await observer.onUpdate(update);
   }
 
   warmSession(sessionId: string): Promise<void> {
@@ -96,48 +124,58 @@ export class AgentSessionManager {
     });
   }
 
-  execute(
+  async execute(
     sessionId: string,
     request: AgentSessionExecution,
     signal?: AbortSignal,
     observer?: AgentExecutionObserver,
   ) {
-    return this.exclusive(async () => {
-      signal?.throwIfAborted();
-      const session = await this.ensure(sessionId, signal, observer);
-      try {
-        return await session.handle.execute(request, signal, observer);
-      } catch (error) {
-        if (this.warm === session) await this.closeWarm().catch(() => undefined);
-        throw error;
-      }
+    const session = await this.exclusive(async () => {
+      const prepared = await this.ensure(sessionId, signal, observer);
+      if (prepared === undefined) throw new Error("agent_memory_unavailable");
+      prepared.busy = true;
+      return prepared;
     });
+    try {
+      return await session.handle.execute(request, signal, observer);
+    } catch (error) {
+      await this.exclusive(async () => {
+        if (this.warm.get(sessionId) === session) await this.closeWarm(session);
+      }).catch(() => undefined);
+      throw error;
+    } finally {
+      await this.exclusive(async () => {
+        if (this.warm.get(sessionId) === session) {
+          session.busy = false;
+          this.touch(session);
+        }
+      });
+    }
   }
 
   closeSession(sessionId: string, deleteWorkspace = false): Promise<void> {
     return this.exclusive(async () => {
-      if (this.warm?.id === sessionId) await this.closeWarm();
+      const session = this.warm.get(sessionId);
+      if (session !== undefined) await this.closeWarm(session);
       if (deleteWorkspace) await this.launcher.deleteWorkspace(sessionId);
     });
   }
 
   close(): Promise<void> {
-    return this.exclusive(async () => await this.closeWarm());
+    return this.exclusive(async () => {
+      for (const session of [...this.warm.values()]) await this.closeWarm(session);
+    });
   }
 
-  private async closeWarm(): Promise<void> {
-    const session = this.warm;
-    this.warm = undefined;
-    if (session === undefined) return;
+  private async closeWarm(session: WarmSession): Promise<void> {
+    this.warm.delete(session.id);
     try {
       await session.handle.close();
     } finally {
       try {
         await session.inputs.dispose();
       } finally {
-        this.lifecycleTarget = undefined;
-        this.lifecycleSessionId = undefined;
-        this.pendingLifecycle.length = 0;
+        session.lifecycle.clear();
       }
     }
   }

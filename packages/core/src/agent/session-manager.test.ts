@@ -66,7 +66,7 @@ function resolver(events: string[]): Pick<AgentInputResolver, "resolve"> {
   };
 }
 
-describe("single warm agent VM", () => {
+describe("single-capacity warm agent VM", () => {
   it("reuses one session and evicts it before opening another", async () => {
     const events: string[] = [];
     const manager = new AgentSessionManager(launcher(events), resolver(events), limits);
@@ -88,6 +88,48 @@ describe("single warm agent VM", () => {
       `dispose:${second}`,
       `delete:${second}`,
     ]);
+  });
+});
+
+describe("memory-bounded parallel agent VMs", () => {
+  it("runs different sessions at the configured capacity", async () => {
+    const events: string[] = [];
+    let entered = 0;
+    let bothEntered!: () => void;
+    let release!: () => void;
+    const ready = new Promise<void>((accept) => {
+      bothEntered = accept;
+    });
+    const proceed = new Promise<void>((accept) => {
+      release = accept;
+    });
+    const codeLauncher = launcher(events);
+    const open = codeLauncher.openAgentSession.bind(codeLauncher);
+    codeLauncher.openAgentSession = async (request) => {
+      const session = await open(request);
+      return {
+        ...session,
+        async execute(execution, signal, observer) {
+          entered += 1;
+          if (entered === 2) bothEntered();
+          await proceed;
+          return await session.execute(execution, signal, observer);
+        },
+      };
+    };
+    const manager = new AgentSessionManager(codeLauncher, resolver(events), limits, 2);
+    const first = randomUUID();
+    const second = randomUUID();
+    const executions = [
+      manager.execute(first, { language: "shell", command: "true" }),
+      manager.execute(second, { language: "shell", command: "true" }),
+    ];
+
+    await ready;
+    expect(events.filter((event) => event.startsWith("open:"))).toHaveLength(2);
+    release();
+    await Promise.all(executions);
+    await manager.close();
   });
 });
 

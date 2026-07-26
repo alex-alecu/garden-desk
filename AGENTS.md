@@ -216,6 +216,6 @@ Future code must assume the model is untrusted for execution decisions.
 
 Models may propose actions. The application validates, authorizes, previews, executes, logs, and rolls back actions through typed tool boundaries. The model must never receive a host shell or unrestricted filesystem access. M3 permits typed guest-local `/bin/sh` commands only inside the bounded no-NIC microVM.
 
-The certified hostile-work sandbox is a no-NIC microVM with only typed host/guest socket IPC. Document jobs may use disposable job-scoped guests; the V1 development agent uses one reusable session-scoped guest with a durable bounded workspace. GPU-backed inference may remain host-native only under the narrower OS-enforced capability boundary in [ADR 0012](docs/adr/0012-worker-isolation-and-untrusted-documents.md).
+The certified hostile-work sandbox is a no-NIC microVM with only typed host/guest socket IPC. Document jobs may use disposable job-scoped guests; each active V1 development-agent conversation uses a reusable session-scoped guest with a durable bounded workspace, within a RAM-derived least-recently-used pool. GPU-backed inference may remain host-native only under the narrower OS-enforced capability boundary in [ADR 0012](docs/adr/0012-worker-isolation-and-untrusted-documents.md).
 
 For revision history and additional detail when needed, see [README.md](README.md#revision-history).

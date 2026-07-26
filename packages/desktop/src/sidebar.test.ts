@@ -35,6 +35,7 @@ describe("sidebar rows", () => {
         dispatch: () => undefined,
         folders: [{ ...folder, expanded: true, nextCursor: null, sessions: [folderSession] }],
         globalSessions: [globalSession],
+        workingSessionIds: [folderSession.id],
         onAddFolder: () => undefined,
         onNewSession: () => undefined,
         onOpenFolder: () => undefined,
@@ -55,5 +56,7 @@ describe("sidebar rows", () => {
     expect(markup).toContain("Add folder");
     expect(markup).toContain('aria-label="Open Project folder"');
     expect(markup).not.toContain("icon-chevron");
+    expect(markup).toContain('class="sidebar-item-select sidebar-item-working"');
+    expect(markup).toContain('aria-label="Working"');
   });
 });

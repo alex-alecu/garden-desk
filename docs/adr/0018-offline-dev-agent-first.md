@@ -18,7 +18,7 @@ Vault Desk V1 is an offline dev-agent desktop application.
 
 Vault Core owns the agent loop, inference mediation, session state, policy, audit, cancellation, limits, and result validation. The model proposes code and follow-up observations as typed data. It never receives direct process, filesystem, VM-control, approval, export, or network authority.
 
-Each conversation owns a reusable no-NIC microVM under ADR 0012. It stays alive through the current run and may remain as the single warm idle VM for later follow-ups:
+Each conversation owns a reusable no-NIC microVM under ADR 0012. It stays alive through the current run and may remain in the memory-bounded warm-session pool for later follow-ups:
 
 - Zero virtual network devices and no general host-network proxy.
 - A verified immutable root image.
@@ -27,7 +27,7 @@ Each conversation owns a reusable no-NIC microVM under ADR 0012. It stays alive 
 - A fixed versioned host/guest socket. Agent protocol v3 carries hello and capabilities, hydration, repeated execution, ordered bounded stdout/stderr chunks, typed lifecycle diagnostics, cancellation, workspace deltas, results, and graceful shutdown; the M1 probe remains protocol v1.
 - Python, Node.js, `/bin/sh`, BusyBox commands, and a reviewed pinned library set already present in the image.
 - No dependency installation, package downloads, credentials, user home, writable selected-folder mount, host shell, generic Vault Core API, or generic model endpoint.
-- One execution at a time. Eviction occurs for another session, deletion, revocation, Core shutdown, helper failure, or memory-budget pressure; responsive workspace state is committed first.
+- One execution at a time per conversation. Different conversations may overlap tool execution while their Gemma turns queue through one resident inference worker. The warm pool is derived from total RAM, the inference cap, a host reserve, and the fixed 4 GiB guest limit. Least-recently-used idle sessions are evicted before another VM starts; deletion, revocation, Core shutdown, helper failure, or memory pressure also evicts a session after responsive workspace state is committed.
 
 Core builds each Gemma request from durable conversation messages and execution events. It reserves 4,096 output tokens, uses the actual allocated context when known and the certified 8K minimum otherwise, preserves the current run and newest unsuperseded failed repair in full, anchors the last two user turns, and summarizes older history without deleting stored originals. If mandatory repair context cannot fit, Core returns `agent_context_exhausted` rather than dropping required source or commands.
 
@@ -58,12 +58,14 @@ Negative:
 - Live mounts are less reproducible than snapshots because host changes are visible immediately.
 - The guest image becomes larger because it contains interpreters and fixed libraries.
 - Model mediation, multi-step execution, and desktop streaming must work before V1.
+- Concurrent conversations share inference throughput and can wait behind another Gemma turn.
 - Source citations and format-specific verification are not promised in the first release.
 
 ## Required Validation
 
 - Real multi-step Python, Node.js, and shell tasks over live read-only folders on macOS and Windows without a VM reboot between steps.
 - Same-path repair after failure, persistence across VM and Core restart, and warm-VM eviction.
+- Parallel conversations up to the hardware-derived guest capacity, queued excess work, and one shared resident inference allocation.
 - A folder with more than 64 files and a sparse file larger than 512 MiB mounts without copy limits; hierarchy and live host changes remain visible and guest writes fail.
 - Zero-NIC configuration inspection plus runtime denial probes for external, LAN, multicast, and host reachability.
 - Attempts to modify the host folder, traverse outside staged inputs, follow escaping links, access credentials, install packages, or reach arbitrary host services fail.
@@ -79,3 +81,4 @@ Negative:
 | 2026-07-20 | Made the generic offline dev agent and full desktop application the V1 product path. |
 | 2026-07-23 | Replaced one-execution snapshots with a session-scoped warm VM, live read-only source mount, durable bounded workspace, shell execution, and anchored repair context. |
 | 2026-07-23 | Added durable bounded live execution streams, allowlisted VM diagnostics, final-result completeness validation, and normalized execution recovery records. |
+| 2026-07-25 | Allowed memory-bounded parallel conversation VMs while retaining one serialized resident inference worker. |

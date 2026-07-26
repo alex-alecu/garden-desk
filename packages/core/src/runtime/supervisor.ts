@@ -4,7 +4,6 @@ import type {
   EmbeddingResult,
   InferenceOperation,
   InferenceWorkerRequest,
-  RequestId,
   StructuredGenerationResult,
 } from "@vault/shared";
 import { JobIdSchema } from "@vault/shared";
@@ -16,6 +15,7 @@ import type {
   InferenceService,
 } from "./inference.js";
 import { createGenerationRequest } from "./inference.js";
+import { recordInferenceAudit } from "./inference-audit.js";
 import {
   InferenceFailure,
   inferenceAbortFailure,
@@ -24,12 +24,12 @@ import {
 import { DEFAULT_MODEL_ID, modelRuntimeStatus } from "./model-status.js";
 import type { ModelResolver } from "./models.js";
 import type { ResourceScheduler } from "./scheduler.js";
+import { AsyncSerial } from "./serial.js";
 
 type AuditAppender = (event: AuditEventInput) => void;
 type ResourceLease = ReturnType<ResourceScheduler["reserve"]>;
 type StagedModel = Awaited<ReturnType<ModelResolver["resolve"]>>;
 const INFERENCE_TIMEOUT_MS = 300_000;
-
 interface ActiveExecution {
   lifecycle: AbortController;
   signal: AbortSignal;
@@ -39,6 +39,7 @@ interface ActiveExecution {
 
 export class InferenceSupervisor implements InferenceService {
   private readonly active = new Map<AbortController, Promise<void>>();
+  private readonly serial = new AsyncSerial();
   private measurements: Parameters<typeof modelRuntimeStatus>[2] = {};
   private resident:
     | {
@@ -62,7 +63,6 @@ export class InferenceSupervisor implements InferenceService {
     const lifecycle = new AbortController();
     const operationSignal = AbortSignal.any([
       lifecycle.signal,
-      AbortSignal.timeout(INFERENCE_TIMEOUT_MS),
       ...(signal === undefined ? [] : [signal]),
     ]);
     let finishExecution!: () => void;
@@ -70,7 +70,16 @@ export class InferenceSupervisor implements InferenceService {
       finishExecution = () => accept();
     });
     this.active.set(lifecycle, finished);
-    return { lifecycle, signal: operationSignal, startedAt: Date.now(), finish: finishExecution };
+    return { lifecycle, signal: operationSignal, startedAt: 0, finish: finishExecution };
+  }
+
+  private startTimedExecution(execution: ActiveExecution): void {
+    execution.signal.throwIfAborted();
+    execution.signal = AbortSignal.any([
+      execution.signal,
+      AbortSignal.timeout(INFERENCE_TIMEOUT_MS),
+    ]);
+    execution.startedAt = Date.now();
   }
 
   private async execute(
@@ -111,7 +120,7 @@ export class InferenceSupervisor implements InferenceService {
           : { contextSizeTokens: response.memory.contextSizeTokens }),
       };
     }
-    this.record({
+    recordInferenceAudit(this.audit, {
       operation: request.operation,
       requestId: request.requestId,
       jobId: request.jobId,
@@ -163,48 +172,57 @@ export class InferenceSupervisor implements InferenceService {
     return { lease: resident.lease, stagedModel: resident.stagedModel };
   }
 
+  private async executeOne(
+    request: InferenceWorkerRequest,
+    execution: ActiveExecution,
+    onThinkingDelta?: (text: string) => void,
+  ) {
+    let resourcesPrepared = false;
+    let lease: ResourceLease | undefined;
+    try {
+      this.startTimedExecution(execution);
+      const resources = await this.resources(request, execution.signal);
+      lease = resources.lease;
+      resourcesPrepared = true;
+      execution.signal.throwIfAborted();
+      const response = await this.execute(request, execution, resources.lease, {
+        ...(resources.stagedModel === undefined ? {} : { stagedModel: resources.stagedModel }),
+        ...(onThinkingDelta === undefined ? {} : { onThinkingDelta }),
+      });
+      return { response, lease: resources.lease };
+    } catch (error) {
+      const recoverableStructuredMiss =
+        error instanceof Error && error.message === "structured_tool_call_required";
+      if (resourcesPrepared && request.operation !== "probe" && !recoverableStructuredMiss) {
+        await this.releaseResident();
+      }
+      if (request.operation === "probe") lease?.release();
+      throw error;
+    }
+  }
+
   private async run(
     request: InferenceWorkerRequest,
     signal?: AbortSignal,
     onThinkingDelta?: (text: string) => void,
   ) {
-    if (this.active.size > 0) {
-      const failure = new InferenceFailure(
-        "out_of_memory",
-        "The resident inference worker is already busy.",
-      );
-      this.record({
-        operation: request.operation,
-        requestId: request.requestId,
-        jobId: request.jobId,
-        outcome: "failed",
-        code: failure.code,
-      });
-      throw failure;
-    }
     const execution = this.startExecution(signal);
     let lease: ResourceLease | undefined;
-    let stagedModel: StagedModel | undefined;
     try {
-      execution.signal.throwIfAborted();
-      const resources = await this.resources(request, execution.signal);
-      lease = resources.lease;
-      stagedModel = resources.stagedModel;
-      execution.signal.throwIfAborted();
-      return await this.execute(request, execution, lease, {
-        ...(stagedModel === undefined ? {} : { stagedModel }),
-        ...(onThinkingDelta === undefined ? {} : { onThinkingDelta }),
-      });
+      const result = await this.serial.run(async () => {
+        return await this.executeOne(request, execution, onThinkingDelta);
+      }, execution.signal);
+      lease = result.lease;
+      return result.response;
     } catch (error) {
       const failure = execution.signal.aborted ? inferenceAbortFailure(execution.signal) : error;
-      this.record({
+      recordInferenceAudit(this.audit, {
         operation: request.operation,
         requestId: request.requestId,
         jobId: request.jobId,
         outcome: "failed",
         code: inferenceFailureCode(failure),
       });
-      if (request.operation !== "probe") await this.releaseResident();
       throw failure;
     } finally {
       if (request.operation === "probe") lease?.release();
@@ -236,24 +254,6 @@ export class InferenceSupervisor implements InferenceService {
       metadata: { modelId: DEFAULT_MODEL_ID },
     });
     return unloaded;
-  }
-
-  private record(input: {
-    operation: InferenceOperation;
-    requestId: RequestId;
-    jobId: string;
-    outcome: "succeeded" | "failed";
-    code?: string;
-  }): void {
-    this.audit({
-      type: `inference.${input.operation}`,
-      outcome: input.outcome,
-      metadata: {
-        requestId: input.requestId,
-        jobId: input.jobId,
-        ...(input.code === undefined ? {} : { code: input.code }),
-      },
-    });
   }
 
   async generate(
