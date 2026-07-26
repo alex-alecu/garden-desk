@@ -92,6 +92,7 @@ The composer is multiline and anchored to the bottom of the conversation pane.
 - The add button opens attachment actions; folder selection remains a separate grant action.
 - Context chips show the active folder or explicit attachments.
 - Send becomes Stop while a run is active.
+- Command-Enter sends the current message on macOS; Enter remains available for multiline text.
 - Switching conversations does not stop a run. Other conversations may start work up to the RAM-derived VM capacity; additional work stays queued without booting another guest.
 - Drafts survive session and folder switching, daemon reconnect, and application restart.
 - Submitting without a folder or attachment remains valid for conversational tasks.

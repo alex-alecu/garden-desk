@@ -1,5 +1,5 @@
 import type { AttachmentSummary } from "@vault/shared";
-import type { FormEvent } from "react";
+import type { FormEvent, KeyboardEvent } from "react";
 import { Icon } from "./icons.js";
 
 interface ComposerProps {
@@ -14,6 +14,12 @@ interface ComposerProps {
   onChange(draft: string): void;
   onRemoveAttachment(attachmentId: string): void;
   onSend(text: string): void;
+}
+
+export function handleComposerKeyDown(event: KeyboardEvent<HTMLTextAreaElement>, canSend: boolean) {
+  if (!canSend || event.key !== "Enter" || !event.metaKey || event.nativeEvent.isComposing) return;
+  event.preventDefault();
+  event.currentTarget.form?.requestSubmit();
 }
 
 function AttachmentList({
@@ -79,9 +85,11 @@ export function Composer({
         removableAttachmentIds={removableAttachmentIds}
       />
       <textarea
+        aria-keyshortcuts="Meta+Enter"
         aria-label="Message"
         disabled={disabled}
         onChange={(event) => onChange(event.target.value)}
+        onKeyDown={(event) => handleComposerKeyDown(event, canSend)}
         placeholder="Ask Vault Desk to do anything"
         rows={2}
         value={draft}
