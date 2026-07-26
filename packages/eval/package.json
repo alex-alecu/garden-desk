@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "dependencies": {
+    "@vault/cli": "workspace:*",
     "@vault/core": "workspace:*",
     "@vault/shared": "workspace:*",
     "@vault/workers": "workspace:*",

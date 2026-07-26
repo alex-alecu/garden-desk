@@ -1,6 +1,6 @@
 # Milestone M3 Status
 
-Updated: 2026-07-25
+Updated: 2026-07-26
 
 The persistent-workspace M3 implementation is complete and certified on physical Apple silicon. The cross-platform M3 and Community Desktop V1 launch gate remain open until Windows HCS Plan9 integration and physical Windows acceptance pass.
 
@@ -38,6 +38,7 @@ The persistent-workspace M3 implementation is complete and certified on physical
 
 ## Physical Mac Evidence
 
+- The phase-1 document stress suite in [M3_DOCUMENT_STRESS.md](M3_DOCUMENT_STRESS.md) exercised the real current-user daemon, Gemma 4 12B QAT worker, and no-NIC microVM with small streamed PDF, XLSX, and DOCX corpora. All eight runs reached terminal state in reasonable local time, invalid root/path/session requests stopped before inference, and three simultaneous conversations were observed. PDF, mixed-folder, and invalid-document evidence passed. XLSX-only sequential and concurrent cases reproducibly found a model-loop limitation: an empty case-mismatched search was proposed once and then rejected as an exact duplicate eleven times before a misleading capacity-exhausted response. The suite remains nonzero evidence; no agent fix was made. The same pull request now includes separate unrun scaled definitions for a 100-page PDF, 10-sheet million-row workbooks, 100-workbook and mixed 20-workbook/100-DOCX folders, and three simultaneous scaled conversations.
 - An ignored real-document daemon fixture started three conversations together through one Core and observed all three queued or running at once. The real Gemma worker and no-NIC guests inspected DOCX, XLSX, CSV, PDF, PNG, and immutable XLSX/PNG attachments, produced the three required workspace artifacts, and returned the required evidence values. The shared model remained at one 17,179,869,184-byte budget with 1,112,334,048 CPU RAM bytes, 12,396,953,088 GPU VRAM bytes, and 262,144-token context.
 - The ignored focused GFM fixture used the real Gemma worker and no-NIC guest to inspect a live-mounted CSV through Python. The terminal run succeeded after three inference turns and two executions, and Gemma returned a valid four-column GFM table. Focused DOM tests verify table, task-list, and strikethrough rendering, literal user text, a keyboard-focusable overflow region, and removal of active HTML, images, and links. The production desktop web build passed; a live visual check at normal and 200 percent scaling was not run because browser control was unavailable in this session.
 - The ignored exact `avans` daemon fixture completed in 42.5 seconds against the real Gemma worker and no-NIC guest. Its two `inference.started` events resolved to exactly two ordered version-1 trace turns with exact effective prompts, canonical schemas and pre-parse results, distinct worker identifiers, content hashes, 262,144-token allocations, `accepted_execution` outcomes, and a valid audit chain. This run generated no duplicate proposal; focused tests cover `rejected_duplicate` persistence.
