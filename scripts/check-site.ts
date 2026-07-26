@@ -113,6 +113,8 @@ for (const path of htmlFiles) {
 const home = await text("index.html");
 requireText(home, 'src="./demo/"', "home");
 requireText(home, 'href="./demo/"', "home");
+requireText(home, "data-embedded-demo", "home mobile demo gate");
+requireText(home, "Open the demo to interact.", "home mobile demo gate");
 requireText(home, "SoftwareApplication", "home");
 requireText(home, "social-card.png", "home");
 requireText(home, "Zero application telemetry", "home differentiation");
@@ -141,6 +143,16 @@ if (socialCard.readUInt32BE(16) !== 1200 || socialCard.readUInt32BE(20) !== 630)
 
 const assets = (await files(output)).filter((path) => [".js", ".css"].includes(extname(path)));
 const assetText = (await Promise.all(assets.map((path) => readFile(path, "utf8")))).join("\n");
+requireText(assetText, ".skip-link:focus-visible", "home skip link");
+requireText(assetText, ".technical-details-action{display:none}", "demo technical details control");
+requireText(assetText, "min-width:760px", "demo minimum width");
+requireText(assetText, "min-height:600px", "demo minimum height");
+if (!/toggleAttribute\([`'"]inert[`'"]/u.test(assetText)) {
+  failures.push("home mobile demo gate: missing inert iframe controller");
+}
+if (!/hover:\s*none\)?\s*and\s*\(pointer:\s*coarse/u.test(assetText)) {
+  failures.push("home mobile demo gate: missing touch-first device rule");
+}
 for (const forbidden of [
   "@tauri-apps",
   "__TAURI",
@@ -169,6 +181,7 @@ if (bundledFonts.length !== 8)
 const demoHtml = await text("demo/index.html");
 requireText(demoHtml, 'href="../"', "demo back link");
 requireText(demoHtml, 'target="_top"', "demo back link");
+requireText(demoHtml, 'content="width=760"', "demo minimum viewport");
 const demoScript = demoHtml.match(/src="([^"]+\.js)"/u)?.[1];
 if (demoScript === undefined) {
   failures.push("demo: missing bundled script");
