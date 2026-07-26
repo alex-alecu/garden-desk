@@ -6,6 +6,9 @@
   "bin": {
     "vault": "./src/main.ts"
   },
+  "exports": {
+    "./client": "./src/client.ts"
+  },
   "dependencies": {
     "@vault/shared": "workspace:*"
   }

@@ -87,6 +87,9 @@ importers:
 
   packages/eval:
     dependencies:
+      '@vault/cli':
+        specifier: workspace:*
+        version: link:../cli
       '@vault/core':
         specifier: workspace:*
         version: link:../core
