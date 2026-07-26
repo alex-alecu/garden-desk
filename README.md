@@ -16,7 +16,7 @@ Vault Desk collects **nothing**. There is no telemetry, analytics, feature-usage
 
 Conversations, files, generated work, audit records, and diagnostic traces stay on the device. They leave only when you deliberately export or share them. The V1 product requires no account and no cloud service.
 
-## The local software stack
+## How we are building it
 
 - **Generation model:** the official `Gemma 4 12B IT QAT Q4_0` GGUF. This is the default decoder model and the first model certified for Vault Desk.
 - **Retrieval encoder:** the official `Qwen3-Embedding-0.6B Q8_0` GGUF for local semantic search. Document retrieval is part of the post-V1 document-intelligence work; the encoder's local runtime path is already validated.
@@ -24,6 +24,31 @@ Conversations, files, generated work, audit records, and diagnostic traces stay 
 - **Desktop and control plane:** a [Tauri v2](https://tauri.app/) and React interface over a TypeScript and Node.js core that owns permissions, sessions, model requests, limits, audit, and recovery.
 
 The model does not run as a server on an exposed port. It runs in a separate, supervised process and communicates with Vault Core through fixed, typed stdin and stdout. This preserves local GPU acceleration while denying the model network access, credentials, a host shell, unrestricted files, or approval authority. It also lets the operating system reclaim the complete model runtime when the worker stops.
+
+To run the desktop locally:
+
+1. Clone the repository.
+
+   ```sh
+   git clone https://github.com/alex-alecu/vault-desk.git
+   cd vault-desk
+   ```
+
+2. Install the packages.
+
+   ```sh
+   pnpm install
+   ```
+
+3. Start the desktop app.
+
+   ```sh
+   pnpm desktop:dev
+   ```
+
+## Public website
+
+Explore the [public website and interactive demo](https://alex-alecu.github.io/vault-desk/) or run it locally with `pnpm site:dev`.
 
 ## More capable than file ingestion
 
@@ -51,6 +76,6 @@ The community software is free. Signed public installers are not yet available.
 
 ## Learn more
 
-Explore the [public website and interactive demo](https://alex-alecu.github.io/vault-desk/), then read the [product overview](docs/PRODUCT.md), [architecture](docs/ARCHITECTURE.md), and [security model](docs/SECURITY.md). Exact models and hashes live in the [model manifest](assets/models.json); pinned dependencies, guest components, versions, licenses, and purposes live in the [compliance inventory](compliance/inventory.json).
+Read the [product overview](docs/PRODUCT.md), [architecture](docs/ARCHITECTURE.md), and [security model](docs/SECURITY.md). Exact models and hashes live in the [model manifest](assets/models.json); pinned dependencies, guest components, versions, licenses, and purposes live in the [compliance inventory](compliance/inventory.json).
 
 The development workflow was informed by [Everything Claude Code](https://github.com/affaan-m/ECC). Vault Desk uses original project-specific instructions and does not include that package or runtime.
