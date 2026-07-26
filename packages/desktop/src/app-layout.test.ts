@@ -25,7 +25,7 @@ describe("desktop window layout", () => {
     expect(markup).toMatch(/>Folders<\/h2>.*>Add folder<\/button>.*folder-scroll/s);
   });
 
-  it("keeps model identity and memory controls in the chat header", () => {
+  it("keeps model identity and runtime controls in the chat header", () => {
     const markup = renderToStaticMarkup(createElement(App, props));
 
     expect(markup).toContain("Gemma 4 12B QAT");

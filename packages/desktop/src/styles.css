@@ -551,21 +551,6 @@ textarea:focus-visible {
   white-space: nowrap;
 }
 
-.model-usage {
-  display: flex;
-  min-width: 0;
-  flex-direction: column;
-  align-items: flex-start;
-  overflow: hidden;
-  color: var(--ink-soft);
-  font-size: 10px;
-  font-weight: 500;
-  line-height: 1.15;
-  letter-spacing: 0.005em;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 .model-state {
   gap: 6px;
   margin-top: 3px;

@@ -1,6 +1,5 @@
 import type { ModelRuntimeStatus } from "@vault/shared";
 import { type AppearancePreference, nextAppearance } from "../appearance.js";
-import { modelUsage } from "../model-usage.js";
 import { Icon } from "./icons.js";
 
 interface ChatHeaderProps {
@@ -26,18 +25,6 @@ const appearanceLabels: Record<AppearancePreference, string> = {
   light: "Light",
   dark: "Dark",
 };
-
-function ModelUsage({ model }: { model: ModelRuntimeStatus }) {
-  const usage = modelUsage(model);
-  if (usage === undefined) return null;
-  return (
-    <span className="model-usage">
-      {usage.budget === undefined ? null : <span>{usage.budget} budget</span>}
-      {usage.allocated === undefined ? null : <span>{usage.allocated} allocated</span>}
-      {usage.context === undefined ? null : <span>{usage.context} context</span>}
-    </span>
-  );
-}
 
 function AppearanceControl({
   appearance,
@@ -76,7 +63,6 @@ export function ChatHeader({
         <div className="model-copy">
           <div className="model-title-row">
             <strong>{model.name}</strong>
-            <ModelUsage model={model} />
           </div>
           <span className={`model-state model-state-${model.state}`}>
             <i aria-hidden="true" />
