@@ -169,18 +169,6 @@ export function App({ api, capabilities }: { api: DesktopApi; capabilities: Desk
               .catch(() => setDesktopError("The model could not be unloaded."));
           }}
         />
-        <TechnicalDetails
-          artifacts={state.artifacts}
-          catalogPath={state.catalogPath}
-          executions={state.executions}
-          key={`${state.activeSessionId ?? `new:${state.newSessionFolderId ?? "global"}`}:${technicalDetailsOpen ? "open" : "closed"}`}
-          api={api}
-          nativeActionMessage={nativeUnavailable}
-          onClose={() => setTechnicalDetailsOpen(false)}
-          open={technicalDetailsOpen}
-          sessionId={state.activeSessionId}
-          timeline={state.timeline}
-        />
         <GuidedExamples
           disabled={!state.loaded || running}
           examples={capabilities.guidedExamples ?? []}
@@ -274,6 +262,19 @@ export function App({ api, capabilities }: { api: DesktopApi; capabilities: Desk
           running={running}
         />
       </main>
+      <TechnicalDetails
+        artifacts={state.artifacts}
+        catalogPath={state.catalogPath}
+        executions={state.executions}
+        key={`${state.activeSessionId ?? `new:${state.newSessionFolderId ?? "global"}`}:${technicalDetailsOpen ? "open" : "closed"}`}
+        api={api}
+        model={model}
+        nativeActionMessage={nativeUnavailable}
+        onClose={() => setTechnicalDetailsOpen(false)}
+        open={technicalDetailsOpen}
+        sessionId={state.activeSessionId}
+        timeline={state.timeline}
+      />
       <Confirmation
         onCancel={() => setConfirmation(undefined)}
         onConfirm={() => {

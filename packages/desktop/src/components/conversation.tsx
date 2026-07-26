@@ -112,10 +112,10 @@ function ResponseMetrics({ performance }: { performance: AgentRunPerformance }) 
   return (
     <footer className="response-metrics">
       <span>
-        <strong>{performance.tokensPerSecond.toFixed(1)}</strong> tok/s
+        <strong>{performance.promptTokensPerSecond.toFixed(1)}</strong> prompt tok/s
       </span>
       <span>
-        <strong>{performance.promptTokensPerSecond.toFixed(1)}</strong> prompt tok/s
+        <strong>{performance.tokensPerSecond.toFixed(1)}</strong> generation tok/s
       </span>
       <span>
         <strong>{formatDuration(performance.totalDurationMs)}</strong> total

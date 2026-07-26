@@ -1,5 +1,12 @@
 import type { SessionSummary } from "@vault/shared";
-import type { Dispatch } from "react";
+import {
+  type CSSProperties,
+  type Dispatch,
+  type KeyboardEvent,
+  type PointerEvent,
+  useRef,
+  useState,
+} from "react";
 import type { DesktopAction, FolderGroup } from "../state.js";
 import { Icon } from "./icons.js";
 import { SessionList } from "./session-list.js";
@@ -20,6 +27,62 @@ interface SidebarProps {
   onRevokeFolder(folderId: string): void;
   onSelectSession(sessionId: string): void;
   onShowMore(folderId: string): void;
+}
+
+const SIDEBAR_MIN_WIDTH = 208;
+const SIDEBAR_MAX_WIDTH = 360;
+const SIDEBAR_DEFAULT_WIDTH = 244;
+
+function clampSidebarWidth(width: number): number {
+  return Math.min(SIDEBAR_MAX_WIDTH, Math.max(SIDEBAR_MIN_WIDTH, width));
+}
+
+function useSidebarResize() {
+  const [width, setWidth] = useState(SIDEBAR_DEFAULT_WIDTH);
+  const drag = useRef<{ pointerId: number; startWidth: number; startX: number } | undefined>(
+    undefined,
+  );
+  const begin = (event: PointerEvent<HTMLHRElement>) => {
+    event.preventDefault();
+    drag.current = { pointerId: event.pointerId, startWidth: width, startX: event.clientX };
+    event.currentTarget.setPointerCapture(event.pointerId);
+  };
+  const move = (event: PointerEvent<HTMLHRElement>) => {
+    if (drag.current?.pointerId !== event.pointerId) return;
+    setWidth(clampSidebarWidth(drag.current.startWidth + event.clientX - drag.current.startX));
+  };
+  const end = (event: PointerEvent<HTMLHRElement>) => {
+    if (drag.current?.pointerId !== event.pointerId) return;
+    drag.current = undefined;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+  };
+  const keyDown = (event: KeyboardEvent<HTMLHRElement>) => {
+    if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+    event.preventDefault();
+    setWidth((current) => clampSidebarWidth(current + (event.key === "ArrowLeft" ? -16 : 16)));
+  };
+  return { begin, end, keyDown, move, width };
+}
+
+function SidebarResizeHandle({ resize }: { resize: ReturnType<typeof useSidebarResize> }) {
+  return (
+    <hr
+      aria-label="Resize navigation sidebar"
+      aria-orientation="vertical"
+      aria-valuemax={SIDEBAR_MAX_WIDTH}
+      aria-valuemin={SIDEBAR_MIN_WIDTH}
+      aria-valuenow={resize.width}
+      className="sidebar-resize-handle"
+      onKeyDown={resize.keyDown}
+      onPointerCancel={resize.end}
+      onPointerDown={resize.begin}
+      onPointerMove={resize.move}
+      onPointerUp={resize.end}
+      tabIndex={0}
+    />
+  );
 }
 
 function FolderSection(props: SidebarProps) {
@@ -58,8 +121,9 @@ function FolderSection(props: SidebarProps) {
 }
 
 export function Sidebar(props: SidebarProps) {
+  const resize = useSidebarResize();
   return (
-    <aside className="sidebar">
+    <aside className="sidebar" style={{ "--sidebar-width": `${resize.width}px` } as CSSProperties}>
       <div aria-hidden="true" className="window-drag-region" data-tauri-drag-region="" />
       <div className="brand">Vault Desk</div>
       <div className="sidebar-content">
@@ -107,6 +171,7 @@ export function Sidebar(props: SidebarProps) {
           <FolderSection {...props} />
         </div>
       </div>
+      <SidebarResizeHandle resize={resize} />
     </aside>
   );
 }
