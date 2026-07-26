@@ -114,6 +114,16 @@ function renderTechnicalDetails(): string {
       artifacts={[artifact]}
       catalogPath="/Users/alex/Library/Application Support/dev.vaultdesk.desktop/state/.vault/catalog.sqlite"
       executions={[execution]}
+      model={{
+        modelId: "gemma-4-12b-it-qat-q4_0",
+        name: "Gemma 4 12B QAT",
+        state: "ready",
+        thinkingSupported: true,
+        memoryBudgetBytes: 16 * 1024 ** 3,
+        cpuRamBytes: 1024 ** 3,
+        gpuVramBytes: 11.5 * 1024 ** 3,
+        contextSizeTokens: 262_144,
+      }}
       onClose={() => undefined}
       open
       sessionId="da911f87-ff26-46d8-9a58-bad222a584ab"
@@ -137,6 +147,9 @@ it("shows low-level evidence without generic progress", () => {
   expect(markup).toContain('aria-label="Close technical details"');
   expect(markup).toContain("4 CPUs, 4 GiB memory, 128 MiB persistent workspace");
   expect(markup).toContain("Certified guest capabilities");
+  expect(markup).toMatch(
+    /Certified guest capabilities.*Memory allocation.*12.5 GiB.*VRAM \/ unified memory budget.*16.0 GiB.*Context window.*256K tokens/s,
+  );
   expect(markup).toContain("Python: 3.14.5");
   expect(markup).toContain("/usr/bin/patch");
   expect(markup).toContain("print(&#x27;ok&#x27;)");

@@ -25,7 +25,7 @@ describe("desktop window layout", () => {
     expect(markup).toMatch(/>Folders<\/h2>.*>Add folder<\/button>.*folder-scroll/s);
   });
 
-  it("keeps model identity and memory controls in the chat header", () => {
+  it("keeps model identity and runtime controls in the chat header", () => {
     const markup = renderToStaticMarkup(createElement(App, props));
 
     expect(markup).toContain("Gemma 4 12B QAT");
@@ -34,6 +34,14 @@ describe("desktop window layout", () => {
     expect(markup).toMatch(
       /<button[^>]*class="header-action unload-action"[^>]*>.*Unload.*<button[^>]*class="header-action appearance-action"[^>]*>.*<button[^>]*class="header-action technical-details-action"/s,
     );
-    expect(markup).toContain('data-appearance="system" data-theme="light"');
+    expect(markup).toContain('data-appearance="system"');
+    expect(markup).toContain('data-theme="light"');
+  });
+
+  it("exposes the navigation divider as a full-height resize separator", () => {
+    const markup = renderToStaticMarkup(createElement(App, props));
+
+    expect(markup).toContain('<hr aria-label="Resize navigation sidebar"');
+    expect(markup).toContain('aria-label="Resize navigation sidebar"');
   });
 });

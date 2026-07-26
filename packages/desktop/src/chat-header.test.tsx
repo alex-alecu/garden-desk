@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { ChatHeader } from "./components/chat-header.js";
 
 describe("model hardware status", () => {
-  it("distinguishes the memory budget from live allocation beside a loaded model", () => {
+  it("keeps runtime memory details out of the header", () => {
     const markup = renderToStaticMarkup(
       <ChatHeader
         appearance="system"
@@ -24,9 +24,12 @@ describe("model hardware status", () => {
       />,
     );
 
-    expect(markup).toContain(
-      '<span class="model-usage"><span>16.0 GiB budget</span><span>12.5 GiB allocated</span><span>256K context</span></span>',
-    );
+    expect(markup).toContain("Gemma 4 12B QAT");
+    expect(markup).toContain("Loaded and ready");
+    expect(markup).not.toContain("model-usage");
+    expect(markup).not.toContain("16.0 GiB budget");
+    expect(markup).not.toContain("12.5 GiB allocated");
+    expect(markup).not.toContain("256K context");
     expect(markup).not.toContain("VRAM");
   });
 });

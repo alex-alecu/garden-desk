@@ -1,14 +1,15 @@
 html,
 body,
 #root {
-  min-height: 0;
+  min-width: 760px;
 }
 
 body {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
-  height: 100vh;
-  overflow: hidden;
+  height: 100dvh;
+  min-height: 642px;
+  overflow: auto;
 }
 
 .demo-frame {
@@ -72,6 +73,11 @@ body {
 
 #root {
   height: auto;
+  min-height: 600px;
+}
+
+.technical-details-action {
+  display: none;
 }
 
 @keyframes demo-status-pulse {

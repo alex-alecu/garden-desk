@@ -1,4 +1,8 @@
-import type { AgentArtifactSummary, AgentExecutionSnapshot } from "@vault/shared";
+import type {
+  AgentArtifactSummary,
+  AgentExecutionSnapshot,
+  ModelRuntimeStatus,
+} from "@vault/shared";
 import { useReducer, useState } from "react";
 import capabilities from "../../../workers/images/agent/capabilities.json" with { type: "json" };
 import type { DesktopApi } from "../api.js";
@@ -7,6 +11,7 @@ import {
   debugSnapshotReducer,
   initialDebugSnapshotState,
 } from "../debug-snapshot.js";
+import { modelUsage } from "../model-usage.js";
 import type { TimelineItem } from "../state.js";
 import { Icon } from "./icons.js";
 import { selectAdjacentTab } from "./tab-keyboard.js";
@@ -19,6 +24,7 @@ interface TechnicalDetailsProps {
   artifacts: AgentArtifactSummary[];
   catalogPath: string;
   executions: AgentExecutionSnapshot[];
+  model: ModelRuntimeStatus;
   open: boolean;
   sessionId: string | undefined;
   timeline: TimelineItem[];
@@ -139,11 +145,39 @@ function DebugSnapshotControls({
   );
 }
 
+function TechnicalModelUsage({ model }: { model: ModelRuntimeStatus }) {
+  const usage = modelUsage(model);
+  if (usage === undefined) return null;
+  return (
+    <dl className="technical-model-usage">
+      {usage.allocated === undefined ? null : (
+        <div>
+          <dt>Memory allocation</dt>
+          <dd>{usage.allocated}</dd>
+        </div>
+      )}
+      {usage.budget === undefined ? null : (
+        <div>
+          <dt>VRAM / unified memory budget</dt>
+          <dd>{usage.budget}</dd>
+        </div>
+      )}
+      {usage.context === undefined ? null : (
+        <div>
+          <dt>Context window</dt>
+          <dd>{usage.context} tokens</dd>
+        </div>
+      )}
+    </dl>
+  );
+}
+
 function Overview({
   api,
   artifacts,
   catalogPath,
   executions,
+  model,
   nativeActionMessage,
   sessionId,
   timeline,
@@ -153,6 +187,7 @@ function Overview({
   | "artifacts"
   | "catalogPath"
   | "executions"
+  | "model"
   | "nativeActionMessage"
   | "sessionId"
   | "timeline"
@@ -165,8 +200,8 @@ function Overview({
       ) : null}
       {sessionId === undefined ? null : (
         <article className="technical-details-item">
-          <p>Local session ID: {sessionId}</p>
-          <p>Catalog path: {catalogPath}</p>
+          <p className="technical-path">Local session ID: {sessionId}</p>
+          <p className="technical-path">Catalog path: {catalogPath}</p>
           <p className="debug-snapshot-purpose">AI agent debugging snapshot</p>
           <p className="technical-limits">
             Create this for an AI coding agent such as Codex or Claude Code. It contains this
@@ -183,6 +218,7 @@ function Overview({
       )}
       <article className="technical-details-item">
         <p>Certified guest capabilities</p>
+        <TechnicalModelUsage model={model} />
         {limits === undefined ? null : <p className="technical-limits">{limits}</p>}
         <details>
           <summary>Show tools and runtimes</summary>

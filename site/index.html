@@ -12,6 +12,7 @@
     <link rel="canonical" href="https://alex-alecu.github.io/vault-desk/" />
     <link rel="icon" href="./assets/favicon.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="./assets/site.css" />
+    <script type="module" src="./demo-embed.ts"></script>
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Vault Desk" />
     <meta property="og:title" content="Vault Desk — The AI desktop that tracks nothing" />
@@ -427,11 +428,23 @@
               <span>Interactive demo — synthetic sample data</span>
               <a href="./demo/">Open full demo</a>
             </div>
-            <iframe
-              src="./demo/"
-              title="Vault Desk interactive demo with synthetic sample data"
-              loading="lazy"
-            ></iframe>
+            <div class="demo-viewport">
+              <iframe
+                data-embedded-demo
+                src="./demo/"
+                title="Vault Desk interactive demo with synthetic sample data"
+                loading="lazy"
+              ></iframe>
+              <div class="demo-mobile-gate">
+                <p class="eyebrow">Full-window experience</p>
+                <h3>Open the demo to interact.</h3>
+                <p>
+                  The interface uses the desktop app’s real 760 × 600 minimum canvas. Open it in its
+                  own window for the complete product tour.
+                </p>
+                <a class="button button-primary" href="./demo/">Open full demo</a>
+              </div>
+            </div>
           </div>
         </div>
       </section>

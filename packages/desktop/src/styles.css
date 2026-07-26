@@ -69,8 +69,8 @@
   --chrome-border: rgb(202 225 220 / 14%);
   --chrome-text: #e8eee9;
   --chrome-muted: #95aaa7;
-  --reading: #dcd8cf;
-  --reading-raised: #ebe7dd;
+  --reading: #f5f4eb;
+  --reading-raised: #f5f4eb;
   --reading-soft: #d0cdc5;
   --reading-border: rgb(18 50 56 / 14%);
   --navigation-hover: rgb(40 111 109 / 8%);
@@ -181,17 +181,47 @@ textarea:focus-visible {
 .sidebar {
   position: relative;
   display: flex;
-  width: 244px;
+  width: var(--sidebar-width, 244px);
   min-width: 208px;
-  max-width: 340px;
+  max-width: 360px;
   flex: 0 0 auto;
   flex-direction: column;
   padding: 54px 12px 14px;
   overflow: hidden;
-  resize: horizontal;
   color: var(--ink);
   background: var(--reading-raised);
   border-right: 1px solid var(--reading-border);
+}
+
+.sidebar-resize-handle {
+  position: absolute;
+  z-index: 3;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 10px;
+  height: auto;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  cursor: col-resize;
+  touch-action: none;
+}
+
+.sidebar-resize-handle::after {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 1px;
+  background: transparent;
+  content: "";
+  transition: background 140ms ease;
+}
+
+.sidebar-resize-handle:hover::after,
+.sidebar-resize-handle:focus-visible::after {
+  background: var(--accent);
 }
 
 .window-drag-region {
@@ -363,6 +393,11 @@ textarea:focus-visible {
   background: rgb(217 104 67 / 12%);
 }
 
+.sidebar-item-delete.sidebar-item-unmount:hover {
+  color: var(--accent-strong);
+  background: rgb(57 127 121 / 10%);
+}
+
 .sidebar-item-start:hover {
   color: var(--accent-strong);
   background: rgb(57 127 121 / 10%);
@@ -476,7 +511,7 @@ textarea:focus-visible {
   padding: 10px 20px 8px 22px;
   color: var(--ink);
   border-bottom: 1px solid var(--reading-border);
-  background: rgb(235 231 221 / 92%);
+  background: rgb(245 244 235 / 92%);
   backdrop-filter: blur(18px) saturate(1.15);
   user-select: none;
 }
@@ -512,21 +547,6 @@ textarea:focus-visible {
   font-size: 14px;
   font-weight: 680;
   letter-spacing: -0.012em;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.model-usage {
-  display: flex;
-  min-width: 0;
-  flex-direction: column;
-  align-items: flex-start;
-  overflow: hidden;
-  color: var(--ink-soft);
-  font-size: 10px;
-  font-weight: 500;
-  line-height: 1.15;
-  letter-spacing: 0.005em;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -632,7 +652,7 @@ textarea:focus-visible {
   border: 1px solid var(--border-color);
   border-radius: 16px 16px 6px;
   color: var(--ink);
-  background: rgb(235 231 221 / 88%);
+  background: rgb(245 244 235 / 88%);
   box-shadow: var(--surface-shadow);
   text-align: left;
   cursor: pointer;
@@ -677,6 +697,7 @@ textarea:focus-visible {
 }
 
 .timeline-user {
+  width: fit-content;
   max-width: 72%;
   margin-left: auto;
   padding: 13px 17px;
@@ -688,6 +709,7 @@ textarea:focus-visible {
   box-shadow: 0 5px 16px rgb(7 31 37 / 8%);
   font-size: 15px;
   letter-spacing: -0.005em;
+  text-align: right;
 }
 
 .timeline-user p {
@@ -696,6 +718,7 @@ textarea:focus-visible {
 }
 
 .timeline-assistant {
+  width: fit-content;
   max-width: 100%;
   padding: 4px 2px 12px;
   background: transparent;
@@ -865,7 +888,7 @@ textarea:focus-visible {
   padding: 5px 8px;
   border: 1px solid var(--border-color);
   border-radius: 8px;
-  background: rgb(235 231 221 / 72%);
+  background: rgb(245 244 235 / 72%);
   letter-spacing: 0.005em;
 }
 
@@ -945,7 +968,7 @@ textarea:focus-visible {
   padding: 13px 14px 10px;
   border: 1px solid var(--border-color);
   border-radius: 20px 20px 8px;
-  background: rgb(235 231 221 / 96%);
+  background: rgb(245 244 235 / 96%);
   box-shadow:
     0 12px 34px rgb(7 31 37 / 13%),
     inset 0 1px rgb(255 250 240 / 55%);
@@ -1098,23 +1121,19 @@ textarea:focus-visible {
 }
 
 .technical-details-header button:hover {
-  background: var(--shell-hover);
+  background: var(--navigation-hover);
 }
 
 .technical-details-drawer {
-  position: absolute;
-  z-index: 4;
-  top: 0;
-  right: 0;
-  bottom: 0;
   display: flex;
-  width: min(360px, 86%);
+  width: clamp(360px, 31vw, 440px);
+  min-width: 0;
+  flex: 0 0 clamp(360px, 31vw, 440px);
   flex-direction: column;
-  color: var(--chrome-text);
-  border-left: 1px solid var(--chrome-border);
-  background:
-    radial-gradient(circle at 100% 0, rgb(57 127 121 / 16%), transparent 18rem), rgb(7 31 37 / 98%);
-  box-shadow: -16px 0 40px rgb(7 31 37 / 24%);
+  color: var(--ink);
+  border-left: 1px solid var(--reading-border);
+  background: var(--reading-raised);
+  box-shadow: -10px 0 26px rgb(7 31 37 / 7%);
 }
 
 .technical-details-header {
@@ -1122,7 +1141,7 @@ textarea:focus-visible {
   align-items: flex-start;
   justify-content: space-between;
   padding: 22px 18px 16px;
-  border-bottom: 1px solid var(--chrome-border);
+  border-bottom: 1px solid var(--reading-border);
 }
 
 .technical-details-header h2,
@@ -1137,7 +1156,7 @@ textarea:focus-visible {
 .technical-details-header p,
 .technical-details-empty {
   margin-top: 4px;
-  color: var(--chrome-muted);
+  color: var(--ink-soft);
   font-size: 12px;
 }
 
@@ -1156,7 +1175,7 @@ textarea:focus-visible {
   display: flex;
   gap: 4px;
   padding: 8px 14px;
-  border-bottom: 1px solid var(--chrome-border);
+  border-bottom: 1px solid var(--reading-border);
 }
 
 .technical-tabs button,
@@ -1164,15 +1183,19 @@ textarea:focus-visible {
   min-height: 34px;
   padding: 0 10px;
   border-radius: 8px;
-  color: var(--chrome-muted);
+  color: var(--ink-soft);
   background: transparent;
   cursor: pointer;
 }
 
+.technical-tabs button {
+  font-size: 12px;
+}
+
 .technical-tabs button[aria-selected="true"],
 .stream-tabs button[aria-selected="true"] {
-  color: #fffaf0;
-  background: var(--shell-hover);
+  color: var(--ink);
+  background: var(--navigation-selected);
   font-weight: 600;
 }
 
@@ -1194,10 +1217,10 @@ textarea:focus-visible {
 .technical-details-item {
   margin-bottom: 10px;
   padding: 12px;
-  border: 1px solid var(--chrome-border);
+  border: 1px solid var(--reading-border);
   border-radius: 12px;
-  color: #bed0cd;
-  background: rgb(16 47 52 / 88%);
+  color: var(--ink);
+  background: var(--reading);
   font-size: 13px;
 }
 
@@ -1207,14 +1230,42 @@ textarea:focus-visible {
   white-space: pre-wrap;
 }
 
+.technical-details-item .technical-path {
+  overflow-wrap: anywhere;
+}
+
+.technical-model-usage {
+  display: grid;
+  gap: 6px;
+  margin: 10px 0 0;
+  font-size: 12px;
+}
+
+.technical-model-usage div {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.technical-model-usage dt {
+  color: var(--ink-soft);
+}
+
+.technical-model-usage dd {
+  margin: 0;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
 .technical-details-item .technical-limits {
   margin-top: 8px;
-  color: var(--chrome-muted);
+  color: var(--ink-soft);
 }
 
 .technical-details-item .debug-snapshot-purpose {
   margin-top: 10px;
-  color: #e6eee9;
+  color: var(--ink);
   font-weight: 600;
 }
 
@@ -1241,10 +1292,10 @@ textarea:focus-visible {
 .debug-snapshot-controls input {
   min-width: 0;
   padding: 8px;
-  border: 1px solid var(--chrome-border);
+  border: 1px solid var(--reading-border);
   border-radius: 8px;
-  color: #d8e4e1;
-  background: #081c21;
+  color: var(--ink);
+  background: var(--reading-soft);
   font:
     11px / 1.4 "IBM Plex Mono",
     ui-monospace,
@@ -1274,8 +1325,8 @@ textarea:focus-visible {
 .execution-badges span {
   padding: 2px 6px;
   border-radius: 999px;
-  color: #bdd0cc;
-  background: rgb(255 255 255 / 7%);
+  color: var(--ink-soft);
+  background: var(--reading-soft);
   font-size: 10px;
   white-space: nowrap;
 }
@@ -1301,7 +1352,7 @@ textarea:focus-visible {
 .stream-tabs {
   padding: 8px 10px;
   overflow-x: auto;
-  border-top: 1px solid var(--chrome-border);
+  border-top: 1px solid var(--reading-border);
 }
 
 .stream-tabs button {
@@ -1311,7 +1362,7 @@ textarea:focus-visible {
 }
 
 .stream-tabs button span {
-  color: var(--chrome-muted);
+  color: var(--ink-soft);
   font-weight: 400;
 }
 
@@ -1361,7 +1412,7 @@ textarea:focus-visible {
 
 .technical-details-item summary {
   width: max-content;
-  color: #91c8bd;
+  color: var(--accent-strong);
   cursor: pointer;
 }
 
@@ -1499,6 +1550,11 @@ textarea:focus-visible {
 .app-shell[data-theme="dark"] .sidebar-item-delete:hover {
   color: #f1a287;
   background: rgb(228 123 88 / 14%);
+}
+
+.app-shell[data-theme="dark"] .sidebar-item-delete.sidebar-item-unmount:hover {
+  color: #a8d0c8;
+  background: rgb(111 169 160 / 13%);
 }
 
 .app-shell[data-theme="dark"] .sidebar-item-start:hover {
@@ -1683,9 +1739,7 @@ textarea:focus-visible {
 }
 
 .app-shell[data-theme="dark"] .technical-details-drawer {
-  background:
-    radial-gradient(circle at 100% 0, rgb(111 169 160 / 10%), transparent 20rem),
-    rgb(19 21 23 / 98%);
+  background: var(--reading-raised);
 }
 
 .app-shell[data-theme="dark"] .technical-details-item {
@@ -1744,6 +1798,10 @@ textarea:focus-visible {
     border-bottom: 1px solid var(--reading-border);
   }
 
+  .sidebar-resize-handle {
+    display: none;
+  }
+
   .folder-scroll {
     min-height: 80px;
   }
@@ -1797,7 +1855,20 @@ textarea:focus-visible {
 
   .technical-details-drawer {
     width: 100%;
+    min-height: 280px;
+    flex: 1 1 45%;
     border-left: 0;
+    border-top: 1px solid var(--reading-border);
+    box-shadow: 0 -10px 26px rgb(7 31 37 / 7%);
+  }
+
+  .app-shell:has(.technical-details-drawer) .sidebar {
+    display: none;
+  }
+
+  .app-shell:has(.technical-details-drawer) .workspace {
+    min-height: 280px;
+    flex: 1 1 55%;
   }
 }
 

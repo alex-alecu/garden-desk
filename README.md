@@ -2,55 +2,80 @@
 
 **Private work should stay private.**
 
-Vault Desk is building a local-first AI coworker for private folders and files. The M3 product target lets you select a folder or attach files to a chat; its local agent can inspect them and run Python, Node.js, or installed guest shell tools without sending the work to a cloud service.
+Vault Desk is a local-first desktop agent for working with private files and folders. It is built for people who want useful AI assistance without uploading their work, managing model infrastructure, or becoming an AI developer.
 
-> The community software is free. Vault Desk sells certainty.
+## Why Vault Desk exists
 
-> [!IMPORTANT]
-> Vault Desk completed M0, cross-platform M1, and cross-platform M2. The M3 macOS desktop agent uses a RAM-bounded pool of session-scoped no-NIC microVMs for Python, Node.js, and installed guest shell tools, with a live read-only selected folder and durable bounded workspace per conversation. The global M3 launch gate remains open for Windows product integration and physical certification. [The M3 status](docs/M3_STATUS.md) records exact evidence and deferrals.
+Most AI tools ask people to accept one of three compromises: use a cloud-only service, use a hybrid product that still treats the cloud as its default, or configure a local stack designed primarily for developers.
 
-## Why
+Vault Desk takes a different approach. The application, models, conversations, tools, and workspaces run on your computer. You choose a folder or attach files, describe the outcome you want, and Vault Desk handles the local infrastructure automatically. Your source folder remains read-only to the agent.
 
-People should not have to upload private work—or learn models, runtimes, sandboxes, and context windows—to get useful help from an AI agent.
+## Nothing leaves your device
 
-Vault Desk hides that machinery. Folder sessions keep related conversations and a bounded agent workspace together. New chat accepts explicit attachments without granting a whole folder. The agent can create scripts and artifacts in that private workspace, but it cannot write to the selected host folder.
+Vault Desk collects **nothing**. There is no telemetry, analytics, feature-usage tracking, automatic crash reporting, background metrics export, prompt upload, or silent cloud fallback.
 
-The same platform is planned as a free community desktop app, a supported personal computer, and a governed office appliance. [The product brief](docs/PRODUCT.md) explains that shape without the implementation detail.
+Conversations, files, generated work, audit records, and diagnostic traces stay on the device. They leave only when you deliberately export or share them. The V1 product requires no account and no cloud service.
 
 ## How we are building it
 
-- Product logic lives in [TypeScript](https://www.typescriptlang.org/) on [Node.js](https://nodejs.org/). [Tauri v2](https://tauri.app/) and [React](https://react.dev/) provide the desktop experience; [Rust](https://www.rust-lang.org/) and Swift remain limited to operating-system capabilities that TypeScript cannot safely provide.
+- **Generation model:** the official `Gemma 4 12B IT QAT Q4_0` GGUF. This is the default decoder model and the first model certified for Vault Desk.
+- **Retrieval encoder:** the official `Qwen3-Embedding-0.6B Q8_0` GGUF for local semantic search. Document retrieval is part of the post-V1 document-intelligence work; the encoder's local runtime path is already validated.
+- **Model runtime:** [`node-llama-cpp` 3.19.0](https://node-llama-cpp.withcat.ai/), using the same GGUF runtime on macOS and Windows. The default model stack is Apache 2.0 licensed.
+- **Desktop and control plane:** a [Tauri v2](https://tauri.app/) and React interface over a TypeScript and Node.js core that owns permissions, sessions, model requests, limits, audit, and recovery.
 
-- [node-llama-cpp](https://node-llama-cpp.withcat.ai/) runs the local generation model in a separately constrained host-native worker. Contracts remain model-agnostic even though the first certified model is deliberate.
+The model does not run as a server on an exposed port. It runs in a separate, supervised process and communicates with Vault Core through fixed, typed stdin and stdout. This preserves local GPU acceleration while denying the model network access, credentials, a host shell, unrestricted files, or approval authority. It also lets the operating system reclaim the complete model runtime when the worker stops.
 
-- Agent-authored Python, Node.js, and installed shell commands run in a session-scoped [no-network microVM](docs/adr/0012-worker-isolation-and-untrusted-documents.md) with an immutable image, a live read-only folder mount, a persistent 128 MiB workspace, typed host/guest IPC, and no package installation or selected-folder write authority.
+To run the desktop locally:
 
-- Vault Core owns folder grants, sessions, policy, audit, model mediation, resource limits, cancellation, and worker teardown. The model may propose bounded guest commands; it never receives a host shell, unrestricted filesystem, network, approval, or VM authority.
+1. Clone the repository.
 
-- Vault Desk sends no application telemetry. Local customer-owned audit records stay on the device unless the user explicitly exports them.
+   ```sh
+   git clone https://github.com/alex-alecu/vault-desk.git
+   cd vault-desk
+   ```
 
-Document-specific parsing, OCR, retrieval, citations, and deterministic optimizations are one post-V1 follow-up. They are not prerequisites for the generic desktop agent.
+2. Install the packages.
+
+   ```sh
+   pnpm install
+   ```
+
+3. Start the desktop app.
+
+   ```sh
+   pnpm desktop:dev
+   ```
 
 ## Public website
 
-The static launch website is built from [`site/`](site/) for the project URL at
-<https://alex-alecu.github.io/vault-desk/>. It includes the public route, legal and security pages,
-unavailable download cards, and a browser-only interactive demo that reuses the desktop React app,
-reducer, components, and stylesheet with synthetic in-memory fixtures. The demo does not run a
-model, transmit entered text, persist data, or import the Tauri adapter.
+Explore the [public website and interactive demo](https://alex-alecu.github.io/vault-desk/) or run it locally with `pnpm site:dev`.
 
-Run `pnpm site:dev` for the local site at `http://127.0.0.1:4173/`, `pnpm site:build` to create the
-Pages artifact, and `pnpm site:check` to build and validate its public contracts. Signed desktop
-installers remain unavailable until the separate release gate is complete.
+## More capable than file ingestion
 
-## Open source and acknowledgements
+Vault Desk does more than place extracted text into a prompt. The agent can write and run Python, Node.js, and shell tasks inside an isolated Linux microVM, then use the results in its next step.
 
-Current pinned dependencies, development tools, native components, versions, licenses, and uses are recorded in the [machine-readable compliance inventory](compliance/inventory.json); transitive JavaScript, Rust, and Swift package resolutions are owned by repository lockfiles. Planned components are not installed dependencies until reviewed and consumed.
+The immutable guest image includes pinned offline tools for common work with JSON, CSV, SQLite, PDF, DOCX, XLSX, and images, including Pillow, pypdf, openpyxl, and python-docx. This lets the agent inspect structure, calculate, transform files, and create useful artifacts. Package managers are intentionally absent: the environment is reproducible and cannot download code at runtime.
 
-The development workflow was informed by [Everything Claude Code](https://github.com/affaan-m/ECC), especially its research, verification, reusable-skill, review, and handoff practices. Vault Desk expresses those ideas in original project-specific instructions and does not include the ECC package or runtime.
+## Isolation on macOS and Windows
 
-The macOS development package generates notices, an SPDX SBOM, hashes, signatures, and an artifact manifest as required by the [implementation plan](docs/IMPLEMENTATION_PLAN.md#model-and-asset-distribution). Developer ID signing and notarization remain release-distribution work.
+Every conversation uses a session-scoped microVM with no virtual network device, DNS, route, bridge, NAT, or proxy. It receives the selected folder as a live read-only mount, immutable attachments, a bounded private workspace, and one typed host/guest channel. The model can propose work; Vault Core decides what is valid and the microVM performs it without unrestricted host access or any network access.
 
-## Go deeper
+### macOS
 
-Start with [the product](docs/PRODUCT.md), [architecture](docs/ARCHITECTURE.md), and [security](docs/SECURITY.md). The [implementation plan](docs/IMPLEMENTATION_PLAN.md), [offline dev-agent decision](docs/adr/0018-offline-dev-agent-first.md), [desktop design](docs/DESKTOP_DESIGN.md), and [M3 status](docs/M3_STATUS.md) define the active product path. [CONTRIBUTING.md](CONTRIBUTING.md) explains the current contribution rules.
+On Apple silicon, Vault Desk uses Apple's **Virtualization.framework**. It provides native hardware isolation and direct control over the VM configuration, so Vault Desk can prove that no network device exists. **VirtioFS** supplies the live read-only folder, while a fixed virtio socket carries typed messages without opening a TCP port.
+
+### Windows
+
+On Windows Pro and Enterprise, Vault Desk uses **HCS and Hyper-V** utility VMs. These are the platform-native isolation and lifecycle primitives. A read-only **Plan9** share exposes the selected folder, and a fixed **Hyper-V socket** carries typed messages without adding a network adapter or general network path.
+
+## Project status
+
+The macOS M3 desktop agent is implemented and certified on physical Apple silicon. The Windows HCS, Plan9, and guest protocol source implementation exists, while the packaged product integration and physical Windows certification remain open. Windows results are never inferred from macOS. See the current [M3 status](docs/M3_STATUS.md) for exact evidence.
+
+The community software is free. Signed public installers are not yet available.
+
+## Learn more
+
+Read the [product overview](docs/PRODUCT.md), [architecture](docs/ARCHITECTURE.md), and [security model](docs/SECURITY.md). Exact models and hashes live in the [model manifest](assets/models.json); pinned dependencies, guest components, versions, licenses, and purposes live in the [compliance inventory](compliance/inventory.json).
+
+The development workflow was informed by [Everything Claude Code](https://github.com/affaan-m/ECC). Vault Desk uses original project-specific instructions and does not include that package or runtime.

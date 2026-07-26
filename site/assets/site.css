@@ -150,17 +150,27 @@ iframe:focus-visible {
 .skip-link {
   position: fixed;
   z-index: 100;
-  top: 10px;
-  left: 10px;
+  top: 12px;
+  left: 50%;
+  width: max-content;
+  max-width: calc(100% - 24px);
   padding: 10px 14px;
-  transform: translateY(-150%);
+  overflow: hidden;
+  transform: translate(-50%, -200%);
   border-radius: 8px;
   color: #fff;
   background: var(--navy);
+  clip-path: inset(50%);
+  opacity: 0;
+  pointer-events: none;
+  white-space: nowrap;
 }
 
-.skip-link:focus {
-  transform: none;
+.skip-link:focus-visible {
+  transform: translateX(-50%);
+  clip-path: none;
+  opacity: 1;
+  pointer-events: auto;
 }
 
 .site-header {
@@ -1385,9 +1395,59 @@ iframe:focus-visible {
 .demo-wrap iframe {
   display: block;
   width: 100%;
-  height: 690px;
+  min-width: 760px;
+  height: max(690px, calc(100svh - 96px));
+  min-height: 600px;
   border: 0;
   background: #fff;
+}
+
+.demo-viewport {
+  position: relative;
+  height: max(690px, calc(100svh - 96px));
+  min-height: 690px;
+  overflow: hidden;
+  background: #e3e6de;
+}
+
+.demo-mobile-gate {
+  position: absolute;
+  z-index: 2;
+  inset: 0;
+  display: none;
+  place-content: center;
+  padding: 30px;
+  color: var(--ink);
+  background:
+    radial-gradient(circle at 82% 18%, rgb(118 183 170 / 28%), transparent 18rem),
+    rgb(243 238 227 / 94%);
+  text-align: center;
+}
+
+.demo-mobile-gate .eyebrow {
+  margin-bottom: 10px;
+}
+
+.demo-mobile-gate h3 {
+  margin: 0;
+  font-family: "IBM Plex Serif", Charter, "Iowan Old Style", Georgia, serif;
+  font-size: clamp(30px, 9vw, 44px);
+  font-weight: 560;
+  line-height: 1.05;
+  letter-spacing: -0.035em;
+}
+
+.demo-mobile-gate > p:not(.eyebrow) {
+  max-width: 430px;
+  margin: 16px auto 0;
+  color: var(--ink-soft);
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+.demo-mobile-gate .button {
+  width: fit-content;
+  margin: 24px auto 0;
 }
 
 .requirements-section {
@@ -1982,6 +2042,10 @@ iframe:focus-visible {
 }
 
 @media (max-width: 600px) {
+  .skip-link {
+    top: 82px;
+  }
+
   .site-header,
   .hero,
   .section-inner,
@@ -2145,10 +2209,6 @@ iframe:focus-visible {
     border-radius: 18px;
   }
 
-  .demo-wrap iframe {
-    height: 620px;
-  }
-
   .open-source-panel {
     padding: 30px 24px;
   }
@@ -2160,6 +2220,35 @@ iframe:focus-visible {
 
   .site-footer {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (hover: none) and (pointer: coarse) and (min-width: 601px) {
+  .skip-link {
+    top: 102px;
+  }
+}
+
+@media (max-width: 759px), (hover: none) and (pointer: coarse) {
+  .demo-viewport {
+    height: 430px;
+    min-height: 430px;
+  }
+
+  .demo-wrap iframe {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    width: 760px;
+    height: 600px;
+    transform: translateX(-50%);
+    filter: saturate(0.65);
+    opacity: 0.24;
+    pointer-events: none;
+  }
+
+  .demo-mobile-gate {
+    display: grid;
   }
 }
 

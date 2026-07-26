@@ -144,8 +144,11 @@ describe("conversation performance presentation", () => {
       }),
     );
 
-    expect(markup).toContain("12.3</strong> tok/s");
+    expect(markup).toContain("12.3</strong> generation tok/s");
     expect(markup).toContain("98.8</strong> prompt tok/s");
+    expect(markup).toMatch(
+      /98.8<\/strong> prompt tok\/s.*12.3<\/strong> generation tok\/s.*4.3s<\/strong> total/s,
+    );
     expect(markup).toContain("4.3s</strong> total");
     expect(markup).toContain("Thinking locally");
     expect(markup).toContain("I am checking the local context.");

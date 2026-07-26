@@ -20,62 +20,11 @@ const statusText: Record<ModelRuntimeStatus["state"], string> = {
   ready: "Loaded and ready",
 };
 
-const MIB = 1024 ** 2;
-const GIB = 1024 ** 3;
 const appearanceLabels: Record<AppearancePreference, string> = {
   system: "System",
   light: "Light",
   dark: "Dark",
 };
-
-function formatMemory(bytes: number): string {
-  if (bytes === 0) return "0 GiB";
-  if (bytes < GIB) return `${Math.round(bytes / MIB)} MiB`;
-  return `${(bytes / GIB).toFixed(1)} GiB`;
-}
-
-function formatContext(tokens: number): string {
-  if (tokens < 1024) return tokens.toLocaleString("en-US");
-  return `${Number((tokens / 1024).toFixed(2))}K`;
-}
-
-function modelUsage(model: ModelRuntimeStatus) {
-  if (model.state !== "ready" && model.state !== "busy") return undefined;
-  if (
-    model.memoryBudgetBytes === undefined &&
-    model.cpuRamBytes === undefined &&
-    model.gpuVramBytes === undefined &&
-    model.contextSizeTokens === undefined
-  )
-    return undefined;
-  const allocatedBytes = (model.cpuRamBytes ?? 0) + (model.gpuVramBytes ?? 0);
-  return {
-    budget:
-      model.memoryBudgetBytes === undefined
-        ? undefined
-        : `${formatMemory(model.memoryBudgetBytes)} budget`,
-    allocated:
-      model.cpuRamBytes === undefined && model.gpuVramBytes === undefined
-        ? undefined
-        : `${formatMemory(allocatedBytes)} allocated`,
-    context:
-      model.contextSizeTokens === undefined
-        ? undefined
-        : `${formatContext(model.contextSizeTokens)} context`,
-  };
-}
-
-function ModelUsage({ model }: { model: ModelRuntimeStatus }) {
-  const usage = modelUsage(model);
-  if (usage === undefined) return null;
-  return (
-    <span className="model-usage">
-      {usage.budget === undefined ? null : <span>{usage.budget}</span>}
-      {usage.allocated === undefined ? null : <span>{usage.allocated}</span>}
-      {usage.context === undefined ? null : <span>{usage.context}</span>}
-    </span>
-  );
-}
 
 function AppearanceControl({
   appearance,
@@ -114,7 +63,6 @@ export function ChatHeader({
         <div className="model-copy">
           <div className="model-title-row">
             <strong>{model.name}</strong>
-            <ModelUsage model={model} />
           </div>
           <span className={`model-state model-state-${model.state}`}>
             <i aria-hidden="true" />
