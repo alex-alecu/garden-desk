@@ -1396,7 +1396,7 @@ iframe:focus-visible {
   display: block;
   width: 100%;
   min-width: 760px;
-  height: 690px;
+  height: max(690px, calc(100svh - 96px));
   min-height: 600px;
   border: 0;
   background: #fff;
@@ -1404,6 +1404,7 @@ iframe:focus-visible {
 
 .demo-viewport {
   position: relative;
+  height: max(690px, calc(100svh - 96px));
   min-height: 690px;
   overflow: hidden;
   background: #e3e6de;
@@ -2230,6 +2231,7 @@ iframe:focus-visible {
 
 @media (max-width: 759px), (hover: none) and (pointer: coarse) {
   .demo-viewport {
+    height: 430px;
     min-height: 430px;
   }
 

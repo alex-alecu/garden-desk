@@ -145,6 +145,7 @@ const assets = (await files(output)).filter((path) => [".js", ".css"].includes(e
 const assetText = (await Promise.all(assets.map((path) => readFile(path, "utf8")))).join("\n");
 requireText(assetText, ".skip-link:focus-visible", "home skip link");
 requireText(assetText, ".technical-details-action{display:none}", "demo technical details control");
+requireText(assetText, "max(690px,100svh - 96px)", "home demo viewport height");
 requireText(assetText, "min-width:760px", "demo minimum width");
 requireText(assetText, "min-height:600px", "demo minimum height");
 if (!/toggleAttribute\([`'"]inert[`'"]/u.test(assetText)) {
