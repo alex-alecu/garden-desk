@@ -1188,6 +1188,10 @@ textarea:focus-visible {
   cursor: pointer;
 }
 
+.technical-tabs button {
+  font-size: 12px;
+}
+
 .technical-tabs button[aria-selected="true"],
 .stream-tabs button[aria-selected="true"] {
   color: var(--ink);
