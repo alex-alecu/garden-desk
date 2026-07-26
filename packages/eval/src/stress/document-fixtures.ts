@@ -23,6 +23,13 @@ export interface FixtureEvidence {
   expected: Record<string, number | string>;
 }
 
+export interface FixtureProgress {
+  format: "xlsx" | "docx";
+  completedFiles: number;
+  totalFiles: number;
+  bytes: number;
+}
+
 const ROOT_RELS_XLSX = `<?xml version="1.0" encoding="UTF-8"?>
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`;
 const XLSX_STYLES = `<?xml version="1.0" encoding="UTF-8"?>
@@ -113,6 +120,7 @@ function xlsxEntries(workbook: number, shape: XlsxFixtureShape): ZipEntry[] {
 export async function createXlsxCorpus(
   directory: string,
   shape: XlsxFixtureShape,
+  onProgress?: (progress: FixtureProgress) => void,
 ): Promise<FixtureEvidence> {
   if (shape.rowsPerSheet < 2) throw new Error("XLSX fixtures require a header and data row.");
   await mkdir(directory, { recursive: true });
@@ -122,6 +130,12 @@ export async function createXlsxCorpus(
     const path = join(directory, `workbook-${String(workbook + 1).padStart(3, "0")}.xlsx`);
     await writeStreamingZip(path, xlsxEntries(workbook, shape));
     bytes += (await stat(path)).size;
+    onProgress?.({
+      format: "xlsx",
+      completedFiles: workbook + 1,
+      totalFiles: shape.files,
+      bytes,
+    });
     for (let sheet = 0; sheet < shape.sheets; sheet += 1) {
       targetTotal += targetAmount(workbook, sheet);
     }
@@ -156,6 +170,7 @@ function docxEntries(document: number, pages: number): ZipEntry[] {
 export async function createDocxCorpus(
   directory: string,
   shape: DocxFixtureShape,
+  onProgress?: (progress: FixtureProgress) => void,
 ): Promise<FixtureEvidence> {
   await mkdir(directory, { recursive: true });
   let bytes = 0;
@@ -164,6 +179,12 @@ export async function createDocxCorpus(
     const path = join(directory, `document-${String(document + 1).padStart(3, "0")}.docx`);
     await writeStreamingZip(path, docxEntries(document, shape.pagesPerFile));
     bytes += (await stat(path)).size;
+    onProgress?.({
+      format: "docx",
+      completedFiles: document + 1,
+      totalFiles: shape.files,
+      bytes,
+    });
     for (let page = 1; page <= shape.pagesPerFile; page += 1) {
       checksum += (document + 1) * 1_000 + page;
     }

@@ -14,7 +14,7 @@ import {
   SessionSummarySchema,
 } from "@vault/shared";
 import { readCanonicalModelManifest, verifyModelFile } from "../models.js";
-import type { PreparedStressCase } from "./small-profile.js";
+import type { PreparedStressCase } from "./document-workloads.js";
 
 const repositoryRoot = process.cwd();
 const modelRoot = join(repositoryRoot, "packages/eval/.generated/models");

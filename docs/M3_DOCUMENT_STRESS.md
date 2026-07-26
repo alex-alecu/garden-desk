@@ -4,14 +4,12 @@ Created: 2026-07-26
 
 This evaluation measures the existing M3 generic offline development agent with the real Gemma 4 12B QAT worker, current-user daemon, and no-NIC microVM. It does not add a product document parser or change agent behavior.
 
-## Two-stage delivery
+## Two-commit delivery
 
-The work is intentionally split across two pull requests:
+The work is intentionally split into two commits in one pull request:
 
 1. **Small realistic suite:** prove the harness and file formats with reduced versions of every workload, unsafe-folder rejection, invalid input, sequential execution, and three simultaneous conversations.
-2. **Scaled suite:** add the requested 100-page PDF; 10-sheet, 1,000,000-row workbook; 100-workbook folder; mixed 20-workbook plus 100-DOCX folder; and three simultaneous scaled cases. The scaled suite is written but not executed in that stage unless the owner separately starts it.
-
-Repository workflow requires the first pull request to merge or close before the second stage begins.
+2. **Scaled suite:** add the requested 100-page PDF; 10-sheet, 1,000,000-row workbook; 100-workbook folder; mixed 20-workbook plus 100-DOCX folder; and three simultaneous scaled cases. The scaled suite is committed but not executed.
 
 ## Small workload matrix
 
@@ -39,14 +37,34 @@ The command creates fixtures and workspace state under a short `/tmp` path, call
 
 The suite exits nonzero when it finds a limit. A nonzero result is evidence to record, not authorization to change the agent. Agent changes require a separate owner-approved strategy after both stress suites are ready.
 
-## Phase 2 constraints
+## Scaled workload matrix
+
+| Case | Generated input | Required proof |
+|---|---|---|
+| PDF | 1 PDF, 100 pages | Parse every page and sum embedded page checksums. |
+| Workbook | 1 XLSX, 10 sheets, exactly 1,000,000 rows per sheet including the header | Visit every row and aggregate the target at the final row of every sheet. |
+| XLSX folder | 100 XLSX, 10 sheets each, exactly 1,000,000 rows per sheet | Traverse 1,000 worksheets and 1,000,000,000 worksheet rows. |
+| Mixed folder | 20 XLSX at the same sheet and row scale plus 100 DOCX with 100 page-break-delimited pages each | Produce complete XLSX and DOCX counts and checksums. |
+| Concurrent | Workbook, 100-workbook folder, and mixed-folder cases | Start three independent scaled conversations together and observe all three running. |
+
+The sequential command runs PDF, workbook, XLSX-folder, then mixed-folder and removes each generated corpus after its run. A single sequential case can be selected with `--case pdf`, `--case workbook`, `--case xlsx-folder`, or `--case mixed-folder`. The concurrent command must retain all three corpora until the three runs are terminal.
+
+```sh
+pnpm test:stress:m3:macos:scaled:sequential
+pnpm test:stress:m3:macos:scaled:sequential -- --case workbook
+pnpm test:stress:m3:macos:scaled:concurrent
+```
+
+These commands are intentionally explicit and pass the runner's `--confirm-scaled` guard. They were not run while preparing this evaluation.
+
+## Scaled suite constraints
 
 - Generate XLSX XML and ZIP entries as streams so 1,000,000-row sheets do not require equivalent host RAM.
-- Run scaled cases sequentially by default and preserve one explicit three-conversation scaled case.
+- Run scaled cases sequentially by default and preserve the explicit three-conversation scaled case.
 - Keep the selected folder live and read-only; do not copy it into Core or the guest workspace.
 - Report fixture generation time separately from agent/model time.
 - Preserve complete terminal state, error, response, events, stdout, stderr, VM diagnostics, and inference traces.
-- Do not add the scaled command to the default M3 or repository verification gates.
+- Do not add scaled commands to the default M3 or repository verification gates.
 - Do not infer Windows behavior from macOS results.
 
 ## Phase 1 physical baseline
@@ -64,4 +82,4 @@ The small suite ran on 2026-07-26 on the physical 48 GB Apple-silicon Mac. The r
 
 The XLSX-only failure is reproducible and retained without an agent fix. Gemma copied the inspection example with an uppercase target compared against lowercased cell values, so it found no rows. It then proposed the same exact program eleven more times; Core rejected every duplicate and the final response incorrectly said execution capacity was exhausted after only one execution. The mixed workload generated a different two-execution program and passed all requested values, confirming that the streamed XLSX and DOCX fixtures and guest libraries are valid.
 
-The complete local evidence is in the ignored `packages/eval/.generated/stress/small-2026-07-26T13-49-51.871Z.json` report. The suite correctly exits nonzero with `small_stress_limit_found`. No product or agent implementation was changed in response.
+The complete local evidence is in the ignored `packages/eval/.generated/stress/small-2026-07-26T13-49-51.871Z.json` report. The suite correctly exits nonzero with `small_stress_limit_found`. No product or agent implementation was changed in response. The scaled definitions above are unrun and make no claim about their completion time, storage use, or agent outcome.
