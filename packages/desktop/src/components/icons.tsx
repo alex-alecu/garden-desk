@@ -10,7 +10,8 @@ interface IconProps {
     | "message"
     | "power"
     | "send"
-    | "trash";
+    | "trash"
+    | "unmount";
 }
 
 const paths: Record<IconProps["name"], string> = {
@@ -26,6 +27,7 @@ const paths: Record<IconProps["name"], string> = {
   power: "M12 3v9m5.7-6.7a8 8 0 1 1-11.4 0",
   send: "m5 12 14-7-4 14-3-6z",
   trash: "M5 7h14M9 7V4h6v3m-8 0 1 13h8l1-13M10 10v7m4-7v7",
+  unmount: "M12 5 5 15h14L12 5zM5 19h14",
 };
 
 export function Icon({ name }: IconProps) {

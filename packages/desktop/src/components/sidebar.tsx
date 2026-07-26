@@ -92,7 +92,8 @@ function FolderSection(props: SidebarProps) {
   return props.folders.map((folder) => (
     <section className="folder-group" key={folder.id}>
       <SidebarItemRow
-        deleteLabel={`Remove ${folder.name}`}
+        deleteIcon="unmount"
+        deleteLabel={`Unmount ${folder.name}`}
         disabled={props.disabled}
         expanded={folder.expanded}
         label={folder.name}

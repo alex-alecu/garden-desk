@@ -122,17 +122,17 @@ export function App({ api, capabilities }: { api: DesktopApi; capabilities: Desk
         onRevokeFolder={(folderId) => {
           const folderName = state.folders.find((folder) => folder.id === folderId)?.name;
           setConfirmation({
-            title: `Remove “${folderName ?? "this folder"}”?`,
+            title: `Unmount “${folderName ?? "this folder"}”?`,
             description:
-              "Vault Desk will remove access to this folder. Files on your computer and existing conversation history are not deleted.",
-            confirmLabel: "Remove folder",
+              "Vault Desk will unmount this folder and remove its access grant. Files on your computer and existing conversation history are not deleted.",
+            confirmLabel: "Unmount folder",
             onConfirm: () => {
               void api
                 .revokeFolder(folderId)
                 .then((revoked) => {
                   if (revoked) dispatch({ type: "folder.revoked", folderId });
                 })
-                .catch(() => setDesktopError("The folder grant could not be removed."));
+                .catch(() => setDesktopError("The folder could not be unmounted."));
             },
           });
         }}

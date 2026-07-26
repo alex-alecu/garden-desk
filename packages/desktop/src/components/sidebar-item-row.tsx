@@ -5,6 +5,7 @@ interface SidebarItemRowProps {
   active?: boolean;
   deleteLabel: string;
   deleteDisabled?: boolean;
+  deleteIcon?: ComponentProps<typeof Icon>["name"];
   disabled: boolean;
   nativeActionMessage?: string | undefined;
   expanded?: boolean;
@@ -15,6 +16,14 @@ interface SidebarItemRowProps {
   onSelect(): void;
   onStartAction?(): void;
   working?: boolean;
+}
+
+function deleteClassName(icon: SidebarItemRowProps["deleteIcon"]): string {
+  return icon === "unmount" ? "sidebar-item-delete sidebar-item-unmount" : "sidebar-item-delete";
+}
+
+function deleteTitle(props: SidebarItemRowProps): string | undefined {
+  return props.nativeActionMessage ?? props.deleteLabel;
 }
 
 export function SidebarItemRow(props: SidebarItemRowProps) {
@@ -48,13 +57,13 @@ export function SidebarItemRow(props: SidebarItemRowProps) {
       </button>
       <button
         aria-label={props.deleteLabel}
-        className="sidebar-item-delete"
+        className={deleteClassName(props.deleteIcon)}
         disabled={props.disabled || props.deleteDisabled || props.nativeActionMessage !== undefined}
         onClick={props.onDelete}
-        title={props.nativeActionMessage}
+        title={deleteTitle(props)}
         type="button"
       >
-        <Icon name="trash" />
+        <Icon name={props.deleteIcon ?? "trash"} />
       </button>
     </div>
   );

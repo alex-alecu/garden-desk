@@ -393,6 +393,11 @@ textarea:focus-visible {
   background: rgb(217 104 67 / 12%);
 }
 
+.sidebar-item-delete.sidebar-item-unmount:hover {
+  color: var(--accent-strong);
+  background: rgb(57 127 121 / 10%);
+}
+
 .sidebar-item-start:hover {
   color: var(--accent-strong);
   background: rgb(57 127 121 / 10%);
@@ -1556,6 +1561,11 @@ textarea:focus-visible {
 .app-shell[data-theme="dark"] .sidebar-item-delete:hover {
   color: #f1a287;
   background: rgb(228 123 88 / 14%);
+}
+
+.app-shell[data-theme="dark"] .sidebar-item-delete.sidebar-item-unmount:hover {
+  color: #a8d0c8;
+  background: rgb(111 169 160 / 13%);
 }
 
 .app-shell[data-theme="dark"] .sidebar-item-start:hover {

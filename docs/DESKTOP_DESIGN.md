@@ -46,7 +46,7 @@ Each folder group:
 - Opens the granted folder in Finder on macOS or Explorer on Windows when its folder icon is activated, without a confirmation step.
 - Reveals a delete control on session hover or keyboard focus; deletion always requires explicit confirmation and is unavailable while that conversation is running.
 
-Every remove action requires confirmation. Removing a folder removes its active grant but never deletes or changes host files. Existing session records remain visible with a clear unavailable-context state unless the user explicitly deletes them.
+Every remove or unmount action requires confirmation. Unmounting a folder removes its active grant but never deletes or changes host files. Existing session records remain visible with a clear unavailable-context state unless the user explicitly deletes them.
 
 ## New Chat
 
