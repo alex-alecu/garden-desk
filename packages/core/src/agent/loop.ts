@@ -13,6 +13,7 @@ import {
 import type { AgentSessionExecution } from "@vault/workers";
 import type { InferenceService } from "../runtime/inference.js";
 import { createGenerationRequest } from "../runtime/inference.js";
+import { isDuplicateDecision } from "./loop-decisions.js";
 import {
   type AgentProgress,
   type AgentPromptInput,
@@ -24,6 +25,7 @@ import {
 import type { AgentTraceStore } from "./trace-store.js";
 
 const MAX_DECISIONS = 12;
+const MAX_CONSECUTIVE_DUPLICATES = 2;
 const STRUCTURED_RETRY_SUFFIX =
   "\nYour previous attempt did not call a function. Call exactly one available function with your answer.";
 
@@ -227,12 +229,43 @@ export class AgentLoop {
     });
   }
 
+  private rejectDuplicate(
+    input: AgentRunInput,
+    progress: AgentProgress,
+    turnId: string | undefined,
+    consecutiveDuplicates: number,
+  ): number {
+    this.recordOutcome(input, turnId, "rejected_duplicate");
+    progress.rejectedDuplicates += 1;
+    const next = consecutiveDuplicates + 1;
+    if (next >= MAX_CONSECUTIVE_DUPLICATES) throw new Error("agent_stalled_duplicate");
+    return next;
+  }
+
+  private async finishAfterLoop(
+    input: AgentRunInput,
+    progress: AgentProgress,
+  ): Promise<AgentRunResult> {
+    input.signal?.throwIfAborted();
+    if (progress.executions.length < MAX_EXECUTIONS) {
+      throw new Error("agent_decision_limit_exceeded");
+    }
+    const traced = await this.decide(input, progress, true);
+    if (traced.decision.action !== "respond") {
+      this.recordOutcome(input, traced.turnId, "invalid_response");
+      throw new Error("agent_execution_limit_exceeded");
+    }
+    this.recordOutcome(input, traced.turnId, "accepted_response");
+    return this.finish(input, progress, traced.decision.response);
+  }
+
   async run(input: AgentRunInput): Promise<AgentRunResult> {
     const progress: AgentProgress = {
       executions: [],
       inference: emptyPerformance(),
       rejectedDuplicates: 0,
     };
+    let consecutiveDuplicates = 0;
     for (
       let decisionCount = 0;
       decisionCount < MAX_DECISIONS && progress.executions.length < MAX_EXECUTIONS;
@@ -245,29 +278,21 @@ export class AgentLoop {
         this.recordOutcome(input, traced.turnId, "accepted_response");
         return this.finish(input, progress, decision.response);
       }
-      if (
-        progress.executions.some((execution) =>
-          decision.language === "shell"
-            ? execution.command === decision.command
-            : execution.source === decision.source,
-        )
-      ) {
-        this.recordOutcome(input, traced.turnId, "rejected_duplicate");
-        progress.rejectedDuplicates += 1;
+      if (isDuplicateDecision(decision, progress.executions)) {
+        consecutiveDuplicates = this.rejectDuplicate(
+          input,
+          progress,
+          traced.turnId,
+          consecutiveDuplicates,
+        );
         continue;
       }
+      consecutiveDuplicates = 0;
       this.recordOutcome(input, traced.turnId, "accepted_execution", progress.executions.length);
       await this.execute(input, decision, progress);
       const verifiedResponse = executionBackedResponse(input, progress, "");
       if (verifiedResponse.length > 0) return this.finish(input, progress, verifiedResponse);
     }
-    input.signal?.throwIfAborted();
-    const traced = await this.decide(input, progress, true);
-    if (traced.decision.action !== "respond") {
-      this.recordOutcome(input, traced.turnId, "invalid_response");
-      throw new Error("agent_execution_limit_exceeded");
-    }
-    this.recordOutcome(input, traced.turnId, "accepted_response");
-    return this.finish(input, progress, traced.decision.response);
+    return this.finishAfterLoop(input, progress);
   }
 }

@@ -2,7 +2,7 @@
 
 Created: 2026-07-26
 
-This evaluation measures the existing M3 generic offline development agent with the real Gemma 4 12B QAT worker, current-user daemon, and no-NIC microVM. It does not add a product document parser or change agent behavior.
+This evaluation measures the M3 generic offline development agent with the real Gemma 4 12B QAT worker, current-user daemon, and no-NIC microVM. It does not add a product document parser. The small suite first exposed an XLSX agent-loop limitation and then verified the focused Core-owned repair described below.
 
 ## Two-commit delivery
 
@@ -35,7 +35,7 @@ pnpm test:stress:m3:macos:small
 
 The command creates fixtures and workspace state under a short `/tmp` path, calls only daemon RPC through the CLI client, and removes the temporary corpus after completion. A complete local report containing terminal snapshots, ordered events, execution output, and recorded inference traces is retained under `packages/eval/.generated/stress/`. That report can contain generated code and source-derived output and must remain local.
 
-The suite exits nonzero when it finds a limit. A nonzero result is evidence to record, not authorization to change the agent. Agent changes require a separate owner-approved strategy after both stress suites are ready.
+The suite exits nonzero when it finds a limit. A nonzero result is evidence to record, not by itself authorization to change the agent. Agent changes require a separate owner-approved strategy and verification.
 
 ## Scaled workload matrix
 
@@ -67,19 +67,21 @@ These commands are intentionally explicit and pass the runner's `--confirm-scale
 - Do not add scaled commands to the default M3 or repository verification gates.
 - Do not infer Windows behavior from macOS results.
 
-## Phase 1 physical baseline
+## Phase 1 physical evidence
 
-The small suite ran on 2026-07-26 on the physical 48 GB Apple-silicon Mac. The real model finished ready with a 17,179,869,184-byte budget, 1,112,334,048 CPU RAM bytes, 12,396,953,088 GPU VRAM bytes, and 262,144-token context. All eight agent runs reached a terminal `succeeded` state, and the unsafe-root, missing-folder, regular-file, and invalid-session requests were rejected before model or VM work.
+The small suite ran on 2026-07-26 on the physical 48 GB Apple-silicon Mac. The original baseline reproduced an XLSX-only limit: Gemma copied the inspection example with an uppercase target compared against lowercased cell values, produced no rows, then proposed the same exact program eleven more times. Core rejected every duplicate, but the final response incorrectly said execution capacity was exhausted after only one execution.
+
+The focused repair casefolds both the search needle and cell text, advances the XLSX workflow after a successful inspection even when stdout is empty, discovers amount indexes from worksheet headers, requires every explicit `LABEL=<value>` task contract before accepting result stdout, keeps mixed-format branches reachable, and fails after two consecutive duplicate proposals with an accurate planning-stall error. It does not increase execution limits, weaken duplicate rejection, hardcode stress values, or add a deterministic document subsystem.
+
+The unchanged suite then passed on the same physical Mac. The real model finished ready with a 17,179,869,184-byte budget, 1,112,334,048 CPU RAM bytes, 12,396,953,088 GPU VRAM bytes, and 262,144-token context. All eight agent runs reached terminal `succeeded` state, and the unsafe-root, missing-folder, regular-file, and invalid-session requests were rejected before model or VM work.
 
 | Case | Wall time | Evidence result |
 |---|---:|---|
-| PDF | 31.061 s | Passed 12-page count and checksum. |
-| Workbook | 89.236 s | Limit found: missing both required XLSX aggregates. |
-| XLSX folder | 89.259 s | Limit found: missing both required XLSX aggregates. |
-| Mixed folder | 51.142 s | Passed all XLSX and DOCX aggregates. |
-| Invalid PDF | 19.054 s | Passed bounded stop with one execution and no artifact. |
-| Three concurrent cases | 157.511 s | Observed `maximumRunning: 3`; PDF and mixed passed, XLSX folder reproduced the sequential limit. |
+| PDF | 30.266 s | Passed 12-page count and checksum. |
+| Workbook | 25.210 s | Passed both required XLSX aggregates in two executions. |
+| XLSX folder | 22.862 s | Passed all six final-row matches and total in two executions. |
+| Mixed folder | 31.099 s | Passed all XLSX and DOCX aggregates in two executions. |
+| Invalid PDF | 18.411 s | Passed bounded stop with one execution and no artifact. |
+| Three concurrent cases | 71.302 s | Observed `maximumRunning: 3`; PDF, XLSX folder, and mixed folder all passed. |
 
-The XLSX-only failure is reproducible and retained without an agent fix. Gemma copied the inspection example with an uppercase target compared against lowercased cell values, so it found no rows. It then proposed the same exact program eleven more times; Core rejected every duplicate and the final response incorrectly said execution capacity was exhausted after only one execution. The mixed workload generated a different two-execution program and passed all requested values, confirming that the streamed XLSX and DOCX fixtures and guest libraries are valid.
-
-The complete local evidence is in the ignored `packages/eval/.generated/stress/small-2026-07-26T13-49-51.871Z.json` report. The suite correctly exits nonzero with `small_stress_limit_found`. No product or agent implementation was changed in response. The scaled definitions above are unrun and make no claim about their completion time, storage use, or agent outcome.
+The complete passing local evidence is in the ignored `packages/eval/.generated/stress/small-2026-07-26T15-01-14.665Z.json` report. The original limitation remains recorded in `small-2026-07-26T13-49-51.871Z.json`. The scaled definitions above remain unrun and make no claim about their completion time, storage use, or agent outcome.
