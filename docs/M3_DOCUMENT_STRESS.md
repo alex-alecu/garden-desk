@@ -55,7 +55,7 @@ pnpm test:stress:m3:macos:scaled:sequential -- --case workbook
 pnpm test:stress:m3:macos:scaled:concurrent
 ```
 
-These commands are intentionally explicit and pass the runner's `--confirm-scaled` guard. They were not run while preparing this evaluation.
+These commands are intentionally explicit and pass the runner's `--confirm-scaled` guard. The corrected definitions were run on physical Apple silicon; the evidence is recorded below.
 
 ## Scaled suite constraints
 
@@ -84,4 +84,19 @@ The unchanged suite then passed on the same physical Mac. The real model finishe
 | Invalid PDF | 18.411 s | Passed bounded stop with one execution and no artifact. |
 | Three concurrent cases | 71.302 s | Observed `maximumRunning: 3`; PDF, XLSX folder, and mixed folder all passed. |
 
-The complete passing local evidence is in the ignored `packages/eval/.generated/stress/small-2026-07-26T15-01-14.665Z.json` report. The original limitation remains recorded in `small-2026-07-26T13-49-51.871Z.json`. The scaled definitions above remain unrun and make no claim about their completion time, storage use, or agent outcome.
+The complete passing local evidence is in the ignored `packages/eval/.generated/stress/small-2026-07-26T15-01-14.665Z.json` report. The original limitation remains recorded in `small-2026-07-26T13-49-51.871Z.json`. After the streaming repair, the unchanged small suite passed again in `small-2026-07-27T06-17-39.535Z.json`.
+
+## Corrected scaled physical evidence
+
+The scaled suite ran on 2026-07-27 after correcting the workload from one million rows per sheet to one million rows per file and ten million rows across each 50-file folder. The XLSX examples used `read_only=True` and closed every workbook. This removed the previous 4 GiB guest crash: no corrected scaled execution terminated as `crash` because of workbook loading.
+
+| Sequential case | Fixture | Agent result |
+|---|---:|---|
+| PDF | 100 pages, 29,766 bytes | Passed in 31.183 s with `PDF_PAGES=100` and `PDF_CHECKSUM=85850`. |
+| Workbook | 1 file, 1,000,000 rows, 17,653,464 bytes | Passed in 70.610 s with 10 matches and total 10055 after two streaming executions. |
+| XLSX folder | 50 files, 10,000,000 rows, 178,075,825 bytes | Limit found: two 120 s streaming executions timed out, then planning ended with `agent_model_failed`; no aggregate was accepted. |
+| Mixed folder | 20 XLSX plus 30 DOCX, 10,000,000 XLSX rows, 177,376,195 bytes | Limit found: DOCX values were exact, but XLSX output covered only 20 of 200 expected matches after the first scan timed out. |
+
+The concurrent suite observed `maximumRunning: 3` and completed in 480.157 s. The million-row workbook passed in 99.836 s. The 50-workbook case ended with `agent_stalled_duplicate` after bounded timeouts and invalid repairs; the mixed case again returned exact DOCX values but incomplete XLSX values. Core did not accept either incomplete result as a passing stress outcome.
+
+The ignored reports are `scaled-sequential-2026-07-27T06-21-22.942Z.json` and `scaled-concurrent-2026-07-27T07-14-39.715Z.json`. They retain exact prompts, decisions, code, execution output, termination evidence, and ordered events. This is macOS evidence only. It proves the million-row-file target and concurrent scheduling, and it identifies ten million streamed XLSX rows within one generic agent task as beyond the current bounded repair behavior; it does not authorize larger limits or a deterministic document subsystem.
