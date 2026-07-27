@@ -20,16 +20,29 @@ import {
 
 export type ScaledCaseId = "pdf" | "workbook" | "xlsx-folder" | "mixed-folder";
 
+interface ScaledXlsxPlan {
+  files: number;
+  sheets: number;
+  rowsPerFile: number;
+}
+
 export const SCALED_WORKLOAD_PLAN = {
   pdf: { files: 1, pagesPerFile: 100 },
-  workbook: { files: 1, sheets: 10, rowsPerSheet: 1_000_000 },
-  xlsxFolder: { files: 100, sheets: 10, rowsPerSheet: 1_000_000 },
+  workbook: { files: 1, sheets: 10, rowsPerFile: 1_000_000 },
+  xlsxFolder: { files: 50, sheets: 10, rowsPerFile: 200_000 },
   mixedFolder: {
-    xlsx: { files: 20, sheets: 10, rowsPerSheet: 1_000_000 },
-    docx: { files: 100, pagesPerFile: 100 },
+    xlsx: { files: 20, sheets: 10, rowsPerFile: 500_000 },
+    docx: { files: 30, pagesPerFile: 100 },
   },
   concurrentCases: ["workbook", "xlsx-folder", "mixed-folder"],
 } as const;
+
+function xlsxShape(plan: ScaledXlsxPlan) {
+  if (plan.rowsPerFile % plan.sheets !== 0) {
+    throw new Error("Scaled XLSX rows must divide evenly across sheets.");
+  }
+  return { files: plan.files, sheets: plan.sheets, rowsPerSheet: plan.rowsPerFile / plan.sheets };
+}
 
 function logProgress(id: ScaledCaseId) {
   return (progress: FixtureProgress) => {
@@ -49,14 +62,18 @@ const CASES: StressCaseDefinition<ScaledCaseId>[] = [
     id: "workbook",
     task: XLSX_TASK,
     create: async (source) =>
-      createXlsxCorpus(source, SCALED_WORKLOAD_PLAN.workbook, logProgress("workbook")),
+      createXlsxCorpus(source, xlsxShape(SCALED_WORKLOAD_PLAN.workbook), logProgress("workbook")),
     expected: xlsxTokens,
   },
   {
     id: "xlsx-folder",
     task: XLSX_TASK,
     create: async (source) =>
-      createXlsxCorpus(source, SCALED_WORKLOAD_PLAN.xlsxFolder, logProgress("xlsx-folder")),
+      createXlsxCorpus(
+        source,
+        xlsxShape(SCALED_WORKLOAD_PLAN.xlsxFolder),
+        logProgress("xlsx-folder"),
+      ),
     expected: xlsxTokens,
   },
   {
@@ -70,9 +87,7 @@ const CASES: StressCaseDefinition<ScaledCaseId>[] = [
 async function createMixedCorpus(source: string): Promise<FixtureEvidence> {
   const xlsx = await createXlsxCorpus(
     join(source, "spreadsheets"),
-    {
-      ...SCALED_WORKLOAD_PLAN.mixedFolder.xlsx,
-    },
+    xlsxShape(SCALED_WORKLOAD_PLAN.mixedFolder.xlsx),
     logProgress("mixed-folder"),
   );
   const docx = await createDocxCorpus(

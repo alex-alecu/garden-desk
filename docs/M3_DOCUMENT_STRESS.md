@@ -9,7 +9,7 @@ This evaluation measures the M3 generic offline development agent with the real 
 The work is intentionally split into two commits in one pull request:
 
 1. **Small realistic suite:** prove the harness and file formats with reduced versions of every workload, unsafe-folder rejection, invalid input, sequential execution, and three simultaneous conversations.
-2. **Scaled suite:** add the requested 100-page PDF; 10-sheet, 1,000,000-row workbook; 100-workbook folder; mixed 20-workbook plus 100-DOCX folder; and three simultaneous scaled cases. The scaled suite is committed but not executed.
+2. **Scaled suite:** add the requested 100-page PDF; 10-sheet, 1,000,000-row workbook; 50-workbook folder with 10,000,000 rows total; mixed 20-workbook plus 30-DOCX folder with 10,000,000 XLSX rows total; and three simultaneous scaled cases.
 
 ## Small workload matrix
 
@@ -42,10 +42,10 @@ The suite exits nonzero when it finds a limit. A nonzero result is evidence to r
 | Case | Generated input | Required proof |
 |---|---|---|
 | PDF | 1 PDF, 100 pages | Parse every page and sum embedded page checksums. |
-| Workbook | 1 XLSX, 10 sheets, exactly 1,000,000 rows per sheet including the header | Visit every row and aggregate the target at the final row of every sheet. |
-| XLSX folder | 100 XLSX, 10 sheets each, exactly 1,000,000 rows per sheet | Traverse 1,000 worksheets and 1,000,000,000 worksheet rows. |
-| Mixed folder | 20 XLSX at the same sheet and row scale plus 100 DOCX with 100 page-break-delimited pages each | Produce complete XLSX and DOCX counts and checksums. |
-| Concurrent | Workbook, 100-workbook folder, and mixed-folder cases | Start three independent scaled conversations together and observe all three running. |
+| Workbook | 1 XLSX, 10 sheets, exactly 1,000,000 rows total including headers | Visit every row and aggregate the target at the final row of every sheet. |
+| XLSX folder | 50 XLSX, 10 sheets each, exactly 10,000,000 rows total and 200,000 per file | Traverse every workbook, worksheet, and row. |
+| Mixed folder | 20 XLSX with exactly 10,000,000 rows total and 500,000 per workbook, plus 30 DOCX with 100 page-break-delimited pages each | Traverse exactly 50 files and produce complete XLSX and DOCX counts and checksums. |
+| Concurrent | Workbook, 50-workbook folder, and mixed-folder cases | Start three independent scaled conversations together and observe all three running. |
 
 The sequential command runs PDF, workbook, XLSX-folder, then mixed-folder and removes each generated corpus after its run. A single sequential case can be selected with `--case pdf`, `--case workbook`, `--case xlsx-folder`, or `--case mixed-folder`. The concurrent command must retain all three corpora until the three runs are terminal.
 
@@ -59,7 +59,7 @@ These commands are intentionally explicit and pass the runner's `--confirm-scale
 
 ## Scaled suite constraints
 
-- Generate XLSX XML and ZIP entries as streams so 1,000,000-row sheets do not require equivalent host RAM.
+- Generate XLSX XML and ZIP entries as streams so million-row files do not require equivalent host RAM.
 - Run scaled cases sequentially by default and preserve the explicit three-conversation scaled case.
 - Keep the selected folder live and read-only; do not copy it into Core or the guest workspace.
 - Report fixture generation time separately from agent/model time.
