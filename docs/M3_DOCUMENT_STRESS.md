@@ -99,4 +99,18 @@ The scaled suite ran on 2026-07-27 after correcting the workload from one millio
 
 The concurrent suite observed `maximumRunning: 3` and completed in 480.157 s. The million-row workbook passed in 99.836 s. The 50-workbook case ended with `agent_stalled_duplicate` after bounded timeouts and invalid repairs; the mixed case again returned exact DOCX values but incomplete XLSX values. Core did not accept either incomplete result as a passing stress outcome.
 
-The ignored reports are `scaled-sequential-2026-07-27T06-21-22.942Z.json` and `scaled-concurrent-2026-07-27T07-14-39.715Z.json`. They retain exact prompts, decisions, code, execution output, termination evidence, and ordered events. This is macOS evidence only. It proves the million-row-file target and concurrent scheduling, and it identifies ten million streamed XLSX rows within one generic agent task as beyond the current bounded repair behavior; it does not authorize larger limits or a deterministic document subsystem.
+The ignored reports are `scaled-sequential-2026-07-27T06-21-22.942Z.json` and `scaled-concurrent-2026-07-27T07-14-39.715Z.json`. They retain exact prompts, decisions, code, execution output, termination evidence, and ordered events. This is macOS evidence only. At that point, they proved the million-row-file target and concurrent scheduling while identifying ten million streamed XLSX rows as beyond the bounded repair behavior; they did not authorize larger limits or a deterministic document subsystem.
+
+## Latest continuation evidence
+
+The minimal continuation repair kept the existing six-execution, 120-second, 4 GiB, and 128 MiB workspace limits. Stress commands now print event changes plus a 15-second heartbeat, and the runner simulates the user's explicit Continue action while retaining every prior snapshot and trace.
+
+| Case | Latest physical result |
+|---|---|
+| Small suite | Passed all 8 sequential and concurrent runs; `maximumRunning: 3`. |
+| 100-page PDF | Passed exact page count and checksum. |
+| 1,000,000-row workbook | Passed exact aggregates. |
+| 50 XLSX / 10,000,000 rows | Passed 500 matches and total 12,752,750 in three checkpointed executions. |
+| Mixed XLSX and DOCX / 10,000,000 XLSX rows | Saved progress at 6 of 20 XLSX files and started a continuation correctly; the resumed model then used an incompatible checkpoint key and stalled. DOCX evidence remained exact. |
+
+The passing small report is `small-2026-07-27T15-01-01.059Z.json`; the passing scaled XLSX-folder report is `scaled-sequential-2026-07-27T15-35-18.804Z.json`; and the mixed continuation limit is recorded in `scaled-sequential-2026-07-27T15-42-05.476Z.json`. The hours-long scaled concurrent suite was not rerun after these changes at the owner's direction; earlier concurrency evidence remains the current physical result.
