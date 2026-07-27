@@ -49,10 +49,6 @@ function snapshotOutput(snapshot: AgentRunSnapshot): string {
   ].join("\n");
 }
 
-function combinedOutput(active: ActiveCase, snapshot: AgentRunSnapshot): string {
-  return [...active.previousSnapshots, snapshot].map(snapshotOutput).join("\n");
-}
-
 function outputHasToken(output: string, token: string): boolean {
   const escaped = token.replaceAll(/[.*+?^${}()|[\]\\]/gu, "\\$&");
   return new RegExp(`(?:^|\\n)${escaped}(?:\\.0+)?[\\t ]*(?:$|\\n)`, "u").test(output);
@@ -66,7 +62,7 @@ function measuredRunMs(active: ActiveCase, snapshot: AgentRunSnapshot): number {
 }
 
 export function stressResultFor(active: ActiveCase, snapshot: AgentRunSnapshot): StressCaseResult {
-  const output = combinedOutput(active, snapshot);
+  const output = snapshotOutput(snapshot);
   const missingTokens = active.fixture.expectedTokens.filter(
     (token) => !outputHasToken(output, token),
   );
