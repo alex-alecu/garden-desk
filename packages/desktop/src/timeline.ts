@@ -42,6 +42,7 @@ export function eventItem(event: AgentEvent): TimelineItem {
     eventType: event.type,
     id: event.id,
     kind: "activity",
+    runId: event.runId,
     text: event.summary,
     ...(detail === undefined ? {} : { detail }),
   };

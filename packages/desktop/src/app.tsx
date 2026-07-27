@@ -10,6 +10,7 @@ import { Conversation } from "./components/conversation.js";
 import { GuidedExamples } from "./components/guided-examples.js";
 import { Sidebar } from "./components/sidebar.js";
 import { TechnicalDetails } from "./components/technical-details.js";
+import { useContinuationQuestion } from "./continuation.js";
 import {
   addFolder,
   attach,
@@ -93,6 +94,7 @@ export function App({ api, capabilities }: { api: DesktopApi; capabilities: Desk
       setError: setDesktopError,
       setSubmitting,
     });
+  const continuationProps = useContinuationQuestion(state.activeRun, state.executions, runTask);
   return (
     <div
       className="app-shell"
@@ -204,6 +206,8 @@ export function App({ api, capabilities }: { api: DesktopApi; capabilities: Desk
           performance={state.activeRun?.performance ?? null}
           runId={state.activeRun?.id}
           thinking={state.thinking}
+          working={state.activeRun?.state === "queued" || state.activeRun?.state === "running"}
+          {...continuationProps}
         />
         <Composer
           attachments={state.attachments}

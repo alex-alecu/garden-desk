@@ -7,13 +7,14 @@ import {
   type AgentInferenceOutcome,
   type AgentRunResult,
   AgentRunResultSchema,
-  type InferencePerformance,
   type StructuredGenerationResult,
 } from "@vault/shared";
 import type { AgentSessionExecution } from "@vault/workers";
 import type { InferenceService } from "../runtime/inference.js";
 import { createGenerationRequest } from "../runtime/inference.js";
-import { isDuplicateDecision } from "./loop-decisions.js";
+import { addPerformance, emptyPerformance } from "./inference-performance.js";
+import { type RejectedExecutionReason, rejectedExecutionReason } from "./loop-decisions.js";
+import { executionCompletionSummary, xlsxContinuationResponse } from "./output-contract.js";
 import {
   type AgentProgress,
   type AgentPromptInput,
@@ -21,11 +22,13 @@ import {
   generationInput,
   MAX_EXECUTIONS,
   parseDecision,
+  requiresXlsxWorkflow,
 } from "./prompt.js";
 import type { AgentTraceStore } from "./trace-store.js";
 
 const MAX_DECISIONS = 12;
 const MAX_CONSECUTIVE_DUPLICATES = 2;
+const MAX_CONSECUTIVE_INVALID_PROGRAMS = 7;
 const STRUCTURED_RETRY_SUFFIX =
   "\nYour previous attempt did not call a function. Call exactly one available function with your answer.";
 
@@ -45,24 +48,6 @@ interface TracedDecision {
   turnId?: string;
 }
 type PreparedGeneration = ReturnType<typeof createGenerationRequest>;
-
-function emptyPerformance(): InferencePerformance {
-  return {
-    promptTokens: 0,
-    outputTokens: 0,
-    promptDurationMs: 0,
-    generationDurationMs: 0,
-    totalDurationMs: 0,
-  };
-}
-
-function addPerformance(total: InferencePerformance, next: InferencePerformance): void {
-  total.promptTokens += next.promptTokens;
-  total.outputTokens += next.outputTokens;
-  total.promptDurationMs += next.promptDurationMs;
-  total.generationDurationMs += next.generationDurationMs;
-  total.totalDurationMs += next.totalDurationMs;
-}
 
 export class AgentLoop {
   private contextTokens: number;
@@ -204,21 +189,17 @@ export class AgentLoop {
     });
     const result = await this.executor.execute(execution, input.signal);
     progress.executions.push(AgentExecutionResultSchema.parse(result));
-    input.onEvent?.(
-      "execution.completed",
-      `${decision.language} finished with exit code ${result.exitCode}.`,
-      {
-        language: result.language,
-        path: result.path,
-        source: result.source,
-        command: result.command,
-        exitCode: result.exitCode,
-        stdout: result.stdout,
-        stderr: result.stderr,
-        durationMs: result.durationMs,
-        termination: result.termination,
-      },
-    );
+    input.onEvent?.("execution.completed", executionCompletionSummary(result), {
+      language: result.language,
+      path: result.path,
+      source: result.source,
+      command: result.command,
+      exitCode: result.exitCode,
+      stdout: result.stdout,
+      stderr: result.stderr,
+      durationMs: result.durationMs,
+      termination: result.termination,
+    });
   }
 
   private finish(input: AgentRunInput, progress: AgentProgress, response: string): AgentRunResult {
@@ -232,13 +213,21 @@ export class AgentLoop {
   private rejectDuplicate(
     input: AgentRunInput,
     progress: AgentProgress,
-    turnId: string | undefined,
-    consecutiveDuplicates: number,
+    rejection: {
+      consecutive: number;
+      reason: RejectedExecutionReason;
+      turnId: string | undefined;
+    },
   ): number {
-    this.recordOutcome(input, turnId, "rejected_duplicate");
+    this.recordOutcome(input, rejection.turnId, "rejected_duplicate");
     progress.rejectedDuplicates += 1;
-    const next = consecutiveDuplicates + 1;
-    if (next >= MAX_CONSECUTIVE_DUPLICATES) throw new Error("agent_stalled_duplicate");
+    progress.lastRejectedProgramReason = rejection.reason;
+    const next = rejection.consecutive + 1;
+    const limit =
+      rejection.reason === "duplicate"
+        ? MAX_CONSECUTIVE_DUPLICATES
+        : MAX_CONSECUTIVE_INVALID_PROGRAMS;
+    if (next >= limit) throw new Error("agent_stalled_duplicate");
     return next;
   }
 
@@ -247,6 +236,8 @@ export class AgentLoop {
     progress: AgentProgress,
   ): Promise<AgentRunResult> {
     input.signal?.throwIfAborted();
+    const continuation = xlsxContinuationResponse(progress.executions);
+    if (continuation !== undefined) return this.finish(input, progress, continuation);
     if (progress.executions.length < MAX_EXECUTIONS) {
       throw new Error("agent_decision_limit_exceeded");
     }
@@ -278,16 +269,21 @@ export class AgentLoop {
         this.recordOutcome(input, traced.turnId, "accepted_response");
         return this.finish(input, progress, decision.response);
       }
-      if (isDuplicateDecision(decision, progress.executions)) {
-        consecutiveDuplicates = this.rejectDuplicate(
-          input,
-          progress,
-          traced.turnId,
-          consecutiveDuplicates,
-        );
+      const rejection = rejectedExecutionReason(
+        decision,
+        progress.executions,
+        requiresXlsxWorkflow(input),
+      );
+      if (rejection !== undefined) {
+        consecutiveDuplicates = this.rejectDuplicate(input, progress, {
+          consecutive: consecutiveDuplicates,
+          reason: rejection,
+          turnId: traced.turnId,
+        });
         continue;
       }
       consecutiveDuplicates = 0;
+      progress.lastRejectedProgramReason = undefined;
       this.recordOutcome(input, traced.turnId, "accepted_execution", progress.executions.length);
       await this.execute(input, decision, progress);
       const verifiedResponse = executionBackedResponse(input, progress, "");

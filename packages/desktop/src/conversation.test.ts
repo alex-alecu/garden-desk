@@ -30,6 +30,7 @@ const restoredActivity = [
     eventType: "run.started",
     id: "limits",
     kind: "activity",
+    runId,
     text: "Offline limits: 4 CPUs, 4 GiB memory.",
   },
   {
@@ -37,6 +38,7 @@ const restoredActivity = [
     eventType: "inference.started",
     id: "planning",
     kind: "activity",
+    runId,
     text: "Loading the local model and planning the task.",
   },
   {
@@ -45,6 +47,7 @@ const restoredActivity = [
     eventType: "execution.started",
     id: "execute",
     kind: "activity",
+    runId,
     text: "Inspecting the selected data.",
   },
   {
@@ -53,6 +56,7 @@ const restoredActivity = [
     eventType: "execution.completed",
     id: "completed",
     kind: "activity",
+    runId,
     text: "Python finished with exit code 0.",
   },
   {
@@ -60,6 +64,7 @@ const restoredActivity = [
     eventType: "assistant.completed",
     id: "response-completed",
     kind: "activity",
+    runId,
     text: "Response completed.",
   },
 ] satisfies TimelineItem[];
@@ -219,5 +224,48 @@ describe("conversation activity presentation", () => {
     expect(markup).not.toContain("Response completed");
     expect(markup).not.toContain("secret output");
     expect(markup).not.toContain("print(&#x27;secret&#x27;)");
+  });
+
+  it("keeps the current action and completed execution count visible while working", () => {
+    const timeline = restoredActivity.filter((item) => item.id !== "response-completed");
+    const markup = renderToStaticMarkup(
+      createElement(Conversation, {
+        artifacts: [],
+        ready: true,
+        timeline,
+        onSuggestion: () => undefined,
+        performance: null,
+        runId,
+        thinking: null,
+        working: true,
+      }),
+    );
+
+    expect(markup).toContain("Working locally");
+    expect(markup).toContain("Python finished with exit code 0.");
+    expect(markup).toContain("1 execution completed");
+  });
+});
+
+describe("continuation question presentation", () => {
+  it("shows saved progress with continue and dismiss actions", () => {
+    const markup = renderToStaticMarkup(
+      createElement(Conversation, {
+        artifacts: [],
+        ready: true,
+        timeline: restoredActivity,
+        onSuggestion: () => undefined,
+        performance: null,
+        runId,
+        thinking: null,
+        continuation: { runId, filesDone: 18, filesTotal: 50 },
+        onContinue: () => undefined,
+        onDismissContinuation: () => undefined,
+      }),
+    );
+    expect(markup).toContain("Continue this task?");
+    expect(markup).toContain("Processed 18 of 50 XLSX files");
+    expect(markup).toContain("Continue from saved progress");
+    expect(markup).toContain('aria-label="Dismiss continuation question"');
   });
 });

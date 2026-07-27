@@ -10,11 +10,14 @@ import {
   AgentTraceSchema,
   FolderSummarySchema,
   ModelRuntimeStatusSchema,
+  parseXlsxProgress,
   type RpcResponse,
   SessionSummarySchema,
+  xlsxContinuationMessage,
 } from "@vault/shared";
 import { readCanonicalModelManifest, verifyModelFile } from "../models.js";
 import type { PreparedStressCase } from "./document-workloads.js";
+import { createProgressReporter, stressResultFor, terminal } from "./m3-stress-reporting.js";
 
 const repositoryRoot = process.cwd();
 const modelRoot = join(repositoryRoot, "packages/eval/.generated/models");
@@ -25,9 +28,10 @@ const helper = join(
 );
 const images = join(repositoryRoot, "packages/workers/images");
 
-interface ActiveCase {
+export interface ActiveCase {
   fixture: PreparedStressCase;
   folderId: string;
+  previousSnapshots: AgentRunSnapshot[];
   sessionId: string;
   runId: string;
   startedAt: number;
@@ -49,6 +53,7 @@ export interface StressCaseResult {
 }
 
 export interface StressRunEvidence {
+  previousRuns: Array<{ snapshot: AgentRunSnapshot; trace: AgentTrace }>;
   result: StressCaseResult;
   snapshot: AgentRunSnapshot;
   trace: AgentTrace;
@@ -145,6 +150,7 @@ export async function startCase(
   return {
     fixture,
     folderId: folder.id,
+    previousSnapshots: [],
     sessionId: session.id,
     runId: run.id,
     startedAt: performance.now(),
@@ -155,8 +161,60 @@ async function pollRun(endpoint: string, runId: string): Promise<AgentRunSnapsho
   return AgentRunSnapshotSchema.parse(await rpc(endpoint, "agent.get", { runId }));
 }
 
-function terminal(snapshot: AgentRunSnapshot): boolean {
-  return snapshot.run.state !== "queued" && snapshot.run.state !== "running";
+function continuationProgress(snapshot: AgentRunSnapshot) {
+  if (snapshot.run.state !== "succeeded" || snapshot.run.response === null) return undefined;
+  const progress = snapshot.executions
+    .map((execution) => parseXlsxProgress(execution.stdout))
+    .filter((item) => item !== undefined && !item.complete)
+    .at(-1);
+  return progress !== undefined && snapshot.run.response === xlsxContinuationMessage(progress)
+    ? progress
+    : undefined;
+}
+
+async function continueCase(endpoint: string, active: ActiveCase, snapshot: AgentRunSnapshot) {
+  const progress = continuationProgress(snapshot);
+  if (progress === undefined) return false;
+  active.previousSnapshots.push(snapshot);
+  const run = AgentRunSummarySchema.parse(
+    await rpc(endpoint, "agent.start", { sessionId: active.sessionId, task: "Continue" }),
+  );
+  console.log(
+    JSON.stringify({
+      phase: "case.continue",
+      id: active.fixture.id,
+      previousRunId: active.runId,
+      runId: run.id,
+      filesDone: progress.filesDone,
+      filesTotal: progress.filesTotal,
+    }),
+  );
+  active.runId = run.id;
+  return true;
+}
+
+interface PolledCase {
+  item: ActiveCase;
+  snapshot: AgentRunSnapshot;
+}
+
+async function pollCases(endpoint: string, cases: ActiveCase[]): Promise<PolledCase[]> {
+  return Promise.all(
+    cases.map(async (item) => ({ item, snapshot: await pollRun(endpoint, item.runId) })),
+  );
+}
+
+async function recordPoll(
+  endpoint: string,
+  polled: PolledCase[],
+  report: (active: ActiveCase, snapshot: AgentRunSnapshot) => void,
+  snapshots: Map<string, AgentRunSnapshot>,
+): Promise<void> {
+  for (const { item, snapshot } of polled) {
+    report(item, snapshot);
+    if (await continueCase(endpoint, item, snapshot)) continue;
+    if (terminal(snapshot)) snapshots.set(item.runId, snapshot);
+  }
 }
 
 export async function awaitCases(
@@ -166,17 +224,15 @@ export async function awaitCases(
 ): Promise<{ snapshots: Map<string, AgentRunSnapshot>; maximumRunning: number }> {
   const deadline = performance.now() + deadlineMs;
   const snapshots = new Map<string, AgentRunSnapshot>();
+  const report = createProgressReporter();
   let maximumRunning = 0;
   while (snapshots.size < cases.length && performance.now() < deadline) {
-    const polled = await Promise.all(
-      cases.map(async (item) => ({ item, snapshot: await pollRun(endpoint, item.runId) })),
-    );
+    const polled = await pollCases(endpoint, cases);
     maximumRunning = Math.max(
       maximumRunning,
       polled.filter(({ snapshot }) => snapshot.run.state === "running").length,
     );
-    for (const { item, snapshot } of polled)
-      if (terminal(snapshot)) snapshots.set(item.runId, snapshot);
+    await recordPoll(endpoint, polled, report, snapshots);
     if (snapshots.size < cases.length) await new Promise((accept) => setTimeout(accept, 1_000));
   }
   if (snapshots.size !== cases.length) {
@@ -185,63 +241,19 @@ export async function awaitCases(
   return { snapshots, maximumRunning };
 }
 
-function combinedOutput(snapshot: AgentRunSnapshot): string {
-  return [
-    snapshot.run.response ?? "",
-    ...snapshot.executions.map((execution) => execution.stdout),
-    ...snapshot.executions.map((execution) => execution.stderr),
-  ].join("\n");
-}
-
-function outputHasToken(output: string, token: string): boolean {
-  const escaped = token.replaceAll(/[.*+?^${}()|[\]\\]/gu, "\\$&");
-  return new RegExp(`(?:^|\\n)${escaped}(?:\\.0+)?[\\t ]*(?:$|\\n)`, "u").test(output);
-}
-
-function measuredRunMs(active: ActiveCase, snapshot: AgentRunSnapshot): number {
-  const catalogMs = Date.parse(snapshot.run.updatedAt) - Date.parse(snapshot.run.createdAt);
-  return Number.isFinite(catalogMs) && catalogMs >= 0
-    ? catalogMs
-    : Math.round(performance.now() - active.startedAt);
-}
-
-function resultFor(active: ActiveCase, snapshot: AgentRunSnapshot): StressCaseResult {
-  const output = combinedOutput(snapshot);
-  const missingTokens = active.fixture.expectedTokens.filter(
-    (token) => !outputHasToken(output, token),
-  );
-  const tooManyExecutions =
-    active.fixture.maxExecutions !== undefined &&
-    snapshot.executions.length > active.fixture.maxExecutions;
-  const error = tooManyExecutions
-    ? `Expected at most ${active.fixture.maxExecutions} executions.`
-    : snapshot.run.error;
-  return {
-    id: active.fixture.id,
-    passed: snapshot.run.state === "succeeded" && missingTokens.length === 0 && error === null,
-    fixtureMs: active.fixture.fixtureMs,
-    fixtureBytes: active.fixture.evidence.bytes,
-    fixtureFiles: active.fixture.evidence.files,
-    runMs: measuredRunMs(active, snapshot),
-    state: snapshot.run.state,
-    executions: snapshot.executions.length,
-    executionMs: snapshot.executions.reduce(
-      (total, execution) => total + (execution.durationMs ?? 0),
-      0,
-    ),
-    expectedTokens: active.fixture.expectedTokens,
-    missingTokens,
-    error,
-  };
-}
-
 export async function collectEvidence(
   endpoint: string,
   active: ActiveCase,
   snapshot: AgentRunSnapshot,
 ): Promise<StressRunEvidence> {
   const trace = AgentTraceSchema.parse(await rpc(endpoint, "agent.trace", { runId: active.runId }));
-  return { result: resultFor(active, snapshot), snapshot, trace };
+  const previousRuns = await Promise.all(
+    active.previousSnapshots.map(async (previous) => ({
+      snapshot: previous,
+      trace: AgentTraceSchema.parse(await rpc(endpoint, "agent.trace", { runId: previous.run.id })),
+    })),
+  );
+  return { previousRuns, result: stressResultFor(active, snapshot), snapshot, trace };
 }
 
 export async function cleanupCase(endpoint: string, active: ActiveCase): Promise<void> {

@@ -56,6 +56,10 @@ Vault Desk does more than place extracted text into a prompt. The agent can writ
 
 The immutable guest image includes pinned offline tools for common work with JSON, CSV, SQLite, PDF, DOCX, XLSX, and images, including Pillow, pypdf, openpyxl, and python-docx. This lets the agent inspect structure, calculate, transform files, and create useful artifacts. Package managers are intentionally absent: the environment is reproducible and cannot download code at runtime.
 
+## Local stress results
+
+On a 48 GB Apple-silicon Mac, the real offline stack passed all 8 small sequential and concurrent cases, plus a 100-page PDF, a 1,000,000-row workbook, and a 50-workbook folder with 10,000,000 rows. A mixed 10,000,000-row XLSX and DOCX task can save and resume progress, but does not yet complete reliably.
+
 ## Isolation on macOS and Windows
 
 Every conversation uses a session-scoped microVM with no virtual network device, DNS, route, bridge, NAT, or proxy. It receives the selected folder as a live read-only mount, immutable attachments, a bounded private workspace, and one typed host/guest channel. The model can propose work; Vault Core decides what is valid and the microVM performs it without unrestricted host access or any network access.

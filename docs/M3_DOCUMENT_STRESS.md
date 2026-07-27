@@ -9,7 +9,7 @@ This evaluation measures the M3 generic offline development agent with the real 
 The work is intentionally split into two commits in one pull request:
 
 1. **Small realistic suite:** prove the harness and file formats with reduced versions of every workload, unsafe-folder rejection, invalid input, sequential execution, and three simultaneous conversations.
-2. **Scaled suite:** add the requested 100-page PDF; 10-sheet, 1,000,000-row workbook; 100-workbook folder; mixed 20-workbook plus 100-DOCX folder; and three simultaneous scaled cases. The scaled suite is committed but not executed.
+2. **Scaled suite:** add the requested 100-page PDF; 10-sheet, 1,000,000-row workbook; 50-workbook folder with 10,000,000 rows total; mixed 20-workbook plus 30-DOCX folder with 10,000,000 XLSX rows total; and three simultaneous scaled cases.
 
 ## Small workload matrix
 
@@ -42,10 +42,10 @@ The suite exits nonzero when it finds a limit. A nonzero result is evidence to r
 | Case | Generated input | Required proof |
 |---|---|---|
 | PDF | 1 PDF, 100 pages | Parse every page and sum embedded page checksums. |
-| Workbook | 1 XLSX, 10 sheets, exactly 1,000,000 rows per sheet including the header | Visit every row and aggregate the target at the final row of every sheet. |
-| XLSX folder | 100 XLSX, 10 sheets each, exactly 1,000,000 rows per sheet | Traverse 1,000 worksheets and 1,000,000,000 worksheet rows. |
-| Mixed folder | 20 XLSX at the same sheet and row scale plus 100 DOCX with 100 page-break-delimited pages each | Produce complete XLSX and DOCX counts and checksums. |
-| Concurrent | Workbook, 100-workbook folder, and mixed-folder cases | Start three independent scaled conversations together and observe all three running. |
+| Workbook | 1 XLSX, 10 sheets, exactly 1,000,000 rows total including headers | Visit every row and aggregate the target at the final row of every sheet. |
+| XLSX folder | 50 XLSX, 10 sheets each, exactly 10,000,000 rows total and 200,000 per file | Traverse every workbook, worksheet, and row. |
+| Mixed folder | 20 XLSX with exactly 10,000,000 rows total and 500,000 per workbook, plus 30 DOCX with 100 page-break-delimited pages each | Traverse exactly 50 files and produce complete XLSX and DOCX counts and checksums. |
+| Concurrent | Workbook, 50-workbook folder, and mixed-folder cases | Start three independent scaled conversations together and observe all three running. |
 
 The sequential command runs PDF, workbook, XLSX-folder, then mixed-folder and removes each generated corpus after its run. A single sequential case can be selected with `--case pdf`, `--case workbook`, `--case xlsx-folder`, or `--case mixed-folder`. The concurrent command must retain all three corpora until the three runs are terminal.
 
@@ -55,11 +55,11 @@ pnpm test:stress:m3:macos:scaled:sequential -- --case workbook
 pnpm test:stress:m3:macos:scaled:concurrent
 ```
 
-These commands are intentionally explicit and pass the runner's `--confirm-scaled` guard. They were not run while preparing this evaluation.
+These commands are intentionally explicit and pass the runner's `--confirm-scaled` guard. The corrected definitions were run on physical Apple silicon; the evidence is recorded below.
 
 ## Scaled suite constraints
 
-- Generate XLSX XML and ZIP entries as streams so 1,000,000-row sheets do not require equivalent host RAM.
+- Generate XLSX XML and ZIP entries as streams so million-row files do not require equivalent host RAM.
 - Run scaled cases sequentially by default and preserve the explicit three-conversation scaled case.
 - Keep the selected folder live and read-only; do not copy it into Core or the guest workspace.
 - Report fixture generation time separately from agent/model time.
@@ -84,4 +84,33 @@ The unchanged suite then passed on the same physical Mac. The real model finishe
 | Invalid PDF | 18.411 s | Passed bounded stop with one execution and no artifact. |
 | Three concurrent cases | 71.302 s | Observed `maximumRunning: 3`; PDF, XLSX folder, and mixed folder all passed. |
 
-The complete passing local evidence is in the ignored `packages/eval/.generated/stress/small-2026-07-26T15-01-14.665Z.json` report. The original limitation remains recorded in `small-2026-07-26T13-49-51.871Z.json`. The scaled definitions above remain unrun and make no claim about their completion time, storage use, or agent outcome.
+The complete passing local evidence is in the ignored `packages/eval/.generated/stress/small-2026-07-26T15-01-14.665Z.json` report. The original limitation remains recorded in `small-2026-07-26T13-49-51.871Z.json`. After the streaming repair, the unchanged small suite passed again in `small-2026-07-27T06-17-39.535Z.json`.
+
+## Corrected scaled physical evidence
+
+The scaled suite ran on 2026-07-27 after correcting the workload from one million rows per sheet to one million rows per file and ten million rows across each 50-file folder. The XLSX examples used `read_only=True` and closed every workbook. This removed the previous 4 GiB guest crash: no corrected scaled execution terminated as `crash` because of workbook loading.
+
+| Sequential case | Fixture | Agent result |
+|---|---:|---|
+| PDF | 100 pages, 29,766 bytes | Passed in 31.183 s with `PDF_PAGES=100` and `PDF_CHECKSUM=85850`. |
+| Workbook | 1 file, 1,000,000 rows, 17,653,464 bytes | Passed in 70.610 s with 10 matches and total 10055 after two streaming executions. |
+| XLSX folder | 50 files, 10,000,000 rows, 178,075,825 bytes | Limit found: two 120 s streaming executions timed out, then planning ended with `agent_model_failed`; no aggregate was accepted. |
+| Mixed folder | 20 XLSX plus 30 DOCX, 10,000,000 XLSX rows, 177,376,195 bytes | Limit found: DOCX values were exact, but XLSX output covered only 20 of 200 expected matches after the first scan timed out. |
+
+The concurrent suite observed `maximumRunning: 3` and completed in 480.157 s. The million-row workbook passed in 99.836 s. The 50-workbook case ended with `agent_stalled_duplicate` after bounded timeouts and invalid repairs; the mixed case again returned exact DOCX values but incomplete XLSX values. Core did not accept either incomplete result as a passing stress outcome.
+
+The ignored reports are `scaled-sequential-2026-07-27T06-21-22.942Z.json` and `scaled-concurrent-2026-07-27T07-14-39.715Z.json`. They retain exact prompts, decisions, code, execution output, termination evidence, and ordered events. This is macOS evidence only. At that point, they proved the million-row-file target and concurrent scheduling while identifying ten million streamed XLSX rows as beyond the bounded repair behavior; they did not authorize larger limits or a deterministic document subsystem.
+
+## Latest continuation evidence
+
+The minimal continuation repair kept the existing six-execution, 120-second, 4 GiB, and 128 MiB workspace limits. Stress commands now print event changes plus a 15-second heartbeat, and the runner simulates the user's explicit Continue action while retaining every prior snapshot and trace.
+
+| Case | Latest physical result |
+|---|---|
+| Small suite | Passed all 8 sequential and concurrent runs; `maximumRunning: 3`. |
+| 100-page PDF | Passed exact page count and checksum. |
+| 1,000,000-row workbook | Passed exact aggregates. |
+| 50 XLSX / 10,000,000 rows | Passed 500 matches and total 12,752,750 in three checkpointed executions. |
+| Mixed XLSX and DOCX / 10,000,000 XLSX rows | Saved progress at 6 of 20 XLSX files and started a continuation correctly; the resumed model then used an incompatible checkpoint key and stalled. DOCX evidence remained exact. |
+
+The passing small report is `small-2026-07-27T15-01-01.059Z.json`; the passing scaled XLSX-folder report is `scaled-sequential-2026-07-27T15-35-18.804Z.json`; and the mixed continuation limit is recorded in `scaled-sequential-2026-07-27T15-42-05.476Z.json`. The hours-long scaled concurrent suite was not rerun after these changes at the owner's direction; earlier concurrency evidence remains the current physical result.
