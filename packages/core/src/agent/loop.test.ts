@@ -226,15 +226,14 @@ function expectObservationPrompts(prompts: string[]): void {
   expect(prompts[1]).toContain("Never import pandas");
   expect(prompts[1]).toContain("never assume a flat folder");
   expect(prompts[1]).toContain("sheet.iter_rows(values_only=True)");
-  expect(prompts[1]).toContain("path.suffix.lower()");
-  expect(prompts[1]).toContain("print(path.name, sheet.title, row)");
-  expect(prompts[1]).toContain("smallest repair");
+  expect(prompts[1]).toContain("Choose the simplest bounded strategy");
+  expect(prompts[1]).toContain("replace it with a different bounded strategy");
+  expect(prompts[1]).toContain("Every repair must be a short complete runnable program");
   expect(prompts[1]).toContain(
     "Always return final responses as concise GitHub Flavored Markdown, including single-line answers",
   );
-  expect(prompts[0]).toContain("Current required phase: inspect before calculating.");
-  expect(prompts[1]).not.toContain("Current required phase: inspect before calculating.");
-  expect(prompts[1]).toContain("Current required phase: calculate and verify");
+  expect(prompts[0]).toContain("Current required phase: perform bounded XLSX work.");
+  expect(prompts[1]).toContain("Current required phase: recover from an incomplete XLSX execution");
 }
 
 describe("AgentLoop observations", () => {

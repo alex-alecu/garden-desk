@@ -23,6 +23,10 @@ const completed: AgentExecutionResult = {
   artifacts: [],
 };
 
+function completeXlsx(stdout: string, total = 1): string {
+  return `${stdout.trim()}\nVAULT_XLSX_FILES_DONE=${total}\nVAULT_XLSX_FILES_TOTAL=${total}\nVAULT_XLSX_COMPLETE=1\n`;
+}
+
 function inference(decisions: AgentDecision[]): Pick<InferenceService, "generate"> {
   return {
     async generate() {
@@ -102,7 +106,7 @@ describe("AgentLoop verified results", () => {
     const resultEvidence = {
       ...completed,
       source: "print('Total: 4')",
-      stdout: "| Count | Total |\n| ---: | ---: |\n| 1 | 4 |\n",
+      stdout: completeXlsx("| Count | Total |\n| ---: | ---: |\n| 1 | 4 |"),
     };
     const schemas: Array<Record<string, unknown>> = [];
     const loop = new AgentLoop(
@@ -128,7 +132,7 @@ describe("AgentLoop verified results", () => {
       inputNames: ["input.xlsx"],
     });
 
-    expect(result.response).toBe(resultEvidence.stdout.trim());
+    expect(result.response).toBe("| Count | Total |\n| ---: | ---: |\n| 1 | 4 |");
     expect(schemas[0]).not.toHaveProperty("oneOf");
     expect(schemas[1]).not.toHaveProperty("oneOf");
     expect(schemas).toHaveLength(2);
@@ -141,7 +145,7 @@ describe("AgentLoop selected-folder XLSX", () => {
     const resultEvidence = {
       ...completed,
       source: "print('Match count:', 1)",
-      stdout: "Match count: 1\n",
+      stdout: completeXlsx("Match count: 1"),
     };
     const prompts: string[] = [];
     const schemas: Array<Record<string, unknown>> = [];
@@ -168,8 +172,10 @@ describe("AgentLoop selected-folder XLSX", () => {
     });
 
     expect(result.response).toBe("Match count: 1");
-    expect(prompts[0]).toContain("Current required phase: inspect before calculating.");
-    expect(prompts[1]).toContain("Current required phase: calculate and verify");
+    expect(prompts[0]).toContain("Current required phase: perform bounded XLSX work.");
+    expect(prompts[1]).toContain(
+      "Current required phase: recover from an incomplete XLSX execution.",
+    );
     expect(schemas[0]).not.toHaveProperty("oneOf");
     expect(schemas[1]).not.toHaveProperty("oneOf");
     expect(schemas).toHaveLength(2);
@@ -239,7 +245,7 @@ describe("AgentLoop duplicate decisions", () => {
 
     expect(calls).toEqual([completed.source ?? "", nextCode]);
     expect(result.executions).toEqual([completed, second]);
-    expect(prompts[2]).toContain("Rejected exact duplicate programs: 1.");
+    expect(prompts[2]).toContain("Rejected duplicate or pathologically repetitive programs: 1.");
   });
 });
 
@@ -281,6 +287,6 @@ describe("AgentLoop failed duplicate decisions", () => {
 
     expect(calls).toEqual([failed.source, repaired.source]);
     expect(result.executions).toEqual([failed, repaired]);
-    expect(prompts[2]).toContain("Rejected exact duplicate programs: 1.");
+    expect(prompts[2]).toContain("Rejected duplicate or pathologically repetitive programs: 1.");
   });
 });

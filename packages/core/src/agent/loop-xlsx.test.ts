@@ -1,71 +1,13 @@
-import type { AgentDecision, AgentExecutionResult } from "@vault/shared";
 import { describe, expect, it } from "vitest";
-import type { InferenceService } from "../runtime/inference.js";
-import { type AgentExecutor, AgentLoop } from "./loop.js";
-
-const performance = {
-  promptTokens: 10,
-  outputTokens: 5,
-  promptDurationMs: 100,
-  generationDurationMs: 500,
-  totalDurationMs: 600,
-};
-const completed: AgentExecutionResult = {
-  language: "python",
-  path: "steps/0001.py",
-  source: "print('')",
-  command: null,
-  exitCode: 0,
-  stdout: "",
-  stderr: "",
-  durationMs: 10,
-  termination: "completed",
-  artifacts: [],
-};
-
-function inference(
-  decisions: AgentDecision[],
-  prompts: string[],
-  schemas: Array<Record<string, unknown>> = [],
-): Pick<InferenceService, "generate"> {
-  return {
-    async generate(input) {
-      prompts.push(input.prompt);
-      schemas.push(input.jsonSchema);
-      const value = decisions.shift();
-      if (value === undefined) throw new Error("Missing fake agent decision.");
-      return {
-        protocolVersion: 1,
-        requestId: "xlsx-test",
-        status: "ok",
-        operation: "generate",
-        value,
-        memory: {
-          cpuRamBytes: 1,
-          gpuVramBytes: 1,
-          budgetBytes: 1,
-          detectedGpuVramBytes: 1,
-        },
-        performance,
-      };
-    },
-  };
-}
-
-function executor(results: AgentExecutionResult[], calls: string[]): AgentExecutor {
-  return {
-    async execute(input) {
-      calls.push(input.language === "shell" ? input.command : input.source);
-      const result = results.shift();
-      if (result === undefined) throw new Error("Missing fake execution result.");
-      return result;
-    },
-  };
-}
-
-function execute(source: string, summary: string): AgentDecision {
-  return { action: "execute", language: "python", source, summary };
-}
+import { AgentLoop } from "./loop.js";
+import {
+  completed,
+  completeXlsx,
+  execute,
+  executor,
+  expectBoundedSourceSchema,
+  inference,
+} from "./loop-xlsx-test-support.js";
 
 describe("AgentLoop XLSX progress", () => {
   it("advances after an empty inspection and returns verified calculation stdout", async () => {
@@ -77,7 +19,7 @@ describe("AgentLoop XLSX progress", () => {
     const resultEvidence = {
       ...completed,
       source: calculation,
-      stdout: "XLSX_MATCHES=2\nXLSX_TOTAL=2003\n",
+      stdout: completeXlsx("XLSX_MATCHES=2\nXLSX_TOTAL=2003"),
     };
     const result = await new AgentLoop(
       inference(
@@ -91,19 +33,26 @@ describe("AgentLoop XLSX progress", () => {
       modelId: "test-model",
     });
 
-    expect(result.response).toBe(resultEvidence.stdout.trim());
+    expect(result.response).toBe("XLSX_MATCHES=2\nXLSX_TOTAL=2003");
     expect(calls).toEqual([inspection, calculation]);
-    expect(prompts[0]).toContain("needle = 'search term'.casefold()");
-    expect(prompts[0]).toContain("needle in str(value).casefold()");
+    expect(prompts[0]).toContain("Choose the simplest bounded strategy");
     expect(prompts[0]).toContain("load_workbook(path, read_only=True, data_only=True)");
-    expect(prompts[0]).toContain("workbook.close()");
-    expect(prompts[0]).not.toContain("'search term' in str(value).lower()");
-    expect(prompts[1]).toContain("Current required phase: calculate and verify");
-    expect(prompts[1]).toContain("amount_index = next(");
-    expect(prompts[1]).toContain("print('LABEL=', value, sep='')");
-    expect(prompts[1]).toContain("Add other file formats as sibling branches");
+    expect(prompts[0]).toContain("Close each workbook in a finally block");
+    expect(prompts[0]).toContain("for sheet in workbook.worksheets");
+    expect(prompts[0]).toContain("never break or return from the worksheet loop");
+    expect(prompts[0]).toContain("finish a small corpus in one short pass without checkpointing");
+    expect(prompts[0]).toContain("resumed executions never double count it");
+    expect(prompts[0]).toContain("never persist or reuse an old start time");
+    expect(prompts[0]).toContain("never True, False, or a comparison expression");
+    expect(prompts[0]).toContain("VAULT_XLSX_FILES_DONE=<integer>");
+    expect(prompts[0]).toContain("at most 160 complete source lines");
+    expect(prompts[0]).not.toContain("adapt these complete source lines");
+    expect(prompts[1]).toContain(
+      "Current required phase: recover from an incomplete XLSX execution",
+    );
     expect(schemas).toHaveLength(2);
     expect(schemas.every((schema) => !Object.hasOwn(schema, "oneOf"))).toBe(true);
+    expectBoundedSourceSchema(schemas[0] ?? {});
   });
 });
 
@@ -134,7 +83,7 @@ describe("AgentLoop XLSX inspection repair", () => {
           {
             ...completed,
             source: calculation,
-            stdout: "XLSX_MATCHES=2\nXLSX_TOTAL=2003\n",
+            stdout: completeXlsx("XLSX_MATCHES=2\nXLSX_TOTAL=2003"),
           },
         ],
         [],
@@ -145,10 +94,12 @@ describe("AgentLoop XLSX inspection repair", () => {
     });
 
     expect(result.response).toBe("XLSX_MATCHES=2\nXLSX_TOTAL=2003");
-    expect(prompts[1]).toContain("Current required phase: repair the failed XLSX inspection");
-    expect(prompts[1]).toContain("execute different code now");
+    expect(prompts[1]).toContain(
+      "Current required phase: recover from an incomplete XLSX execution",
+    );
+    expect(prompts[1]).toContain("replace it with a different bounded strategy");
     expect(prompts[1]).toContain("read_only=True");
-    expect(prompts[2]).toContain("Current required phase: calculate and verify");
+    expect(prompts[2]).toContain("including the 75-second checkpoint path");
   });
 });
 
@@ -169,8 +120,12 @@ describe("AgentLoop XLSX result repair", () => {
       executor(
         [
           { ...completed, source: "print('inspect')" },
-          { ...completed, source: calculation, stdout: "XLSX_MATCHES=2\n" },
-          { ...completed, source: repair, stdout: "XLSX_MATCHES=2\nWORD_PAGES=36\n" },
+          { ...completed, source: calculation, stdout: completeXlsx("XLSX_MATCHES=2") },
+          {
+            ...completed,
+            source: repair,
+            stdout: completeXlsx("XLSX_MATCHES=2\nWORD_PAGES=36"),
+          },
         ],
         [],
       ),
@@ -180,26 +135,47 @@ describe("AgentLoop XLSX result repair", () => {
     });
 
     expect(result.response).toBe("XLSX_MATCHES=2\nWORD_PAGES=36");
-    expect(prompts[2]).toContain("Current required phase: repair the calculation");
-    expect(prompts[2]).toContain("Missing required output labels: WORD_PAGES.");
+    expect(prompts[2]).toContain(
+      "Current required phase: recover from an incomplete XLSX execution",
+    );
   });
 });
 
-describe("AgentLoop duplicate stall", () => {
-  it("fails after the model repeats the same program twice", async () => {
-    const prompts: string[] = [];
-    const calls: string[] = [];
-    const repeated = execute("print('same')", "Repeat");
-    const loop = new AgentLoop(
-      inference([repeated, repeated, repeated], prompts),
-      executor([{ ...completed, source: "print('same')", stdout: "same\n" }], calls),
-    );
+describe("AgentLoop mixed-format result repair", () => {
+  it("repairs a complete XLSX result when a sibling format wrote an error", async () => {
+    const first = "print('partial mixed result')";
+    const repair = "print('repaired mixed result')";
+    const result = await new AgentLoop(
+      inference(
+        [execute(first, "Process both formats"), execute(repair, "Repair DOCX processing")],
+        [],
+      ),
+      executor(
+        [
+          {
+            ...completed,
+            source: first,
+            stdout: completeXlsx("XLSX_MATCHES=4\nXLSX_TOTAL=6006\nWORD_PAGES=0\nWORD_CHECKSUM=0"),
+            stderr: "DOCX parse failed\n",
+          },
+          {
+            ...completed,
+            source: repair,
+            stdout: completeXlsx(
+              "XLSX_MATCHES=4\nXLSX_TOTAL=6006\nWORD_PAGES=36\nWORD_CHECKSUM=72234",
+            ),
+          },
+        ],
+        [],
+      ),
+    ).run({
+      task: "Inspect XLSX and DOCX. Print XLSX_MATCHES=<count>, XLSX_TOTAL=<sum>, WORD_PAGES=<count>, and WORD_CHECKSUM=<sum>.",
+      modelId: "test-model",
+      inputNames: ["input.xlsx"],
+    });
 
-    await expect(loop.run({ task: "Inspect input", modelId: "test-model" })).rejects.toThrow(
-      "agent_stalled_duplicate",
+    expect(result.response).toBe(
+      "XLSX_MATCHES=4\nXLSX_TOTAL=6006\nWORD_PAGES=36\nWORD_CHECKSUM=72234",
     );
-    expect(calls).toEqual(["print('same')"]);
-    expect(prompts).toHaveLength(3);
-    expect(prompts[2]).toContain("Rejected exact duplicate programs: 1.");
   });
 });

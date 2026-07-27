@@ -2,7 +2,10 @@ import type { AgentArtifactSummary, AgentRunPerformance } from "@vault/shared";
 import { useLayoutEffect, useRef } from "react";
 import Markdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
+import type { ContinuationQuestion } from "../continuation.js";
 import type { TimelineItem } from "../state.js";
+import { QuestionTool } from "./question-tool.js";
+import { RunProgress } from "./run-progress.js";
 
 interface ConversationProps {
   artifacts: AgentArtifactSummary[];
@@ -13,6 +16,10 @@ interface ConversationProps {
   performance: AgentRunPerformance | null;
   runId: string | undefined;
   thinking: string | null;
+  working?: boolean | undefined;
+  continuation?: ContinuationQuestion | undefined;
+  onContinue?: (() => void) | undefined;
+  onDismissContinuation?: (() => void) | undefined;
 }
 
 type OrderedEntry =
@@ -152,6 +159,65 @@ function AssistantResponse({ children }: { children: string }) {
   );
 }
 
+function ContinuationPrompt({
+  continuation,
+  onContinue,
+  onDismissContinuation,
+  ready,
+}: Pick<ConversationProps, "continuation" | "onContinue" | "onDismissContinuation" | "ready">) {
+  if (
+    continuation === undefined ||
+    onContinue === undefined ||
+    onDismissContinuation === undefined
+  ) {
+    return null;
+  }
+  return (
+    <QuestionTool
+      disabled={!ready}
+      filesDone={continuation.filesDone}
+      filesTotal={continuation.filesTotal}
+      onContinue={onContinue}
+      onDismiss={onDismissContinuation}
+    />
+  );
+}
+
+function TimelineEntries({
+  entries,
+  lastAssistantId,
+  performance,
+  runId,
+}: {
+  entries: OrderedEntry[];
+  lastAssistantId: string | undefined;
+  performance: AgentRunPerformance | null;
+  runId: string | undefined;
+}) {
+  return entries.map((entry) => {
+    if (entry.kind === "artifact") {
+      return (
+        <article className="timeline-item timeline-artifact" key={entry.item.id}>
+          <span className="activity-label">Generated file</span>
+          <p>{entry.item.name}</p>
+        </article>
+      );
+    }
+    const item = entry.item;
+    const showMetrics = item.id === lastAssistantId && item.runId === runId && performance !== null;
+    return (
+      <article className={`timeline-item timeline-${item.kind}`} key={item.id}>
+        {item.kind === "assistant" ? (
+          <AssistantResponse>{item.text}</AssistantResponse>
+        ) : (
+          <p>{item.text}</p>
+        )}
+        {showMetrics ? <ResponseMetrics performance={performance} /> : null}
+      </article>
+    );
+  });
+}
+
 export function Conversation({
   artifacts,
   folderName,
@@ -161,6 +227,10 @@ export function Conversation({
   performance,
   runId,
   thinking,
+  working = false,
+  continuation,
+  onContinue,
+  onDismissContinuation,
 }: ConversationProps) {
   const entries = conversationEntries(timeline, artifacts);
   const scrollContainer = useRef<HTMLElement>(null);
@@ -189,29 +259,12 @@ export function Conversation({
       ref={scrollContainer}
     >
       <div className="timeline">
-        {entries.map((entry) => {
-          if (entry.kind === "artifact") {
-            return (
-              <article className="timeline-item timeline-artifact" key={entry.item.id}>
-                <span className="activity-label">Generated file</span>
-                <p>{entry.item.name}</p>
-              </article>
-            );
-          }
-          const item = entry.item;
-          const showMetrics =
-            item.id === lastAssistantId && item.runId === runId && performance !== null;
-          return (
-            <article className={`timeline-item timeline-${item.kind}`} key={item.id}>
-              {item.kind === "assistant" ? (
-                <AssistantResponse>{item.text}</AssistantResponse>
-              ) : (
-                <p>{item.text}</p>
-              )}
-              {showMetrics ? <ResponseMetrics performance={performance} /> : null}
-            </article>
-          );
-        })}
+        <TimelineEntries
+          entries={entries}
+          lastAssistantId={lastAssistantId}
+          performance={performance}
+          runId={runId}
+        />
         {thinking === null || thinking.length === 0 ? null : (
           <article className="thinking-stream">
             <header>
@@ -221,6 +274,15 @@ export function Conversation({
             <p>{thinking}</p>
           </article>
         )}
+        {working && (thinking === null || thinking.length === 0) ? (
+          <RunProgress runId={runId} timeline={timeline} />
+        ) : null}
+        <ContinuationPrompt
+          continuation={continuation}
+          onContinue={onContinue}
+          onDismissContinuation={onDismissContinuation}
+          ready={ready}
+        />
       </div>
     </section>
   );

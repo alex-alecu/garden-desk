@@ -15,6 +15,7 @@ import type { JobStore } from "../jobs/jobs.js";
 import type { InferenceService } from "../runtime/inference.js";
 import type { ArtifactStore } from "../workspace/artifacts.js";
 import type { DatabasePort } from "../workspace/database.js";
+import { resolveAgentTask } from "./continuation.js";
 import { historyForSession } from "./history.js";
 import { AgentInputResolver } from "./inputs.js";
 import { AGENT_WORKER_LIMITS } from "./limits.js";
@@ -192,6 +193,11 @@ export class AgentService {
         );
       })();
       const messages = this.conversations.listMessages(run.sessionId);
+      const history = {
+        messages: messages.slice(0, -1),
+        runs: historyForSession(this.database, run.sessionId, run.id),
+      };
+      const resolvedTask = resolveAgentTask(task, history);
       const contextTokens = await this.contextTokens();
       const loop = new AgentLoop(
         this.inference,
@@ -216,13 +222,11 @@ export class AgentService {
         contextTokens,
       );
       const result = await loop.run({
-        task,
+        task: resolvedTask.task,
+        continuation: resolvedTask.continuation,
         modelId: MODEL_ID,
         inputNames: this.store.listAttachments(run.sessionId).map((item) => item.name),
-        history: {
-          messages: messages.slice(0, -1),
-          runs: historyForSession(this.database, run.sessionId, run.id),
-        },
+        history,
         signal,
         onThinking: (thinking) => {
           const active = this.active.get(run.jobId);

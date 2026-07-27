@@ -18,6 +18,7 @@ const SOURCE_EXECUTION_SCHEMA = {
   properties: {
     action: { const: "execute" },
     language: { enum: ["python", "node"] },
+    summary: { type: "string", minLength: 1, maxLength: 500 },
     path: { type: "string", minLength: 1, maxLength: 1_000 },
     source: {
       type: "array",
@@ -25,7 +26,6 @@ const SOURCE_EXECUTION_SCHEMA = {
       minItems: 1,
       maxItems: 250,
     },
-    summary: { type: "string", minLength: 1, maxLength: 500 },
   },
   required: ["action", "language", "source", "summary"],
   additionalProperties: false,
@@ -59,13 +59,16 @@ function namedSourceLanguage(task: string): "python" | "node" | undefined {
   return python ? "python" : "node";
 }
 
-function sourceExecutionSchema(language: "python" | "node" | undefined) {
-  if (language === undefined) return SOURCE_EXECUTION_SCHEMA;
+function sourceExecutionSchema(language: "python" | "node" | undefined, boundedSource: boolean) {
   return {
     ...SOURCE_EXECUTION_SCHEMA,
     properties: {
       ...SOURCE_EXECUTION_SCHEMA.properties,
-      language: { const: language },
+      ...(language === undefined ? {} : { language: { const: language } }),
+      source: {
+        ...SOURCE_EXECUTION_SCHEMA.properties.source,
+        maxItems: boundedSource ? 160 : SOURCE_EXECUTION_SCHEMA.properties.source.maxItems,
+      },
     },
   } as const;
 }
@@ -77,7 +80,7 @@ export function agentDecisionJsonSchema(
 ) {
   if (finalResponse) return FINAL_RESPONSE_SCHEMA;
   const language = namedSourceLanguage(task);
-  const source = sourceExecutionSchema(language);
+  const source = sourceExecutionSchema(language, requiresSourceExecution);
   if (requiresSourceExecution) return source;
   return language === undefined ? DECISION_SCHEMA : { oneOf: [FINAL_RESPONSE_SCHEMA, source] };
 }
