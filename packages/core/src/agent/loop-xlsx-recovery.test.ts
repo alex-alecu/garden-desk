@@ -2,6 +2,7 @@ import type { AgentDecision, AgentExecutionResult } from "@vault/shared";
 import { describe, expect, it } from "vitest";
 import { AgentLoop } from "./loop.js";
 import { completed, completeXlsx, execute, executor, inference } from "./loop-xlsx-test-support.js";
+import { xlsxContinuationResponse } from "./output-contract.js";
 
 describe("AgentLoop XLSX coverage repair", () => {
   it("asks for missing progress markers after otherwise complete output", async () => {
@@ -95,6 +96,21 @@ describe("AgentLoop invalid program rejection", () => {
     expect(prompts[1]).toContain("source was only imports or was pathologically repetitive");
     expect(prompts[1]).toContain("Name a materially different strategy in the summary");
     expect(prompts[4]).toContain("programs: 4");
+  });
+});
+
+describe("AgentLoop XLSX continuation selection", () => {
+  it("does not revive partial progress after a later complete scan", () => {
+    const partial = {
+      ...completed,
+      stdout: "VAULT_XLSX_FILES_DONE=5\nVAULT_XLSX_FILES_TOTAL=10\nVAULT_XLSX_COMPLETE=0\n",
+    };
+    const complete = {
+      ...completed,
+      stdout: completeXlsx("XLSX_MATCHES=100", 10),
+    };
+
+    expect(xlsxContinuationResponse([partial, complete])).toBeUndefined();
   });
 });
 

@@ -56,11 +56,10 @@ export function xlsxWorkflowPhase(
 }
 
 export function latestIncompleteXlsxProgress(executions: AgentExecutionResult[]) {
-  return executions
-    .filter(completedXlsxSuccessfully)
-    .map((execution) => parseXlsxProgress(execution.stdout))
-    .filter((progress) => progress !== undefined && !progress.complete)
-    .at(-1);
+  const latestSuccessful = executions.filter(completedXlsxSuccessfully).at(-1);
+  if (latestSuccessful === undefined) return undefined;
+  const progress = parseXlsxProgress(latestSuccessful.stdout);
+  return progress !== undefined && !progress.complete ? progress : undefined;
 }
 
 export function xlsxContinuationResponse(executions: AgentExecutionResult[]): string | undefined {
