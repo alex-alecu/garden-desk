@@ -26,19 +26,27 @@ const XLSX_SEARCH_EXAMPLE = [
   "needle = 'search term'.casefold()",
   "for path in Path(os.environ['VAULT_SOURCE_DIR']).rglob('*'):",
   "    if path.suffix.lower() != '.xlsx': continue",
-  "    for sheet in load_workbook(path, data_only=True).worksheets:",
+  "    workbook = load_workbook(path, read_only=True, data_only=True)",
+  "    for sheet in workbook.worksheets:",
   "        for row in sheet.iter_rows(values_only=True):",
   "            if any(needle in str(value).casefold() for value in row if value is not None):",
   "                print(path.name, sheet.title, row)",
+  "    workbook.close()",
 ].join("\n");
 const XLSX_EXECUTION_INSTRUCTIONS = [
-  "For XLSX files, use openpyxl.load_workbook(path, data_only=True) and sheet.iter_rows(values_only=True). Search text as a case-insensitive substring in every nonempty cell, not as equality or in an assumed column; use the discovered headers to select date and amount columns.",
+  "For XLSX files, use openpyxl.load_workbook(path, read_only=True, data_only=True), sheet.iter_rows(values_only=True), and workbook.close(). Search text as a case-insensitive substring in every nonempty cell, not as equality or in an assumed column; use the discovered headers to select date and amount columns.",
   XLSX_SEARCH_EXAMPLE,
 ] as const;
 const XLSX_INSPECTION_PHASE = [
   "Current required phase: inspect before calculating.",
   "If this is an XLSX text-search task, execute only one short search program now: copy the XLSX search example, replace only the 'search term' literal with the requested text, and print every complete matching row with its file and sheet.",
   "Do not add break or stop after the first match. Do not calculate totals, infer headers, normalize numbers, build a transaction list, use try/except, or add comments in this phase.",
+] as const;
+const XLSX_INSPECTION_REPAIR_PHASE = [
+  "Current required phase: repair the failed XLSX inspection.",
+  "The previous execution failed before completing. Repair its recorded source at the same path and execute different code now.",
+  "Use read_only=True, iterate worksheet rows without retaining them, and close each workbook before opening the next file.",
+  XLSX_SEARCH_EXAMPLE,
 ] as const;
 const XLSX_RESULT_EXAMPLE = [
   "For the verified XLSX result, adapt these complete source lines and replace only the search term and requested output labels:",
@@ -50,7 +58,8 @@ const XLSX_RESULT_EXAMPLE = [
   "total = 0.0",
   "for path in Path(os.environ['VAULT_SOURCE_DIR']).rglob('*'):",
   "    if path.suffix.lower() == '.xlsx':",
-  "        for sheet in load_workbook(path, data_only=True).worksheets:",
+  "        workbook = load_workbook(path, read_only=True, data_only=True)",
+  "        for sheet in workbook.worksheets:",
   "            rows = sheet.iter_rows(values_only=True)",
   "            header = next(rows, ())",
   "            amount_index = next(index for index, value in enumerate(header) if str(value).strip().casefold() == 'amount')",
@@ -59,6 +68,7 @@ const XLSX_RESULT_EXAMPLE = [
   "                    print(path.name, sheet.title, row)",
   "                    count += 1",
   "                    total += float(row[amount_index])",
+  "        workbook.close()",
   "print('Match count:', count, sep='')",
   "print('Total:', total, sep='')",
 ].join("\n");
@@ -67,7 +77,7 @@ const XLSX_RESULT_PHASE = [
   "Execute one short program that repeats the search and prints every requested summary row, the match count, and any requested total.",
   "Copy every requested output label exactly. For LABEL=<value> output, use print('LABEL=', value, sep='') so no extra whitespace is inserted. Preserve the casefold calls when replacing the search-term literal.",
   "Complete every non-XLSX requirement in the same program. Add other file formats as sibling branches under the recursive path loop; never place them after a continue that excludes non-XLSX files.",
-  "Use plain print calls with sep=''. Do not build lists or dictionaries, format Markdown, use f-strings, sort, add comments, or close workbooks.",
+  "Use plain print calls with sep=''. Do not build lists or dictionaries, format Markdown, use f-strings, sort, or add comments.",
   "Discover the amount index from each worksheet header and calculate from workbook values. Do not copy values into source or normalize values that are already numeric.",
   XLSX_RESULT_EXAMPLE,
 ] as const;
@@ -155,6 +165,7 @@ function phaseInstructions(
   }
   if (!hasXlsxInput) return [];
   if (xlsxPhase === "inspect") return XLSX_INSPECTION_PHASE;
+  if (xlsxPhase === "repair-inspection") return XLSX_INSPECTION_REPAIR_PHASE;
   if (xlsxPhase === "calculate") return XLSX_RESULT_PHASE;
   if (xlsxPhase === "repair-result") {
     return [

@@ -21,7 +21,8 @@ export function xlsxWorkflowPhase(
   requiredLabels: string[],
 ): XlsxWorkflowPhase {
   const completed = executions.filter(completedSuccessfully);
-  if (completed.length === 0) return "inspect";
+  if (executions.length === 0) return "inspect";
+  if (completed.length === 0) return "repair-inspection";
   if (completed.length === 1) return "calculate";
   const last = completed.at(-1);
   return last !== undefined &&
@@ -33,7 +34,12 @@ export function xlsxWorkflowPhase(
 
 import type { AgentExecutionResult } from "@vault/shared";
 
-export type XlsxWorkflowPhase = "inspect" | "calculate" | "repair-result" | "complete";
+export type XlsxWorkflowPhase =
+  | "inspect"
+  | "repair-inspection"
+  | "calculate"
+  | "repair-result"
+  | "complete";
 
 export function completedSuccessfully(result: AgentExecutionResult): boolean {
   return result.exitCode === 0 && result.termination === "completed";

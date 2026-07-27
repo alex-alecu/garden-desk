@@ -95,6 +95,8 @@ describe("AgentLoop XLSX progress", () => {
     expect(calls).toEqual([inspection, calculation]);
     expect(prompts[0]).toContain("needle = 'search term'.casefold()");
     expect(prompts[0]).toContain("needle in str(value).casefold()");
+    expect(prompts[0]).toContain("load_workbook(path, read_only=True, data_only=True)");
+    expect(prompts[0]).toContain("workbook.close()");
     expect(prompts[0]).not.toContain("'search term' in str(value).lower()");
     expect(prompts[1]).toContain("Current required phase: calculate and verify");
     expect(prompts[1]).toContain("amount_index = next(");
@@ -102,6 +104,51 @@ describe("AgentLoop XLSX progress", () => {
     expect(prompts[1]).toContain("Add other file formats as sibling branches");
     expect(schemas).toHaveLength(2);
     expect(schemas.every((schema) => !Object.hasOwn(schema, "oneOf"))).toBe(true);
+  });
+});
+
+describe("AgentLoop XLSX inspection repair", () => {
+  it("repairs a crashed inspection with streaming workbook guidance", async () => {
+    const prompts: string[] = [];
+    const failedSource = "print('failed')";
+    const repairedSource = "print('inspection')";
+    const calculation = "print('XLSX_MATCHES=2\\nXLSX_TOTAL=2003')";
+    const result = await new AgentLoop(
+      inference(
+        [
+          execute(failedSource, "Inspect"),
+          execute(repairedSource, "Repair inspection"),
+          execute(calculation, "Calculate"),
+        ],
+        prompts,
+      ),
+      executor(
+        [
+          {
+            ...completed,
+            source: failedSource,
+            exitCode: 255,
+            termination: "crash",
+          },
+          { ...completed, source: repairedSource },
+          {
+            ...completed,
+            source: calculation,
+            stdout: "XLSX_MATCHES=2\nXLSX_TOTAL=2003\n",
+          },
+        ],
+        [],
+      ),
+    ).run({
+      task: "Inspect every .xlsx file. Print XLSX_MATCHES=<count> and XLSX_TOTAL=<sum>.",
+      modelId: "test-model",
+    });
+
+    expect(result.response).toBe("XLSX_MATCHES=2\nXLSX_TOTAL=2003");
+    expect(prompts[1]).toContain("Current required phase: repair the failed XLSX inspection");
+    expect(prompts[1]).toContain("execute different code now");
+    expect(prompts[1]).toContain("read_only=True");
+    expect(prompts[2]).toContain("Current required phase: calculate and verify");
   });
 });
 
