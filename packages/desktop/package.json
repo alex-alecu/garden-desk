@@ -7,6 +7,7 @@
     "build": "node --import tsx run-tauri.ts build",
     "build:sidecar": "node --import tsx build-sidecar.ts",
     "check:sidecar": "node --import tsx build-sidecar.ts --check",
+    "prepare:dev": "node --import tsx prepare-dev.ts",
     "dev": "vite --port 1420 --strictPort",
     "build:web": "vite build",
     "tauri": "node --import tsx run-tauri.ts"

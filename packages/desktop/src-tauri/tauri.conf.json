@@ -4,7 +4,7 @@
   "version": "0.0.0",
   "identifier": "dev.vaultdesk.desktop",
   "build": {
-    "beforeDevCommand": "pnpm build:sidecar && pnpm dev",
+    "beforeDevCommand": "pnpm prepare:dev && pnpm dev",
     "beforeBuildCommand": "pnpm build:sidecar && pnpm build:web",
     "devUrl": "http://127.0.0.1:1420",
     "frontendDist": "../dist"

@@ -113,6 +113,7 @@
         "packages/desktop/build-signing.ts",
         "packages/desktop/package-compliance.ts",
         "packages/desktop/package-resources.ts",
+        "packages/desktop/prepare-dev.ts",
         "packages/desktop/stage-windows-application.ts",
         "packages/desktop/runtime-packages.ts",
         "packages/desktop/windows-runtime-assets.ts",

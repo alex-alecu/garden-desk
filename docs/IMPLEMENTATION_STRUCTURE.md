@@ -118,6 +118,7 @@ src/components/technical-details.tsx
 src/components/composer.tsx
 src/components/confirmation.tsx
 package-resources.ts       verified sidecar, model, guest, helper, and inference assets
+prepare-dev.ts             cached development-resource readiness before Vite starts
 runtime-packages.ts        recursive packaged node-llama-cpp dependency copy
 windows-runtime-assets.ts  pinned NVIDIA redistributable verification and staging
 stage-windows-application.ts signed copy-installed Windows application directory
