@@ -31,6 +31,7 @@ export interface VaultCoreOptions {
   agentHelperPath?: string;
   agentImageRoot?: string;
 }
+// biome-ignore lint/complexity/noExcessiveLinesPerFunction: the explicit port list keeps each authority visible at assembly.
 function createConversationPorts(
   conversations: ConversationStore,
   audit: AuditLog,
@@ -40,6 +41,7 @@ function createConversationPorts(
   VaultCorePorts,
   | "addFolder"
   | "listFolders"
+  | "reorderFolders"
   | "resolveFolderPath"
   | "revokeFolder"
   | "createSession"
@@ -53,6 +55,15 @@ function createConversationPorts(
       return addFolderGrant(conversations, audit, database, rootPath);
     },
     listFolders: async () => conversations.listFolders(),
+    async reorderFolders(folderIds) {
+      const folders = conversations.reorderFolders(folderIds);
+      audit.append({
+        type: "folders.reordered",
+        outcome: "succeeded",
+        metadata: { folderCount: folderIds.length },
+      });
+      return folders;
+    },
     resolveFolderPath: async (folderId) => conversations.resolveFolderPath(folderId),
     async revokeFolder(folderId) {
       for (const sessionId of conversations.sessionIdsForFolder(folderId)) {
@@ -141,6 +152,9 @@ function assembleVaultCore(services: CoreServices): VaultCore {
     },
     async listAttachments(sessionId) {
       return agent?.listAttachments(sessionId) ?? unavailableAgent();
+    },
+    async materializeAttachment(sessionId, attachmentId) {
+      return (await agent?.materializeAttachment(sessionId, attachmentId)) ?? unavailableAgent();
     },
     async removeAttachment(sessionId, attachmentId) {
       return agent?.removeAttachment(sessionId, attachmentId) ?? unavailableAgent();

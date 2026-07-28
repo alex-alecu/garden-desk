@@ -1,10 +1,12 @@
 import type { AttachmentSummary } from "@vault/shared";
 import type { FormEvent, KeyboardEvent } from "react";
+import { AttachmentChip } from "./attachment-chip.js";
 import { Icon } from "./icons.js";
 
 interface ComposerProps {
   attachments: AttachmentSummary[];
   disabled: boolean;
+  dropActive?: boolean;
   draft: string;
   nativeActionMessage?: string | undefined;
   removableAttachmentIds: string[];
@@ -12,6 +14,7 @@ interface ComposerProps {
   onAttach(): void;
   onCancel(): void;
   onChange(draft: string): void;
+  onOpenAttachment(attachmentId: string): void;
   onRemoveAttachment(attachmentId: string): void;
   onSend(text: string): void;
 }
@@ -25,30 +28,30 @@ export function handleComposerKeyDown(event: KeyboardEvent<HTMLTextAreaElement>,
 function AttachmentList({
   attachments,
   nativeActionMessage,
+  onOpenAttachment,
   removableAttachmentIds,
   onRemoveAttachment,
 }: Pick<
   ComposerProps,
-  "attachments" | "nativeActionMessage" | "removableAttachmentIds" | "onRemoveAttachment"
+  | "attachments"
+  | "nativeActionMessage"
+  | "onOpenAttachment"
+  | "removableAttachmentIds"
+  | "onRemoveAttachment"
 >) {
   if (attachments.length === 0) return null;
   return (
     <ul aria-label="Attached files" className="attachment-list">
       {attachments.map((item) => (
-        <li className="attachment-chip" key={item.id}>
-          <span>{item.name}</span>
-          {removableAttachmentIds.includes(item.id) ? (
-            <button
-              aria-label={`Remove ${item.name}`}
-              disabled={nativeActionMessage !== undefined}
-              onClick={() => onRemoveAttachment(item.id)}
-              title={nativeActionMessage}
-              type="button"
-            >
-              ×
-            </button>
-          ) : null}
-        </li>
+        <AttachmentChip
+          attachment={item}
+          disabled={nativeActionMessage !== undefined}
+          key={item.id}
+          onOpen={() => onOpenAttachment(item.id)}
+          onRemove={
+            removableAttachmentIds.includes(item.id) ? () => onRemoveAttachment(item.id) : undefined
+          }
+        />
       ))}
     </ul>
   );
@@ -58,6 +61,7 @@ function AttachmentList({
 export function Composer({
   attachments,
   disabled,
+  dropActive = false,
   draft,
   nativeActionMessage,
   removableAttachmentIds,
@@ -65,6 +69,7 @@ export function Composer({
   onAttach,
   onCancel,
   onChange,
+  onOpenAttachment,
   onRemoveAttachment,
   onSend,
 }: ComposerProps) {
@@ -77,10 +82,15 @@ export function Composer({
   const canSend = !disabled && !running && draft.trim().length > 0;
 
   return (
-    <form className="composer" onSubmit={submit}>
+    <form
+      className={`composer${dropActive ? " composer-drop-active" : ""}`}
+      data-drop-target="files"
+      onSubmit={submit}
+    >
       <AttachmentList
         attachments={attachments}
         nativeActionMessage={nativeActionMessage}
+        onOpenAttachment={onOpenAttachment}
         onRemoveAttachment={onRemoveAttachment}
         removableAttachmentIds={removableAttachmentIds}
       />

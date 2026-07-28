@@ -71,6 +71,35 @@ pub(crate) async fn choose_folder(
 }
 
 #[tauri::command]
+pub(crate) async fn add_dropped_folders(
+    core: State<'_, CoreBridge>,
+    paths: Vec<String>,
+) -> Result<Value, String> {
+    for path in &paths {
+        if !Path::new(path)
+            .metadata()
+            .map_err(|error| error.to_string())?
+            .is_dir()
+        {
+            return Err("Only folders can be dropped on the sidebar.".to_owned());
+        }
+    }
+    let mut folders = Vec::new();
+    for path in paths {
+        folders.push(core.call("folders.add", json!({ "rootPath": path }))?);
+    }
+    Ok(Value::Array(folders))
+}
+
+#[tauri::command]
+pub(crate) async fn reorder_folders(
+    core: State<'_, CoreBridge>,
+    folder_ids: Vec<String>,
+) -> Result<Value, String> {
+    core.call("folders.reorder", json!({ "folderIds": folder_ids }))
+}
+
+#[tauri::command]
 pub(crate) async fn choose_files(
     app: AppHandle,
     core: State<'_, CoreBridge>,

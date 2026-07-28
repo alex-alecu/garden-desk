@@ -15,17 +15,17 @@ import type { JobStore } from "../jobs/jobs.js";
 import type { InferenceService } from "../runtime/inference.js";
 import type { ArtifactStore } from "../workspace/artifacts.js";
 import type { DatabasePort } from "../workspace/database.js";
+import { materializeAndAuditAttachment } from "./attachment-materialization.js";
 import { resolveAgentTask } from "./continuation.js";
 import { historyForSession } from "./history.js";
 import { AgentInputResolver } from "./inputs.js";
-import { AGENT_WORKER_LIMITS } from "./limits.js";
+import { AGENT_MODEL_ID, AGENT_WORKER_LIMITS } from "./limits.js";
 import { AgentLoop } from "./loop.js";
 import { AgentRunCapacity } from "./run-capacity.js";
 import { agentFailureEvent, agentFailureText, tokenRate } from "./service-results.js";
 import { AgentSessionManager } from "./session-manager.js";
 import type { AgentStore } from "./store.js";
 
-const MODEL_ID = "gemma-4-12b-it-qat-q4_0";
 interface ActiveRun {
   controller: AbortController;
   finished: Promise<void>;
@@ -86,7 +86,9 @@ export class AgentService {
   listAttachments(sessionId: string): AttachmentSummary[] {
     return this.store.listAttachments(sessionId);
   }
-
+  async materializeAttachment(sessionId: string, attachmentId: string): Promise<string> {
+    return await materializeAndAuditAttachment(this.store, this.audit, sessionId, attachmentId);
+  }
   async removeAttachment(sessionId: string, attachmentId: string): Promise<boolean> {
     if ([...this.active.values()].some((run) => run.sessionId === sessionId))
       throw new Error("agent_busy");
@@ -224,7 +226,7 @@ export class AgentService {
       const result = await loop.run({
         task: resolvedTask.task,
         continuation: resolvedTask.continuation,
-        modelId: MODEL_ID,
+        modelId: AGENT_MODEL_ID,
         inputNames: this.store.listAttachments(run.sessionId).map((item) => item.name),
         history,
         signal,

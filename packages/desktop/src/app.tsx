@@ -5,7 +5,7 @@ import { useAppearance } from "./appearance.js";
 import type { DesktopCapabilities } from "./capabilities.js";
 import { ChatHeader } from "./components/chat-header.js";
 import { Composer } from "./components/composer.js";
-import { Confirmation } from "./components/confirmation.js";
+import { Confirmation, type ConfirmationRequest } from "./components/confirmation.js";
 import { Conversation } from "./components/conversation.js";
 import { GuidedExamples } from "./components/guided-examples.js";
 import { Sidebar } from "./components/sidebar.js";
@@ -14,22 +14,19 @@ import { useContinuationQuestion } from "./continuation.js";
 import {
   addFolder,
   attach,
-  changeDraft,
   deleteConversation,
+  openAttachment,
   remove,
+  reorderFolders,
   selectSession,
   send,
   showFolder,
   showMore,
 } from "./desktop-actions.js";
+import { type DropTarget, useNativeDrop } from "./desktop-drop.js";
+import { initialModelStatus, useModelRefresh } from "./desktop-model.js";
+import { useDraftPersistence } from "./draft-persistence.js";
 import { desktopReducer, initialDesktopState } from "./state.js";
-
-interface ConfirmationRequest {
-  confirmLabel: string;
-  description: string;
-  title: string;
-  onConfirm(): void;
-}
 
 // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: this is the single view-composition boundary for explicit desktop capabilities.
 // biome-ignore lint/complexity/noExcessiveLinesPerFunction: this is the single view-composition boundary; workflow logic remains in the small helpers above.
@@ -40,12 +37,8 @@ export function App({ api, capabilities }: { api: DesktopApi; capabilities: Desk
   const [submitting, setSubmitting] = useState(false);
   const [technicalDetailsOpen, setTechnicalDetailsOpen] = useState(false);
   const [confirmation, setConfirmation] = useState<ConfirmationRequest>();
-  const [model, setModel] = useState<ModelRuntimeStatus>({
-    modelId: "gemma-4-12b-it-qat-q4_0",
-    name: "Gemma 4 12B QAT",
-    state: "unloaded",
-    thinkingSupported: true,
-  });
+  const [dropTarget, setDropTarget] = useState<DropTarget>();
+  const [model, setModel] = useState<ModelRuntimeStatus>(initialModelStatus);
   useEffect(() => {
     void api
       .bootstrapDesktop()
@@ -61,19 +54,7 @@ export function App({ api, capabilities }: { api: DesktopApi; capabilities: Desk
       })
       .catch(() => setDesktopError("Vault Core could not be started."));
   }, [api]);
-  useEffect(() => {
-    if (!state.loaded) return;
-    const running = state.activeRun?.state === "queued" || state.activeRun?.state === "running";
-    const refresh = () =>
-      void api
-        .getModelStatus()
-        .then(setModel)
-        .catch(() => undefined);
-    refresh();
-    if (!running) return;
-    const timer = window.setInterval(refresh, 700);
-    return () => window.clearInterval(timer);
-  }, [api, state.activeRun?.state, state.loaded]);
+  useModelRefresh(api, state.loaded, state.activeRun?.state, setModel);
   const nativeUnavailable = capabilities.nativeActions
     ? undefined
     : (capabilities.unavailableReason ?? "Unavailable in the public demo");
@@ -84,7 +65,22 @@ export function App({ api, capabilities }: { api: DesktopApi; capabilities: Desk
   )?.name;
   const running =
     submitting || state.activeRun?.state === "queued" || state.activeRun?.state === "running";
-  const runTask = (text: string) =>
+  const draftPersistence = useDraftPersistence(api, setDesktopError);
+  useNativeDrop({
+    api,
+    context: {
+      activeSessionId: state.activeSessionId,
+      draft: state.draft,
+      newSessionFolderId: state.newSessionFolderId,
+      running,
+    },
+    dispatch,
+    enabled: capabilities.nativeActions,
+    setDropTarget,
+    setError: setDesktopError,
+  });
+  const runTask = (text: string) => {
+    draftPersistence.cancel();
     void send({
       api,
       text,
@@ -94,6 +90,7 @@ export function App({ api, capabilities }: { api: DesktopApi; capabilities: Desk
       setError: setDesktopError,
       setSubmitting,
     });
+  };
   const continuationProps = useContinuationQuestion(state.activeRun, state.executions, runTask);
   return (
     <div
@@ -104,6 +101,7 @@ export function App({ api, capabilities }: { api: DesktopApi; capabilities: Desk
       <Sidebar
         activeSessionId={state.activeSessionId}
         disabled={!state.loaded}
+        dropActive={dropTarget === "folders"}
         dispatch={dispatch}
         folders={state.folders}
         globalSessions={state.globalSessions}
@@ -138,6 +136,9 @@ export function App({ api, capabilities }: { api: DesktopApi; capabilities: Desk
             },
           });
         }}
+        onReorderFolders={(folderIds) =>
+          void reorderFolders(api, folderIds, dispatch, setDesktopError)
+        }
         onSelectSession={(sessionId) =>
           void selectSession(api, sessionId, dispatch, setDesktopError)
         }
@@ -190,18 +191,19 @@ export function App({ api, capabilities }: { api: DesktopApi; capabilities: Desk
         )}
         <Conversation
           artifacts={state.artifacts}
+          attachments={state.attachments}
           folderName={folderName}
           key={state.activeSessionId ?? `new:${state.newSessionFolderId ?? "global"}`}
           ready={state.loaded}
-          onSuggestion={(draft) =>
-            changeDraft({
-              api,
-              draft,
-              sessionId: state.activeSessionId,
-              dispatch,
-              setError: setDesktopError,
-            })
-          }
+          onOpenAttachment={(attachmentId) => {
+            if (state.activeSessionId !== undefined) {
+              void openAttachment(api, state.activeSessionId, attachmentId, setDesktopError);
+            }
+          }}
+          onSuggestion={(draft) => {
+            dispatch({ type: "draft.change", draft });
+            draftPersistence.schedule(state.activeSessionId, draft);
+          }}
           timeline={state.timeline}
           performance={state.activeRun?.performance ?? null}
           runId={state.activeRun?.id}
@@ -210,7 +212,10 @@ export function App({ api, capabilities }: { api: DesktopApi; capabilities: Desk
           {...continuationProps}
         />
         <Composer
-          attachments={state.attachments}
+          attachments={state.attachments.filter((attachment) =>
+            state.removableAttachmentIds.includes(attachment.id),
+          )}
+          dropActive={dropTarget === "files"}
           draft={state.draft}
           disabled={!state.loaded || model.state === "unsupported"}
           nativeActionMessage={nativeUnavailable}
@@ -220,6 +225,7 @@ export function App({ api, capabilities }: { api: DesktopApi; capabilities: Desk
               activeSessionId: state.activeSessionId,
               newSessionFolderId: state.newSessionFolderId,
               dispatch,
+              draft: state.draft,
               setError: setDesktopError,
             })
           }
@@ -230,15 +236,15 @@ export function App({ api, capabilities }: { api: DesktopApi; capabilities: Desk
                 .catch(() => setDesktopError("The task could not be cancelled."));
             }
           }}
-          onChange={(draft) =>
-            changeDraft({
-              api,
-              draft,
-              sessionId: state.activeSessionId,
-              dispatch,
-              setError: setDesktopError,
-            })
-          }
+          onChange={(draft) => {
+            dispatch({ type: "draft.change", draft });
+            draftPersistence.schedule(state.activeSessionId, draft);
+          }}
+          onOpenAttachment={(attachmentId) => {
+            if (state.activeSessionId !== undefined) {
+              void openAttachment(api, state.activeSessionId, attachmentId, setDesktopError);
+            }
+          }}
           onRemoveAttachment={(attachmentId) => {
             if (state.activeSessionId !== undefined) {
               const attachmentName = state.attachments.find(

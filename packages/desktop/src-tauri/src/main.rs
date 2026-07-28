@@ -9,6 +9,7 @@ use tauri::{AppHandle, Manager, RunEvent};
 use tauri_plugin_shell::ShellExt;
 use tauri_plugin_shell::process::CommandChild;
 
+mod attachment_commands;
 mod commands;
 mod diagnostics;
 mod package_integrity;
@@ -243,6 +244,8 @@ fn main() {
         })
         .invoke_handler(tauri::generate_handler![
             commands::append_user_message,
+            attachment_commands::add_dropped_files,
+            commands::add_dropped_folders,
             commands::cancel_agent,
             commands::choose_folder,
             commands::choose_files,
@@ -258,7 +261,9 @@ fn main() {
             commands::load_draft,
             commands::model_status,
             commands::open_folder,
+            attachment_commands::open_attachment,
             commands::remove_attachment,
+            commands::reorder_folders,
             commands::revoke_folder,
             diagnostics::reveal_debug_snapshot,
             commands::save_draft,

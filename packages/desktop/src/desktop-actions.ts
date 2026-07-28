@@ -15,6 +15,37 @@ export async function addFolder(api: DesktopApi, dispatch: Dispatch, setError: S
   }
 }
 
+export async function addDroppedFolders(
+  api: DesktopApi,
+  paths: string[],
+  dispatch: Dispatch,
+  setError: SetError,
+) {
+  setError(undefined);
+  try {
+    for (const folder of await api.addFolders(paths)) {
+      dispatch({ type: "folder.add", folder });
+    }
+  } catch {
+    setError("Drop folders on the sidebar to add them.");
+  }
+}
+
+export async function reorderFolders(
+  api: DesktopApi,
+  folderIds: string[],
+  dispatch: Dispatch,
+  setError: SetError,
+) {
+  setError(undefined);
+  try {
+    const folders = await api.reorderFolders(folderIds);
+    dispatch({ type: "folders.reorder", folderIds: folders.map((folder) => folder.id) });
+  } catch {
+    setError("The folder order could not be saved.");
+  }
+}
+
 export async function showFolder(api: DesktopApi, folderId: string, setError: SetError) {
   setError(undefined);
   try {
@@ -24,16 +55,21 @@ export async function showFolder(api: DesktopApi, folderId: string, setError: Se
   }
 }
 
-async function startSession(
-  api: DesktopApi,
-  folderId: string | null,
-  dispatch: Dispatch,
-  setError: SetError,
-) {
+interface StartSessionOptions {
+  api: DesktopApi;
+  dispatch: Dispatch;
+  draft?: string;
+  folderId: string | null;
+  setError: SetError;
+}
+
+async function startSession(options: StartSessionOptions) {
+  const { api, dispatch, draft, folderId, setError } = options;
   setError(undefined);
   try {
     const session = await api.createSession(folderId);
     dispatch({ type: "session.created", session });
+    if (draft !== undefined) dispatch({ type: "draft.change", draft });
     if (folderId !== null) {
       dispatch({ type: "folder.refresh", folderId, page: await api.listSessions(folderId) });
     }
@@ -131,7 +167,13 @@ export async function send(options: SendOptions) {
   let started = false;
   try {
     const sessionId =
-      activeSessionId ?? (await startSession(api, newSessionFolderId ?? null, dispatch, setError));
+      activeSessionId ??
+      (await startSession({
+        api,
+        dispatch,
+        folderId: newSessionFolderId ?? null,
+        setError,
+      }));
     if (sessionId === undefined) return;
     const run = await api.startAgent(sessionId, text);
     started = true;
@@ -176,19 +218,51 @@ interface AttachOptions {
   activeSessionId: string | undefined;
   newSessionFolderId: string | null | undefined;
   dispatch: Dispatch;
+  draft: string;
   setError: SetError;
 }
 
 export async function attach(options: AttachOptions) {
-  const { api, activeSessionId, newSessionFolderId, dispatch, setError } = options;
+  const { api, activeSessionId, newSessionFolderId, dispatch, draft, setError } = options;
   const sessionId =
-    activeSessionId ?? (await startSession(api, newSessionFolderId ?? null, dispatch, setError));
+    activeSessionId ??
+    (await startSession({ api, dispatch, draft, folderId: newSessionFolderId ?? null, setError }));
   if (sessionId === undefined) return;
   try {
+    await retryLocalRequest(() => api.saveDraft(sessionId, draft));
     const attachments = await api.chooseFiles(sessionId);
     if (attachments.length > 0) dispatch({ type: "attachments.add", attachments });
   } catch {
     setError("The selected files could not be attached.");
+  }
+}
+
+export async function attachDroppedFiles(options: AttachOptions & { paths: string[] }) {
+  const { api, activeSessionId, newSessionFolderId, dispatch, draft, setError, paths } = options;
+  const sessionId =
+    activeSessionId ??
+    (await startSession({ api, dispatch, draft, folderId: newSessionFolderId ?? null, setError }));
+  if (sessionId === undefined) return;
+  try {
+    await retryLocalRequest(() => api.saveDraft(sessionId, draft));
+    const attachments = await api.addFiles(sessionId, paths);
+    if (attachments.length > 0) dispatch({ type: "attachments.add", attachments });
+  } catch {
+    setError("Drop files on the chat input to attach them.");
+  }
+}
+
+export async function openAttachment(
+  api: DesktopApi,
+  sessionId: string,
+  attachmentId: string,
+  setError: SetError,
+) {
+  setError(undefined);
+  try {
+    await api.openAttachment(sessionId, attachmentId);
+  } catch {
+    setError("The attached file could not be opened.");
   }
 }
 
@@ -209,21 +283,5 @@ export async function remove(options: RemoveOptions) {
     }
   } catch {
     setError("The attached file could not be removed.");
-  }
-}
-
-interface ChangeDraftOptions {
-  api: DesktopApi;
-  draft: string;
-  sessionId: string | undefined;
-  dispatch: Dispatch;
-  setError: SetError;
-}
-
-export function changeDraft(options: ChangeDraftOptions) {
-  const { api, draft, sessionId, dispatch, setError } = options;
-  dispatch({ type: "draft.change", draft });
-  if (sessionId !== undefined) {
-    void api.saveDraft(sessionId, draft).catch(() => setError("The draft could not be saved."));
   }
 }

@@ -22,6 +22,7 @@ import {
   type PromptBounds,
   serializePrompt,
 } from "./prompt-budget.js";
+import { continuationInstructions, selectedInputInstructions } from "./prompt-inputs.js";
 import { rejectionInstructions } from "./prompt-rejection.js";
 import {
   agentDecisionJsonSchema,
@@ -136,14 +137,6 @@ function observations(executions: AgentExecutionResult[]) {
   }));
 }
 
-function continuationInstructions(input: AgentPromptInput): readonly string[] {
-  return input.continuation === true
-    ? [
-        "The user approved continuing the immediately preceding task. Resume its saved checkpoint instead of starting over.",
-      ]
-    : [];
-}
-
 function prompt(
   input: AgentPromptInput,
   progress: AgentProgress,
@@ -164,8 +157,8 @@ function prompt(
     ...EXECUTION_INSTRUCTIONS,
     ...(hasXlsxInput ? XLSX_EXECUTION_INSTRUCTIONS : []),
     ...generationRecoveryInstructions(options.recovery, finalResponse),
-    ...continuationInstructions(input),
-    `Selected input count: ${inputNames.length}.`,
+    ...continuationInstructions(input.continuation),
+    ...selectedInputInstructions(inputNames),
     `Task: ${input.task}`,
     `Completed execution observations: ${JSON.stringify(observations(executions))}`,
     `Successful execution count: ${successfulExecutionCount}.`,
@@ -202,13 +195,22 @@ function generationSchema(
     !finalResponse &&
     requiresXlsxWorkflow(input, progress.executions) &&
     xlsxWorkflowPhase(xlsxProcessingExecutions(progress.executions), requiredLabels) !== "complete";
+  const requiresAttachedPdfExecution =
+    !finalResponse &&
+    progress.executions.length === 0 &&
+    (input.inputNames ?? []).some((name) => name.toLocaleLowerCase("en-US").endsWith(".pdf"));
   const generationLimitRecovery = recovery === "generation_limit" && !finalResponse;
-  return agentDecisionJsonSchema(
-    input.task,
+  return agentDecisionJsonSchema({
+    task: input.task,
     finalResponse,
-    requiresXlsxExecution || needsShellSourceRepair(progress) || generationLimitRecovery,
-    generationLimitRecovery ? GENERATION_LIMIT_RECOVERY_SOURCE_LINES : undefined,
-  );
+    requiresSourceExecution:
+      requiresXlsxExecution ||
+      requiresAttachedPdfExecution ||
+      needsShellSourceRepair(progress) ||
+      generationLimitRecovery,
+    ...(generationLimitRecovery ? { sourceLineLimit: GENERATION_LIMIT_RECOVERY_SOURCE_LINES } : {}),
+    ...(requiresAttachedPdfExecution ? { requiredLanguage: "python" as const } : {}),
+  });
 }
 
 interface BuildGenerationInput {

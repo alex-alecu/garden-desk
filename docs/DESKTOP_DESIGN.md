@@ -50,13 +50,13 @@ Every remove or unmount action requires confirmation. Unmounting a folder remove
 
 ## New Chat
 
-New chat prepares a blank composer with no folder grant; pressing it repeatedly does not persist placeholder conversations. The session is created when the user submits its first message or selects attachments. Users can attach one or more files through a native file dialog or drag and drop. Vault Core copies and verifies those files into session-owned read-only inputs before the agent can access them.
+New chat prepares a blank composer with no folder grant; pressing it repeatedly does not persist placeholder conversations. The session is created when the user submits its first message or selects attachments. Users can attach one or more files through a native file dialog or by dropping them on the composer. Folders dropped on the sidebar become scoped grants. Vault Core validates, copies, and verifies explicit files into session-owned read-only inputs before the agent can access them.
 
-New chat must never silently inherit the previously selected folder. Attachments are visible as removable chips before sending and as immutable input records after the turn begins. Removing a pending attachment requires confirmation and never changes the original host file.
+New chat must never silently inherit the previously selected folder. Attachments are clickable, removable chips before sending; after submission they move beneath the durable user message and remain clickable immutable input records. Opening an attachment materializes a verified owner-only temporary copy and delegates to the operating system. Removing a pending attachment requires confirmation and never changes the original host file.
 
 ## Folder Sessions
 
-Adding a folder uses a native Tauri dialog and creates a scoped Vault Core grant. The webview receives an opaque folder identifier and display name, not an unrestricted filesystem handle.
+Adding a folder uses a native Tauri dialog or a sidebar drop and creates a scoped Vault Core grant. Folder groups can be reordered by drag handle or keyboard, and that order is persisted by Core. The webview receives opaque folder identifiers and display names, not unrestricted filesystem handles.
 
 Starting a session under that folder gives its agent microVM a live read-only mount of the selected folder at `/source`. The hierarchy is preserved and host changes become visible immediately. The agent cannot write, rename, delete, or create files in the host folder.
 
@@ -143,3 +143,4 @@ Runtime, quantization, context-window, endpoint, and model-file vocabulary stays
 | 2026-07-25 | Added background conversation activity pulses, RAM-bounded parallel sessions, and clear memory budget versus live-allocation labels. |
 | 2026-07-26 | Lightened the shared paper surface, made both side panels participate in layout, refined message sizing and alignment, and exposed runtime memory details in Technical details. |
 | 2026-07-27 | Added visible active-run progress and a dismissible saved-progress continuation question for long XLSX work. |
+| 2026-07-28 | Added clickable attachment transfer, file and folder drop targets, and persistent accessible folder ordering. |

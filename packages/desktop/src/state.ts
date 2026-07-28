@@ -55,6 +55,7 @@ export type DesktopAction =
   | { type: "desktop.hydrate"; snapshot: DesktopBootstrap }
   | { type: "folder.add"; folder: FolderSummary }
   | { type: "folder.revoked"; folderId: string }
+  | { type: "folders.reorder"; folderIds: string[] }
   | { type: "folder.toggle"; folderId: string }
   | { type: "folder.page"; folderId: string; page: SessionPage }
   | { type: "folder.refresh"; folderId: string; page: SessionPage }
@@ -158,6 +159,17 @@ export function desktopReducer(state: DesktopState, action: DesktopAction): Desk
       folders: state.folders.filter((folder) => folder.id !== action.folderId),
       ...(activeRemoved ? emptyConversation(undefined) : {}),
       ...(state.newSessionFolderId === action.folderId ? { newSessionFolderId: null } : {}),
+    };
+  }
+  if (action.type === "folders.reorder") {
+    const positions = new Map(action.folderIds.map((id, index) => [id, index]));
+    return {
+      ...state,
+      folders: [...state.folders].sort(
+        (left, right) =>
+          (positions.get(left.id) ?? Number.MAX_SAFE_INTEGER) -
+          (positions.get(right.id) ?? Number.MAX_SAFE_INTEGER),
+      ),
     };
   }
   if (action.type === "folder.toggle") {

@@ -20,10 +20,10 @@ import {
 } from "@vault/shared";
 import type { ArtifactStore } from "../workspace/artifacts.js";
 import type { DatabasePort } from "../workspace/database.js";
+import { materializeAttachment } from "./attachment-materialization.js";
 import { AgentExecutionStore } from "./execution-store.js";
 import {
   type ArtifactRow,
-  type AttachmentRow,
   artifactFromRow,
   attachmentFromRow,
   attachmentMediaType,
@@ -116,7 +116,7 @@ export class AgentStore {
     return (
       this.database
         .prepare("SELECT * FROM session_attachments WHERE session_id = ? ORDER BY created_at, id")
-        .all(sessionId) as AttachmentRow[]
+        .all(sessionId) as Array<Parameters<typeof attachmentFromRow>[0]>
     ).map(attachmentFromRow);
   }
 
@@ -130,6 +130,9 @@ export class AgentStore {
 
   async attachmentBytes(item: AttachmentSummary): Promise<Buffer> {
     return await this.artifacts.read(item.contentHash);
+  }
+  async materializeAttachment(sessionId: string, attachmentId: string): Promise<string> {
+    return await materializeAttachment(this.database, this.artifacts, sessionId, attachmentId);
   }
 
   createRun(sessionId: string, jobId: string): AgentRunSummary {

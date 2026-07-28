@@ -1,5 +1,7 @@
 import type { WorkerLimits } from "@vault/shared";
 
+export const AGENT_MODEL_ID = "gemma-4-12b-it-qat-q4_0";
+
 export const AGENT_WORKER_LIMITS: WorkerLimits = {
   wallTimeMs: 120_000,
   inputCount: 64,

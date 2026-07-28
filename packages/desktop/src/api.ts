@@ -24,11 +24,18 @@ export interface DesktopBootstrap {
   model: ModelRuntimeStatus;
 }
 
+export type NativeDropEvent =
+  | { type: "enter" | "drop"; paths: string[]; x: number; y: number }
+  | { type: "over"; x: number; y: number }
+  | { type: "leave" };
+
 export interface DesktopApi {
   bootstrapDesktop(): Promise<DesktopBootstrap>;
   getModelStatus(): Promise<ModelRuntimeStatus>;
   unloadModel(): Promise<boolean>;
   chooseFolder(): Promise<FolderSummary | undefined>;
+  addFolders(paths: string[]): Promise<FolderSummary[]>;
+  reorderFolders(folderIds: string[]): Promise<FolderSummary[]>;
   revokeFolder(folderId: string): Promise<boolean>;
   openFolder(folderId: string): Promise<void>;
   createSession(folderId: string | null): Promise<SessionSummary>;
@@ -37,7 +44,9 @@ export interface DesktopApi {
   listMessages(sessionId: string): Promise<ConversationMessage[]>;
   appendUserMessage(sessionId: string, content: string): Promise<ConversationMessage>;
   chooseFiles(sessionId: string): Promise<AttachmentSummary[]>;
+  addFiles(sessionId: string, paths: string[]): Promise<AttachmentSummary[]>;
   listAttachments(sessionId: string): Promise<AttachmentSummary[]>;
+  openAttachment(sessionId: string, attachmentId: string): Promise<void>;
   removeAttachment(sessionId: string, attachmentId: string): Promise<boolean>;
   saveDraft(sessionId: string, content: string): Promise<SessionDraft>;
   loadDraft(sessionId: string): Promise<SessionDraft | undefined>;
@@ -47,4 +56,5 @@ export interface DesktopApi {
   cancelAgent(jobId: string): Promise<boolean>;
   createDebugSnapshot(sessionId: string): Promise<string>;
   revealDebugSnapshot(sessionId: string): Promise<void>;
+  listenForDroppedPaths?(listener: (event: NativeDropEvent) => void): Promise<() => void>;
 }
