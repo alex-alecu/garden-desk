@@ -19,7 +19,9 @@
     "guestImage": "packages/workers/images/manifest.json",
     "agentGuestImage": "packages/workers/images/agent/manifest.json",
     "agentGuestCapabilities": "packages/workers/images/agent/capabilities.json",
-    "agentGuestReview": "docs/research/m3-agent-guest-dependency-review.md"
+    "agentGuestReview": "docs/research/m3-agent-guest-dependency-review.md",
+    "windowsRuntimeAssets": "packages/desktop/windows-runtime-assets.json",
+    "windowsRuntimeReview": "docs/research/m3-windows-runtime-dependency-review.md"
   },
   "directDependencies": [
     {
@@ -85,6 +87,12 @@
       "license": "MIT",
       "use": "native_smoke_supervised_inference_and_packaged_runtime",
       "patch": "patches/node-llama-cpp@3.19.0.patch"
+    },
+    {
+      "name": "NVIDIA cuBLAS",
+      "version": "13.2.0.9",
+      "license": "NVIDIA CUDA Toolkit EULA",
+      "use": "packaged_windows_cuda_runtime"
     },
     { "name": "postject", "version": "1.0.0-alpha.6", "license": "MIT", "use": "node_sea_build" },
     { "name": "react", "version": "19.2.7", "license": "MIT", "use": "desktop_ui" },

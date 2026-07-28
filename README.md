@@ -74,7 +74,7 @@ On Windows Pro and Enterprise, Vault Desk uses **HCS and Hyper-V** utility VMs. 
 
 ## Project status
 
-The macOS M3 desktop agent is implemented and certified on physical Apple silicon. The Windows HCS, Plan9, and guest protocol source implementation exists, while the packaged product integration and physical Windows certification remain open. Windows results are never inferred from macOS. See the current [M3 status](docs/M3_STATUS.md) for exact evidence.
+The M3 desktop agent and canonical headless gate are implemented and certified on physical Apple silicon and Windows x64. One Windows application directory contains the CUDA and Vulkan runtimes, chooses them automatically, and passed real-Gemma CUDA plus HCS Plan9 guest evidence. Installed-Windows UI and debug-snapshot observations and release-credential signing remain before the global launch gate closes. See the current [M3 status](docs/M3_STATUS.md) for exact evidence.
 
 The community software is free. Signed public installers are not yet available.
 

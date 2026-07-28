@@ -33,3 +33,12 @@ const result = spawnSync(process.execPath, [tauriCli, ...process.argv.slice(2)],
 
 if (result.error !== undefined) throw result.error;
 process.exitCode = result.status ?? 1;
+if (
+  process.exitCode === 0 &&
+  process.platform === "win32" &&
+  process.argv[2] === "build" &&
+  !process.argv.includes("--debug")
+) {
+  const { stageWindowsApplication } = await import("./stage-windows-application.js");
+  await stageWindowsApplication();
+}

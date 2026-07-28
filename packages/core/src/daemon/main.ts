@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { rename, unlink, writeFile } from "node:fs/promises";
-import { createVaultCore } from "../compose.js";
+import { createVaultCore, type VaultCoreOptions } from "../compose.js";
 import { runDebugSessionMode } from "../diagnostics/process.js";
 import { initializeEmptyModelStore } from "../runtime/models.js";
 import { monitorParent, openWithWorkspaceRetry } from "./lifecycle.js";
@@ -28,6 +28,7 @@ function parentPidArgument(args: string[]): number | undefined {
 interface LaunchOptions {
   agentHelperPath: string | undefined;
   agentImageRoot: string | undefined;
+  inferenceHelperPath: string | undefined;
   inferenceRuntimePath: string | undefined;
   migrationDirectory: string | undefined;
   modelStoreDir: string;
@@ -52,6 +53,7 @@ function launchOptions(args: string[]): LaunchOptions {
   return {
     agentHelperPath: argument(args, "--agent-helper", false),
     agentImageRoot: argument(args, "--agent-image-root", false),
+    inferenceHelperPath: argument(args, "--inference-helper", false),
     inferenceRuntimePath: argument(args, "--inference-runtime", false),
     migrationDirectory: argument(args, "--migration-directory", false),
     modelStoreDir,
@@ -66,28 +68,31 @@ function launchOptions(args: string[]): LaunchOptions {
   };
 }
 
+function coreOptions(options: LaunchOptions): VaultCoreOptions {
+  const configured: VaultCoreOptions = {
+    workspaceDir: options.workspaceDir,
+    modelStoreDir: options.modelStoreDir,
+    profile: options.profile,
+    sessionsOnly: options.sessionsOnly,
+  };
+  if (options.migrationDirectory !== undefined) {
+    configured.migrationDirectory = options.migrationDirectory;
+  }
+  if (options.workerEntryPath !== undefined) configured.workerEntryPath = options.workerEntryPath;
+  if (options.inferenceRuntimePath !== undefined) {
+    configured.inferenceRuntimePath = options.inferenceRuntimePath;
+  }
+  if (options.inferenceHelperPath !== undefined) {
+    configured.inferenceHelperPath = options.inferenceHelperPath;
+  }
+  if (options.agentHelperPath !== undefined) configured.agentHelperPath = options.agentHelperPath;
+  if (options.agentImageRoot !== undefined) configured.agentImageRoot = options.agentImageRoot;
+  return configured;
+}
+
 function openCore(options: LaunchOptions) {
   return openWithWorkspaceRetry(
-    () =>
-      createVaultCore({
-        workspaceDir: options.workspaceDir,
-        modelStoreDir: options.modelStoreDir,
-        profile: options.profile,
-        ...(options.migrationDirectory === undefined
-          ? {}
-          : { migrationDirectory: options.migrationDirectory }),
-        sessionsOnly: options.sessionsOnly,
-        ...(options.workerEntryPath === undefined
-          ? {}
-          : { workerEntryPath: options.workerEntryPath }),
-        ...(options.inferenceRuntimePath === undefined
-          ? {}
-          : { inferenceRuntimePath: options.inferenceRuntimePath }),
-        ...(options.agentHelperPath === undefined
-          ? {}
-          : { agentHelperPath: options.agentHelperPath }),
-        ...(options.agentImageRoot === undefined ? {} : { agentImageRoot: options.agentImageRoot }),
-      }),
+    () => createVaultCore(coreOptions(options)),
     options.parentPid === undefined ? 0 : 2_000,
   );
 }

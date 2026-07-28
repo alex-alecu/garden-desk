@@ -22,6 +22,17 @@ fn add_platform_arguments(
     arguments.extend([
         "--windows-pipe-guard".to_owned(),
         path_text(&core_resources.join("vault-pipe-guard.exe"))?,
+        "--worker-entry".to_owned(),
+        path_text(&core_resources.join("inference/worker.mjs"))?,
+        "--inference-runtime".to_owned(),
+        path_text(&core_resources.join("inference/node.exe"))?,
+        "--inference-helper".to_owned(),
+        path_text(&core_resources.join("inference/vault-appcontainer-launcher.exe"))?,
+        "--agent-helper".to_owned(),
+        path_text(&core_resources.join("workers/vault-hcs-helper.exe"))?,
+        "--agent-image-root".to_owned(),
+        path_text(&core_resources.join("workers/images"))?,
+        "--packaged-model-store".to_owned(),
     ]);
     Ok(())
 }

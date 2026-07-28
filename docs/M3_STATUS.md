@@ -1,8 +1,8 @@
 # Milestone M3 Status
 
-Updated: 2026-07-26
+Updated: 2026-07-28
 
-The persistent-workspace M3 implementation is complete and certified on physical Apple silicon. The cross-platform M3 and Community Desktop V1 launch gate remain open until Windows HCS Plan9 integration and physical Windows acceptance pass.
+The persistent-workspace M3 implementation and canonical headless gate are certified on physical Apple silicon and Windows x64. The cross-platform M3 and Community Desktop V1 launch gate remain open for the remaining installed-Windows UI and debug-snapshot observations plus release-credential signing.
 
 ## Change Brief
 
@@ -10,7 +10,7 @@ The persistent-workspace M3 implementation is complete and certified on physical
 - Authority: M3 was activated by the repository owner on 2026-07-20; the owner explicitly reopened ADR 0018 for the persistent-workspace revision on 2026-07-23.
 - Product surface: New chat, immutable file attachments, folder groups, recent persistent sessions, drafts, durable messages, normalized execution records, durable inference traces, concurrent background conversations with sidebar activity, warm-session restoration, cancellation, artifacts, Overview-first Technical details with live logs, and the static public launch website with its synthetic interactive demo.
 - Security boundary: the webview has no host authority; Vault Core owns grants, policy, audit, inference mediation, VM lifecycle, and workspace manifests; the guest has zero NICs, an immutable root, a live read-only `/source`, and writable access only to bounded `/workspace` and ephemeral `/run/user`.
-- Platform scope: certified macOS VirtioFS now; Windows HCS Plan9 with host and guest read-only enforcement remains the active platform handoff.
+- Platform scope: certified macOS VirtioFS and Windows HCS Plan9 with host and guest read-only enforcement.
 - Explicitly deferred: host shell, writable source mounts, networking, package installation, Git tooling, document intelligence, external integrations, and arbitrary downloadable libraries.
 
 ## Public Launch Website
@@ -56,12 +56,22 @@ The persistent-workspace M3 implementation is complete and certified on physical
 - The earlier macOS packaged-app stage passed strict ad-hoc signature validation, authenticated sidecar execution, copy-install restoration, and user-state preservation. The persistent-workspace revision is additionally covered by the current physical headless gate and current package/build verification; Developer ID signing and notarization remain release-credential work.
 - `pnpm verify` passes the source limit, repository consistency, TypeScript, unit, native, Rust, helper, sidecar, and desktop build checks.
 
+## Physical Windows Evidence
+
+- Two independent x86_64 guest builds, with Docker networking disabled for the second, produced byte-identical outputs: kernel SHA-256 `9fabee42a89b8128aa9f16dee4d43289c113f8b2aea398cabc904b6911a41dea` and initramfs SHA-256 `73280bb17665d97ad4b59d8c02e9478b94987a19f218058ec0f5f29b7b47da81`.
+- `pnpm test:m3:windows` returned `certified_headless` on physical Windows 11 x64. HCS exposed the live source through its fixed Plan9 service over Hyper-V sockets; the guest mounted it read-only with `trans=fd` and retained zero virtual NICs. It observed 65 nested files and a 537,919,488-byte sparse file, saw a live host edit, and blocked source, root, `/tmp`, and other out-of-scope writes.
+- Python, Node.js 24, and shell execution, same-path repair, a persistent workspace, cancellation, a 250 ms timeout, output limiting, the 31-process ceiling, memory and 128 MiB quota exhaustion, guest crash containment, and escaping-link rejection passed. The malformed-host-frame probe exited nonzero and HCS teardown completed.
+- The real packaged CUDA/AppContainer worker completed the Python and Node live-output runs, retained typed VM diagnostics and teardown, and cancelled a live Python run. The one-million-byte truncation run retained truncated execution evidence and then failed safely with `agent_context_exhausted` rather than dropping mandatory context.
+- The single copy-installed package explicitly initialized CUDA and Vulkan on a laptop containing an NVIDIA RTX 4080 and AMD Radeon 610M. The real Gemma canary selected CUDA automatically inside the no-capability AppContainer and reported 12,878,086,144 detected VRAM bytes, a 150,528-token context, and the expected structured result.
+- The package carries `@node-llama-cpp/win-x64-cuda`, `@node-llama-cpp/win-x64-cuda-ext`, and `@node-llama-cpp/win-x64-vulkan` together with verified cuBLAS 13.2.0.9 redistributables, so NVIDIA and supported AMD hardware use the same application directory. The embedded application manifest requests the administrator token required by HCS; the webview retains only its fixed Tauri capabilities.
+- The copy-installed application launched outside the repository, connected to its packaged Core, restarted, shut down cleanly, and was removed with the temporary fixture. The final package build, runtime probes, and physical headless gate used only generated or ignored binaries, models, and package output.
+
 ## Remaining Cross-Platform Work
 
-- Windows M2 native inference confinement remains implemented and certified. Source now includes the protocol-v3 HCS relay, malformed-host-frame shutdown, a host-read-only Plan9 configuration, guest read-only 9P mount fallback, temporary recursive VM-SID read access that is revoked at teardown, typed lifecycle diagnostics, x86_64 agent build configuration, Core launcher selection, and a `pnpm test:m3:windows` real-model logging gate. The x86_64 agent hashes, packaged product integration, and physical proof remain incomplete and must not be inferred from this source implementation.
-- The physical Windows M3 gate must prove the same live hierarchy, large sparse source file, host-write denial, persistent workspace, Python, Node.js, shell, repair, cancellation, crash, quota, malformed-IPC, revocation, deletion, packaging, and install lifecycle evidence. None of that Windows M3 evidence was run on this Mac.
 - The installed-app debug snapshot and Explorer reveal flow has not run on Windows and remains part of that platform handoff.
-- The Windows full-VRAM canary remains implemented but has not run on physical Windows hardware for this stage.
-- The authoritative `pnpm test:gate --milestone 3` remains intentionally red. macOS evidence must never be used to infer Windows certification or global M3 completion.
+- A Windows 200 percent display-scale check and direct installed-app observation of active log updates remain manual UI evidence. The same behaviors have focused DOM and physical headless coverage but are not inferred as a packaged visual pass.
+- The current unelevated Windows shell passes 59 test files and 236 tests in `pnpm verify`; two workspace-security fixtures cannot create their required symlinks and fail during setup with Windows `EPERM`. The product symlink rejection passed in the real elevated no-NIC guest, and the repository fixtures must not be weakened to hide the host developer-mode limitation.
+- Public distribution still requires owner-controlled release credentials. Current nested Windows signatures are ephemeral self-signed development evidence, not a public release signature.
+- The authoritative `pnpm test:gate --milestone 3` remains intentionally red until those explicit installed-app and release observations are recorded. Neither platform's evidence is inferred from the other.
 
-Conclusion: the persistent offline development workspace is implemented and physically certified on macOS. Global M3 and Community Desktop V1 remain open for Windows Plan9 integration and physical certification.
+Conclusion: the persistent offline development workspace and canonical headless acceptance are physically certified on macOS and Windows. Global M3 and Community Desktop V1 remain open only for the named installed-Windows UI/debug-snapshot observations and credentialed release evidence.

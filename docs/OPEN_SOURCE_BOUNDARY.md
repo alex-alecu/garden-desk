@@ -73,6 +73,7 @@ Known model-license facts (verified 2026-07-11):
 - Qwen3-Embedding-0.6B, the default encoder per [ADR 0016](adr/0016-model-agnostic-defaults-and-managed-downloads.md), is Apache 2.0 with an official GGUF release, so the default shipped stack is fully Apache 2.0.
 - EmbeddingGemma (validated alternative encoder) remains under the Gemma Terms of Use, not Apache 2.0. Redistribution and bundling terms need explicit review before it could ship inside any installer.
 - Candidate third-party components are permissively licensed: turbovec (MIT), Docling (MIT), MarkItDown (MIT), llama.cpp and node-llama-cpp (MIT).
+- The M3 Windows package includes only the NVIDIA cuBLAS 13.2.0.9 DLLs listed as redistributable by the CUDA Toolkit EULA. Their archive and file hashes, upstream license, package notices, SBOM entry, and bounded review are recorded in [the Windows runtime dependency review](research/m3-windows-runtime-dependency-review.md).
 
 Implementation consequence: every model and native runtime begins as a development or candidate-to-ship asset. A candidate can be marked as shipping only after redistribution terms, required notices, platform package behavior, hashes, and offline operation are reviewed. Packaging must emit third-party notices plus dependency and model inventories.
 
@@ -109,3 +110,4 @@ Before signing employment or investment agreements, review the repository and co
 | 2026-07-12 | Added community and business Knowledge Bundle boundaries plus resource-level content-rights review. |
 | 2026-07-13 | Added deterministic document operations and the bounded code-interpreter fallback to the community candidate surface. |
 | 2026-07-15 | Recorded the owner-selected Apache 2.0 community license, DCO-only contributor strategy, compliance ownership, and manifest-driven notice strategy; narrowed open decisions to trademark policy and business-plugin extension points. |
+| 2026-07-27 | Approved the exact hash-pinned NVIDIA cuBLAS redistributables required by the self-contained Windows CUDA runtime. |

@@ -1,5 +1,5 @@
 import type { AgentExecutionResult, WorkerLimits } from "@vault/shared";
-import type { MacOsMicroVmLauncher } from "@vault/workers";
+import type { CodeAgentLauncher } from "@vault/workers";
 
 const limits: WorkerLimits = {
   wallTimeMs: 30_000,
@@ -74,7 +74,7 @@ export function requireIsolationProof(
   }
 }
 
-async function boundedProcessProbes(launcher: MacOsMicroVmLauncher, sourceFolder: string) {
+async function boundedProcessProbes(launcher: CodeAgentLauncher, sourceFolder: string) {
   const session = await launcher.openAgentSession({
     sessionId: "00000000-0000-4000-8000-000000000036",
     sourceFolder,
@@ -120,7 +120,7 @@ async function boundedProcessProbes(launcher: MacOsMicroVmLauncher, sourceFolder
   }
 }
 
-async function escapingLinkProbe(launcher: MacOsMicroVmLauncher, sourceFolder: string) {
+async function escapingLinkProbe(launcher: CodeAgentLauncher, sourceFolder: string) {
   const session = await launcher.openAgentSession({
     sessionId: "00000000-0000-4000-8000-000000000037",
     sourceFolder,
@@ -139,10 +139,7 @@ async function escapingLinkProbe(launcher: MacOsMicroVmLauncher, sourceFolder: s
   }
 }
 
-export async function runMacOsGuestSecurityEvidence(
-  launcher: MacOsMicroVmLauncher,
-  sourceFolder: string,
-) {
+export async function runGuestSecurityEvidence(launcher: CodeAgentLauncher, sourceFolder: string) {
   return {
     ...(await boundedProcessProbes(launcher, sourceFolder)),
     symlink: await escapingLinkProbe(launcher, sourceFolder),

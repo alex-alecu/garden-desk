@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "cudaToolkitVersion": "13.1.0",
+  "component": {
+    "name": "NVIDIA cuBLAS",
+    "version": "13.2.0.9",
+    "license": "NVIDIA CUDA Toolkit EULA",
+    "source": "https://developer.download.nvidia.com/compute/cuda/redist/redistrib_13.1.0.json"
+  },
+  "archive": {
+    "file": "libcublas-windows-x86_64-13.2.0.9-archive.zip",
+    "url": "https://developer.download.nvidia.com/compute/cuda/redist/libcublas/windows-x86_64/libcublas-windows-x86_64-13.2.0.9-archive.zip",
+    "byteLength": 402679267,
+    "sha256": "ffefe0885c8d94d07eb544e5f9520d0c56c0726df5f16e8db9803d9628832f5d"
+  },
+  "extractedRoot": "libcublas-13.2.0.9/libcublas-windows-x86_64-13.2.0.9-archive",
+  "files": [
+    {
+      "source": "bin/x64/cublas64_13.dll",
+      "destination": "cublas64_13.dll",
+      "byteLength": 51569776,
+      "sha256": "101ae2b98be62704ec96e90a3c49373b76122fc6b502497a7b6fae9ab0f01564"
+    },
+    {
+      "source": "bin/x64/cublasLt64_13.dll",
+      "destination": "cublasLt64_13.dll",
+      "byteLength": 480693360,
+      "sha256": "517b6a69ac9faa7354cffcbd92179aec0cc18a8f6237d36b28d9adfe8c912d8d"
+    },
+    {
+      "source": "LICENSE",
+      "destination": "NVIDIA-CUDA-LICENSE.txt",
+      "byteLength": 67876,
+      "sha256": "72c22161fc1ebf242443d45158a7dd382d68597b00eeb7a7f539be5c6114be33"
+    }
+  ]
+}

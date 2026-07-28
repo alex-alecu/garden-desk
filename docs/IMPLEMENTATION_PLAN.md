@@ -1,8 +1,8 @@
 # Implementation Plan
 
-Updated: 2026-07-22
+Updated: 2026-07-28
 
-This is the authoritative implementation sequence for the first Vault Desk release. M0, cross-platform M1, and cross-platform M2 are complete. The repository owner activated M3 on 2026-07-20 as the first full product milestone. The macOS M3 stage is implemented and physically certified; Windows product integration and physical certification remain required before M3 or Community Desktop V1 can close.
+This is the authoritative implementation sequence for the first Vault Desk release. M0, cross-platform M1, and cross-platform M2 are complete. The repository owner activated M3 on 2026-07-20 as the first full product milestone. The macOS stage and canonical Windows headless product integration are physically certified; the named installed-Windows UI, debug-snapshot, and release-signing evidence remain before M3 or Community Desktop V1 can close.
 
 The shortest path to V1 is a generic offline desktop agent, not a format-specific document pipeline. The agent may write and run Python or Node.js programs and installed guest commands inside a session-scoped no-NIC microVM. It sees the selected folder live and read-only at `/source` and works in a persistent bounded `/workspace`. It cannot write to the selected host folder, install packages, reach a network, inherit credentials, or call an unrestricted host service.
 
@@ -85,7 +85,7 @@ Vault Core persists authoritative state in the existing schema-versioned workspa
 
 ## Model And Asset Distribution
 
-The first V1 package is self-contained and performs zero downloads on first launch. It includes only approved runtime assets, one generation model, the guest image, and required native helpers whose hashes appear in the package manifest. The desktop selects the inference envelope automatically: 10 GiB on Macs through 16 GB, 12 GiB through 24 GB, 16 GiB above 24 GB, and the complete runtime-reported GPU VRAM capacity on Windows. An 8 GB Mac does not start inference and exposes a clear unsupported status. The worker fits the largest generation context from 8K through 256K inside the selected budget and reports the actual allocation. It keeps the approved model resident after first use. Manual unload or Core shutdown terminates the complete worker process so all native model and context resources are reclaimed together; the next request launches and verifies it again.
+The first V1 package is self-contained and performs zero downloads on first launch. It includes only approved runtime assets, one generation model, the guest image, and required native helpers whose hashes appear in the package manifest. One Windows x64 package carries the pinned CUDA 13.1 binding and cuBLAS redistributables together with Vulkan; TypeScript attempts CUDA first and falls back to Vulkan so NVIDIA and supported AMD systems never require separate Vault Desk installations. The self-contained model exceeds NSIS's package limit, so the M3 Windows artifact is a signed copy-installed application directory with the same copy, restart, replacement, and removal lifecycle as the macOS application bundle; public release installers remain a separate credentialed distribution step. Because Windows HCS permits only administrators or Hyper-V Administrators to create utility VMs, this copy-installed V1 executable requests an administrator token at launch instead of failing later when an agent task starts. The webview retains the same fixed capability set and cannot invoke arbitrary elevated operations. The desktop selects the inference envelope automatically: 10 GiB on Macs through 16 GB, 12 GiB through 24 GB, 16 GiB above 24 GB, and the complete runtime-reported GPU VRAM capacity on Windows. An 8 GB Mac does not start inference and exposes a clear unsupported status. The worker fits the largest generation context from 8K through 256K inside the selected budget and reports the actual allocation. It keeps the approved model resident after first use. Manual unload or Core shutdown terminates the complete worker process so all native model and context resources are reclaimed together; the next request launches and verifies it again.
 
 Downloaded development models, generated guest images, signed helpers, build output, coverage, reports, installers, and dependency directories remain ignored artifacts. Distribution requires notices, SBOMs, hashes, signatures, and platform package verification. A model-download build remains post-V1 work.
 
@@ -111,7 +111,7 @@ The cross-platform supervisor, model resolver, memory scheduler, typed inference
 
 ### M3 — Offline Dev-Agent Desktop V1 — active
 
-Stage state: macOS implementation and physical acceptance pass; Windows implementation and physical acceptance remain open.
+Stage state: macOS implementation and physical acceptance pass; Windows implementation and canonical physical headless acceptance pass; installed-Windows UI, debug-snapshot, and release-signing observations remain open.
 
 Scope:
 
@@ -145,7 +145,7 @@ Gate:
 - Keyboard navigation, visible focus, screen-reader labels, reduced motion, resizing, and 200 percent scaling pass on both platform webviews.
 - Packaged application checks cover install, first launch with zero downloads, sidecar and helper identity, restart, upgrade, uninstall, and preservation of user workspace state.
 - Required notices, SBOMs, artifact manifests, hashes, signatures, and unsupported-hardware messages are present and accurate.
-- On physical Windows x64, `pnpm test:m3:windows` proves real-Gemma Python and Node output before terminal state, typed diagnostics, cancellation retention, stdout truncation, malformed-frame HCS teardown, and session teardown. It is not a substitute for the remaining packaged-desktop evidence.
+- On physical Windows x64, `pnpm test:m3:windows` proves the same live read-only source hierarchy, persistent bounded workspace, Python, Node.js, shell, repair, no-NIC isolation, cancellation, timeout, output, process, memory, quota, crash, escaping-link, and rehydration evidence as macOS. It also proves real-Gemma Python and Node output before terminal state, typed diagnostics, cancellation retention, stdout truncation, malformed-frame HCS teardown, and session teardown. It is not a substitute for packaged-desktop evidence.
 
 M3 closes only when all macOS and Windows evidence passes. Closing M3 is the Community Desktop V1 launch gate.
 
@@ -211,3 +211,5 @@ AI assistants, models, coding agents, and tools are never commit authors or co-a
 | 2026-07-24 | Added the initial on-demand read-only local session debug snapshot and source-tree command. |
 | 2026-07-24 | Moved session snapshot creation into the packaged Core executable and added fixed installed-app create and reveal controls. |
 | 2026-07-25 | Added memory-bounded parallel conversations, serialized reuse of one resident Gemma worker, sidebar working state, and explicit budget-versus-allocation presentation. |
+| 2026-07-27 | Defined one self-contained Windows x64 package with automatic CUDA-first and Vulkan-fallback inference plus a copy-installed directory format that can carry the offline V1 model. |
+| 2026-07-28 | Certified the physical Windows headless product gate, including HCS Plan9, the packaged CUDA/AppContainer worker, the reproducible x86_64 guest, and the single CUDA/Vulkan application directory. |

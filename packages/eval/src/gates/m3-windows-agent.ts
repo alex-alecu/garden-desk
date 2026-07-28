@@ -4,7 +4,9 @@ import { tmpdir } from "node:os";
 import { basename, join } from "node:path";
 import { createVaultCore } from "@vault/core";
 import type { AgentRunSnapshot } from "@vault/shared";
+import { WindowsMicroVmLauncher } from "@vault/workers";
 import { readCanonicalModelManifest, verifyModelFile } from "../models.js";
+import { runGuestEvidence } from "./m3-guest.js";
 
 const repositoryRoot = process.cwd();
 const helper = join(
@@ -15,6 +17,10 @@ const images = join(repositoryRoot, "packages/workers/images");
 const modelRoot = join(repositoryRoot, "packages/eval/.generated/models");
 const modelId = "gemma-4-12b-it-qat-q4_0";
 const modelPath = join(modelRoot, `${modelId}.gguf`);
+const packagedInference = join(
+  repositoryRoot,
+  "packages/desktop/src-tauri/target/release/bundle/windows/Vault Desk/resources/core/inference",
+);
 
 interface WindowsArtifacts {
   kernel: string;
@@ -28,6 +34,7 @@ interface AgentEvidenceInput {
   liveToken: string;
   finishToken?: string;
   cancel?: boolean;
+  expectedError?: string;
 }
 
 async function prepareModelStore(): Promise<void> {
@@ -103,16 +110,20 @@ function requireLiveEvidence(
   result: { snapshot: AgentRunSnapshot; live: boolean },
   finishToken: string | undefined,
   cancelled: boolean,
+  expectedError: string | undefined,
 ) {
   const execution = result.snapshot.executions.find((item) => item.stdout.length > 0);
+  const terminalState =
+    expectedError === undefined
+      ? result.snapshot.run.state === "succeeded"
+      : result.snapshot.run.state === "failed" && result.snapshot.run.error === expectedError;
   if (
     !result.live ||
     execution === undefined ||
     execution.vmDiagnostics.length === 0 ||
     (cancelled
       ? result.snapshot.run.state !== "cancelled" || execution.state !== "cancelled"
-      : result.snapshot.run.state !== "succeeded" ||
-        (finishToken !== undefined && !execution.stdout.includes(finishToken)))
+      : !terminalState || (finishToken !== undefined && !execution.stdout.includes(finishToken)))
   ) {
     throw new Error(`Windows live-log proof failed: ${JSON.stringify(result.snapshot)}`);
   }
@@ -129,13 +140,21 @@ async function runAgentEvidence(input: AgentEvidenceInput) {
     profile: "auto",
     agentHelperPath: helper,
     agentImageRoot: images,
+    workerEntryPath: join(packagedInference, "worker.mjs"),
+    inferenceHelperPath: join(packagedInference, "vault-appcontainer-launcher.exe"),
+    inferenceRuntimePath: join(packagedInference, "node.exe"),
   });
   try {
     const folder = await core.addFolder(source);
     const session = await core.createSession(folder.id);
     const run = await core.startAgent(session.id, input.prompt);
     const result = await awaitRun(core, run.id, input.liveToken, input.cancel ?? false);
-    const execution = requireLiveEvidence(result, input.finishToken, input.cancel ?? false);
+    const execution = requireLiveEvidence(
+      result,
+      input.finishToken,
+      input.cancel ?? false,
+      input.expectedError,
+    );
     await core.revokeFolder(folder.id);
     const afterTeardown = await core.getAgentRun(run.id);
     const teardown = afterTeardown.executions.some((item) =>
@@ -185,6 +204,7 @@ async function runWindowsEvidence(root: string, artifacts: WindowsArtifacts) {
     prompt:
       "Execute exactly one Python source file. Print 'limit-start' with flush=True, then print 1100000 letter x characters.",
     liveToken: "limit-start",
+    expectedError: "agent_context_exhausted",
   });
   if (!limits.stdoutTruncated) throw new Error("Windows stdout truncation proof failed.");
   const malformedFrames = await malformedFrameEvidence(root, artifacts);
@@ -235,16 +255,21 @@ async function main(): Promise<void> {
   const root = await mkdtemp(join(tmpdir(), "vault-m3-windows-agent-"));
   try {
     const artifacts = await windowsArtifacts();
+    const guest = await runGuestEvidence(
+      root,
+      (workspace) => new WindowsMicroVmLauncher(helper, images, workspace),
+    );
     await prepareModelStore();
     const evidence = await runWindowsEvidence(root, artifacts);
     console.log(
       JSON.stringify({
-        classification: "certified_logging_stage",
+        classification: "certified_headless",
+        guest,
         ...evidence,
       }),
     );
   } finally {
-    await rm(root, { recursive: true, force: true });
+    await rm(root, { recursive: true, force: true, maxRetries: 20, retryDelay: 250 });
   }
 }
 

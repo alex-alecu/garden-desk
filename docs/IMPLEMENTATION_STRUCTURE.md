@@ -117,10 +117,16 @@ src/components/conversation.tsx
 src/components/technical-details.tsx
 src/components/composer.tsx
 src/components/confirmation.tsx
+package-resources.ts       verified sidecar, model, guest, helper, and inference assets
+runtime-packages.ts        recursive packaged node-llama-cpp dependency copy
+windows-runtime-assets.ts  pinned NVIDIA redistributable verification and staging
+stage-windows-application.ts signed copy-installed Windows application directory
 src-tauri/Cargo.toml
 src-tauri/Cargo.lock
 src-tauri/build.rs
+src-tauri/windows-app-manifest.xml
 src-tauri/tauri.conf.json
+src-tauri/tauri.windows.conf.json
 src-tauri/capabilities/default.json
 src-tauri/src/main.rs      dialogs, exact sidecar, connection bootstrap only
 src-tauri/src/diagnostics.rs fixed packaged-sidecar snapshot and reveal commands
@@ -205,3 +211,4 @@ The existing source-limit gate remains authoritative. Prefer files below 300 lin
 | 2026-07-22 | Added the model header and persisted response-performance evidence surfaces. |
 | 2026-07-23 | Added the session-scoped guest lifecycle, live read-only source share, and persistent workspace boundary. |
 | 2026-07-24 | Moved the debug snapshot adapter into Core and limited installed-app creation and reveal to fixed Tauri commands. |
+| 2026-07-27 | Added the verified Windows CUDA/Vulkan resource package and signed copy-installed application directory. |

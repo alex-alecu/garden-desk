@@ -16,6 +16,7 @@ interface InferenceCompositionOptions {
   modelStoreDir: string;
   profile: InferenceProfile;
   workerEntryPath?: string;
+  inferenceHelperPath?: string;
   inferenceRuntimePath?: string;
 }
 
@@ -56,7 +57,7 @@ export async function createInferenceService(
   const modelResolver = await ModelResolver.open(options.modelStoreDir);
   const launcher =
     process.platform === "win32"
-      ? new WindowsNativeWorkerLauncher()
+      ? new WindowsNativeWorkerLauncher(options.inferenceHelperPath, options.inferenceRuntimePath)
       : new MacOsNativeWorkerLauncher([workspaceRoot], options.inferenceRuntimePath);
   const workerEntryPath =
     options.workerEntryPath ??

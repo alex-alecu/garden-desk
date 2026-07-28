@@ -43,6 +43,25 @@ const hostPackages = [
   { name: "Tauri", version: "2.11.5", license: "Apache-2.0 OR MIT" },
 ];
 
+function platformPackages(): NoticePackage[] {
+  return process.platform === "win32"
+    ? [
+        {
+          name: "NVIDIA cuBLAS",
+          version: "13.2.0.9",
+          license: "NVIDIA CUDA Toolkit EULA",
+          purpose: "packaged NVIDIA CUDA inference runtime",
+        },
+      ]
+    : [];
+}
+
+function platformIdentity(): { name: string; slug: string } {
+  return process.platform === "win32"
+    ? { name: "Windows", slug: "windows" }
+    : { name: "macOS", slug: "macos" };
+}
+
 async function runtimePackages(resourcesRoot: string): Promise<NoticePackage[]> {
   const modules = join(resourcesRoot, "inference/node_modules");
   const packages: NoticePackage[] = [];
@@ -69,9 +88,11 @@ export async function writePackageCompliance(
   resourcesRoot: string,
   guestManifestPath: string,
 ): Promise<string> {
+  const platform = platformIdentity();
   const guest = JSON.parse(await readFile(guestManifestPath, "utf8")) as GuestManifest;
   const packageCandidates = [
     ...hostPackages.map((item) => ({ ...item, purpose: "packaged desktop runtime" })),
+    ...platformPackages(),
     ...(await runtimePackages(resourcesRoot)),
     ...guest.contents,
   ];
@@ -97,8 +118,8 @@ export async function writePackageCompliance(
         spdxVersion: "SPDX-2.3",
         dataLicense: "CC0-1.0",
         SPDXID: "SPDXRef-DOCUMENT",
-        name: "Vault-Desk-M3-macOS",
-        documentNamespace: "https://vaultdesk.local/spdx/v1/m3-macos",
+        name: `Vault-Desk-M3-${platform.name}`,
+        documentNamespace: `https://vaultdesk.local/spdx/v1/m3-${platform.slug}`,
         creationInfo: { created: "2026-07-20T00:00:00Z", creators: ["Organization: Vault Desk"] },
         packages: packages.map((item, index) => ({
           SPDXID: `SPDXRef-Package-${index + 1}`,

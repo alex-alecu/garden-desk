@@ -112,7 +112,10 @@
         "packages/desktop/build-sidecar.ts",
         "packages/desktop/build-signing.ts",
         "packages/desktop/package-compliance.ts",
+        "packages/desktop/package-resources.ts",
+        "packages/desktop/stage-windows-application.ts",
         "packages/desktop/runtime-packages.ts",
+        "packages/desktop/windows-runtime-assets.ts",
         "scripts/**/*.ts"
       ],
       "linter": {
