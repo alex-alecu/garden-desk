@@ -122,6 +122,34 @@ describe("AgentLoop fail-closed trace outcomes", () => {
     expect(trace.responses).toEqual([{ action: "respond", response: "Recovered." }]);
   });
 
+  it("records a generation limit before a bounded source recovery", async () => {
+    const trace = traceRecorder();
+    const calls: string[] = [];
+    const execute: AgentDecision = {
+      action: "execute",
+      language: "python",
+      source: "print('checkpoint')",
+      summary: "Save one part",
+    };
+    const result = await new AgentLoop(
+      inference([
+        new Error("generation_token_limit"),
+        execute,
+        { action: "respond", response: "Recovered." },
+      ]),
+      executor(calls),
+    ).run(runInput(trace.store));
+
+    expect(result.response).toBe("Recovered.");
+    expect(calls).toEqual([execute.source]);
+    expect(trace.outcomes).toEqual([
+      { outcome: "inference_failed" },
+      { outcome: "accepted_execution", execution: 0 },
+      { outcome: "accepted_response" },
+    ]);
+    expect(trace.responses).toEqual([execute, { action: "respond", response: "Recovered." }]);
+  });
+
   it("records accepted, duplicate, and final response decisions before continuing", async () => {
     const calls: string[] = [];
     const trace = traceRecorder();

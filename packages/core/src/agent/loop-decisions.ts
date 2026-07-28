@@ -4,8 +4,9 @@ import {
   parseXlsxProgress,
   xlsxProgressAdvanced,
 } from "@vault/shared";
+import { SHELL_COMMAND_CHARACTER_LIMIT } from "./prompt-schema.js";
 
-export type RejectedExecutionReason = "duplicate" | "invalid";
+export type RejectedExecutionReason = "duplicate" | "invalid" | "shell_limit" | "shell_source";
 
 function sameProgram(
   decision: Extract<AgentDecision, { action: "execute" }>,
@@ -50,16 +51,49 @@ function isImportOnlySource(decision: Extract<AgentDecision, { action: "execute"
   );
 }
 
+function containsProtocolFragment(
+  decision: Extract<AgentDecision, { action: "execute" }>,
+): boolean {
+  return (
+    decision.language !== "shell" &&
+    /<\|?(?:tool_call|channel|thought)(?:\||>)/iu.test(decision.source)
+  );
+}
+
+function reachedShellCommandLimit(
+  decision: Extract<AgentDecision, { action: "execute" }>,
+): boolean {
+  return decision.language === "shell" && decision.command.length >= SHELL_COMMAND_CHARACTER_LIMIT;
+}
+
+function embedsSourceProgram(decision: Extract<AgentDecision, { action: "execute" }>): boolean {
+  return (
+    decision.language === "shell" &&
+    /(?:^|[;&|]\s*|\n)\s*(?:env\s+)?(?:\S*\/)?(?:python3?|node)(?:(?:\s+-\S+)*\s+-(?:c|e)(?:\s|$)|(?:\s+-\S+)*\s+(?:-\s*)?<<)/iu.test(
+      decision.command,
+    )
+  );
+}
+
+function isInvalidProgram(
+  decision: Extract<AgentDecision, { action: "execute" }>,
+  rejectIncompleteSource: boolean,
+): boolean {
+  return (
+    containsProtocolFragment(decision) ||
+    isPathologicallyRepetitive(decision) ||
+    (rejectIncompleteSource && isImportOnlySource(decision))
+  );
+}
+
 export function rejectedExecutionReason(
   decision: Extract<AgentDecision, { action: "execute" }>,
   executions: AgentExecutionResult[],
   rejectIncompleteSource = false,
 ): RejectedExecutionReason | undefined {
-  if (
-    isPathologicallyRepetitive(decision) ||
-    (rejectIncompleteSource && isImportOnlySource(decision))
-  )
-    return "invalid";
+  if (reachedShellCommandLimit(decision)) return "shell_limit";
+  if (embedsSourceProgram(decision)) return "shell_source";
+  if (isInvalidProgram(decision, rejectIncompleteSource)) return "invalid";
   const matching = executions.filter((execution) => sameProgram(decision, execution));
   const latest = matching.at(-1);
   if (latest === undefined) return undefined;

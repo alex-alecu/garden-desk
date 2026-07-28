@@ -3,7 +3,6 @@ import {
   type AgentEventDetail,
   type AgentEventType,
   type AgentExecutionResult,
-  AgentExecutionResultSchema,
   type AgentInferenceOutcome,
   type AgentRunResult,
   AgentRunResultSchema,
@@ -13,12 +12,14 @@ import type { AgentSessionExecution } from "@vault/workers";
 import type { InferenceService } from "../runtime/inference.js";
 import { createGenerationRequest } from "../runtime/inference.js";
 import { addPerformance, emptyPerformance } from "./inference-performance.js";
-import { type RejectedExecutionReason, rejectedExecutionReason } from "./loop-decisions.js";
-import { executionCompletionSummary, xlsxContinuationResponse } from "./output-contract.js";
+import { rejectedExecutionReason } from "./loop-decisions.js";
+import { executeAgentDecision, rejectExecution } from "./loop-execution.js";
+import { xlsxContinuationResponse } from "./output-contract.js";
 import {
   type AgentProgress,
   type AgentPromptInput,
   executionBackedResponse,
+  type GenerationRecovery,
   generationInput,
   MAX_EXECUTIONS,
   parseDecision,
@@ -27,10 +28,9 @@ import {
 import type { AgentTraceStore } from "./trace-store.js";
 
 const MAX_DECISIONS = 12;
-const MAX_CONSECUTIVE_DUPLICATES = 2;
-const MAX_CONSECUTIVE_INVALID_PROGRAMS = 7;
 const STRUCTURED_RETRY_SUFFIX =
   "\nYour previous attempt did not call a function. Call exactly one available function with your answer.";
+const GENERATION_LIMIT_ERROR = "generation_token_limit";
 
 export interface AgentExecutor {
   execute(input: AgentSessionExecution, signal?: AbortSignal): Promise<AgentExecutionResult>;
@@ -48,6 +48,19 @@ interface TracedDecision {
   turnId?: string;
 }
 type PreparedGeneration = ReturnType<typeof createGenerationRequest>;
+interface GenerationRecoveryTurn {
+  input: AgentRunInput;
+  progress: AgentProgress;
+  finalResponse: boolean;
+  initialRequest: PreparedGeneration;
+  recovery: Exclude<ReturnType<typeof generationRecovery>, undefined>;
+}
+
+function generationRecovery(error: unknown): GenerationRecovery | "structured_call" {
+  if (!(error instanceof Error)) return undefined;
+  if (error.message === "structured_tool_call_required") return "structured_call";
+  return error.message === GENERATION_LIMIT_ERROR ? "generation_limit" : undefined;
+}
 
 export class AgentLoop {
   private contextTokens: number;
@@ -61,31 +74,68 @@ export class AgentLoop {
 
   private async generateDecision(
     input: AgentRunInput,
+    progress: AgentProgress,
     finalResponse: boolean,
     initialRequest: PreparedGeneration,
   ): Promise<{ generated: StructuredGenerationResult; turnId: string | undefined }> {
-    let request = initialRequest;
-    let turnId = await input.trace?.store.begin(
+    try {
+      return await this.generateTurn(input, finalResponse, initialRequest);
+    } catch (error) {
+      const recovery = generationRecovery(error);
+      if (recovery === undefined) throw error;
+      return this.generateRecoveryTurn({
+        input,
+        progress,
+        finalResponse,
+        initialRequest,
+        recovery,
+      });
+    }
+  }
+
+  private async generateRecoveryTurn(
+    turn: GenerationRecoveryTurn,
+  ): Promise<{ generated: StructuredGenerationResult; turnId: string | undefined }> {
+    const { input, progress, finalResponse, initialRequest, recovery } = turn;
+    if (recovery === "generation_limit") {
+      input.onEvent?.(
+        "inference.started",
+        "The local model reached its 32K generation limit. Continuing with a smaller workspace edit.",
+      );
+    }
+    const request =
+      recovery === "structured_call"
+        ? createGenerationRequest({
+            ...initialRequest.input,
+            prompt: `${initialRequest.input.prompt}${STRUCTURED_RETRY_SUFFIX}`,
+          })
+        : createGenerationRequest(
+            generationInput(input, progress, finalResponse, {
+              contextTokens: this.contextTokens,
+              recovery: "generation_limit",
+            }),
+          );
+    try {
+      return await this.generateTurn(input, finalResponse, request);
+    } catch (error) {
+      if (generationRecovery(error) === "generation_limit") {
+        throw new Error("agent_generation_limit");
+      }
+      throw error;
+    }
+  }
+
+  private async generateTurn(
+    input: AgentRunInput,
+    finalResponse: boolean,
+    request: PreparedGeneration,
+  ): Promise<{ generated: StructuredGenerationResult; turnId: string | undefined }> {
+    const turnId = await input.trace?.store.begin(
       input.trace.runId,
       finalResponse ? "final_response" : "decision",
       { input: request.input, ...request.identity },
     );
-    try {
-      return { generated: await this.generate(input, request, turnId), turnId };
-    } catch (error) {
-      if (!(error instanceof Error) || error.message !== "structured_tool_call_required")
-        throw error;
-      request = createGenerationRequest({
-        ...request.input,
-        prompt: `${request.input.prompt}${STRUCTURED_RETRY_SUFFIX}`,
-      });
-      turnId = await input.trace?.store.begin(
-        input.trace.runId,
-        finalResponse ? "final_response" : "decision",
-        { input: request.input, ...request.identity },
-      );
-      return { generated: await this.generate(input, request, turnId), turnId };
-    }
+    return { generated: await this.generate(input, request, turnId), turnId };
   }
 
   private async decide(
@@ -104,9 +154,14 @@ export class AgentLoop {
     );
     input.onThinking?.(null);
     const request = createGenerationRequest(
-      generationInput(input, progress, finalResponse, this.contextTokens),
+      generationInput(input, progress, finalResponse, { contextTokens: this.contextTokens }),
     );
-    const { generated, turnId } = await this.generateDecision(input, finalResponse, request);
+    const { generated, turnId } = await this.generateDecision(
+      input,
+      progress,
+      finalResponse,
+      request,
+    );
     if (turnId !== undefined) {
       await input.trace?.store.captureResponse(
         turnId,
@@ -166,69 +221,12 @@ export class AgentLoop {
     if (turnId !== undefined) input.trace?.store.recordOutcome(turnId, outcome, executionSequence);
   }
 
-  private async execute(
-    input: AgentRunInput,
-    decision: Extract<AgentDecision, { action: "execute" }>,
-    progress: AgentProgress,
-  ): Promise<void> {
-    const execution: AgentSessionExecution =
-      decision.language === "shell"
-        ? { language: "shell", command: decision.command }
-        : {
-            language: decision.language,
-            path:
-              decision.path ??
-              `steps/${String(progress.executions.length + 1).padStart(4, "0")}.${decision.language === "python" ? "py" : "mjs"}`,
-            source: decision.source,
-          };
-    input.onEvent?.("execution.started", decision.summary, {
-      language: decision.language,
-      path: execution.language === "shell" ? null : execution.path,
-      source: decision.language === "shell" ? null : decision.source,
-      command: decision.language === "shell" ? decision.command : null,
-    });
-    const result = await this.executor.execute(execution, input.signal);
-    progress.executions.push(AgentExecutionResultSchema.parse(result));
-    input.onEvent?.("execution.completed", executionCompletionSummary(result), {
-      language: result.language,
-      path: result.path,
-      source: result.source,
-      command: result.command,
-      exitCode: result.exitCode,
-      stdout: result.stdout,
-      stderr: result.stderr,
-      durationMs: result.durationMs,
-      termination: result.termination,
-    });
-  }
-
   private finish(input: AgentRunInput, progress: AgentProgress, response: string): AgentRunResult {
     input.onEvent?.("assistant.completed", "Response completed.");
     return AgentRunResultSchema.parse({
       response: executionBackedResponse(input, progress, response),
       ...progress,
     });
-  }
-
-  private rejectDuplicate(
-    input: AgentRunInput,
-    progress: AgentProgress,
-    rejection: {
-      consecutive: number;
-      reason: RejectedExecutionReason;
-      turnId: string | undefined;
-    },
-  ): number {
-    this.recordOutcome(input, rejection.turnId, "rejected_duplicate");
-    progress.rejectedDuplicates += 1;
-    progress.lastRejectedProgramReason = rejection.reason;
-    const next = rejection.consecutive + 1;
-    const limit =
-      rejection.reason === "duplicate"
-        ? MAX_CONSECUTIVE_DUPLICATES
-        : MAX_CONSECUTIVE_INVALID_PROGRAMS;
-    if (next >= limit) throw new Error("agent_stalled_duplicate");
-    return next;
   }
 
   private async finishAfterLoop(
@@ -272,10 +270,10 @@ export class AgentLoop {
       const rejection = rejectedExecutionReason(
         decision,
         progress.executions,
-        requiresXlsxWorkflow(input),
+        requiresXlsxWorkflow(input, progress.executions),
       );
       if (rejection !== undefined) {
-        consecutiveDuplicates = this.rejectDuplicate(input, progress, {
+        consecutiveDuplicates = rejectExecution(input, progress, {
           consecutive: consecutiveDuplicates,
           reason: rejection,
           turnId: traced.turnId,
@@ -285,7 +283,7 @@ export class AgentLoop {
       consecutiveDuplicates = 0;
       progress.lastRejectedProgramReason = undefined;
       this.recordOutcome(input, traced.turnId, "accepted_execution", progress.executions.length);
-      await this.execute(input, decision, progress);
+      await executeAgentDecision(this.executor, input, decision, progress);
       const verifiedResponse = executionBackedResponse(input, progress, "");
       if (verifiedResponse.length > 0) return this.finish(input, progress, verifiedResponse);
     }

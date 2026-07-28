@@ -3,27 +3,39 @@ import {
   AgentDecisionSchema,
   type AgentExecutionResult,
   type InferencePerformance,
-  parseXlsxProgress,
+  MAX_GENERATION_TOKENS,
 } from "@vault/shared";
 import capabilities from "../../../workers/images/agent/capabilities.json" with { type: "json" };
 import { effectiveGenerationInput, type GenerationInput } from "../runtime/inference.js";
-import { assembleHistory, type DurableAgentHistory } from "./history.js";
+import type { DurableAgentHistory } from "./history.js";
 import {
   completedSuccessfully,
   missingOutputLabels,
   requiredOutputLabels,
   verifiedXlsxOutput,
-  type XlsxWorkflowPhase,
   xlsxWorkflowPhase,
 } from "./output-contract.js";
-import { rejectionInstructions } from "./prompt-rejection.js";
-import { agentDecisionJsonSchema } from "./prompt-schema.js";
 import {
-  XLSX_CONTINUE_PHASE,
-  XLSX_EXECUTION_INSTRUCTIONS,
-  XLSX_REPAIR_PHASE,
-  XLSX_WORK_PHASE,
-} from "./xlsx-prompt.js";
+  generationBudget,
+  generationRecoveryInstructions,
+  generationTokenReserve,
+  type PromptBounds,
+  serializePrompt,
+} from "./prompt-budget.js";
+import { rejectionInstructions } from "./prompt-rejection.js";
+import {
+  agentDecisionJsonSchema,
+  GENERATION_LIMIT_RECOVERY_SOURCE_LINES,
+  SHELL_COMMAND_CHARACTER_LIMIT,
+} from "./prompt-schema.js";
+import {
+  requiresXlsxWorkflow,
+  xlsxPhaseInstructions,
+  xlsxProcessingExecutions,
+} from "./prompt-xlsx.js";
+import { XLSX_EXECUTION_INSTRUCTIONS } from "./xlsx-prompt.js";
+
+export { requiresXlsxWorkflow } from "./prompt-xlsx.js";
 
 export const MAX_EXECUTIONS = 6;
 const RUNTIME_CAPABILITIES = Object.entries(capabilities.runtimes)
@@ -41,13 +53,18 @@ const EXECUTION_INSTRUCTIONS = [
   "Temporary files may use the bounded ephemeral /run/user directory through TMPDIR. Do not write elsewhere in the guest.",
   "Python and Node executions use a safe /workspace-relative path and complete source. Reuse the same path when repairing a failed program.",
   "When path is omitted, Vault Desk assigns steps/NNNN.py or steps/NNNN.mjs. Never use absolute paths, backslashes, empty components, dot components, or parent traversal.",
-  `Shell executions run command through ${capabilities.shell} from ${capabilities.workspaceMount.path}. Installed tools include ${TOOL_CAPABILITIES}.`,
-  "The source field is an array of complete lines with no newline inside an item. The command field is a one-item array containing the complete shell program string; keep every executable and its arguments in that one item.",
+  `Shell executions run command through ${capabilities.shell} from ${capabilities.workspaceMount.path}. Installed tools include ${TOOL_CAPABILITIES}. Keep a shell command shorter than ${SHELL_COMMAND_CHARACTER_LIMIT.toLocaleString("en-US")} characters; a command that reaches that boundary is treated as potentially truncated and is not executed.`,
+  "Never embed a Python or Node program in a shell command. Choose the matching Python or Node source action so Vault Desk writes the source to a workspace file and executes it.",
+  `Each model turn can generate at most ${MAX_GENERATION_TOKENS.toLocaleString("en-US")} tokens. If a complete program cannot fit, use multiple Python or Node source actions that create or patch one bounded part of a file under /workspace, then execute the completed file with a short command.`,
+  "The source field is an array of complete lines with no newline inside an item. The command field is a one-item array containing the complete shell program string; keep every executable and its arguments in that one item and keep it below the stated 4,096-character boundary.",
   "The response field is an array of at most 100 complete output lines, with no newline inside an item.",
   "Never request networks, credentials, writes to /source, host APIs, or package installation.",
   `Certified guest runtimes and libraries: ${RUNTIME_CAPABILITIES}. Import only modules used by the current execution. Never import pandas. Node.js has built-in modules only.`,
+  'Node source is written to an .mjs ES module. Use ESM imports such as import { readFileSync } from "node:fs"; require is unavailable.',
+  "Source contains only the executable program. Never include tool-call, channel, thought, or structured-response delimiter text in source.",
   "Explicit file attachments, when present, are immutable files under /run/attachments.",
   "Inspect the real hierarchy under /source. Use recursive discovery and never assume a flat folder or guess a path.",
+  "When discovering files by extension, match the extension case-insensitively; with find, use -iname instead of -name.",
   "After a failure, use the recorded path, source or command, exit status, stdout, and stderr to repair or replace the approach. Every repair must be a short complete runnable program, never a truncated fragment or a copy of corrupted or repetitive source.",
   "Always return final responses as concise GitHub Flavored Markdown, including single-line answers. Never return raw HTML, images, or Markdown links.",
 ] as const;
@@ -63,20 +80,45 @@ export interface AgentPromptInput {
 export interface AgentProgress {
   executions: AgentExecutionResult[];
   inference: InferencePerformance;
-  lastRejectedProgramReason?: "duplicate" | "invalid" | undefined;
+  lastRejectedProgramReason?: "duplicate" | "invalid" | "shell_limit" | "shell_source" | undefined;
   rejectedDuplicates: number;
 }
 
-export function requiresXlsxWorkflow(input: AgentPromptInput): boolean {
+function needsShellSourceRepair(progress: AgentProgress): boolean {
+  if (
+    progress.lastRejectedProgramReason === "shell_limit" ||
+    progress.lastRejectedProgramReason === "shell_source"
+  )
+    return true;
+  const latest = progress.executions.at(-1);
   return (
-    (input.inputNames ?? []).some((name) => name.toLowerCase().endsWith(".xlsx")) ||
-    /\bexcel\b|\.xlsx?\b/iu.test(input.task)
+    latest?.language === "shell" &&
+    latest.exitCode !== 0 &&
+    /unterminated quoted string/iu.test(latest.stderr)
   );
 }
 
-interface PromptBounds {
-  contextTokens: number;
-  requestOverheadTokens: number;
+function shellSourceRepairInstructions(progress: AgentProgress): readonly string[] {
+  const latest = progress.executions.at(-1);
+  if (
+    latest?.language !== "shell" ||
+    latest.exitCode === 0 ||
+    !/unterminated quoted string/iu.test(latest.stderr)
+  )
+    return [];
+  return [
+    "The last shell command failed because it contained an unterminated quoted string.",
+    "Do not repair it as another shell command. Submit a Python or Node source action instead; Vault Desk writes that source to a workspace file and executes it.",
+  ];
+}
+
+export type GenerationRecovery = "generation_limit" | undefined;
+interface PromptOptions extends PromptBounds {
+  recovery: GenerationRecovery;
+}
+interface GenerationInputOptions {
+  contextTokens?: number;
+  recovery?: GenerationRecovery;
 }
 
 function observations(executions: AgentExecutionResult[]) {
@@ -94,86 +136,6 @@ function observations(executions: AgentExecutionResult[]) {
   }));
 }
 
-interface PhaseInstructionInput {
-  finalResponse: boolean;
-  hasCleanUnmarkedOutput: boolean;
-  hasCleanLabeledOutput: boolean;
-  hasXlsxInput: boolean;
-  xlsxPhase: XlsxWorkflowPhase;
-}
-
-function phaseInstructions(input: PhaseInstructionInput): readonly string[] {
-  if (input.finalResponse) {
-    return [
-      "No execution capacity remains. Respond now from the observations. State clearly if the task could not be completed or verified.",
-    ];
-  }
-  if (!input.hasXlsxInput) return [];
-  if (input.xlsxPhase === "work") return XLSX_WORK_PHASE;
-  if (input.xlsxPhase === "repair") {
-    if (input.hasCleanLabeledOutput) {
-      return [
-        "The last execution produced every requested output label, but it did not prove complete XLSX coverage with the three required VAULT_XLSX progress markers.",
-        "Execute corrected source now. Reuse or replace the working calculation, then print FILES_DONE as the fully processed XLSX file count, FILES_TOTAL as the discovered XLSX file count, and COMPLETE=1 only when they are equal and every workbook was read.",
-        "Do not respond and do not repeat the unchanged source.",
-      ];
-    }
-    if (input.hasCleanUnmarkedOutput) {
-      return [
-        "The last execution finished cleanly but did not print all three required VAULT_XLSX progress markers.",
-        "Repair or replace the program so every normal exit path, including the 75-second checkpoint path, prints FILES_DONE, FILES_TOTAL, and COMPLETE. Print final output labels only when COMPLETE=1.",
-        "Do not repeat the unchanged source.",
-      ];
-    }
-    return XLSX_REPAIR_PHASE;
-  }
-  if (input.xlsxPhase === "continue") return XLSX_CONTINUE_PHASE;
-  return [];
-}
-
-function hasCleanLabeledOutput(
-  executions: AgentExecutionResult[],
-  requiredLabels: string[],
-  missingLabels: string[],
-): boolean {
-  const last = executions.at(-1);
-  return (
-    last !== undefined &&
-    completedSuccessfully(last) &&
-    last.stderr.trim().length === 0 &&
-    requiredLabels.length > 0 &&
-    missingLabels.length === 0
-  );
-}
-
-function hasCleanUnmarkedOutput(
-  executions: AgentExecutionResult[],
-  requiredLabels: string[],
-): boolean {
-  const last = executions.at(-1);
-  return (
-    last !== undefined &&
-    completedSuccessfully(last) &&
-    last.stderr.trim().length === 0 &&
-    requiredLabels.length > 0 &&
-    parseXlsxProgress(last.stdout) === undefined
-  );
-}
-
-function serializePrompt(
-  current: string,
-  history: DurableAgentHistory | undefined,
-  bounds: PromptBounds,
-): string {
-  const usableTokens = Math.max(0, bounds.contextTokens - 4_096 - bounds.requestOverheadTokens);
-  const requiredTokens = Math.ceil(current.length / 4);
-  if (requiredTokens > usableTokens) throw new Error("agent_context_exhausted");
-  const assembled = assembleHistory(history, usableTokens - requiredTokens);
-  const serialized = assembled.length === 0 ? current : `${current}\n${assembled}`;
-  if (Math.ceil(serialized.length / 4) > usableTokens) throw new Error("agent_context_exhausted");
-  return serialized;
-}
-
 function continuationInstructions(input: AgentPromptInput): readonly string[] {
   return input.continuation === true
     ? [
@@ -186,22 +148,22 @@ function prompt(
   input: AgentPromptInput,
   progress: AgentProgress,
   finalResponse: boolean,
-  bounds: PromptBounds,
+  options: PromptOptions,
 ): string {
   const { executions, rejectedDuplicates } = progress;
   const inputNames = input.inputNames ?? [];
   const artifacts = executions.flatMap((result) =>
     result.artifacts.map((artifact) => artifact.name),
   );
-  const hasXlsxInput = requiresXlsxWorkflow(input);
+  const hasXlsxInput = requiresXlsxWorkflow(input, executions);
   const requiredLabels = requiredOutputLabels(input.task);
   const successfulExecutionCount = executions.filter(completedSuccessfully).length;
   const completed = executions.filter(completedSuccessfully);
   const missingLabels = missingOutputLabels(completed.at(-1)?.stdout ?? "", requiredLabels);
-  const xlsxPhase = xlsxWorkflowPhase(executions, requiredLabels);
   const current = [
     ...EXECUTION_INSTRUCTIONS,
     ...(hasXlsxInput ? XLSX_EXECUTION_INSTRUCTIONS : []),
+    ...generationRecoveryInstructions(options.recovery, finalResponse),
     ...continuationInstructions(input),
     `Selected input count: ${inputNames.length}.`,
     `Task: ${input.task}`,
@@ -210,6 +172,7 @@ function prompt(
     `Remaining execution capacity: ${Math.max(0, MAX_EXECUTIONS - executions.length)}.`,
     `Rejected duplicate or pathologically repetitive programs: ${rejectedDuplicates}. A rejected program was not executed and does not advance the task. After a rejection, start from a fresh short strategy instead of copying the rejected source.`,
     ...rejectionInstructions(progress),
+    ...shellSourceRepairInstructions(progress),
     `Required output labels: ${JSON.stringify(requiredLabels)}. A result is complete only when stdout contains every label exactly as LABEL=value with no spaces around the equals sign.`,
     `Produced artifact names: ${JSON.stringify(artifacts)}.`,
     "These observations are authoritative. Never repeat completed code or a completed task step.",
@@ -217,48 +180,90 @@ function prompt(
     "For ordered task steps, completed execution 1 means step 1 is done; the next action must implement step 2.",
     "Choose execute only if a requested step is still missing from the observations.",
     "If every requested execution and artifact is evidenced, you must choose respond now and must not execute again.",
-    ...phaseInstructions({
+    ...xlsxPhaseInstructions({
       finalResponse,
-      hasCleanUnmarkedOutput: hasCleanUnmarkedOutput(executions, requiredLabels),
-      hasCleanLabeledOutput: hasCleanLabeledOutput(executions, requiredLabels, missingLabels),
       hasXlsxInput,
-      xlsxPhase,
+      executions,
+      requiredLabels,
+      missingLabels,
     }),
   ].join("\n");
-  return serializePrompt(current, input.history, bounds);
+  return serializePrompt(current, input.history, options);
+}
+
+function generationSchema(
+  input: AgentPromptInput,
+  progress: AgentProgress,
+  finalResponse: boolean,
+  recovery: GenerationRecovery,
+) {
+  const requiredLabels = requiredOutputLabels(input.task);
+  const requiresXlsxExecution =
+    !finalResponse &&
+    requiresXlsxWorkflow(input, progress.executions) &&
+    xlsxWorkflowPhase(xlsxProcessingExecutions(progress.executions), requiredLabels) !== "complete";
+  const generationLimitRecovery = recovery === "generation_limit" && !finalResponse;
+  return agentDecisionJsonSchema(
+    input.task,
+    finalResponse,
+    requiresXlsxExecution || needsShellSourceRepair(progress) || generationLimitRecovery,
+    generationLimitRecovery ? GENERATION_LIMIT_RECOVERY_SOURCE_LINES : undefined,
+  );
+}
+
+interface BuildGenerationInput {
+  input: AgentPromptInput;
+  progress: AgentProgress;
+  finalResponse: boolean;
+  options: PromptOptions;
+  jsonSchema: Record<string, unknown>;
+  maxTokens: number;
+}
+
+function buildGenerationInput(build: BuildGenerationInput): GenerationInput {
+  return effectiveGenerationInput({
+    modelId: build.input.modelId,
+    prompt: prompt(build.input, build.progress, build.finalResponse, build.options),
+    jsonSchema: build.jsonSchema,
+    contextSize: "auto",
+    maxTokens: build.maxTokens,
+  });
 }
 
 export function generationInput(
   input: AgentPromptInput,
   progress: AgentProgress,
   finalResponse = false,
-  contextTokens = 8_192,
+  options: GenerationInputOptions = {},
 ): GenerationInput {
-  const requiredLabels = requiredOutputLabels(input.task);
-  const requiresXlsxExecution =
-    !finalResponse &&
-    requiresXlsxWorkflow(input) &&
-    xlsxWorkflowPhase(progress.executions, requiredLabels) !== "complete";
-  const jsonSchema = agentDecisionJsonSchema(input.task, finalResponse, requiresXlsxExecution);
+  const contextTokens = options.contextTokens ?? 8_192;
+  const recovery = options.recovery;
+  const jsonSchema = generationSchema(input, progress, finalResponse, recovery);
+  const maxTokens = generationBudget(input, progress, finalResponse, recovery);
+  const generationTokens = generationTokenReserve(contextTokens, maxTokens);
   let requestOverheadTokens = Math.ceil(
-    JSON.stringify({ modelId: input.modelId, jsonSchema, contextSize: "auto", maxTokens: 4096 })
-      .length / 4,
+    JSON.stringify({
+      modelId: input.modelId,
+      jsonSchema,
+      contextSize: "auto",
+      maxTokens,
+    }).length / 4,
   );
-  const result = effectiveGenerationInput({
-    modelId: input.modelId,
-    prompt: prompt(input, progress, finalResponse, { contextTokens, requestOverheadTokens }),
-    jsonSchema,
-    contextSize: "auto",
-    maxTokens: 4096,
-  });
+  const build = (overhead: number) =>
+    buildGenerationInput({
+      input,
+      progress,
+      finalResponse,
+      options: { contextTokens, generationTokens, requestOverheadTokens: overhead, recovery },
+      jsonSchema,
+      maxTokens,
+    });
+  const result = build(requestOverheadTokens);
+  const requestBudget = Math.max(0, contextTokens - generationTokens);
   const requestTokens = Math.ceil(JSON.stringify(result).length / 4);
-  const requestBudget = Math.max(0, contextTokens - 4_096);
   if (requestTokens > requestBudget) {
     requestOverheadTokens += requestTokens - requestBudget;
-    result.prompt = effectiveGenerationInput({
-      ...result,
-      prompt: prompt(input, progress, finalResponse, { contextTokens, requestOverheadTokens }),
-    }).prompt;
+    result.prompt = build(requestOverheadTokens).prompt;
   }
   if (Math.ceil(JSON.stringify(result).length / 4) > requestBudget) {
     throw new Error("agent_context_exhausted");
@@ -286,7 +291,7 @@ export function executionBackedResponse(
   progress: AgentProgress,
   fallback: string,
 ): string {
-  if (!requiresXlsxWorkflow(input)) return fallback;
+  if (!requiresXlsxWorkflow(input, progress.executions)) return fallback;
   const requiredLabels = requiredOutputLabels(input.task);
   return verifiedXlsxOutput(progress.executions, requiredLabels) ?? fallback;
 }

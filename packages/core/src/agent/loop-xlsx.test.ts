@@ -1,3 +1,4 @@
+import type { AgentExecutionResult } from "@vault/shared";
 import { describe, expect, it } from "vitest";
 import { AgentLoop } from "./loop.js";
 import {
@@ -8,6 +9,31 @@ import {
   expectBoundedSourceSchema,
   inference,
 } from "./loop-xlsx-test-support.js";
+
+function discoveredXlsx(command: string): AgentExecutionResult {
+  return {
+    language: "shell",
+    path: null,
+    source: null,
+    command,
+    exitCode: 0,
+    stdout: "/source/01 Ianuarie/statement.xlsx\n",
+    stderr: "",
+    durationMs: 1,
+    termination: "completed",
+    artifacts: [],
+  };
+}
+
+function expectXlsxDiscoveryInstructions(prompt: string): void {
+  expect(prompt).toContain('warnings.filterwarnings("ignore")');
+  expect(prompt).toContain("load_workbook(path, read_only=True, data_only=True)");
+  expect(prompt).toContain('path.suffix.lower() == ".xlsx"');
+  expect(prompt).toContain("keep the workbook accumulator distinct");
+  expect(prompt).toContain("process only XLSX workbooks");
+  expect(prompt).toContain("DONE and TOTAL count XLSX workbooks only");
+  expect(prompt).toContain("complete restored set of completed workbook paths");
+}
 
 describe("AgentLoop XLSX progress", () => {
   it("advances after an empty inspection and returns verified calculation stdout", async () => {
@@ -36,7 +62,7 @@ describe("AgentLoop XLSX progress", () => {
     expect(result.response).toBe("XLSX_MATCHES=2\nXLSX_TOTAL=2003");
     expect(calls).toEqual([inspection, calculation]);
     expect(prompts[0]).toContain("Choose the simplest bounded strategy");
-    expect(prompts[0]).toContain("load_workbook(path, read_only=True, data_only=True)");
+    expectXlsxDiscoveryInstructions(prompts[0] ?? "");
     expect(prompts[0]).toContain("Close each workbook in a finally block");
     expect(prompts[0]).toContain("for sheet in workbook.worksheets");
     expect(prompts[0]).toContain("never break or return from the worksheet loop");
@@ -53,6 +79,66 @@ describe("AgentLoop XLSX progress", () => {
     expect(schemas).toHaveLength(2);
     expect(schemas.every((schema) => !Object.hasOwn(schema, "oneOf"))).toBe(true);
     expectBoundedSourceSchema(schemas[0] ?? {});
+  });
+});
+
+describe("AgentLoop whitespace-delimited XLSX progress", () => {
+  it("returns a clean execution when all exact markers share one line", async () => {
+    const source = "print('done')";
+    const stdout = [
+      "No salary transactions found.",
+      "VAULT_XLSX_FILES_DONE=36 VAULT_XLSX_FILES_TOTAL=36 VAULT_XLSX_COMPLETE=1",
+    ].join("\n");
+    const result = await new AgentLoop(
+      inference([execute(source, "Inspect")], [], []),
+      executor([{ ...completed, source, stdout }], []),
+    ).run({ task: "Inspect every .xlsx file.", modelId: "test-model" });
+
+    expect(result.response).toBe("No salary transactions found.");
+  });
+});
+
+describe("AgentLoop discovered XLSX routing", () => {
+  it("promotes a salary task to the source-only XLSX workflow after file discovery", async () => {
+    const prompts: string[] = [];
+    const schemas: Array<Record<string, unknown>> = [];
+    const calls: string[] = [];
+    const discovery = "find /source -iname '*.xlsx'";
+    const analysis = "print('salary analysis')";
+    const result = await new AgentLoop(
+      inference(
+        [
+          { action: "execute", language: "shell", command: discovery, summary: "Discover" },
+          execute(analysis, "Analyze"),
+        ],
+        prompts,
+        schemas,
+      ),
+      executor(
+        [
+          discoveredXlsx(discovery),
+          {
+            ...completed,
+            source: analysis,
+            stdout: completeXlsx("ALL_MONTHS=12"),
+          },
+        ],
+        calls,
+      ),
+    ).run({
+      task: "Gaseste toate tranzactiile care contin salariu pentru fiecare luna.",
+      modelId: "test-model",
+    });
+
+    expect(result.response).toBe("ALL_MONTHS=12");
+    expect(calls).toEqual([discovery, analysis]);
+    expect(prompts[0]).toContain("use -iname instead of -name");
+    expect(prompts[0]).not.toContain("VAULT_XLSX_FILES_DONE");
+    expect(prompts[1]).toContain("VAULT_XLSX_FILES_DONE");
+    expect(prompts[1]).toContain("Current required phase: perform bounded XLSX work.");
+    expect(prompts[1]).not.toContain("recover from an incomplete XLSX execution");
+    expect(schemas[0]).toHaveProperty("oneOf");
+    expect(schemas[1]).not.toHaveProperty("oneOf");
   });
 });
 

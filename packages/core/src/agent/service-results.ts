@@ -29,6 +29,9 @@ function failureSummary(detail: string): string {
   if (detail === "agent_decision_limit_exceeded") {
     return "The local model could not produce a new executable plan within the planning limit.";
   }
+  if (detail === "agent_generation_limit") {
+    return "The local model reached its generation limit again while trying a smaller workspace step.";
+  }
   return "The local task could not be completed safely.";
 }
 
