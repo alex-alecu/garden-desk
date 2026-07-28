@@ -11,6 +11,7 @@ use tauri_plugin_shell::process::CommandChild;
 
 mod commands;
 mod diagnostics;
+mod package_integrity;
 
 const MAX_RESPONSE_BYTES: u64 = 192 * 1024 * 1024;
 
@@ -22,6 +23,17 @@ fn add_platform_arguments(
     arguments.extend([
         "--windows-pipe-guard".to_owned(),
         path_text(&core_resources.join("vault-pipe-guard.exe"))?,
+        "--worker-entry".to_owned(),
+        path_text(&core_resources.join("inference/worker.mjs"))?,
+        "--inference-runtime".to_owned(),
+        path_text(&core_resources.join("inference/node.exe"))?,
+        "--inference-helper".to_owned(),
+        path_text(&core_resources.join("inference/vault-appcontainer-launcher.exe"))?,
+        "--agent-helper".to_owned(),
+        path_text(&core_resources.join("workers/vault-hcs-helper.exe"))?,
+        "--agent-image-root".to_owned(),
+        path_text(&core_resources.join("workers/images"))?,
+        "--packaged-model-store".to_owned(),
     ]);
     Ok(())
 }
@@ -54,6 +66,7 @@ pub(crate) struct CoreBridge {
     child: Mutex<Option<CommandChild>>,
     endpoint: String,
     next_id: AtomicU64,
+    _package_locks: package_integrity::PackageLocks,
 }
 
 impl CoreBridge {
@@ -69,6 +82,8 @@ impl CoreBridge {
         let workspace = data_root.join("state");
         let ready_file = data_root.join("core.ready");
         let core_resources = resource_root.join("resources/core");
+        let package_locks =
+            package_integrity::lock_packaged_runtime(&resource_root, &core_resources)?;
         fs::create_dir_all(&workspace).map_err(|error| error.to_string())?;
         remove_stale_ready_file(&ready_file)?;
 
@@ -101,6 +116,7 @@ impl CoreBridge {
             child: Mutex::new(Some(child)),
             endpoint,
             next_id: AtomicU64::new(1),
+            _package_locks: package_locks,
         })
     }
 
@@ -171,10 +187,23 @@ fn connect(endpoint: &str) -> std::io::Result<std::os::unix::net::UnixStream> {
 
 #[cfg(windows)]
 fn connect(endpoint: &str) -> std::io::Result<std::fs::File> {
-    std::fs::OpenOptions::new()
-        .read(true)
-        .write(true)
-        .open(endpoint)
+    const ERROR_PIPE_BUSY: i32 = 231;
+    let deadline = Instant::now() + Duration::from_secs(5);
+    loop {
+        match std::fs::OpenOptions::new()
+            .read(true)
+            .write(true)
+            .open(endpoint)
+        {
+            Ok(stream) => return Ok(stream),
+            Err(error)
+                if error.raw_os_error() == Some(ERROR_PIPE_BUSY) && Instant::now() < deadline =>
+            {
+                std::thread::sleep(Duration::from_millis(10));
+            }
+            Err(error) => return Err(error),
+        }
+    }
 }
 
 fn exchange(endpoint: &str, request: &str) -> Result<Vec<u8>, String> {

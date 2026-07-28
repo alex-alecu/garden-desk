@@ -26,6 +26,7 @@ import {
   resolveRuntimeMemoryBudget,
 } from "./memory.js";
 import { probe } from "./probe.js";
+import { loadLlamaRuntime } from "./runtime-loader.js";
 import { structuredValue } from "./structured.js";
 
 function argument(name: string): string | undefined {
@@ -106,8 +107,7 @@ async function runtime(operation: "generate" | "embed"): Promise<LoadedRuntime> 
     if (modelPath === undefined || !Number.isSafeInteger(requestedBudget) || requestedBudget <= 0) {
       throw new Error("Invalid worker launch arguments.");
     }
-    const { getLlama, LlamaLogLevel } = await import("node-llama-cpp");
-    const llama = await getLlama({ logLevel: LlamaLogLevel.error });
+    const llama = await loadLlamaRuntime();
     const vram = await llama.getVramState();
     const budget = resolveRuntimeMemoryBudget(
       requestedBudget,

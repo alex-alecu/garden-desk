@@ -1,15 +1,15 @@
 # M3 Agent Guest Dependency Review
 
-Date: 2026-07-20
+Updated: 2026-07-27
 
-Decision: approved for the macOS M3 guest image only. The image uses the smallest fixed offline set that covers the named V1 tasks: Python and Node execution, JSON/CSV/SQLite from the standard library, and common PDF, DOCX, XLSX, and image inspection. It contains no pip, npm, Corepack, package-install configuration, or runtime network path.
+Decision: approved for the macOS arm64 and Windows x86_64 M3 guest images. Both architectures use the smallest fixed offline set that covers the named V1 tasks: Python and Node execution, JSON/CSV/SQLite from the standard library, and common PDF, DOCX, XLSX, and image inspection. They contain no pip, npm, Corepack, package-install configuration, or runtime network path.
 
 ## Approved set
 
 | Component | Version | License | M3 purpose | Pinning evidence |
 | --- | --- | --- | --- | --- |
 | Python | 3.14.5 | Python-2.0 | Python tasks and standard JSON, CSV, and SQLite codecs | Buildroot 2026.05 package resolution |
-| Node.js | 24.18.0 arm64 | MIT and bundled notices | Node tasks matching the Core runtime major | Official archive SHA-256 `58c9520501f6ae2b52d5b210444e24b9d0c029a58c5011b797bc1fe7105886f6` |
+| Node.js | 24.18.0 arm64 and x64 | MIT and bundled notices | Node tasks matching the Core runtime major | Official archive SHA-256 `58c9520501f6ae2b52d5b210444e24b9d0c029a58c5011b797bc1fe7105886f6` (arm64) and `55aa7153f9d88f28d765fcdad5ae6945b5c0f98a36881703817e4c450fa76742` (x64) |
 | Pillow | 12.0.0 | HPND | Common image inspection | Buildroot 2026.05 package resolution |
 | pypdf | 6.14.2 | BSD-3-Clause | PDF reading and writing | Official wheel SHA-256 `3f07891af76dc002657e04993ab9b4de81de29f9013b9761d0b7968bff12e946` |
 | openpyxl | 3.1.5 | MIT | XLSX reading and writing | Official wheel SHA-256 `5282c12b107bffeef825f4617dc029afaf41d0ea60823bbb665ef3079dc79de2` |

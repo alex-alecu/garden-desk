@@ -3,8 +3,9 @@ import { tmpdir } from "node:os";
 import { basename, join } from "node:path";
 import { createVaultCore, resolveInferenceHardwarePolicy } from "@vault/core";
 import type { AgentRunSnapshot } from "@vault/shared";
+import { MacOsMicroVmLauncher } from "@vault/workers";
 import { readCanonicalModelManifest, verifyModelFile } from "../models.js";
-import { runMacOsGuestEvidence } from "./m3-macos-guest.js";
+import { runGuestEvidence } from "./m3-guest.js";
 
 const repositoryRoot = process.cwd();
 const helper = join(
@@ -260,7 +261,10 @@ async function main(): Promise<void> {
   }
   const root = await mkdtemp(join(tmpdir(), "vault-m3-agent-gate-"));
   try {
-    const guest = await runMacOsGuestEvidence(root, helper, images);
+    const guest = await runGuestEvidence(
+      root,
+      (workspace) => new MacOsMicroVmLauncher(helper, images, workspace),
+    );
     await prepareModelStore();
     const realAgents = await runRealAgents(root);
     console.log(

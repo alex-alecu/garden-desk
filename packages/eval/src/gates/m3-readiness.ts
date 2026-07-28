@@ -1,9 +1,9 @@
 throw new Error(
   [
     "M3 remains open globally.",
-    "The macOS desktop, packaged Core, real model, reusable agent guest, Python, Node, and shell execution,",
-    "live read-only source, durable workspace, attachments, isolation, and physical acceptance pass.",
-    "Windows agent guest integration, desktop packaging, install lifecycle, and",
-    "physical acceptance are not complete.",
+    "The macOS stage and canonical Windows headless product gate pass with the real packaged model runtime,",
+    "reusable no-NIC guests, live read-only source, durable workspaces, and physical acceptance.",
+    "Installed-Windows debug snapshot and 200 percent UI observations plus owner-controlled",
+    "release signing remain incomplete.",
   ].join(" "),
 );

@@ -26,6 +26,7 @@ export interface VaultCoreOptions {
   migrationDirectory?: string;
   sessionsOnly?: boolean;
   workerEntryPath?: string;
+  inferenceHelperPath?: string;
   inferenceRuntimePath?: string;
   agentHelperPath?: string;
   agentImageRoot?: string;

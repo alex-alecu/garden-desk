@@ -5,10 +5,12 @@ edition = "2024"
 publish = false
 
 [build-dependencies]
+sha2 = "=0.10.9"
 tauri-build = { version = "=2.6.3", features = [] }
 
 [dependencies]
 serde_json = "=1.0.149"
+sha2 = "=0.10.9"
 tauri = { version = "=2.11.5", features = [] }
 tauri-plugin-dialog = "=2.7.2"
 tauri-plugin-shell = "=2.3.5"

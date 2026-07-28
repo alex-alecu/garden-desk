@@ -46,7 +46,7 @@ Current community targets:
 - Windows generation uses the complete GPU VRAM capacity reported by the pinned runtime and requires a supported GPU.
 - Active context is fitted automatically inside the selected budget rather than configured by the user.
 
-The public V1 launch baseline is intentionally simpler than the internal memory tiers: an Apple silicon Mac with at least 16 GB unified memory, or a Windows PC with an NVIDIA GPU and at least 12 GB VRAM. These remain launch targets until physical certification is complete. The website and download surfaces must not describe an untested configuration as certified or imply that installers are available before the signed release gate passes.
+The public V1 launch baseline is intentionally simpler than the internal memory tiers: an Apple silicon Mac with at least 16 GB unified memory, or a Windows PC with an NVIDIA GPU and at least 12 GB VRAM. Physical Windows headless validation now covers an RTX 4080 with 12 GB VRAM; broader configuration claims remain launch targets until their exact hardware and signed release gate pass. The website and download surfaces must not describe an untested configuration as certified or imply that installers are available before the signed release gate passes.
 
 The product should degrade by reducing active context pressure, multimodal usage, or concurrency rather than exposing low-level runtime choices to ordinary users. Hardware tiers must not differ by verification strictness, citation requirements, supported workflows, or safety policy.
 
@@ -112,8 +112,8 @@ The first office appliance should benchmark from real workflow demand, not from 
 Planned first-choice runtime directions:
 
 - Apple Silicon: node-llama-cpp through Metal with the pinned official QAT GGUF first; MLX-family serving is a later adapter-backed optimization candidate.
-- Windows with NVIDIA: node-llama-cpp/llama.cpp-compatible GGUF through CUDA first, with Ollama-compatible serving only when model packaging and context behavior are explicit, telemetry is absent or provably disabled, and no telemetry network path exists.
-- Windows with supported AMD hardware: node-llama-cpp/llama.cpp with HIP or Vulkan first.
+- Windows with NVIDIA: the single Windows package uses node-llama-cpp through its pinned CUDA 13.1 binding and bundled cuBLAS redistributables first; the user supplies only a compatible display driver, not a CUDA Toolkit or separate Vault Desk installation.
+- Windows with supported AMD hardware: the same package uses node-llama-cpp through its pinned Vulkan binding, with no separate AMD installation.
 - Shared appliance or Linux server: vLLM-class serving only after the automatic desktop tiers are validated and appliance profiles are re-opened.
 - NVIDIA-specific optimization: later, after exact model support is proven.
 
@@ -167,3 +167,5 @@ Avoid company-wide exclusivity. Vendor-specific SKUs are acceptable, but the com
 | 2026-07-11 | Aligned the first desktop runtime with ADR 0013 and made hardware capability classification an implementation gate. |
 | 2026-07-22 | Added automatic macOS 10/12/16 GiB model-plus-context budgets, an unsupported 8 GB state, complete Windows GPU VRAM use, and automatic context fitting. |
 | 2026-07-25 | Added the public V1 launch baseline of Apple silicon with at least 16 GB unified memory or Windows with NVIDIA and at least 12 GB VRAM, explicitly pending physical certification and signed installers. |
+| 2026-07-27 | Defined one Windows package containing CUDA plus Vulkan, with bundled cuBLAS and no user-installed CUDA Toolkit. |
+| 2026-07-28 | Physically validated the single package's CUDA and Vulkan initialization plus real-Gemma CUDA execution on an RTX 4080 and AMD Radeon 610M system. |

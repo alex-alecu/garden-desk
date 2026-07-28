@@ -108,21 +108,28 @@ def mount_runtime(request):
         stderr=subprocess.DEVNULL,
     )
     if mounted.returncode != 0:
-        subprocess.run(
-            [
-                "/bin/mount",
-                "-t",
-                "9p",
-                "-o",
-                "trans=virtio,version=9p2000.L,ro",
-                "source",
-                str(SOURCE),
-            ],
-            check=True,
-            stdin=subprocess.DEVNULL,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-        )
+        plan9 = socket.socket(socket.AF_VSOCK, socket.SOCK_STREAM)
+        try:
+            plan9.connect((socket.VMADDR_CID_HOST, 564))
+            descriptor = plan9.fileno()
+            subprocess.run(
+                [
+                    "/bin/mount",
+                    "-t",
+                    "9p",
+                    "-o",
+                    f"trans=fd,rfdno={descriptor},wfdno={descriptor},msize=65536,noload,aname=source,ro",
+                    "source",
+                    str(SOURCE),
+                ],
+                check=True,
+                pass_fds=(descriptor,),
+                stdin=subprocess.DEVNULL,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+        finally:
+            plan9.close()
     subprocess.run(
         ["/bin/mount", "-t", "tmpfs", "-o", f"size={scratch_bytes},mode=0700", "tmpfs", str(WORKSPACE)],
         check=True,

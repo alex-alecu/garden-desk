@@ -97,7 +97,9 @@ describeWindows("M1 certified Windows microVM", () => {
       expect(document.VirtualMachine.Devices).not.toHaveProperty("NetworkAdapters");
       expect(document.VirtualMachine.Devices).toHaveProperty("HvSocket");
       expect(document.VirtualMachine.Devices).toMatchObject({
-        Plan9: { Shares: [{ Flags: 1, Name: "source", Port: 50001 }] },
+        Plan9: {
+          Shares: [{ AccessName: "source", Flags: 5, Name: "source", Port: 564 }],
+        },
       });
       expect(document.VirtualMachine.Devices.Plan9).not.toHaveProperty("ReadOnly");
       expect(JSON.stringify(document)).toContain('"ReadOnly":true');

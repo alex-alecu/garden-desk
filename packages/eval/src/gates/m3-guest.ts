@@ -1,12 +1,8 @@
 import { mkdir, open, truncate, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { AgentExecutionResult, WorkerLimits } from "@vault/shared";
-import {
-  type CodeAgentSession,
-  MacOsMicroVmLauncher,
-  type MicroVmAgentRequest,
-} from "@vault/workers";
-import { requireIsolationProof, runMacOsGuestSecurityEvidence } from "./m3-macos-security.js";
+import type { CodeAgentLauncher, CodeAgentSession, MicroVmAgentRequest } from "@vault/workers";
+import { requireIsolationProof, runGuestSecurityEvidence } from "./m3-guest-security.js";
 
 const limits: WorkerLimits = {
   wallTimeMs: 30_000,
@@ -21,19 +17,13 @@ const limits: WorkerLimits = {
 function requireSuccess(result: AgentExecutionResult): void {
   if (result.exitCode !== 0 || result.termination !== "completed") {
     throw new Error(
-      `Guest execution failed: ${JSON.stringify({
-        language: result.language,
-        exitCode: result.exitCode,
-        stdout: result.stdout,
-        stderr: result.stderr,
-        termination: result.termination,
-      })}`,
+      `Guest execution failed (${result.language}, ${result.exitCode}, ${result.termination}): ${result.stderr}\n${result.stdout}`,
     );
   }
 }
 
 async function withSession<T>(
-  launcher: MacOsMicroVmLauncher,
+  launcher: CodeAgentLauncher,
   request: MicroVmAgentRequest,
   operation: (session: CodeAgentSession) => Promise<T>,
 ): Promise<T> {
@@ -130,7 +120,7 @@ const PYTHON_PROBE = [
   "print(json.dumps(result))",
 ].join("\n");
 
-async function cancellationProbe(launcher: MacOsMicroVmLauncher, source: string) {
+async function cancellationProbe(launcher: CodeAgentLauncher, source: string) {
   const result = await withSession(
     launcher,
     {
@@ -149,7 +139,8 @@ async function cancellationProbe(launcher: MacOsMicroVmLauncher, source: string)
   return result.termination;
 }
 
-async function boundedExecutionProbes(launcher: MacOsMicroVmLauncher, source: string) {
+async function boundedExecutionProbes(launcher: CodeAgentLauncher, source: string) {
+  console.error("m3_guest_stage:execution_timeout");
   const timeout = await withSession(
     launcher,
     {
@@ -166,6 +157,7 @@ async function boundedExecutionProbes(launcher: MacOsMicroVmLauncher, source: st
       }),
   );
   if (timeout.termination !== "timeout") throw new Error("Guest timeout proof failed.");
+  console.error("m3_guest_stage:execution_output");
   const output = await withSession(
     launcher,
     {
@@ -244,7 +236,7 @@ async function persistentFileProbe(session: CodeAgentSession): Promise<void> {
 }
 
 async function rehydrationProbe(
-  launcher: MacOsMicroVmLauncher,
+  launcher: CodeAgentLauncher,
   source: string,
   sessionId: string,
 ): Promise<string> {
@@ -262,11 +254,15 @@ async function rehydrationProbe(
   return result.stdout.trim();
 }
 
-export async function runMacOsGuestEvidence(root: string, helper: string, images: string) {
+export async function runGuestEvidence(
+  root: string,
+  launcherForWorkspace: (workspace: string) => CodeAgentLauncher,
+) {
   const source = await prepareSource(root);
   const workspaceStore = join(root, "workspace-store");
-  const launcher = new MacOsMicroVmLauncher(helper, images, workspaceStore);
+  const launcher = launcherForWorkspace(workspaceStore);
   const sessionId = "00000000-0000-4000-8000-000000000031";
+  console.error("m3_guest_stage:primary");
   const primary = await withSession(
     launcher,
     { sessionId, sourceFolder: source, readonlyInputs: [], limits },
@@ -277,14 +273,18 @@ export async function runMacOsGuestEvidence(root: string, helper: string, images
       return { isolation, language };
     },
   );
+  console.error("m3_guest_stage:rehydration");
   const persistence = await rehydrationProbe(
-    new MacOsMicroVmLauncher(helper, images, workspaceStore),
+    launcherForWorkspace(workspaceStore),
     source,
     sessionId,
   );
+  console.error("m3_guest_stage:cancellation");
   const cancelled = await cancellationProbe(launcher, source);
+  console.error("m3_guest_stage:execution_limits");
   const bounded = await boundedExecutionProbes(launcher, source);
-  const security = await runMacOsGuestSecurityEvidence(launcher, source);
+  console.error("m3_guest_stage:security");
+  const security = await runGuestSecurityEvidence(launcher, source);
   return {
     python: primary.isolation.proof,
     node: primary.language.nodeProof,

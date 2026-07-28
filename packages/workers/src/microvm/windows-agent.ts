@@ -26,7 +26,7 @@ interface ImageManifest {
   };
 }
 
-const VM_BOOT_GRACE_MS = 15_000;
+const VM_BOOT_GRACE_MS = 60_000;
 
 async function digest(path: string): Promise<string> {
   return createHash("sha256")

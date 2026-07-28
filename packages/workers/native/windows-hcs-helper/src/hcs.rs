@@ -10,6 +10,7 @@ use std::ptr::{null, null_mut};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 type Handle = *mut c_void;
+const HCS_E_SYSTEM_ALREADY_STOPPED: i32 = 0x8037_0110_u32 as i32;
 
 #[link(name = "computecore")]
 unsafe extern "system" {
@@ -69,7 +70,7 @@ fn plan9(arguments: &Arguments) -> Result<String, Box<dyn Error>> {
         return Ok(String::new());
     };
     Ok(format!(
-        r#",\"Plan9\":{{\"Shares\":[{{\"Name\":\"source\",\"Path\":\"{}\",\"Port\":50001,\"Flags\":1}}]}}"#,
+        r#","Plan9":{{"Shares":[{{"Name":"source","AccessName":"source","Path":"{}","Port":564,"Flags":5}}]}}"#,
         json_path(source)?
     ))
 }
@@ -190,10 +191,11 @@ impl System {
         }
         let result = (|| {
             let operation = Operation::new()?;
-            started(
-                unsafe { HcsTerminateComputeSystem(self.handle, operation.0, null()) },
-                "compute system termination",
-            )?;
+            let status = unsafe { HcsTerminateComputeSystem(self.handle, operation.0, null()) };
+            if status == HCS_E_SYSTEM_ALREADY_STOPPED {
+                return Ok(());
+            }
+            started(status, "compute system termination")?;
             operation.wait("compute system termination")?;
             Ok(())
         })();

@@ -3,7 +3,12 @@
 ################################################################################
 
 VAULT_NODE_RUNTIME_VERSION = 24.18.0
-VAULT_NODE_RUNTIME_SOURCE = node-v$(VAULT_NODE_RUNTIME_VERSION)-linux-arm64.tar.xz
+ifeq ($(BR2_x86_64),y)
+VAULT_NODE_RUNTIME_ARCH = x64
+else
+VAULT_NODE_RUNTIME_ARCH = arm64
+endif
+VAULT_NODE_RUNTIME_SOURCE = node-v$(VAULT_NODE_RUNTIME_VERSION)-linux-$(VAULT_NODE_RUNTIME_ARCH).tar.xz
 VAULT_NODE_RUNTIME_SITE = https://nodejs.org/download/release/v$(VAULT_NODE_RUNTIME_VERSION)
 VAULT_NODE_RUNTIME_LICENSE = MIT and bundled permissive licenses
 VAULT_NODE_RUNTIME_LICENSE_FILES = LICENSE

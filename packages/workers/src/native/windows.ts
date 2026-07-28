@@ -51,11 +51,15 @@ function preparation(helperPath: string, workerEntryPath: string): Promise<void>
   return pending;
 }
 
-function runArguments(request: NativeWorkerLaunchRequest, scratch: string): string[] {
+export function windowsNativeWorkerArguments(
+  request: NativeWorkerLaunchRequest,
+  scratch: string,
+  runtimePath: string,
+): string[] {
   const args = [
     "run",
     "--executable",
-    process.execPath,
+    runtimePath,
     "--worker",
     resolve(request.workerEntryPath),
     "--scratch",
@@ -82,7 +86,10 @@ export function windowsNativeWorkerEntryPath(): string {
 }
 
 export class WindowsNativeWorkerLauncher implements NativeWorkerLauncher {
-  constructor(private readonly helperPath = defaultHelperPath()) {}
+  constructor(
+    private readonly helperPath = defaultHelperPath(),
+    private readonly runtimePath = process.execPath,
+  ) {}
 
   async launch(request: NativeWorkerLaunchRequest): Promise<NativeWorkerHandle> {
     if (process.platform !== "win32" || process.arch !== "x64") {
@@ -90,11 +97,15 @@ export class WindowsNativeWorkerLauncher implements NativeWorkerLauncher {
     }
     await preparation(this.helperPath, resolve(request.workerEntryPath));
     const temporaryRoot = await mkdtemp(join(tmpdir(), "vault-inference-"));
-    const child = spawn(this.helperPath, runArguments(request, temporaryRoot), {
-      cwd: temporaryRoot,
-      env: helperEnvironment(),
-      stdio: ["pipe", "pipe", "pipe"],
-    });
+    const child = spawn(
+      this.helperPath,
+      windowsNativeWorkerArguments(request, temporaryRoot, resolve(this.runtimePath)),
+      {
+        cwd: temporaryRoot,
+        env: helperEnvironment(),
+        stdio: ["pipe", "pipe", "pipe"],
+      },
+    );
     let disposed = false;
     return {
       process: child,

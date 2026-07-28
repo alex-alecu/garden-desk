@@ -1,6 +1,7 @@
 import { cp, mkdir, readFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
+import { nativeRuntimePackages } from "./src/runtime-package-contract.js";
 
 interface PackageMetadata {
   name: string;
@@ -46,12 +47,9 @@ export async function copyRuntimePackage(
   for (const dependency of Object.keys(metadata.dependencies ?? {})) {
     await copyRuntimePackage(dependency, nestedRequire, nestedModules, installed);
   }
-  if (name === "node-llama-cpp" && process.platform === "darwin" && process.arch === "arm64") {
-    await copyRuntimePackage(
-      "@node-llama-cpp/mac-arm64-metal",
-      nestedRequire,
-      nestedModules,
-      installed,
-    );
+  if (name === "node-llama-cpp") {
+    for (const runtime of nativeRuntimePackages()) {
+      await copyRuntimePackage(runtime, nestedRequire, destinationModules, installed);
+    }
   }
 }
