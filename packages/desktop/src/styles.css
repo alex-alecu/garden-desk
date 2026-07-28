@@ -1092,6 +1092,7 @@ textarea:focus-visible {
   resize: none;
   border: 0;
   outline: 0;
+  color: var(--ink);
   background: transparent;
   line-height: 1.45;
 }
@@ -1157,6 +1158,7 @@ textarea:focus-visible {
 .icon-button {
   width: 34px;
   border-radius: 50%;
+  color: var(--ink);
   background: transparent;
 }
 
