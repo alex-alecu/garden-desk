@@ -1,0 +1,28 @@
+import { join } from "node:path";
+import { describe, expect, it } from "vitest";
+import { developmentResourceContract } from "./dev-resource-contract.js";
+
+const desktopRoot = join("repository", "packages", "desktop");
+const repositoryRoot = "repository";
+
+describe("desktop development resource contract", () => {
+  it("requires only macOS runtime outputs on Apple silicon", () => {
+    const contract = developmentResourceContract(desktopRoot, repositoryRoot, "darwin", "arm64");
+    expect(contract.requiredOutputs).toContain(
+      join(desktopRoot, "src-tauri", "resources", "core", "inference", "node"),
+    );
+    expect(contract.requiredOutputs.some((path) => path.endsWith("node.exe"))).toBe(false);
+    expect(contract.requiredOutputs.some((path) => path.includes("win-x64"))).toBe(false);
+    expect(contract.inputRoots.some((path) => path.includes("windows-appcontainer"))).toBe(false);
+  });
+
+  it("requires only Windows runtime outputs on Windows x64", () => {
+    const contract = developmentResourceContract(desktopRoot, repositoryRoot, "win32", "x64");
+    expect(contract.requiredOutputs).toContain(
+      join(desktopRoot, "src-tauri", "resources", "core", "inference", "node.exe"),
+    );
+    expect(contract.requiredOutputs.some((path) => path.includes("mac-arm64-metal"))).toBe(false);
+    expect(contract.requiredOutputs.some((path) => path.endsWith("vault-vz-helper"))).toBe(false);
+    expect(contract.inputRoots.some((path) => path.includes("macos-vz-helper"))).toBe(false);
+  });
+});
