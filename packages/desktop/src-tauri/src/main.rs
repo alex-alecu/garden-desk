@@ -11,6 +11,7 @@ use tauri_plugin_shell::process::CommandChild;
 
 mod commands;
 mod diagnostics;
+mod package_integrity;
 
 const MAX_RESPONSE_BYTES: u64 = 192 * 1024 * 1024;
 
@@ -65,6 +66,7 @@ pub(crate) struct CoreBridge {
     child: Mutex<Option<CommandChild>>,
     endpoint: String,
     next_id: AtomicU64,
+    _package_locks: package_integrity::PackageLocks,
 }
 
 impl CoreBridge {
@@ -80,6 +82,8 @@ impl CoreBridge {
         let workspace = data_root.join("state");
         let ready_file = data_root.join("core.ready");
         let core_resources = resource_root.join("resources/core");
+        let package_locks =
+            package_integrity::lock_packaged_runtime(&resource_root, &core_resources)?;
         fs::create_dir_all(&workspace).map_err(|error| error.to_string())?;
         remove_stale_ready_file(&ready_file)?;
 
@@ -112,6 +116,7 @@ impl CoreBridge {
             child: Mutex::new(Some(child)),
             endpoint,
             next_id: AtomicU64::new(1),
+            _package_locks: package_locks,
         })
     }
 

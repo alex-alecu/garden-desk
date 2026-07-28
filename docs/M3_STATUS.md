@@ -71,6 +71,7 @@ The persistent-workspace M3 implementation and canonical headless gate are certi
 
 - The installed-app debug snapshot and Explorer reveal flow has not run on Windows and remains part of that platform handoff.
 - A Windows 200 percent display-scale check and direct installed-app observation of active log updates remain manual UI evidence. The same behaviors have focused DOM and physical headless coverage but are not inferred as a packaged visual pass.
+- The signed Windows desktop now embeds the expected Core and resource-manifest hashes, verifies its elevated helpers, and holds non-writable read locks through shutdown. Focused Rust tests reject tampered bytes; the final Windows release package must rerun tamper rejection and normal launch before this source change receives physical package evidence.
 - The current unelevated Windows shell passes 59 test files and 236 tests in `pnpm verify`; two workspace-security fixtures cannot create their required symlinks and fail during setup with Windows `EPERM`. The product symlink rejection passed in the real elevated no-NIC guest, and the repository fixtures must not be weakened to hide the host developer-mode limitation.
 - Public distribution still requires owner-controlled release credentials. Current nested Windows signatures are ephemeral self-signed development evidence, not a public release signature.
 - The authoritative `pnpm test:gate --milestone 3` remains intentionally red until those explicit installed-app and release observations are recorded. Neither platform's evidence is inferred from the other.
