@@ -133,8 +133,8 @@ describe("M3 queued resident worker cancellation", () => {
 });
 
 describe("M3 resident worker recovery", () => {
-  it("keeps the resident model for one recoverable structured-call miss", async () => {
-    let attempt = 0;
+  it("keeps the resident model for recoverable structured and generation-limit misses", async () => {
+    const failures = ["structured_tool_call_required", "generation_token_limit"];
     let unloads = 0;
     const port: InferencePort = {
       async unload() {
@@ -142,25 +142,45 @@ describe("M3 resident worker recovery", () => {
         return true;
       },
       async execute(execution) {
-        attempt += 1;
-        return attempt === 1
-          ? {
-              protocolVersion: 1,
-              requestId: execution.request.requestId,
-              status: "error",
-              error: { code: "internal", message: "structured_tool_call_required" },
-            }
-          : success(execution);
+        const message = failures.shift();
+        if (message === undefined) return success(execution);
+        return {
+          protocolVersion: 1,
+          requestId: execution.request.requestId,
+          status: "error",
+          error: { code: "internal", message },
+        };
       },
     };
     const inference = await supervisor(port, []);
     await expect(inference.generate(generationInput)).rejects.toThrow(
       "structured_tool_call_required",
     );
+    await expect(inference.generate(generationInput)).rejects.toThrow("generation_token_limit");
     await expect(inference.generate(generationInput)).resolves.toMatchObject({
       value: { result: "ready" },
     });
     expect(unloads).toBe(0);
     await expect(inference.modelStatus()).resolves.toMatchObject({ state: "ready" });
+  });
+
+  it("allows a 32K generation enough bounded time to reach its token limit", async () => {
+    let timeoutMs = 0;
+    const inference = await supervisor(
+      {
+        async unload() {
+          return true;
+        },
+        async execute(execution) {
+          timeoutMs = execution.timeoutMs;
+          return success(execution);
+        },
+      },
+      [],
+    );
+
+    await inference.generate({ ...generationInput, maxTokens: 32_768 });
+
+    expect(timeoutMs).toBe(1_966_080);
   });
 });

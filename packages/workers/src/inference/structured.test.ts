@@ -3,12 +3,31 @@ import type { ChatSessionModelFunctions, LlamaChatSession, Token } from "node-ll
 import { describe, expect, it } from "vitest";
 import { structuredValue } from "./structured.js";
 
+const request = {
+  protocolVersion: 1,
+  requestId: "request",
+  jobId: JobIdSchema.parse("00000000-0000-4000-8000-000000000001"),
+  operation: "generate",
+  modelId: "gemma-4-test",
+  prompt: "Respond.",
+  jsonSchema: {
+    type: "object",
+    properties: {
+      action: { const: "respond" },
+      response: { type: "array", items: { type: "string" } },
+    },
+    required: ["action", "response"],
+  },
+  contextSize: "auto",
+  maxTokens: 16,
+} satisfies StructuredGenerationRequest;
+
 describe("structuredValue", () => {
   it("forwards generated function-call tokens to performance timing", async () => {
     let tokenChunks = 0;
     let effectivePrompt = "";
     const session = {
-      async prompt(
+      async promptWithMeta(
         prompt: string,
         options: {
           functions: ChatSessionModelFunctions;
@@ -22,24 +41,6 @@ describe("structuredValue", () => {
         return await action.handler({ response: ["Done."] } as never);
       },
     } as unknown as LlamaChatSession;
-    const request = {
-      protocolVersion: 1,
-      requestId: "request",
-      jobId: JobIdSchema.parse("00000000-0000-4000-8000-000000000001"),
-      operation: "generate",
-      modelId: "gemma-4-test",
-      prompt: "Respond.",
-      jsonSchema: {
-        type: "object",
-        properties: {
-          action: { const: "respond" },
-          response: { type: "array", items: { type: "string" } },
-        },
-        required: ["action", "response"],
-      },
-      contextSize: "auto",
-      maxTokens: 16,
-    } satisfies StructuredGenerationRequest;
 
     const value = await structuredValue(request, {} as never, session, {
       onResponseChunk: () => undefined,
@@ -51,5 +52,25 @@ describe("structuredValue", () => {
     expect(tokenChunks).toBe(1);
     expect(effectivePrompt).toBe("Respond.");
     expect(value).toEqual({ action: "respond", response: ["Done."] });
+  });
+
+  it("reports the generation token limit before parsing an incomplete action", async () => {
+    const session = {
+      async promptWithMeta() {
+        return {
+          response: [],
+          responseText: "",
+          stopReason: "maxTokens",
+          remainingGenerationAfterStop: undefined,
+        };
+      },
+    } as unknown as LlamaChatSession;
+
+    await expect(
+      structuredValue(request, {} as never, session, {
+        onResponseChunk: () => undefined,
+        onToken: () => undefined,
+      }),
+    ).rejects.toThrow("generation_token_limit");
   });
 });

@@ -13,6 +13,15 @@ describe("XLSX progress evidence", () => {
     expect(stripXlsxProgress(stdout)).toBe("XLSX_MATCHES=10");
   });
 
+  it("accepts exact whitespace-delimited markers on one line", () => {
+    const stdout = [
+      "No salary transactions found.",
+      "VAULT_XLSX_FILES_DONE=36 VAULT_XLSX_FILES_TOTAL=36 VAULT_XLSX_COMPLETE=1",
+    ].join("\n");
+    expect(parseXlsxProgress(stdout)).toEqual({ filesDone: 36, filesTotal: 36, complete: true });
+    expect(stripXlsxProgress(stdout)).toBe("No salary transactions found.");
+  });
+
   it.each([
     "VAULT_XLSX_FILES_DONE=6\nVAULT_XLSX_FILES_TOTAL=5\nVAULT_XLSX_COMPLETE=0",
     "VAULT_XLSX_FILES_DONE=5\nVAULT_XLSX_FILES_TOTAL=5\nVAULT_XLSX_COMPLETE=0",

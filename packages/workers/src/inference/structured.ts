@@ -73,7 +73,7 @@ async function gemmaStructuredValue(
   callbacks: StructuredCallbacks,
 ): Promise<unknown> {
   try {
-    await session.prompt(request.prompt, {
+    const result = await session.promptWithMeta(request.prompt, {
       functions: structuredFunctions(request.jsonSchema),
       maxTokens: request.maxTokens,
       budgets: { thoughtTokens: Math.min(1_024, Math.floor(request.maxTokens / 2)) },
@@ -81,6 +81,7 @@ async function gemmaStructuredValue(
       onResponseChunk: callbacks.onResponseChunk,
       onToken: callbacks.onToken,
     });
+    if (result.stopReason === "maxTokens") throw new Error("generation_token_limit");
     throw new Error("structured_tool_call_required");
   } catch (error) {
     if (error instanceof StructuredResult) return error.value;
@@ -103,12 +104,13 @@ export async function structuredValue(
     return await gemmaStructuredValue(request, session, callbacks);
   }
   const grammar = await llama.createGrammarForJsonSchema(request.jsonSchema as never);
-  const output = await session.prompt(request.prompt, {
+  const result = await session.promptWithMeta(request.prompt, {
     grammar,
     maxTokens: request.maxTokens,
     temperature: 0,
     onResponseChunk: callbacks.onResponseChunk,
     onToken: callbacks.onToken,
   });
-  return grammar.parse(output);
+  if (result.stopReason === "maxTokens") throw new Error("generation_token_limit");
+  return grammar.parse(result.responseText);
 }

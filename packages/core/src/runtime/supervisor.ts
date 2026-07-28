@@ -21,6 +21,7 @@ import {
   inferenceAbortFailure,
   inferenceFailureCode,
 } from "./inference-errors.js";
+import { type ActiveInferenceExecution, inferenceTimeoutMs } from "./inference-timeout.js";
 import { DEFAULT_MODEL_ID, modelRuntimeStatus } from "./model-status.js";
 import type { ModelResolver } from "./models.js";
 import type { ResourceScheduler } from "./scheduler.js";
@@ -29,13 +30,6 @@ import { AsyncSerial } from "./serial.js";
 type AuditAppender = (event: AuditEventInput) => void;
 type ResourceLease = ReturnType<ResourceScheduler["reserve"]>;
 type StagedModel = Awaited<ReturnType<ModelResolver["resolve"]>>;
-const INFERENCE_TIMEOUT_MS = 300_000;
-interface ActiveExecution {
-  lifecycle: AbortController;
-  signal: AbortSignal;
-  startedAt: number;
-  finish(): void;
-}
 
 export class InferenceSupervisor implements InferenceService {
   private readonly active = new Map<AbortController, Promise<void>>();
@@ -58,7 +52,7 @@ export class InferenceSupervisor implements InferenceService {
     private readonly audit: AuditAppender,
   ) {}
 
-  private startExecution(signal?: AbortSignal): ActiveExecution {
+  private startExecution(signal?: AbortSignal): ActiveInferenceExecution {
     if (this.closed) throw new InferenceFailure("cancelled", "Inference supervisor closed.");
     const lifecycle = new AbortController();
     const operationSignal = AbortSignal.any([
@@ -70,21 +64,25 @@ export class InferenceSupervisor implements InferenceService {
       finishExecution = () => accept();
     });
     this.active.set(lifecycle, finished);
-    return { lifecycle, signal: operationSignal, startedAt: 0, finish: finishExecution };
+    return {
+      lifecycle,
+      signal: operationSignal,
+      startedAt: 0,
+      timeoutMs: 0,
+      finish: finishExecution,
+    };
   }
 
-  private startTimedExecution(execution: ActiveExecution): void {
+  private startTimedExecution(execution: ActiveInferenceExecution, timeoutMs: number): void {
     execution.signal.throwIfAborted();
-    execution.signal = AbortSignal.any([
-      execution.signal,
-      AbortSignal.timeout(INFERENCE_TIMEOUT_MS),
-    ]);
+    execution.signal = AbortSignal.any([execution.signal, AbortSignal.timeout(timeoutMs)]);
     execution.startedAt = Date.now();
+    execution.timeoutMs = timeoutMs;
   }
 
   private async execute(
     request: InferenceWorkerRequest,
-    execution: ActiveExecution,
+    execution: ActiveInferenceExecution,
     lease: ResourceLease,
     options: {
       stagedModel?: StagedModel;
@@ -95,7 +93,7 @@ export class InferenceSupervisor implements InferenceService {
       request,
       ...(options.stagedModel === undefined ? {} : { modelPath: options.stagedModel.path }),
       memoryBudgetBytes: lease.memoryBudgetBytes,
-      timeoutMs: Math.max(1, INFERENCE_TIMEOUT_MS - (Date.now() - execution.startedAt)),
+      timeoutMs: Math.max(1, execution.timeoutMs - (Date.now() - execution.startedAt)),
       signal: execution.signal,
       ...(options.onThinkingDelta === undefined
         ? {}
@@ -129,7 +127,7 @@ export class InferenceSupervisor implements InferenceService {
     return response;
   }
 
-  private finishExecution(execution: ActiveExecution): void {
+  private finishExecution(execution: ActiveInferenceExecution): void {
     this.active.delete(execution.lifecycle);
     execution.finish();
   }
@@ -174,13 +172,13 @@ export class InferenceSupervisor implements InferenceService {
 
   private async executeOne(
     request: InferenceWorkerRequest,
-    execution: ActiveExecution,
+    execution: ActiveInferenceExecution,
     onThinkingDelta?: (text: string) => void,
   ) {
     let resourcesPrepared = false;
     let lease: ResourceLease | undefined;
     try {
-      this.startTimedExecution(execution);
+      this.startTimedExecution(execution, inferenceTimeoutMs(request));
       const resources = await this.resources(request, execution.signal);
       lease = resources.lease;
       resourcesPrepared = true;
@@ -192,7 +190,8 @@ export class InferenceSupervisor implements InferenceService {
       return { response, lease: resources.lease };
     } catch (error) {
       const recoverableStructuredMiss =
-        error instanceof Error && error.message === "structured_tool_call_required";
+        error instanceof Error &&
+        ["structured_tool_call_required", "generation_token_limit"].includes(error.message);
       if (resourcesPrepared && request.operation !== "probe" && !recoverableStructuredMiss) {
         await this.releaseResident();
       }

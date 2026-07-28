@@ -7,6 +7,7 @@ export const InferenceOperationSchema = z.enum(["generate", "embed", "probe"]);
 
 const JsonSchemaSchema = z.record(z.string(), z.unknown());
 export const MAX_EFFECTIVE_GENERATION_PROMPT_CHARACTERS = 256_054;
+export const MAX_GENERATION_TOKENS = 32_768;
 const RequestBaseSchema = z.object({
   protocolVersion: z.literal(1),
   requestId: RequestIdSchema,
@@ -19,7 +20,7 @@ export const StructuredGenerationRequestSchema = RequestBaseSchema.extend({
   prompt: z.string().min(1).max(MAX_EFFECTIVE_GENERATION_PROMPT_CHARACTERS),
   jsonSchema: JsonSchemaSchema,
   contextSize: z.union([z.literal("auto"), z.number().int().min(512).max(262_144)]),
-  maxTokens: z.number().int().positive().max(4_096),
+  maxTokens: z.number().int().positive().max(MAX_GENERATION_TOKENS),
 });
 
 export const EmbeddingRequestSchema = RequestBaseSchema.extend({
