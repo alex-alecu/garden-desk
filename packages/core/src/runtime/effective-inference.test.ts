@@ -1,4 +1,4 @@
-import { InferenceWorkerRequestSchema, JobIdSchema } from "@vault/shared";
+import { InferenceWorkerRequestSchema, JobIdSchema, MAX_GENERATION_TOKENS } from "@vault/shared";
 import { describe, expect, it } from "vitest";
 import { generationInput } from "../agent/prompt.js";
 import { createGenerationRequest, effectiveGenerationInput } from "./inference.js";
@@ -60,5 +60,26 @@ describe("M3 effective inference prompts", () => {
     );
     expect(input.prompt).toMatch(/Call exactly one available function with your answer\.$/u);
     expect(Math.ceil(JSON.stringify(input).length / 4)).toBeLessThanOrEqual(4_096);
+  });
+});
+
+describe("M3 generation request limits", () => {
+  it("accepts the 32K generation boundary and rejects larger requests", () => {
+    const request = {
+      protocolVersion: 1,
+      requestId: "test",
+      jobId: JobIdSchema.parse("00000000-0000-4000-8000-000000000001"),
+      operation: "generate",
+      modelId: "gemma-4-test",
+      prompt: "Respond.",
+      jsonSchema: { type: "object" },
+      contextSize: "auto",
+      maxTokens: MAX_GENERATION_TOKENS,
+    } as const;
+
+    expect(() => InferenceWorkerRequestSchema.parse(request)).not.toThrow();
+    expect(() =>
+      InferenceWorkerRequestSchema.parse({ ...request, maxTokens: MAX_GENERATION_TOKENS + 1 }),
+    ).toThrow();
   });
 });

@@ -24,5 +24,8 @@ describe("agent failure privacy", () => {
     expect(agentFailureEvent(false, "agent_decision_limit_exceeded").summary).toBe(
       "The local model could not produce a new executable plan within the planning limit.",
     );
+    expect(agentFailureEvent(false, "agent_generation_limit").summary).toBe(
+      "The local model reached its generation limit again while trying a smaller workspace step.",
+    );
   });
 });

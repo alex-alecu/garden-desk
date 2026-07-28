@@ -19,6 +19,7 @@ import {
   type AgentProgress,
   type AgentPromptInput,
   executionBackedResponse,
+  type GenerationRecovery,
   generationInput,
   MAX_EXECUTIONS,
   parseDecision,
@@ -31,6 +32,7 @@ const MAX_CONSECUTIVE_DUPLICATES = 2;
 const MAX_CONSECUTIVE_INVALID_PROGRAMS = 7;
 const STRUCTURED_RETRY_SUFFIX =
   "\nYour previous attempt did not call a function. Call exactly one available function with your answer.";
+const GENERATION_LIMIT_ERROR = "generation_token_limit";
 
 export interface AgentExecutor {
   execute(input: AgentSessionExecution, signal?: AbortSignal): Promise<AgentExecutionResult>;
@@ -48,6 +50,19 @@ interface TracedDecision {
   turnId?: string;
 }
 type PreparedGeneration = ReturnType<typeof createGenerationRequest>;
+interface GenerationRecoveryTurn {
+  input: AgentRunInput;
+  progress: AgentProgress;
+  finalResponse: boolean;
+  initialRequest: PreparedGeneration;
+  recovery: Exclude<ReturnType<typeof generationRecovery>, undefined>;
+}
+
+function generationRecovery(error: unknown): GenerationRecovery | "structured_call" {
+  if (!(error instanceof Error)) return undefined;
+  if (error.message === "structured_tool_call_required") return "structured_call";
+  return error.message === GENERATION_LIMIT_ERROR ? "generation_limit" : undefined;
+}
 
 export class AgentLoop {
   private contextTokens: number;
@@ -61,31 +76,68 @@ export class AgentLoop {
 
   private async generateDecision(
     input: AgentRunInput,
+    progress: AgentProgress,
     finalResponse: boolean,
     initialRequest: PreparedGeneration,
   ): Promise<{ generated: StructuredGenerationResult; turnId: string | undefined }> {
-    let request = initialRequest;
-    let turnId = await input.trace?.store.begin(
+    try {
+      return await this.generateTurn(input, finalResponse, initialRequest);
+    } catch (error) {
+      const recovery = generationRecovery(error);
+      if (recovery === undefined) throw error;
+      return this.generateRecoveryTurn({
+        input,
+        progress,
+        finalResponse,
+        initialRequest,
+        recovery,
+      });
+    }
+  }
+
+  private async generateRecoveryTurn(
+    turn: GenerationRecoveryTurn,
+  ): Promise<{ generated: StructuredGenerationResult; turnId: string | undefined }> {
+    const { input, progress, finalResponse, initialRequest, recovery } = turn;
+    if (recovery === "generation_limit") {
+      input.onEvent?.(
+        "inference.started",
+        "The local model reached its 32K generation limit. Continuing with a smaller workspace edit.",
+      );
+    }
+    const request =
+      recovery === "structured_call"
+        ? createGenerationRequest({
+            ...initialRequest.input,
+            prompt: `${initialRequest.input.prompt}${STRUCTURED_RETRY_SUFFIX}`,
+          })
+        : createGenerationRequest(
+            generationInput(input, progress, finalResponse, {
+              contextTokens: this.contextTokens,
+              recovery: "generation_limit",
+            }),
+          );
+    try {
+      return await this.generateTurn(input, finalResponse, request);
+    } catch (error) {
+      if (generationRecovery(error) === "generation_limit") {
+        throw new Error("agent_generation_limit");
+      }
+      throw error;
+    }
+  }
+
+  private async generateTurn(
+    input: AgentRunInput,
+    finalResponse: boolean,
+    request: PreparedGeneration,
+  ): Promise<{ generated: StructuredGenerationResult; turnId: string | undefined }> {
+    const turnId = await input.trace?.store.begin(
       input.trace.runId,
       finalResponse ? "final_response" : "decision",
       { input: request.input, ...request.identity },
     );
-    try {
-      return { generated: await this.generate(input, request, turnId), turnId };
-    } catch (error) {
-      if (!(error instanceof Error) || error.message !== "structured_tool_call_required")
-        throw error;
-      request = createGenerationRequest({
-        ...request.input,
-        prompt: `${request.input.prompt}${STRUCTURED_RETRY_SUFFIX}`,
-      });
-      turnId = await input.trace?.store.begin(
-        input.trace.runId,
-        finalResponse ? "final_response" : "decision",
-        { input: request.input, ...request.identity },
-      );
-      return { generated: await this.generate(input, request, turnId), turnId };
-    }
+    return { generated: await this.generate(input, request, turnId), turnId };
   }
 
   private async decide(
@@ -104,9 +156,14 @@ export class AgentLoop {
     );
     input.onThinking?.(null);
     const request = createGenerationRequest(
-      generationInput(input, progress, finalResponse, this.contextTokens),
+      generationInput(input, progress, finalResponse, { contextTokens: this.contextTokens }),
     );
-    const { generated, turnId } = await this.generateDecision(input, finalResponse, request);
+    const { generated, turnId } = await this.generateDecision(
+      input,
+      progress,
+      finalResponse,
+      request,
+    );
     if (turnId !== undefined) {
       await input.trace?.store.captureResponse(
         turnId,

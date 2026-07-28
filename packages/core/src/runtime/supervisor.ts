@@ -29,11 +29,13 @@ import { AsyncSerial } from "./serial.js";
 type AuditAppender = (event: AuditEventInput) => void;
 type ResourceLease = ReturnType<ResourceScheduler["reserve"]>;
 type StagedModel = Awaited<ReturnType<ModelResolver["resolve"]>>;
-const INFERENCE_TIMEOUT_MS = 300_000;
+const MINIMUM_INFERENCE_TIMEOUT_MS = 300_000;
+const GENERATION_TOKEN_TIMEOUT_MS = 60;
 interface ActiveExecution {
   lifecycle: AbortController;
   signal: AbortSignal;
   startedAt: number;
+  timeoutMs: number;
   finish(): void;
 }
 
@@ -70,16 +72,20 @@ export class InferenceSupervisor implements InferenceService {
       finishExecution = () => accept();
     });
     this.active.set(lifecycle, finished);
-    return { lifecycle, signal: operationSignal, startedAt: 0, finish: finishExecution };
+    return {
+      lifecycle,
+      signal: operationSignal,
+      startedAt: 0,
+      timeoutMs: 0,
+      finish: finishExecution,
+    };
   }
 
-  private startTimedExecution(execution: ActiveExecution): void {
+  private startTimedExecution(execution: ActiveExecution, timeoutMs: number): void {
     execution.signal.throwIfAborted();
-    execution.signal = AbortSignal.any([
-      execution.signal,
-      AbortSignal.timeout(INFERENCE_TIMEOUT_MS),
-    ]);
+    execution.signal = AbortSignal.any([execution.signal, AbortSignal.timeout(timeoutMs)]);
     execution.startedAt = Date.now();
+    execution.timeoutMs = timeoutMs;
   }
 
   private async execute(
@@ -95,7 +101,7 @@ export class InferenceSupervisor implements InferenceService {
       request,
       ...(options.stagedModel === undefined ? {} : { modelPath: options.stagedModel.path }),
       memoryBudgetBytes: lease.memoryBudgetBytes,
-      timeoutMs: Math.max(1, INFERENCE_TIMEOUT_MS - (Date.now() - execution.startedAt)),
+      timeoutMs: Math.max(1, execution.timeoutMs - (Date.now() - execution.startedAt)),
       signal: execution.signal,
       ...(options.onThinkingDelta === undefined
         ? {}
@@ -180,7 +186,11 @@ export class InferenceSupervisor implements InferenceService {
     let resourcesPrepared = false;
     let lease: ResourceLease | undefined;
     try {
-      this.startTimedExecution(execution);
+      const timeoutMs =
+        request.operation === "generate"
+          ? Math.max(MINIMUM_INFERENCE_TIMEOUT_MS, request.maxTokens * GENERATION_TOKEN_TIMEOUT_MS)
+          : MINIMUM_INFERENCE_TIMEOUT_MS;
+      this.startTimedExecution(execution, timeoutMs);
       const resources = await this.resources(request, execution.signal);
       lease = resources.lease;
       resourcesPrepared = true;
@@ -192,7 +202,8 @@ export class InferenceSupervisor implements InferenceService {
       return { response, lease: resources.lease };
     } catch (error) {
       const recoverableStructuredMiss =
-        error instanceof Error && error.message === "structured_tool_call_required";
+        error instanceof Error &&
+        ["structured_tool_call_required", "generation_token_limit"].includes(error.message);
       if (resourcesPrepared && request.operation !== "probe" && !recoverableStructuredMiss) {
         await this.releaseResident();
       }
