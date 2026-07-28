@@ -17,7 +17,7 @@ import {
   xlsxWorkflowPhase,
 } from "./output-contract.js";
 import { rejectionInstructions } from "./prompt-rejection.js";
-import { agentDecisionJsonSchema } from "./prompt-schema.js";
+import { agentDecisionJsonSchema, SHELL_COMMAND_CHARACTER_LIMIT } from "./prompt-schema.js";
 import {
   XLSX_CONTINUE_PHASE,
   XLSX_EXECUTION_INSTRUCTIONS,
@@ -41,7 +41,8 @@ const EXECUTION_INSTRUCTIONS = [
   "Temporary files may use the bounded ephemeral /run/user directory through TMPDIR. Do not write elsewhere in the guest.",
   "Python and Node executions use a safe /workspace-relative path and complete source. Reuse the same path when repairing a failed program.",
   "When path is omitted, Vault Desk assigns steps/NNNN.py or steps/NNNN.mjs. Never use absolute paths, backslashes, empty components, dot components, or parent traversal.",
-  `Shell executions run command through ${capabilities.shell} from ${capabilities.workspaceMount.path}. Installed tools include ${TOOL_CAPABILITIES}.`,
+  `Shell executions run command through ${capabilities.shell} from ${capabilities.workspaceMount.path}. Installed tools include ${TOOL_CAPABILITIES}. Shell commands are limited to ${SHELL_COMMAND_CHARACTER_LIMIT.toLocaleString("en-US")} characters.`,
+  "Never embed a Python or Node program in a shell command. Choose the matching Python or Node source action so Vault Desk writes the source to a workspace file and executes it.",
   "The source field is an array of complete lines with no newline inside an item. The command field is a one-item array containing the complete shell program string; keep every executable and its arguments in that one item.",
   "The response field is an array of at most 100 complete output lines, with no newline inside an item.",
   "Never request networks, credentials, writes to /source, host APIs, or package installation.",
@@ -63,8 +64,32 @@ export interface AgentPromptInput {
 export interface AgentProgress {
   executions: AgentExecutionResult[];
   inference: InferencePerformance;
-  lastRejectedProgramReason?: "duplicate" | "invalid" | undefined;
+  lastRejectedProgramReason?: "duplicate" | "invalid" | "shell_limit" | undefined;
   rejectedDuplicates: number;
+}
+
+function needsShellSourceRepair(progress: AgentProgress): boolean {
+  if (progress.lastRejectedProgramReason === "shell_limit") return true;
+  const latest = progress.executions.at(-1);
+  return (
+    latest?.language === "shell" &&
+    latest.exitCode !== 0 &&
+    /unterminated quoted string/iu.test(latest.stderr)
+  );
+}
+
+function shellSourceRepairInstructions(progress: AgentProgress): readonly string[] {
+  const latest = progress.executions.at(-1);
+  if (
+    latest?.language !== "shell" ||
+    latest.exitCode === 0 ||
+    !/unterminated quoted string/iu.test(latest.stderr)
+  )
+    return [];
+  return [
+    "The last shell command failed because it contained an unterminated quoted string.",
+    "Do not repair it as another shell command. Submit a Python or Node source action instead; Vault Desk writes that source to a workspace file and executes it.",
+  ];
 }
 
 export function requiresXlsxWorkflow(input: AgentPromptInput): boolean {
@@ -210,6 +235,7 @@ function prompt(
     `Remaining execution capacity: ${Math.max(0, MAX_EXECUTIONS - executions.length)}.`,
     `Rejected duplicate or pathologically repetitive programs: ${rejectedDuplicates}. A rejected program was not executed and does not advance the task. After a rejection, start from a fresh short strategy instead of copying the rejected source.`,
     ...rejectionInstructions(progress),
+    ...shellSourceRepairInstructions(progress),
     `Required output labels: ${JSON.stringify(requiredLabels)}. A result is complete only when stdout contains every label exactly as LABEL=value with no spaces around the equals sign.`,
     `Produced artifact names: ${JSON.stringify(artifacts)}.`,
     "These observations are authoritative. Never repeat completed code or a completed task step.",
@@ -239,7 +265,11 @@ export function generationInput(
     !finalResponse &&
     requiresXlsxWorkflow(input) &&
     xlsxWorkflowPhase(progress.executions, requiredLabels) !== "complete";
-  const jsonSchema = agentDecisionJsonSchema(input.task, finalResponse, requiresXlsxExecution);
+  const jsonSchema = agentDecisionJsonSchema(
+    input.task,
+    finalResponse,
+    requiresXlsxExecution || needsShellSourceRepair(progress),
+  );
   let requestOverheadTokens = Math.ceil(
     JSON.stringify({ modelId: input.modelId, jsonSchema, contextSize: "auto", maxTokens: 4096 })
       .length / 4,

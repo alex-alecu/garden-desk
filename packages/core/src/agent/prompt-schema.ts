@@ -13,6 +13,8 @@ const FINAL_RESPONSE_SCHEMA = {
   additionalProperties: false,
 } as const;
 
+export const SHELL_COMMAND_CHARACTER_LIMIT = 4_096;
+
 const SOURCE_EXECUTION_SCHEMA = {
   type: "object",
   properties: {
@@ -38,7 +40,7 @@ const SHELL_EXECUTION_SCHEMA = {
     language: { const: "shell" },
     command: {
       type: "array",
-      items: { type: "string", minLength: 1, maxLength: 512 },
+      items: { type: "string", minLength: 1, maxLength: SHELL_COMMAND_CHARACTER_LIMIT },
       minItems: 1,
       maxItems: 1,
     },

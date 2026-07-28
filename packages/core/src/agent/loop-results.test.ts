@@ -290,3 +290,79 @@ describe("AgentLoop failed duplicate decisions", () => {
     expect(prompts[2]).toContain("Rejected duplicate or pathologically repetitive programs: 1.");
   });
 });
+
+describe("AgentLoop shell command limit", () => {
+  it("rejects a command at the 4K boundary and requires a source action", async () => {
+    const calls: string[] = [];
+    const prompts: string[] = [];
+    const schemas: Array<Record<string, unknown>> = [];
+    const repaired = { ...completed, source: "print('repaired')" };
+    const loop = new AgentLoop(
+      capturingInference(
+        [
+          { action: "execute", language: "shell", command: "x".repeat(4_096), summary: "Run" },
+          { action: "execute", language: "python", source: repaired.source, summary: "Repair" },
+          { action: "respond", response: "Done." },
+        ],
+        prompts,
+        schemas,
+      ),
+      executor([repaired], calls),
+    );
+
+    const result = await loop.run({ task: "Inspect input", modelId: "test-model" });
+
+    expect(calls).toEqual([repaired.source]);
+    expect(result.executions).toEqual([repaired]);
+    expect(prompts[1]).toContain("reached the 4,096-character command limit");
+    expect(prompts[1]).toContain("writes the complete source to a workspace file");
+    expect(JSON.stringify(schemas[0])).toContain('"maxLength":4096');
+    expect(schemas[1]).not.toHaveProperty("oneOf");
+  });
+});
+
+function failedShellResult(command: string): AgentExecutionResult {
+  return {
+    language: "shell",
+    path: null,
+    source: null,
+    command,
+    exitCode: 2,
+    stdout: "",
+    stderr: "/bin/sh: syntax error: unterminated quoted string\n",
+    durationMs: 1,
+    termination: "crash",
+    artifacts: [],
+  };
+}
+
+describe("AgentLoop shell quote repair", () => {
+  it("explains an unterminated shell quote and switches the repair to source", async () => {
+    const command = `python3 -c "print('salary')`;
+    const failed = failedShellResult(command);
+    const repaired = { ...completed, source: "print('salary')" };
+    const calls: string[] = [];
+    const prompts: string[] = [];
+    const schemas: Array<Record<string, unknown>> = [];
+    const loop = new AgentLoop(
+      capturingInference(
+        [
+          { action: "execute", language: "shell", command, summary: "Search" },
+          { action: "execute", language: "python", source: repaired.source, summary: "Repair" },
+          { action: "respond", response: "Done." },
+        ],
+        prompts,
+        schemas,
+      ),
+      executor([failed, repaired], calls),
+    );
+
+    const result = await loop.run({ task: "Find salary entries", modelId: "test-model" });
+
+    expect(calls).toEqual([command, repaired.source]);
+    expect(result.executions).toEqual([failed, repaired]);
+    expect(prompts[1]).toContain("failed because it contained an unterminated quoted string");
+    expect(prompts[1]).toContain("Do not repair it as another shell command");
+    expect(schemas[1]).not.toHaveProperty("oneOf");
+  });
+});
