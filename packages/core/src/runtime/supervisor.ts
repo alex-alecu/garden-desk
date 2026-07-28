@@ -21,6 +21,7 @@ import {
   inferenceAbortFailure,
   inferenceFailureCode,
 } from "./inference-errors.js";
+import { type ActiveInferenceExecution, inferenceTimeoutMs } from "./inference-timeout.js";
 import { DEFAULT_MODEL_ID, modelRuntimeStatus } from "./model-status.js";
 import type { ModelResolver } from "./models.js";
 import type { ResourceScheduler } from "./scheduler.js";
@@ -29,15 +30,6 @@ import { AsyncSerial } from "./serial.js";
 type AuditAppender = (event: AuditEventInput) => void;
 type ResourceLease = ReturnType<ResourceScheduler["reserve"]>;
 type StagedModel = Awaited<ReturnType<ModelResolver["resolve"]>>;
-const MINIMUM_INFERENCE_TIMEOUT_MS = 300_000;
-const GENERATION_TOKEN_TIMEOUT_MS = 60;
-interface ActiveExecution {
-  lifecycle: AbortController;
-  signal: AbortSignal;
-  startedAt: number;
-  timeoutMs: number;
-  finish(): void;
-}
 
 export class InferenceSupervisor implements InferenceService {
   private readonly active = new Map<AbortController, Promise<void>>();
@@ -60,7 +52,7 @@ export class InferenceSupervisor implements InferenceService {
     private readonly audit: AuditAppender,
   ) {}
 
-  private startExecution(signal?: AbortSignal): ActiveExecution {
+  private startExecution(signal?: AbortSignal): ActiveInferenceExecution {
     if (this.closed) throw new InferenceFailure("cancelled", "Inference supervisor closed.");
     const lifecycle = new AbortController();
     const operationSignal = AbortSignal.any([
@@ -81,7 +73,7 @@ export class InferenceSupervisor implements InferenceService {
     };
   }
 
-  private startTimedExecution(execution: ActiveExecution, timeoutMs: number): void {
+  private startTimedExecution(execution: ActiveInferenceExecution, timeoutMs: number): void {
     execution.signal.throwIfAborted();
     execution.signal = AbortSignal.any([execution.signal, AbortSignal.timeout(timeoutMs)]);
     execution.startedAt = Date.now();
@@ -90,7 +82,7 @@ export class InferenceSupervisor implements InferenceService {
 
   private async execute(
     request: InferenceWorkerRequest,
-    execution: ActiveExecution,
+    execution: ActiveInferenceExecution,
     lease: ResourceLease,
     options: {
       stagedModel?: StagedModel;
@@ -135,7 +127,7 @@ export class InferenceSupervisor implements InferenceService {
     return response;
   }
 
-  private finishExecution(execution: ActiveExecution): void {
+  private finishExecution(execution: ActiveInferenceExecution): void {
     this.active.delete(execution.lifecycle);
     execution.finish();
   }
@@ -180,17 +172,13 @@ export class InferenceSupervisor implements InferenceService {
 
   private async executeOne(
     request: InferenceWorkerRequest,
-    execution: ActiveExecution,
+    execution: ActiveInferenceExecution,
     onThinkingDelta?: (text: string) => void,
   ) {
     let resourcesPrepared = false;
     let lease: ResourceLease | undefined;
     try {
-      const timeoutMs =
-        request.operation === "generate"
-          ? Math.max(MINIMUM_INFERENCE_TIMEOUT_MS, request.maxTokens * GENERATION_TOKEN_TIMEOUT_MS)
-          : MINIMUM_INFERENCE_TIMEOUT_MS;
-      this.startTimedExecution(execution, timeoutMs);
+      this.startTimedExecution(execution, inferenceTimeoutMs(request));
       const resources = await this.resources(request, execution.signal);
       lease = resources.lease;
       resourcesPrepared = true;

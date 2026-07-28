@@ -74,8 +74,9 @@ function expectGenerationRecovery(
   requests: Parameters<InferenceService["generate"]>[0][],
   events: string[],
 ): void {
-  expect(requests.every((request) => request.maxTokens === 32_768)).toBe(true);
+  expect(requests.map((request) => request.maxTokens)).toEqual([32_768, 8_192, 32_768, 32_768]);
   expect(requests[1]?.prompt).toContain("reached the 32,768-token generation limit");
+  expect(requests[1]?.prompt).toContain("recovery turn is limited to 8,192 tokens");
   expect(requests[1]?.prompt).toContain("create or patch one bounded part");
   expect(JSON.stringify(requests[1]?.jsonSchema)).toContain('"maxItems":64');
   expect(events).toContain(

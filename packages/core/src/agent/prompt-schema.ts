@@ -40,7 +40,7 @@ const SHELL_EXECUTION_SCHEMA = {
     language: { const: "shell" },
     command: {
       type: "array",
-      items: { type: "string", minLength: 1, maxLength: SHELL_COMMAND_CHARACTER_LIMIT },
+      items: { type: "string", minLength: 1 },
       minItems: 1,
       maxItems: 1,
     },

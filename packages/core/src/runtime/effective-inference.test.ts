@@ -1,9 +1,43 @@
-import { InferenceWorkerRequestSchema, JobIdSchema, MAX_GENERATION_TOKENS } from "@vault/shared";
+import {
+  type AgentExecutionResult,
+  InferenceWorkerRequestSchema,
+  JobIdSchema,
+  MAX_GENERATION_TOKENS,
+} from "@vault/shared";
 import { describe, expect, it } from "vitest";
 import { generationInput } from "../agent/prompt.js";
 import { createGenerationRequest, effectiveGenerationInput } from "./inference.js";
 
 const MAXIMUM_INPUT_PROMPT = "x".repeat(256_000);
+
+function agentProgress(executions: AgentExecutionResult[] = []) {
+  return {
+    executions,
+    rejectedDuplicates: 0,
+    inference: {
+      promptTokens: 0,
+      outputTokens: 0,
+      promptDurationMs: 0,
+      generationDurationMs: 0,
+      totalDurationMs: 0,
+    },
+  };
+}
+
+function pythonResult(exitCode: number, stdout: string, stderr: string): AgentExecutionResult {
+  return {
+    language: "python",
+    path: "steps/0001.py",
+    source: exitCode === 0 ? "print('incomplete')" : "broken(",
+    command: null,
+    exitCode,
+    stdout,
+    stderr,
+    durationMs: 1,
+    termination: exitCode === 0 ? "completed" : "crash",
+    artifacts: [],
+  };
+}
 
 describe("M3 effective inference prompts", () => {
   it("constructs the exact Gemma function-call prompt before worker dispatch", () => {
@@ -44,20 +78,7 @@ describe("M3 effective inference prompts", () => {
   });
 
   it("includes the suffix in the agent context-budget calculation", () => {
-    const input = generationInput(
-      { task: "Reply", modelId: "gemma-4-test" },
-      {
-        executions: [],
-        rejectedDuplicates: 0,
-        inference: {
-          promptTokens: 0,
-          outputTokens: 0,
-          promptDurationMs: 0,
-          generationDurationMs: 0,
-          totalDurationMs: 0,
-        },
-      },
-    );
+    const input = generationInput({ task: "Reply", modelId: "gemma-4-test" }, agentProgress());
     expect(input.prompt).toMatch(/Call exactly one available function with your answer\.$/u);
     expect(Math.ceil(JSON.stringify(input).length / 4)).toBeLessThanOrEqual(4_096);
   });
@@ -81,5 +102,24 @@ describe("M3 generation request limits", () => {
     expect(() =>
       InferenceWorkerRequestSchema.parse({ ...request, maxTokens: MAX_GENERATION_TOKENS + 1 }),
     ).toThrow();
+  });
+});
+
+describe("M3 agent generation budgets", () => {
+  it("keeps long source capacity while bounding repairs and forced final responses", () => {
+    const progress = agentProgress();
+    const task = { task: "Build a program", modelId: "gemma-4-test" };
+    const initial = generationInput(task, progress);
+    const repair = generationInput(task, agentProgress([pythonResult(1, "", "SyntaxError")]));
+    const finalResponse = generationInput(task, progress, true);
+    const xlsxRepair = generationInput(
+      { task: "Inspect every .xlsx file", modelId: "gemma-4-test" },
+      agentProgress([pythonResult(0, "incomplete\n", "")]),
+    );
+
+    expect(initial.maxTokens).toBe(32_768);
+    expect(repair.maxTokens).toBe(8_192);
+    expect(finalResponse.maxTokens).toBe(4_096);
+    expect(xlsxRepair.maxTokens).toBe(8_192);
   });
 });

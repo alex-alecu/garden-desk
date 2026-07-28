@@ -10,21 +10,20 @@ const MARKERS = {
   filesTotal: "VAULT_XLSX_FILES_TOTAL",
 } as const;
 
-function markerValue(lines: string[], marker: string): number | undefined {
-  const prefix = `${marker}=`;
-  const values = lines.filter((line) => line.startsWith(prefix));
+function markerValue(stdout: string, marker: string): number | undefined {
+  const pattern = new RegExp(`(?:^|\\s)${marker}=([^\\s]+)`, "gu");
+  const values = Array.from(stdout.matchAll(pattern), (match) => match[1] ?? "");
   if (values.length === 0) return undefined;
-  const value = values.at(-1)?.slice(prefix.length) ?? "";
+  const value = values.at(-1) ?? "";
   if (!/^\d+$/u.test(value)) return undefined;
   const parsed = Number(value);
   return Number.isSafeInteger(parsed) ? parsed : undefined;
 }
 
 export function parseXlsxProgress(stdout: string): XlsxProgress | undefined {
-  const lines = stdout.split(/\r?\n/u).map((line) => line.trim());
-  const filesDone = markerValue(lines, MARKERS.filesDone);
-  const filesTotal = markerValue(lines, MARKERS.filesTotal);
-  const complete = markerValue(lines, MARKERS.complete);
+  const filesDone = markerValue(stdout, MARKERS.filesDone);
+  const filesTotal = markerValue(stdout, MARKERS.filesTotal);
+  const complete = markerValue(stdout, MARKERS.complete);
   if (
     filesDone === undefined ||
     filesTotal === undefined ||
@@ -39,10 +38,12 @@ export function parseXlsxProgress(stdout: string): XlsxProgress | undefined {
 }
 
 export function stripXlsxProgress(stdout: string): string {
-  const prefixes = Object.values(MARKERS).map((marker) => `${marker}=`);
+  const marker = Object.values(MARKERS).join("|");
+  const pattern = new RegExp(`(?:^|\\s)(?:${marker})=[^\\s]+(?=\\s|$)`, "gu");
   return stdout
     .split(/\r?\n/u)
-    .filter((line) => !prefixes.some((prefix) => line.trim().startsWith(prefix)))
+    .map((line) => line.replaceAll(pattern, " ").trim())
+    .filter((line) => line.length > 0)
     .join("\n")
     .trim();
 }
