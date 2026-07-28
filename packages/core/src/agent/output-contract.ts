@@ -18,6 +18,17 @@ export function requiredOutputLabels(task: string): string[] {
   ];
 }
 
+function requiredExactOutputLines(task: string): string[] {
+  return [
+    ...new Set(
+      Array.from(
+        task.matchAll(/\b(?:print|Print)\s+([A-Z][A-Z0-9_]*=[A-Za-z0-9_.:+-]+)\b/gu),
+        (match) => match[1],
+      ).filter((line): line is string => line !== undefined),
+    ),
+  ];
+}
+
 export function missingOutputLabels(stdout: string, requiredLabels: string[]): string[] {
   const lines = new Set(stdout.split(/\r?\n/u).map((line) => line.trim()));
   return requiredLabels.filter(
@@ -85,5 +96,29 @@ export function verifiedXlsxOutput(
   const stdout = stripXlsxProgress(last.stdout);
   return missingOutputLabels(stdout, requiredLabels).length === 0 && stdout.length <= 64_000
     ? stdout
+    : undefined;
+}
+
+export function verifiedExactOutput(
+  executions: AgentExecutionResult[],
+  task: string,
+): string | undefined {
+  const requiredLines = requiredExactOutputLines(task);
+  const last = executions.at(-1);
+  if (
+    requiredLines.length === 0 ||
+    requiredOutputLabels(task).length > 0 ||
+    last === undefined ||
+    last.stdout.length > 64_000
+  ) {
+    return undefined;
+  }
+  const observed = last.stdout
+    .split(/\r?\n/u)
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0);
+  return observed.length === requiredLines.length &&
+    requiredLines.every((line) => observed.includes(line))
+    ? requiredLines.join("\n")
     : undefined;
 }

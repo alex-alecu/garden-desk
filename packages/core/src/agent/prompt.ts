@@ -12,6 +12,7 @@ import {
   completedSuccessfully,
   missingOutputLabels,
   requiredOutputLabels,
+  verifiedExactOutput,
   verifiedXlsxOutput,
   xlsxWorkflowPhase,
 } from "./output-contract.js";
@@ -36,7 +37,6 @@ import {
 import { XLSX_EXECUTION_INSTRUCTIONS } from "./xlsx-prompt.js";
 
 export { requiresXlsxWorkflow } from "./prompt-xlsx.js";
-
 export const MAX_EXECUTIONS = 6;
 const RUNTIME_CAPABILITIES = Object.entries(capabilities.runtimes)
   .map(([name, version]) => `${name} ${version}`)
@@ -291,6 +291,8 @@ export function executionBackedResponse(
   progress: AgentProgress,
   fallback: string,
 ): string {
+  const exactOutput = verifiedExactOutput(progress.executions, input.task);
+  if (exactOutput !== undefined) return exactOutput;
   if (!requiresXlsxWorkflow(input, progress.executions)) return fallback;
   const requiredLabels = requiredOutputLabels(input.task);
   return verifiedXlsxOutput(progress.executions, requiredLabels) ?? fallback;

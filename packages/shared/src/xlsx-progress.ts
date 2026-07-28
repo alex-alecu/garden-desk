@@ -9,21 +9,27 @@ const MARKERS = {
   filesDone: "VAULT_XLSX_FILES_DONE",
   filesTotal: "VAULT_XLSX_FILES_TOTAL",
 } as const;
+const MARKER_PREFIX = "VAULT_XLSX_";
+
+function normalizeMarkerAdjacency(stdout: string): string {
+  const marker = Object.values(MARKERS).join("|");
+  return stdout.replace(new RegExp(`((?:${marker})=\\d+)(?=${MARKER_PREFIX})`, "gu"), "$1 ");
+}
 
 function markerValue(stdout: string, marker: string): number | undefined {
-  const pattern = new RegExp(`(?:^|\\s)${marker}=([^\\s]+)`, "gu");
+  const pattern = new RegExp(`(?:^|\\s)${marker}=(\\d+)(?=\\s|$)`, "gu");
   const values = Array.from(stdout.matchAll(pattern), (match) => match[1] ?? "");
   if (values.length === 0) return undefined;
   const value = values.at(-1) ?? "";
-  if (!/^\d+$/u.test(value)) return undefined;
   const parsed = Number(value);
   return Number.isSafeInteger(parsed) ? parsed : undefined;
 }
 
 export function parseXlsxProgress(stdout: string): XlsxProgress | undefined {
-  const filesDone = markerValue(stdout, MARKERS.filesDone);
-  const filesTotal = markerValue(stdout, MARKERS.filesTotal);
-  const complete = markerValue(stdout, MARKERS.complete);
+  const evidence = normalizeMarkerAdjacency(stdout);
+  const filesDone = markerValue(evidence, MARKERS.filesDone);
+  const filesTotal = markerValue(evidence, MARKERS.filesTotal);
+  const complete = markerValue(evidence, MARKERS.complete);
   if (
     filesDone === undefined ||
     filesTotal === undefined ||
@@ -39,8 +45,8 @@ export function parseXlsxProgress(stdout: string): XlsxProgress | undefined {
 
 export function stripXlsxProgress(stdout: string): string {
   const marker = Object.values(MARKERS).join("|");
-  const pattern = new RegExp(`(?:^|\\s)(?:${marker})=[^\\s]+(?=\\s|$)`, "gu");
-  return stdout
+  const pattern = new RegExp(`(?:^|\\s)(?:${marker})=\\d+(?=\\s|$)`, "gu");
+  return normalizeMarkerAdjacency(stdout)
     .split(/\r?\n/u)
     .map((line) => line.replaceAll(pattern, " ").trim())
     .filter((line) => line.length > 0)

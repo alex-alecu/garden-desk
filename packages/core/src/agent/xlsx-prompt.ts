@@ -16,6 +16,7 @@ export const XLSX_EXECUTION_INSTRUCTIONS = [
   "Choose the simplest bounded strategy that fits the task. You may inspect, aggregate in one pass, batch files, or replace a failed approach with different code.",
   "A program may discover and finish a small corpus in one short pass without checkpointing. Use resumable batching only when the discovered work may not fit comfortably inside the 75-second work window.",
   "Sort relative workbook paths deterministically. When the complete scan may exceed one execution, atomically checkpoint the corpus path list, completed file paths, next work item, and every cumulative result under /workspace.",
+  "Store each cumulative total once. Never append cumulative snapshots per file and then sum those snapshots; either restore the latest cumulative total or store and sum per-file deltas.",
   "For mixed-format tasks, keep every requested format branch reachable. When checkpointing is needed, include every format's completed paths and cumulative results so resumed executions never double count it. python-docx Document objects have no close() method.",
   "Restore cumulative values from the checkpoint at process start. Measure the 75-second work window from a new monotonic timer on every execution; never persist or reuse an old start time.",
   "Compute FILES_DONE from the complete restored set of completed workbook paths, never from only the files processed in the current execution. Persist the final completed-path set before printing progress markers.",

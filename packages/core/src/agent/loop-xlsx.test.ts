@@ -33,6 +33,7 @@ function expectXlsxDiscoveryInstructions(prompt: string): void {
   expect(prompt).toContain("process only XLSX workbooks");
   expect(prompt).toContain("DONE and TOTAL count XLSX workbooks only");
   expect(prompt).toContain("complete restored set of completed workbook paths");
+  expect(prompt).toContain("Never append cumulative snapshots per file");
 }
 
 describe("AgentLoop XLSX progress", () => {
@@ -95,6 +96,23 @@ describe("AgentLoop whitespace-delimited XLSX progress", () => {
     ).run({ task: "Inspect every .xlsx file.", modelId: "test-model" });
 
     expect(result.response).toBe("No salary transactions found.");
+  });
+});
+
+describe("AgentLoop adjacent XLSX progress", () => {
+  it("returns a clean execution when exact reserved markers are adjacent", async () => {
+    const source = "print('done')";
+    const stdout =
+      "XLSX_MATCHES=4\nVAULT_XLSX_FILES_DONE=2VAULT_XLSX_FILES_TOTAL=2VAULT_XLSX_COMPLETE=1";
+    const result = await new AgentLoop(
+      inference([execute(source, "Inspect")], [], []),
+      executor([{ ...completed, source, stdout }], []),
+    ).run({
+      task: "Inspect every .xlsx file and print XLSX_MATCHES=<count>.",
+      modelId: "test-model",
+    });
+
+    expect(result.response).toBe("XLSX_MATCHES=4");
   });
 });
 

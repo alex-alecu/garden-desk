@@ -22,10 +22,21 @@ describe("XLSX progress evidence", () => {
     expect(stripXlsxProgress(stdout)).toBe("No salary transactions found.");
   });
 
+  it("accepts adjacent reserved markers without weakening their numeric contract", () => {
+    const stdout = [
+      "XLSX_MATCHES=4",
+      "VAULT_XLSX_FILES_DONE=2VAULT_XLSX_FILES_TOTAL=2VAULT_XLSX_COMPLETE=1",
+    ].join("\n");
+    expect(parseXlsxProgress(stdout)).toEqual({ filesDone: 2, filesTotal: 2, complete: true });
+    expect(stripXlsxProgress(stdout)).toBe("XLSX_MATCHES=4");
+  });
+
   it.each([
     "VAULT_XLSX_FILES_DONE=6\nVAULT_XLSX_FILES_TOTAL=5\nVAULT_XLSX_COMPLETE=0",
     "VAULT_XLSX_FILES_DONE=5\nVAULT_XLSX_FILES_TOTAL=5\nVAULT_XLSX_COMPLETE=0",
     "VAULT_XLSX_FILES_DONE=x\nVAULT_XLSX_FILES_TOTAL=5\nVAULT_XLSX_COMPLETE=0",
+    "XVAULT_XLSX_FILES_DONE=5VAULT_XLSX_FILES_TOTAL=5VAULT_XLSX_COMPLETE=1",
+    "XLSX_MATCHES=4VAULT_XLSX_FILES_DONE=5VAULT_XLSX_FILES_TOTAL=5VAULT_XLSX_COMPLETE=1",
   ])("rejects malformed or contradictory evidence", (stdout) => {
     expect(parseXlsxProgress(stdout)).toBeUndefined();
   });
