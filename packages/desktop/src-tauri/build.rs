@@ -1,4 +1,8 @@
 fn main() {
+    if std::env::var("PROFILE").as_deref() != Ok("release") {
+        tauri_build::build();
+        return;
+    }
     let windows = tauri_build::WindowsAttributes::new()
         .app_manifest(include_str!("windows-app-manifest.xml"));
     let attributes = tauri_build::Attributes::new().windows_attributes(windows);
