@@ -51,6 +51,15 @@ function isImportOnlySource(decision: Extract<AgentDecision, { action: "execute"
   );
 }
 
+function containsProtocolFragment(
+  decision: Extract<AgentDecision, { action: "execute" }>,
+): boolean {
+  return (
+    decision.language !== "shell" &&
+    /<\|?(?:tool_call|channel|thought)(?:\||>)/iu.test(decision.source)
+  );
+}
+
 function reachedShellCommandLimit(
   decision: Extract<AgentDecision, { action: "execute" }>,
 ): boolean {
@@ -71,7 +80,9 @@ function isInvalidProgram(
   rejectIncompleteSource: boolean,
 ): boolean {
   return (
-    isPathologicallyRepetitive(decision) || (rejectIncompleteSource && isImportOnlySource(decision))
+    containsProtocolFragment(decision) ||
+    isPathologicallyRepetitive(decision) ||
+    (rejectIncompleteSource && isImportOnlySource(decision))
   );
 }
 

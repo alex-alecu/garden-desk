@@ -82,4 +82,4 @@ Negative:
 | 2026-07-23 | Replaced one-execution snapshots with a session-scoped warm VM, live read-only source mount, durable bounded workspace, shell execution, and anchored repair context. |
 | 2026-07-23 | Added durable bounded live execution streams, allowlisted VM diagnostics, final-result completeness validation, and normalized execution recovery records. |
 | 2026-07-25 | Allowed memory-bounded parallel conversation VMs while retaining one serialized resident inference worker. |
-| 2026-07-28 | Raised each Gemma turn to 32,768 output tokens and added bounded multi-turn workspace-edit recovery when generation reaches that limit. |
+| 2026-07-28 | Raised new executable proposals to 32,768 output tokens and added bounded 8,192-token multi-turn workspace-edit recovery when generation reaches that limit. |
