@@ -45,7 +45,7 @@ function repairKey(event: AgentEvent): string {
   return event.path === null ? String(event.language) : `${event.language}:${event.path}`;
 }
 
-function executionSucceeded(event: AgentEvent): boolean {
+export function executionSucceeded(event: AgentEvent): boolean {
   return event.termination === "completed" && event.exitCode === 0;
 }
 

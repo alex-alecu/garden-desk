@@ -14,15 +14,16 @@ export interface PromptBounds {
   requestOverheadTokens: number;
 }
 
+export function usablePromptTokens(bounds: PromptBounds): number {
+  return Math.max(0, bounds.contextTokens - bounds.generationTokens - bounds.requestOverheadTokens);
+}
+
 export function serializePrompt(
   current: string,
   history: DurableAgentHistory | undefined,
   bounds: PromptBounds,
 ): string {
-  const usableTokens = Math.max(
-    0,
-    bounds.contextTokens - bounds.generationTokens - bounds.requestOverheadTokens,
-  );
+  const usableTokens = usablePromptTokens(bounds);
   const requiredTokens = Math.ceil(current.length / 4);
   if (requiredTokens > usableTokens) throw new Error("agent_context_exhausted");
   const assembled = assembleHistory(history, usableTokens - requiredTokens);

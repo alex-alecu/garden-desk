@@ -204,9 +204,12 @@ async function runWindowsEvidence(root: string, artifacts: WindowsArtifacts) {
     prompt:
       "Execute exactly one Python source file. Print 'limit-start' with flush=True, then print 1100000 letter x characters.",
     liveToken: "limit-start",
-    expectedError: "agent_context_exhausted",
+    finishToken: "limit-start",
   });
   if (!limits.stdoutTruncated) throw new Error("Windows stdout truncation proof failed.");
+  if (limits.runState !== "succeeded") {
+    throw new Error(`Windows bounded-observation proof failed: ${limits.runState}`);
+  }
   const malformedFrames = await malformedFrameEvidence(root, artifacts);
   return { python, node, cancellation, limits, malformedFrames };
 }
