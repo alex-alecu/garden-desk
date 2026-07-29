@@ -31,9 +31,15 @@ interface StructuredRetry {
  * is what lets the worker salvage bounded plain text.
  */
 export function structuredRetryInput(retry: StructuredRetry): GenerationInput {
-  const rebuilt = generationInput(retry.input, retry.progress, retry.finalResponse, {
-    contextTokens: Math.min(STRUCTURED_RETRY_CONTEXT_TOKENS, retry.contextTokens),
-  });
+  let rebuilt: GenerationInput;
+  try {
+    rebuilt = generationInput(retry.input, retry.progress, retry.finalResponse, {
+      contextTokens: Math.min(STRUCTURED_RETRY_CONTEXT_TOKENS, retry.contextTokens),
+    });
+  } catch (error) {
+    if (!(error instanceof Error) || error.message !== "agent_context_exhausted") throw error;
+    rebuilt = retry.previous;
+  }
   const base = rebuilt.prompt.length < retry.previous.prompt.length ? rebuilt : retry.previous;
   return { ...base, prompt: withStructuredRetryInstruction(base.prompt) };
 }

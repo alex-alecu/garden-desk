@@ -2,6 +2,8 @@ import type { AgentDecision, AgentExecutionResult } from "@vault/shared";
 import { describe, expect, it } from "vitest";
 import type { InferenceService } from "../runtime/inference.js";
 import { AgentLoop } from "./loop.js";
+import { structuredRetryInput } from "./loop-retry.js";
+import { generationInput } from "./prompt.js";
 
 const performance = {
   promptTokens: 1,
@@ -57,6 +59,30 @@ describe("AgentLoop structured recovery", () => {
     expect(prompts[1]).toMatch(/Call exactly one available function with your answer\.$/u);
     expect(prompts[1]?.match(/Call exactly one available function/gu)).toHaveLength(1);
     expect(requests[1]).toHaveProperty("oneOf");
+  });
+});
+
+describe("AgentLoop structured retry prompts", () => {
+  it("reuses the original request when the smaller prompt cannot be assembled", () => {
+    const input = { task: "x".repeat(60_000), modelId: "gemma-4-test" };
+    const progress = {
+      executions: [],
+      inference: performance,
+      rejectedDuplicates: 0,
+    };
+    const previous = generationInput(input, progress, false, { contextTokens: 262_144 });
+
+    const retry = structuredRetryInput({
+      input,
+      progress,
+      finalResponse: false,
+      previous,
+      contextTokens: 262_144,
+    });
+
+    expect(retry.maxTokens).toBe(previous.maxTokens);
+    expect(retry.prompt).toContain(input.task);
+    expect(retry.prompt).toContain("returned prose instead of calling a function");
   });
 });
 
