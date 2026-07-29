@@ -3,8 +3,9 @@ import type { DesktopAction, DesktopState } from "./state.js";
 import type { AgentStep } from "./steps.js";
 
 interface StepSelection {
-  api: DesktopApi;
+  api: Pick<DesktopApi, "getAgentTrace">;
   dispatch(action: DesktopAction): void;
+  openDetails(): void;
   setError(message: string | undefined): void;
   steps: AgentStep[];
   traces: DesktopState["traces"];
@@ -15,7 +16,8 @@ interface StepSelection {
  * demand for that step's run and never inside the run-polling loop.
  */
 export function selectStep(selection: StepSelection, stepId: string | undefined): void {
-  const { api, dispatch, setError, steps, traces } = selection;
+  const { api, dispatch, openDetails, setError, steps, traces } = selection;
+  if (stepId !== undefined) openDetails();
   dispatch({ type: "step.select", stepId });
   const runId = steps.find((step) => step.id === stepId)?.runId;
   if (runId === undefined || runId === null) return;

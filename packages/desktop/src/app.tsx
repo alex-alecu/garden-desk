@@ -83,7 +83,17 @@ export function App({ api, capabilities }: { api: DesktopApi; capabilities: Desk
   };
   const steps = agentSteps(state.timeline, state.executions, state.traces);
   const onSelectStep = (stepId: string | undefined) =>
-    selectStep({ api, dispatch, setError: setDesktopError, steps, traces: state.traces }, stepId);
+    selectStep(
+      {
+        api,
+        dispatch,
+        openDetails: () => setTechnicalDetailsOpen(true),
+        setError: setDesktopError,
+        steps,
+        traces: state.traces,
+      },
+      stepId,
+    );
   const continuationProps = useContinuationQuestion(state.activeRun, state.executions, runTask);
   return (
     <div
