@@ -14,7 +14,7 @@ function attachedPdfPaths(inputNames: string[]): string[] {
 }
 
 /**
- * True when an earlier run in this session already read one of the attached PDFs, so the
+ * True when earlier runs in this session already read every attached PDF, so the
  * next turn is free to answer from durable history instead of extracting the file again.
  */
 export function attachedPdfAlreadyExtracted(
@@ -23,12 +23,14 @@ export function attachedPdfAlreadyExtracted(
 ): boolean {
   const pdfPaths = attachedPdfPaths(inputNames);
   if (pdfPaths.length === 0 || history === undefined) return false;
-  return history.runs.some((run) =>
-    run.events.some(
-      (event) =>
-        event.type === "execution.completed" &&
-        executionSucceeded(event) &&
-        pdfPaths.some((path) => (event.source ?? "").includes(path)),
+  return pdfPaths.every((path) =>
+    history.runs.some((run) =>
+      run.events.some(
+        (event) =>
+          event.type === "execution.completed" &&
+          executionSucceeded(event) &&
+          (event.source ?? "").includes(path),
+      ),
     ),
   );
 }

@@ -124,3 +124,28 @@ describe("AgentLoop attachment history", () => {
     });
   });
 });
+
+describe("AgentLoop multiple attachment history", () => {
+  it("still forces extraction when history read only one of multiple PDFs", async () => {
+    const prompts: string[] = [];
+    const schemas: Array<Record<string, unknown>> = [];
+    const loop = new AgentLoop(capturingInference(prompts, schemas), {
+      async execute() {
+        throw new Error("Attached PDF inspection was not expected to execute in this schema test.");
+      },
+    });
+
+    await loop.run({
+      task: "Compare both contracts",
+      modelId: "test-model",
+      inputNames: ["first.pdf", "second.pdf"],
+      history: extractionHistory(
+        "from pypdf import PdfReader\nPdfReader('/run/attachments/01-first.pdf')",
+      ),
+    });
+
+    expect(schemas[0]).toMatchObject({
+      properties: { action: { const: "execute" }, language: { const: "python" } },
+    });
+  });
+});
