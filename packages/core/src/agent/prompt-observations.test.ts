@@ -68,6 +68,18 @@ describe("bounded observation streams", () => {
     });
     expect(observed?.stdout.length).toBeLessThanOrEqual(OBSERVATION_STREAM_CHARACTERS);
   });
+
+  it("shares one bound across every observed stream", () => {
+    const observed = observations(
+      [execution("a".repeat(500_000)), execution("b".repeat(500_000))],
+      8_192,
+    );
+
+    expect(observed.reduce((length, item) => length + item.stdout.length, 0)).toBeLessThanOrEqual(
+      8_192,
+    );
+    expect(observed.every((item) => item.stdout.includes("characters omitted"))).toBe(true);
+  });
 });
 
 describe("oversized stdout in the decision prompt", () => {
@@ -114,5 +126,45 @@ describe("oversized stdout in the decision prompt", () => {
     expect(prompts[1]).toContain("characters omitted from the middle of this stream");
     expect(prompts[1]?.length).toBeLessThan(stdout.length);
     expect(result.executions[0]?.stdout).toBe(stdout);
+  });
+});
+
+describe("multiple oversized stdout streams", () => {
+  it("keeps multiple oversized executions inside the minimum context", async () => {
+    const decisions: AgentDecision[] = [
+      { action: "execute", language: "python", source: "print('1')", summary: "First" },
+      { action: "execute", language: "python", source: "print('2')", summary: "Second" },
+      { action: "respond", response: "Complete." },
+    ];
+    const model: Pick<InferenceService, "generate"> = {
+      async generate() {
+        const value = decisions.shift();
+        if (value === undefined) throw new Error("Missing fake agent decision.");
+        return {
+          protocolVersion: 1,
+          requestId: "test",
+          status: "ok",
+          operation: "generate",
+          value,
+          memory: { cpuRamBytes: 1, gpuVramBytes: 1, budgetBytes: 1, detectedGpuVramBytes: 1 },
+          performance: {
+            promptTokens: 10,
+            outputTokens: 5,
+            promptDurationMs: 100,
+            generationDurationMs: 500,
+            totalDurationMs: 600,
+          },
+        };
+      },
+    };
+
+    const result = await new AgentLoop(model, {
+      async execute() {
+        return { ...execution("x".repeat(200_000)), durationMs: 10 };
+      },
+    }).run({ task: "Run two inspections", modelId: "test-model" });
+
+    expect(result.response).toBe("Complete.");
+    expect(result.executions).toHaveLength(2);
   });
 });
