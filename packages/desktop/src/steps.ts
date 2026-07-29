@@ -133,3 +133,13 @@ function planningTurnAdvance(
 export function selectedStep(steps: AgentStep[], selectedStepId: string | undefined) {
   return steps.find((step) => step.id === selectedStepId);
 }
+
+export function activeThinkingStepId(
+  timeline: TimelineItem[],
+  runId: string | undefined,
+  thinking: string | null,
+): string | undefined {
+  if (runId === undefined || thinking === null || thinking.length === 0) return undefined;
+  return timeline.findLast((item) => item.runId === runId && item.eventType === "inference.started")
+    ?.id;
+}

@@ -31,6 +31,7 @@ interface TechnicalDetailsProps {
   steps: AgentStep[];
   selectedStepId: string | undefined;
   thinking: string | null;
+  thinkingStepId: string | undefined;
   nativeActionMessage?: string | undefined;
   onClose(): void;
   onSelectStep(stepId: string | undefined): void;
@@ -164,6 +165,7 @@ function Overview({
   sessionId,
   steps,
   thinking,
+  thinkingStepId,
   timeline,
 }: TechnicalDetailsProps) {
   const limits = timeline.find((item) => item.eventType === "run.started")?.text;
@@ -204,6 +206,7 @@ function Overview({
         selectedStepId={selectedStepId}
         steps={steps}
         thinking={thinking}
+        thinkingStepId={thinkingStepId}
       />
       {artifacts.map((item) => (
         <article className="technical-details-item" key={item.id}>

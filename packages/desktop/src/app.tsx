@@ -17,7 +17,7 @@ import { initialModelStatus, useModelRefresh } from "./desktop-model.js";
 import { useDraftPersistence } from "./draft-persistence.js";
 import { desktopReducer, initialDesktopState } from "./state.js";
 import { selectStep } from "./step-selection.js";
-import { agentSteps } from "./steps.js";
+import { activeThinkingStepId, agentSteps } from "./steps.js";
 // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: this is the single view-composition boundary for explicit desktop capabilities.
 // biome-ignore lint/complexity/noExcessiveLinesPerFunction: this is the single view-composition boundary; workflow logic remains in the small helpers above.
 export function App({ api, capabilities }: { api: DesktopApi; capabilities: DesktopCapabilities }) {
@@ -82,6 +82,7 @@ export function App({ api, capabilities }: { api: DesktopApi; capabilities: Desk
     });
   };
   const steps = agentSteps(state.timeline, state.executions, state.traces);
+  const thinkingStepId = activeThinkingStepId(state.timeline, state.activeRun?.id, state.thinking);
   const onSelectStep = (stepId: string | undefined) =>
     selectStep(
       {
@@ -246,6 +247,7 @@ export function App({ api, capabilities }: { api: DesktopApi; capabilities: Desk
         sessionId={state.activeSessionId}
         steps={steps}
         thinking={state.thinking}
+        thinkingStepId={thinkingStepId}
         timeline={state.timeline}
       />
       <Confirmation

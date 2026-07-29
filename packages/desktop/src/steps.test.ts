@@ -1,7 +1,7 @@
 import { AgentExecutionSnapshotSchema, AgentTraceSchema } from "@vault/shared";
 import { describe, expect, it } from "vitest";
 import type { TimelineItem } from "./state.js";
-import { agentSteps, selectedStep } from "./steps.js";
+import { activeThinkingStepId, agentSteps, selectedStep } from "./steps.js";
 
 const runId = "b5627b1c-cea8-4ec1-b93f-068a36eedb29";
 const timestamp = "2026-07-29T06:58:44.559Z";
@@ -150,6 +150,14 @@ describe("agent steps", () => {
       "exec-2-done",
     ]);
     expect(steps.map((step) => step.ordinal)).toEqual([1, 2, 3, 4, 5, 6]);
+  });
+});
+
+describe("active thinking step", () => {
+  it("identifies only the latest planning event in the active run", () => {
+    expect(activeThinkingStepId(timeline, runId, "Thinking")).toBe("plan-2");
+    expect(activeThinkingStepId(timeline, runId, null)).toBeUndefined();
+    expect(activeThinkingStepId(timeline, "another-run", "Thinking")).toBeUndefined();
   });
 });
 

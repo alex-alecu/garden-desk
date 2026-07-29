@@ -5,6 +5,7 @@ interface StepListProps {
   steps: AgentStep[];
   selectedStepId: string | undefined;
   thinking: string | null;
+  thinkingStepId: string | undefined;
   onSelectStep(stepId: string | undefined): void;
 }
 
@@ -41,7 +42,13 @@ function StepRow({
   );
 }
 
-export function StepList({ steps, selectedStepId, thinking, onSelectStep }: StepListProps) {
+export function StepList({
+  steps,
+  selectedStepId,
+  thinking,
+  thinkingStepId,
+  onSelectStep,
+}: StepListProps) {
   if (steps.length === 0) {
     return <p className="technical-details-empty">Steps appear here while a task runs.</p>;
   }
@@ -53,7 +60,7 @@ export function StepList({ steps, selectedStepId, thinking, onSelectStep }: Step
           onSelectStep={onSelectStep}
           selected={step.id === selectedStepId}
           step={step}
-          thinking={step.id === selectedStepId ? thinking : null}
+          thinking={step.id === selectedStepId && step.id === thinkingStepId ? thinking : null}
         />
       ))}
     </>

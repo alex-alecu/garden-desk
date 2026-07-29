@@ -139,6 +139,7 @@ function renderTechnicalDetails(): string {
       sessionId="da911f87-ff26-46d8-9a58-bad222a584ab"
       steps={steps}
       thinking={null}
+      thinkingStepId={undefined}
       timeline={timeline}
     />,
   );
