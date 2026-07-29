@@ -1,6 +1,6 @@
-import { mkdir, mkdtemp, realpath, rm, truncate, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, realpath, rm, truncate, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { basename, dirname, join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { ConversationStore } from "../conversations/store.js";
 import { JobStore } from "../jobs/jobs.js";
@@ -42,6 +42,10 @@ describe("M3 session-owned inputs", () => {
 
     expect(store.listAttachments(session.id)).toEqual([attached]);
     expect((await store.attachmentBytes(attached)).toString()).toBe("first version");
+    const opened = await store.materializeAttachment(session.id, attached.id);
+    roots.push(dirname(opened));
+    expect(await readFile(opened, "utf8")).toBe("first version");
+    expect(basename(opened)).toBe("notes.txt");
     catalog.close();
   });
 

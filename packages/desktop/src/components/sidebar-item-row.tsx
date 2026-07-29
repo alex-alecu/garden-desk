@@ -1,4 +1,4 @@
-import type { ComponentProps } from "react";
+import type { ComponentProps, DragEvent, KeyboardEvent } from "react";
 import { Icon } from "./icons.js";
 
 interface SidebarItemRowProps {
@@ -9,10 +9,14 @@ interface SidebarItemRowProps {
   disabled: boolean;
   nativeActionMessage?: string | undefined;
   expanded?: boolean;
+  dragLabel?: string;
   label: string;
   startActionLabel?: string;
   startIcon?: ComponentProps<typeof Icon>["name"];
   onDelete(): void;
+  onDragEnd?: (() => void) | undefined;
+  onDragKeyDown?: ((event: KeyboardEvent<HTMLButtonElement>) => void) | undefined;
+  onDragStart?: ((event: DragEvent<HTMLButtonElement>) => void) | undefined;
   onSelect(): void;
   onStartAction?(): void;
   working?: boolean;
@@ -26,22 +30,50 @@ function deleteTitle(props: SidebarItemRowProps): string | undefined {
   return props.nativeActionMessage ?? props.deleteLabel;
 }
 
+function DragHandle(props: SidebarItemRowProps) {
+  if (props.dragLabel === undefined || props.onDragStart === undefined) return null;
+  return (
+    <button
+      aria-label={props.dragLabel}
+      className="sidebar-item-drag"
+      disabled={props.disabled}
+      draggable
+      onDragEnd={props.onDragEnd}
+      onDragStart={props.onDragStart}
+      onKeyDown={props.onDragKeyDown}
+      title="Drag to reorder; use arrow keys while focused"
+      type="button"
+    >
+      <Icon name="drag" />
+    </button>
+  );
+}
+
+function StartAction(props: SidebarItemRowProps) {
+  if (props.startIcon === undefined || props.onStartAction === undefined) return null;
+  return (
+    <button
+      aria-label={props.startActionLabel}
+      className="sidebar-item-start"
+      disabled={props.disabled || props.nativeActionMessage !== undefined}
+      onClick={props.onStartAction}
+      title={props.nativeActionMessage}
+      type="button"
+    >
+      <Icon name={props.startIcon} />
+    </button>
+  );
+}
+
 export function SidebarItemRow(props: SidebarItemRowProps) {
   const hasStartAction = props.startIcon !== undefined && props.onStartAction !== undefined;
+  const hasDragHandle = props.dragLabel !== undefined && props.onDragStart !== undefined;
   return (
-    <div className={`sidebar-item-row${hasStartAction ? " sidebar-item-row-with-start" : ""}`}>
-      {hasStartAction ? (
-        <button
-          aria-label={props.startActionLabel}
-          className="sidebar-item-start"
-          disabled={props.disabled || props.nativeActionMessage !== undefined}
-          onClick={props.onStartAction}
-          title={props.nativeActionMessage}
-          type="button"
-        >
-          <Icon name={props.startIcon ?? "folder"} />
-        </button>
-      ) : null}
+    <div
+      className={`sidebar-item-row${hasStartAction ? " sidebar-item-row-with-start" : ""}${hasDragHandle ? " sidebar-item-row-with-drag" : ""}`}
+    >
+      <DragHandle {...props} />
+      <StartAction {...props} />
       <button
         aria-current={props.active ? "page" : undefined}
         aria-expanded={props.expanded}

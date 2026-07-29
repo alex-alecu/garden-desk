@@ -12,6 +12,7 @@ import {
 } from "@vault/shared";
 import type { DatabasePort } from "../workspace/database.js";
 import { inspectFolderGrant } from "../workspace/folder-grants.js";
+import { reorderFolderRows } from "./folder-order.js";
 
 interface FolderRow {
   id: string;
@@ -109,7 +110,9 @@ export class ConversationStore {
     if (existing !== undefined) {
       if (existing.revoked_at !== null) {
         this.database
-          .prepare("UPDATE folder_grants SET revoked_at = NULL WHERE id = ?")
+          .prepare(
+            "UPDATE folder_grants SET revoked_at = NULL, sort_order = (SELECT COALESCE(MAX(sort_order), -1) + 1 FROM folder_grants WHERE revoked_at IS NULL) WHERE id = ?",
+          )
           .run(existing.id);
       }
       return folderSummary({ ...existing, revoked_at: null });
@@ -123,7 +126,7 @@ export class ConversationStore {
     });
     this.database
       .prepare(
-        "INSERT INTO folder_grants (id, root_path, display_name, created_at, revoked_at) VALUES (?, ?, ?, ?, NULL)",
+        "INSERT INTO folder_grants (id, root_path, display_name, created_at, revoked_at, sort_order) VALUES (?, ?, ?, ?, NULL, (SELECT COALESCE(MAX(sort_order), -1) + 1 FROM folder_grants WHERE revoked_at IS NULL))",
       )
       .run(folder.id, canonicalPath, folder.name, folder.createdAt);
     return folder;
@@ -132,10 +135,14 @@ export class ConversationStore {
   listFolders(): FolderSummary[] {
     const rows = this.database
       .prepare(
-        "SELECT id, display_name, created_at, revoked_at FROM folder_grants WHERE revoked_at IS NULL ORDER BY created_at, id",
+        "SELECT id, display_name, created_at, revoked_at FROM folder_grants WHERE revoked_at IS NULL ORDER BY sort_order, created_at, id",
       )
       .all() as FolderRow[];
     return rows.map(folderSummary);
+  }
+
+  reorderFolders(folderIds: string[]): FolderSummary[] {
+    return reorderFolderRows(this.database, folderIds, () => this.listFolders());
   }
 
   resolveFolderPath(folderId: string): string {

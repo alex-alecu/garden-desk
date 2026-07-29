@@ -200,7 +200,7 @@ describe("M1 workspace migration", () => {
     );
     database.close();
     const migrated = await createTestCore(root);
-    expect((await migrated.status()).catalogSchemaVersion).toBe(8);
+    expect((await migrated.status()).catalogSchemaVersion).toBe(9);
     expect(await migrated.verifyAudit()).toBe(true);
     await migrated.close();
   });
@@ -215,7 +215,7 @@ describe("M1 workspace migration", () => {
     legacy.prepare("INSERT INTO legacy_marker VALUES (?)").run("before-migration");
     legacy.close();
     const core = await createTestCore(root);
-    expect((await core.status()).catalogSchemaVersion).toBe(8);
+    expect((await core.status()).catalogSchemaVersion).toBe(9);
     await core.close();
     const backupName = (await readdir(internalRoot)).find((name) =>
       name.startsWith("catalog.sqlite.pre-migration-v0-"),

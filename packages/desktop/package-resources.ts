@@ -26,6 +26,7 @@ const migrationNames = [
   "0006-agent-workspace.sql",
   "0007-agent-executions.sql",
   "0008-agent-inference-traces.sql",
+  "0009-folder-order.sql",
 ];
 
 export interface ResourceHashes {

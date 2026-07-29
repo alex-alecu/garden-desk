@@ -220,7 +220,10 @@ describe("AgentLoop response", () => {
 
 function expectObservationPrompts(prompts: string[]): void {
   expect(prompts[1]).toContain(`"source":"${completed.source ?? ""}"`);
-  expect(prompts[1]).not.toContain("private-input.xlsx");
+  expect(prompts[1]).toContain('"path":"/run/attachments/01-private-input.xlsx"');
+  expect(prompts[1]).toContain(
+    "Inspect the exact selected input paths above before inspecting /source. /source may be empty",
+  );
   expect(prompts[1]).toContain("Selected input count: 1.");
   expect(prompts[1]).toContain("Successful execution count: 1.");
   expect(prompts[1]).toContain("Never import pandas");

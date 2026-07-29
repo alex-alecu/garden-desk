@@ -65,6 +65,12 @@ async function revokeFolder(core: VaultCore, request: RpcRequest): Promise<RpcRe
   return success(request, { revoked: await core.revokeFolder(folderId.data) });
 }
 
+async function reorderFolders(core: VaultCore, request: RpcRequest): Promise<RpcResponse> {
+  const parsed = FolderIdSchema.array().safeParse(request.params.folderIds);
+  if (!parsed.success) return failure(request, "invalid_request", "Invalid folder order.");
+  return success(request, await core.reorderFolders(parsed.data));
+}
+
 async function resolveFolderPath(core: VaultCore, request: RpcRequest): Promise<RpcResponse> {
   const folderId = FolderIdSchema.safeParse(request.params.folderId);
   if (!folderId.success) return failure(request, "invalid_request", "Invalid folder id.");
@@ -140,6 +146,13 @@ async function listAttachments(core: VaultCore, request: RpcRequest): Promise<Rp
   return success(request, await core.listAttachments(sessionIdParam(request)));
 }
 
+async function materializeAttachment(core: VaultCore, request: RpcRequest): Promise<RpcResponse> {
+  const sessionId = sessionIdParam(request);
+  const attachmentId = AttachmentIdSchema.safeParse(request.params.attachmentId);
+  if (!attachmentId.success) return failure(request, "invalid_request", "Invalid attachment id.");
+  return success(request, await core.materializeAttachment(sessionId, attachmentId.data));
+}
+
 async function removeAttachment(core: VaultCore, request: RpcRequest): Promise<RpcResponse> {
   const sessionId = sessionIdParam(request);
   const attachmentId = AttachmentIdSchema.safeParse(request.params.attachmentId);
@@ -195,6 +208,8 @@ async function dispatchMethod(core: VaultCore, request: RpcRequest): Promise<Rpc
       return addFolder(core, request);
     case "folders.list":
       return success(request, await core.listFolders());
+    case "folders.reorder":
+      return reorderFolders(core, request);
     case "folders.resolvePath":
       return resolveFolderPath(core, request);
     case "folders.revoke":
@@ -217,6 +232,8 @@ async function dispatchMethod(core: VaultCore, request: RpcRequest): Promise<Rpc
       return addAttachment(core, request);
     case "attachments.list":
       return listAttachments(core, request);
+    case "attachments.materialize":
+      return materializeAttachment(core, request);
     case "attachments.remove":
       return removeAttachment(core, request);
     case "agent.start":

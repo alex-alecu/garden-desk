@@ -2,7 +2,7 @@ import { FolderSummarySchema, SessionSummarySchema } from "@vault/shared";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { Sidebar } from "./components/sidebar.js";
+import { reorderedFolderIds, Sidebar } from "./components/sidebar.js";
 
 const timestamp = "2026-07-22T10:00:00.000Z";
 const folder = FolderSummarySchema.parse({
@@ -41,17 +41,21 @@ describe("sidebar rows", () => {
         onOpenFolder: () => undefined,
         onDeleteSession: () => undefined,
         onRevokeFolder: () => undefined,
+        onReorderFolders: () => undefined,
         onSelectSession: () => undefined,
         onShowMore: () => undefined,
       }),
     );
 
     expect(
-      markup.match(/class="sidebar-item-row(?: sidebar-item-row-with-start)?"/gu),
+      markup.match(
+        /class="sidebar-item-row(?: sidebar-item-row-with-start)?(?: sidebar-item-row-with-drag)?"/gu,
+      ),
     ).toHaveLength(3);
     expect(markup.match(/class="sidebar-item-delete(?: sidebar-item-unmount)?"/gu)).toHaveLength(3);
     expect(markup.match(/class="sidebar-item-start"/gu)).toHaveLength(1);
     expect(markup.match(/icon-folder/gu)).toHaveLength(1);
+    expect(markup.match(/icon-drag/gu)).toHaveLength(1);
     expect(markup.match(/icon-message/gu)).toHaveLength(2);
     expect(markup.match(/icon-trash/gu)).toHaveLength(2);
     expect(markup.match(/icon-unmount/gu)).toHaveLength(1);
@@ -62,5 +66,10 @@ describe("sidebar rows", () => {
     expect(markup).not.toContain("icon-chevron");
     expect(markup).toContain('class="sidebar-item-select sidebar-item-working"');
     expect(markup).toContain('aria-label="Working"');
+  });
+
+  it("moves a dragged folder before or after its target", () => {
+    expect(reorderedFolderIds(["a", "b", "c"], "c", "a", false)).toEqual(["c", "a", "b"]);
+    expect(reorderedFolderIds(["a", "b", "c"], "a", "b", true)).toEqual(["b", "a", "c"]);
   });
 });

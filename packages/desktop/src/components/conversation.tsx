@@ -1,18 +1,22 @@
-import type { AgentArtifactSummary, AgentRunPerformance } from "@vault/shared";
+import type { AgentArtifactSummary, AgentRunPerformance, AttachmentSummary } from "@vault/shared";
 import { useLayoutEffect, useRef } from "react";
 import Markdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import type { ContinuationQuestion } from "../continuation.js";
 import type { TimelineItem } from "../state.js";
+import { EmptyConversation } from "./empty-conversation.js";
+import { attachmentsByUserMessage, MessageAttachments } from "./message-attachments.js";
 import { QuestionTool } from "./question-tool.js";
 import { RunProgress } from "./run-progress.js";
 
 interface ConversationProps {
   artifacts: AgentArtifactSummary[];
+  attachments?: AttachmentSummary[];
   folderName?: string | undefined;
   ready: boolean;
   timeline: TimelineItem[];
   onSuggestion(text: string): void;
+  onOpenAttachment?: ((attachmentId: string) => void) | undefined;
   performance: AgentRunPerformance | null;
   runId: string | undefined;
   thinking: string | null;
@@ -59,53 +63,6 @@ export function isNearConversationBottom(
   scrollHeight: number,
 ): boolean {
   return scrollHeight - scrollTop - clientHeight <= 48;
-}
-
-function EmptyConversation({
-  folderName,
-  onSuggestion,
-  ready,
-}: Pick<ConversationProps, "folderName" | "onSuggestion" | "ready">) {
-  return (
-    <div className="welcome">
-      <h1>What should we work on{folderName === undefined ? "" : ` in ${folderName}`}?</h1>
-      <p>
-        {ready
-          ? "Select a folder, attach files in New chat, or start with a question."
-          : "Starting your private workspace…"}
-      </p>
-      <div className="suggestions">
-        <button
-          disabled={!ready}
-          onClick={() => onSuggestion("Explore and explain the selected files.")}
-          type="button"
-        >
-          Explore and understand files
-        </button>
-        <button
-          disabled={!ready}
-          onClick={() => onSuggestion("Review these files and suggest practical improvements.")}
-          type="button"
-        >
-          Review and suggest improvements
-        </button>
-        <button
-          disabled={!ready}
-          onClick={() => onSuggestion("Compare the selected documents or data.")}
-          type="button"
-        >
-          Compare documents or data
-        </button>
-        <button
-          disabled={!ready}
-          onClick={() => onSuggestion("Diagnose the issue in the selected files.")}
-          type="button"
-        >
-          Diagnose an issue
-        </button>
-      </div>
-    </div>
-  );
 }
 
 function formatDuration(milliseconds: number): string {
@@ -183,14 +140,46 @@ function ContinuationPrompt({
   );
 }
 
+function TimelineMessage({
+  attachments,
+  item,
+  onOpenAttachment,
+  showMetrics,
+  performance,
+}: {
+  attachments: AttachmentSummary[];
+  item: TimelineItem;
+  onOpenAttachment(attachmentId: string): void;
+  performance: AgentRunPerformance | null;
+  showMetrics: boolean;
+}) {
+  return (
+    <article className={`timeline-item timeline-${item.kind}`}>
+      {item.kind === "assistant" ? (
+        <AssistantResponse>{item.text}</AssistantResponse>
+      ) : (
+        <>
+          <p>{item.text}</p>
+          <MessageAttachments attachments={attachments} onOpenAttachment={onOpenAttachment} />
+        </>
+      )}
+      {showMetrics && performance !== null ? <ResponseMetrics performance={performance} /> : null}
+    </article>
+  );
+}
+
 function TimelineEntries({
+  attachmentsByMessage,
   entries,
   lastAssistantId,
+  onOpenAttachment,
   performance,
   runId,
 }: {
+  attachmentsByMessage: Map<string, AttachmentSummary[]>;
   entries: OrderedEntry[];
   lastAssistantId: string | undefined;
+  onOpenAttachment(attachmentId: string): void;
   performance: AgentRunPerformance | null;
   runId: string | undefined;
 }) {
@@ -204,26 +193,29 @@ function TimelineEntries({
       );
     }
     const item = entry.item;
+    const messageAttachments = attachmentsByMessage.get(item.id) ?? [];
     const showMetrics = item.id === lastAssistantId && item.runId === runId && performance !== null;
     return (
-      <article className={`timeline-item timeline-${item.kind}`} key={item.id}>
-        {item.kind === "assistant" ? (
-          <AssistantResponse>{item.text}</AssistantResponse>
-        ) : (
-          <p>{item.text}</p>
-        )}
-        {showMetrics ? <ResponseMetrics performance={performance} /> : null}
-      </article>
+      <TimelineMessage
+        attachments={messageAttachments}
+        item={item}
+        key={item.id}
+        onOpenAttachment={onOpenAttachment}
+        performance={performance}
+        showMetrics={showMetrics}
+      />
     );
   });
 }
 
 export function Conversation({
   artifacts,
+  attachments = [],
   folderName,
   ready,
   timeline,
   onSuggestion,
+  onOpenAttachment = () => undefined,
   performance,
   runId,
   thinking,
@@ -260,10 +252,12 @@ export function Conversation({
     >
       <div className="timeline">
         <TimelineEntries
+          attachmentsByMessage={attachmentsByUserMessage(timeline, attachments)}
           entries={entries}
           lastAssistantId={lastAssistantId}
           performance={performance}
           runId={runId}
+          onOpenAttachment={onOpenAttachment}
         />
         {thinking === null || thinking.length === 0 ? null : (
           <article className="thinking-stream">

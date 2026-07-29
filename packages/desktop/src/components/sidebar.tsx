@@ -2,6 +2,7 @@ import type { SessionSummary } from "@vault/shared";
 import {
   type CSSProperties,
   type Dispatch,
+  type DragEvent,
   type KeyboardEvent,
   type PointerEvent,
   useRef,
@@ -15,6 +16,7 @@ import { SidebarItemRow } from "./sidebar-item-row.js";
 interface SidebarProps {
   activeSessionId: string | undefined;
   disabled: boolean;
+  dropActive?: boolean;
   dispatch: Dispatch<DesktopAction>;
   folders: FolderGroup[];
   globalSessions: SessionSummary[];
@@ -25,6 +27,7 @@ interface SidebarProps {
   onOpenFolder(folderId: string): void;
   onDeleteSession(session: SessionSummary): void;
   onRevokeFolder(folderId: string): void;
+  onReorderFolders(folderIds: string[]): void;
   onSelectSession(sessionId: string): void;
   onShowMore(folderId: string): void;
 }
@@ -85,46 +88,140 @@ function SidebarResizeHandle({ resize }: { resize: ReturnType<typeof useSidebarR
   );
 }
 
+export function reorderedFolderIds(
+  folderIds: string[],
+  movedId: string,
+  targetId: string,
+  after: boolean,
+): string[] {
+  if (movedId === targetId || !folderIds.includes(movedId) || !folderIds.includes(targetId)) {
+    return folderIds;
+  }
+  const remaining = folderIds.filter((id) => id !== movedId);
+  const targetIndex = remaining.indexOf(targetId);
+  remaining.splice(targetIndex + (after ? 1 : 0), 0, movedId);
+  return remaining;
+}
+
+function keyboardFolderOrder(
+  folderIds: string[],
+  folderId: string,
+  key: string,
+): string[] | undefined {
+  const index = folderIds.indexOf(folderId);
+  if (index < 0) return undefined;
+  const moves: Record<string, { after: boolean; targetId: string } | undefined> = {
+    ArrowUp: index > 0 ? { after: false, targetId: folderIds[index - 1] ?? folderId } : undefined,
+    ArrowDown:
+      index + 1 < folderIds.length
+        ? { after: true, targetId: folderIds[index + 1] ?? folderId }
+        : undefined,
+    Home: index > 0 ? { after: false, targetId: folderIds[0] ?? folderId } : undefined,
+    End:
+      index + 1 < folderIds.length
+        ? { after: true, targetId: folderIds.at(-1) ?? folderId }
+        : undefined,
+  };
+  const move = moves[key];
+  return move === undefined
+    ? undefined
+    : reorderedFolderIds(folderIds, folderId, move.targetId, move.after);
+}
+
+// biome-ignore lint/complexity/noExcessiveLinesPerFunction: pointer and keyboard reorder states share one visible folder-group boundary.
 function FolderSection(props: SidebarProps) {
+  const [draggingId, setDraggingId] = useState<string>();
+  const [drop, setDrop] = useState<{ after: boolean; folderId: string }>();
   if (props.folders.length === 0) {
     return <p className="sidebar-empty">Add a folder to start a group of private sessions.</p>;
   }
-  return props.folders.map((folder) => (
-    <section className="folder-group" key={folder.id}>
-      <SidebarItemRow
-        deleteIcon="unmount"
-        deleteLabel={`Unmount ${folder.name}`}
-        disabled={props.disabled}
-        expanded={folder.expanded}
-        label={folder.name}
-        nativeActionMessage={props.nativeActionMessage}
-        onDelete={() => props.onRevokeFolder(folder.id)}
-        onSelect={() => props.dispatch({ type: "folder.toggle", folderId: folder.id })}
-        onStartAction={() => props.onOpenFolder(folder.id)}
-        startActionLabel={`Open ${folder.name} folder`}
-        startIcon="folder"
-      />
-      {folder.expanded ? (
-        <SessionList
-          activeSessionId={props.activeSessionId}
-          disabled={props.disabled}
-          folder={folder}
-          workingSessionIds={props.workingSessionIds}
-          nativeActionMessage={props.nativeActionMessage}
-          onNewSession={props.onNewSession}
-          onDeleteSession={props.onDeleteSession}
-          onSelectSession={props.onSelectSession}
-          onShowMore={props.onShowMore}
-        />
-      ) : null}
-    </section>
-  ));
+  const folderIds = props.folders.map((folder) => folder.id);
+  return (
+    <ul className="folder-groups">
+      {props.folders.map(
+        // biome-ignore lint/complexity/noExcessiveLinesPerFunction: each mapped group keeps its drag target and row actions together.
+        (folder) => (
+          <li
+            className={`folder-group${draggingId === folder.id ? " folder-group-dragging" : ""}${drop?.folderId === folder.id ? ` folder-group-drop-${drop.after ? "after" : "before"}` : ""}`}
+            key={folder.id}
+            onDragOver={(event: DragEvent<HTMLElement>) => {
+              if (draggingId === undefined || draggingId === folder.id) return;
+              event.preventDefault();
+              event.dataTransfer.dropEffect = "move";
+              const bounds = event.currentTarget.getBoundingClientRect();
+              setDrop({
+                folderId: folder.id,
+                after: event.clientY >= bounds.top + bounds.height / 2,
+              });
+            }}
+            onDrop={(event: DragEvent<HTMLElement>) => {
+              event.preventDefault();
+              if (draggingId !== undefined && drop !== undefined) {
+                props.onReorderFolders(
+                  reorderedFolderIds(folderIds, draggingId, drop.folderId, drop.after),
+                );
+              }
+              setDraggingId(undefined);
+              setDrop(undefined);
+            }}
+          >
+            <SidebarItemRow
+              deleteIcon="unmount"
+              deleteLabel={`Unmount ${folder.name}`}
+              disabled={props.disabled}
+              dragLabel={`Reorder ${folder.name}`}
+              expanded={folder.expanded}
+              label={folder.name}
+              nativeActionMessage={props.nativeActionMessage}
+              onDelete={() => props.onRevokeFolder(folder.id)}
+              onDragEnd={() => {
+                setDraggingId(undefined);
+                setDrop(undefined);
+              }}
+              onDragKeyDown={(event) => {
+                const order = keyboardFolderOrder(folderIds, folder.id, event.key);
+                if (order === undefined) return;
+                event.preventDefault();
+                props.onReorderFolders(order);
+              }}
+              onDragStart={(event) => {
+                event.dataTransfer.effectAllowed = "move";
+                event.dataTransfer.setData("text/plain", folder.id);
+                setDraggingId(folder.id);
+              }}
+              onSelect={() => props.dispatch({ type: "folder.toggle", folderId: folder.id })}
+              onStartAction={() => props.onOpenFolder(folder.id)}
+              startActionLabel={`Open ${folder.name} folder`}
+              startIcon="folder"
+            />
+            {folder.expanded ? (
+              <SessionList
+                activeSessionId={props.activeSessionId}
+                disabled={props.disabled}
+                folder={folder}
+                workingSessionIds={props.workingSessionIds}
+                nativeActionMessage={props.nativeActionMessage}
+                onNewSession={props.onNewSession}
+                onDeleteSession={props.onDeleteSession}
+                onSelectSession={props.onSelectSession}
+                onShowMore={props.onShowMore}
+              />
+            ) : null}
+          </li>
+        ),
+      )}
+    </ul>
+  );
 }
 
 export function Sidebar(props: SidebarProps) {
   const resize = useSidebarResize();
   return (
-    <aside className="sidebar" style={{ "--sidebar-width": `${resize.width}px` } as CSSProperties}>
+    <aside
+      className={`sidebar${props.dropActive ? " sidebar-drop-active" : ""}`}
+      data-drop-target="folders"
+      style={{ "--sidebar-width": `${resize.width}px` } as CSSProperties}
+    >
       <div aria-hidden="true" className="window-drag-region" data-tauri-drag-region="" />
       <div className="brand">Vault Desk</div>
       <div className="sidebar-content">

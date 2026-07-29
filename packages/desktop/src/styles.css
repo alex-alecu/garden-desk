@@ -139,6 +139,7 @@ textarea:focus-visible {
 }
 
 .app-shell {
+  position: relative;
   display: flex;
   width: 100%;
   height: 100%;
@@ -148,6 +149,106 @@ textarea:focus-visible {
   transition:
     color 220ms ease,
     background 220ms ease;
+}
+
+.drop-overlay {
+  position: absolute;
+  z-index: 50;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 50% 48%, rgb(111 169 160 / 20%), transparent 42%),
+    rgb(245 244 235 / 76%);
+  backdrop-filter: blur(8px) saturate(0.88);
+  pointer-events: none;
+  animation: drop-overlay-in 180ms ease-out both;
+}
+
+.drop-overlay::before {
+  position: absolute;
+  width: min(64vw, 760px);
+  aspect-ratio: 1;
+  border: 1px solid rgb(57 127 121 / 16%);
+  border-radius: 50%;
+  box-shadow:
+    0 0 0 46px rgb(57 127 121 / 5%),
+    0 0 0 100px rgb(57 127 121 / 3%);
+  content: "";
+  animation: drop-ripple 1.5s ease-in-out infinite alternate;
+}
+
+.drop-overlay-card {
+  position: relative;
+  display: grid;
+  min-width: min(420px, calc(100vw - 48px));
+  padding: 34px 44px 30px;
+  border: 1px solid rgb(57 127 121 / 22%);
+  border-radius: 28px;
+  place-items: center;
+  color: var(--ink);
+  background: rgb(255 254 248 / 90%);
+  box-shadow:
+    0 28px 80px rgb(7 31 37 / 18%),
+    inset 0 1px 0 rgb(255 255 255 / 86%);
+  animation: drop-card-in 260ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.drop-overlay-icons {
+  display: flex;
+  height: 66px;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 14px;
+}
+
+.drop-overlay-icon {
+  display: grid;
+  width: 62px;
+  height: 62px;
+  border: 1px solid rgb(57 127 121 / 20%);
+  border-radius: 20px;
+  place-items: center;
+  color: var(--accent-strong);
+  background: var(--accent-soft);
+  box-shadow: 0 12px 26px rgb(7 31 37 / 12%);
+  transform: rotate(-5deg);
+}
+
+.drop-overlay-icon + .drop-overlay-icon {
+  margin-left: -10px;
+  transform: translateY(5px) rotate(6deg);
+}
+
+.drop-overlay-card h2 {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-size: clamp(22px, 2.6vw, 30px);
+  font-weight: 600;
+  letter-spacing: -0.025em;
+}
+
+.drop-overlay-card p {
+  margin: 7px 0 0;
+  color: var(--ink-soft);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.app-shell[data-theme="dark"] .drop-overlay {
+  background:
+    radial-gradient(circle at 50% 48%, rgb(111 169 160 / 18%), transparent 42%), rgb(19 21 23 / 78%);
+}
+
+.app-shell[data-theme="dark"] .drop-overlay-card {
+  border-color: rgb(134 190 180 / 18%);
+  background: rgb(32 34 36 / 92%);
+  box-shadow:
+    0 28px 80px rgb(0 0 0 / 42%),
+    inset 0 1px 0 rgb(255 255 255 / 6%);
 }
 
 .app-shell[data-theme="dark"] {
@@ -191,6 +292,11 @@ textarea:focus-visible {
   color: var(--ink);
   background: var(--reading-raised);
   border-right: 1px solid var(--reading-border);
+  transition: box-shadow 160ms ease;
+}
+
+.sidebar-drop-active {
+  box-shadow: inset 0 0 0 3px rgb(57 127 121 / 22%);
 }
 
 .sidebar-resize-handle {
@@ -294,6 +400,12 @@ textarea:focus-visible {
   min-height: 72px;
 }
 
+.folder-groups {
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
 .sidebar-empty {
   margin: 10px;
   color: var(--ink-soft);
@@ -309,7 +421,32 @@ textarea:focus-visible {
 }
 
 .folder-group {
+  position: relative;
   margin-bottom: 6px;
+}
+
+.folder-group-dragging {
+  opacity: 0.48;
+}
+
+.folder-group-drop-before::before,
+.folder-group-drop-after::after {
+  position: absolute;
+  right: 8px;
+  left: 8px;
+  z-index: 2;
+  height: 2px;
+  border-radius: 999px;
+  background: var(--accent);
+  content: "";
+}
+
+.folder-group-drop-before::before {
+  top: -4px;
+}
+
+.folder-group-drop-after::after {
+  bottom: -2px;
 }
 
 .session-list {
@@ -333,6 +470,10 @@ textarea:focus-visible {
 
 .sidebar-item-row-with-start {
   grid-template-columns: 38px minmax(0, 1fr) 30px;
+}
+
+.sidebar-item-row-with-drag.sidebar-item-row-with-start {
+  grid-template-columns: 24px 32px minmax(0, 1fr) 30px;
 }
 
 .sidebar-item-row-with-start .sidebar-item-select {
@@ -363,6 +504,7 @@ textarea:focus-visible {
 }
 
 .sidebar-item-start,
+.sidebar-item-drag,
 .sidebar-item-delete {
   display: grid;
   width: 28px;
@@ -373,6 +515,26 @@ textarea:focus-visible {
   color: var(--ink-soft);
   background: transparent;
   cursor: pointer;
+}
+
+.sidebar-item-drag {
+  width: 24px;
+  opacity: 0.48;
+  cursor: grab;
+}
+
+.sidebar-item-drag:active {
+  cursor: grabbing;
+}
+
+.sidebar-item-row:hover .sidebar-item-drag,
+.sidebar-item-drag:focus-visible {
+  opacity: 1;
+}
+
+.sidebar-item-drag:hover {
+  color: var(--accent-strong);
+  background: rgb(57 127 121 / 10%);
 }
 
 .sidebar-item-row-with-start .sidebar-item-start {
@@ -1085,6 +1247,13 @@ textarea:focus-visible {
     0 0 0 3px rgb(57 127 121 / 10%);
 }
 
+.composer-drop-active {
+  border-color: var(--accent);
+  box-shadow:
+    0 14px 38px rgb(7 31 37 / 16%),
+    0 0 0 4px rgb(57 127 121 / 18%);
+}
+
 .composer textarea {
   width: 100%;
   min-height: 48px;
@@ -1129,18 +1298,34 @@ textarea:focus-visible {
   font-size: 12px;
 }
 
-.attachment-chip span {
+.attachment-open {
+  min-width: 0;
   overflow: hidden;
+  padding: 0;
+  color: inherit;
+  background: transparent;
+  cursor: pointer;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.attachment-chip button {
+.attachment-open:hover {
+  color: var(--accent-strong);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.attachment-remove {
   flex: 0 0 auto;
   padding: 0 1px;
   color: #6b7e7e;
   background: transparent;
   cursor: pointer;
+}
+
+.conversation-attachments {
+  justify-content: flex-end;
+  padding: 8px 0 0;
 }
 
 .timeline-activity p {
@@ -1160,6 +1345,17 @@ textarea:focus-visible {
   border-radius: 50%;
   color: var(--ink);
   background: transparent;
+  cursor: pointer;
+  transition:
+    color 160ms ease,
+    background 160ms ease,
+    transform 160ms ease;
+}
+
+.icon-button:hover:not(:disabled) {
+  color: var(--accent-strong);
+  background: rgb(57 127 121 / 12%);
+  transform: translateY(-1px);
 }
 
 .icon-button:disabled {
@@ -1203,6 +1399,12 @@ textarea:focus-visible {
   stroke-linecap: round;
   stroke-linejoin: round;
   stroke-width: 1.7;
+}
+
+.drop-overlay-icon .icon {
+  width: 29px;
+  height: 29px;
+  stroke-width: 1.8;
 }
 
 .header-action .icon {
@@ -1889,6 +2091,40 @@ textarea:focus-visible {
   }
 }
 
+@keyframes drop-overlay-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes drop-card-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.94);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes drop-ripple {
+  from {
+    opacity: 0.62;
+    transform: scale(0.96);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1.03);
+  }
+}
+
 .error-banner button {
   padding: 0 2px;
   color: inherit;
@@ -2011,6 +2247,9 @@ textarea:focus-visible {
 
   .model-state-busy i,
   .model-state-loading i,
+  .drop-overlay,
+  .drop-overlay-card,
+  .drop-overlay::before,
   .sidebar-working-indicator,
   .thinking-pulse {
     animation: none;

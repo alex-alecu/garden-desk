@@ -118,7 +118,7 @@ describe("M3 agent generation budgets", () => {
     );
 
     expect(initial.maxTokens).toBe(32_768);
-    expect(initial.prompt).toContain('import { readFileSync } from "node:fs"');
+    expect(initial.prompt).toContain("Use ESM import syntax");
     expect(initial.prompt).toContain("require is unavailable");
     expect(repair.maxTokens).toBe(8_192);
     expect(finalResponse.maxTokens).toBe(4_096);

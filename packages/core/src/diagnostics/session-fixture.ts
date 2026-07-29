@@ -35,7 +35,7 @@ export interface DebugFixture {
 }
 
 async function applyMigrations(database: DatabaseSync): Promise<void> {
-  for (let version = 1; version <= 8; version += 1) {
+  for (let version = 1; version <= 9; version += 1) {
     const names = [
       "initial",
       "audit-head",
@@ -45,6 +45,7 @@ async function applyMigrations(database: DatabaseSync): Promise<void> {
       "agent-workspace",
       "agent-executions",
       "agent-inference-traces",
+      "folder-order",
     ];
     const name = `${String(version).padStart(4, "0")}-${names[version - 1]}.sql`;
     database.exec(await readFile(join(migrationRoot, name), "utf8"));
@@ -88,7 +89,9 @@ async function createWorkspace(internalRoot: string): Promise<string> {
 
 function insertSessions(database: DatabaseSync): void {
   database
-    .prepare("INSERT INTO folder_grants VALUES (?, ?, ?, ?, NULL)")
+    .prepare(
+      "INSERT INTO folder_grants (id, root_path, display_name, created_at, revoked_at, sort_order) VALUES (?, ?, ?, ?, NULL, 0)",
+    )
     .run(IDS.folder, "/private/client", "Client", NOW);
   database
     .prepare("INSERT INTO sessions VALUES (?, ?, ?, ?, ?)")

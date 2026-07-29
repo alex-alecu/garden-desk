@@ -62,6 +62,32 @@ describe("ConversationStore folder grants", () => {
   });
 });
 
+describe("ConversationStore folder ordering", () => {
+  it("persists an explicit active-folder order", () => {
+    const stateRoot = temporaryRoot("order-state");
+    const catalog = openWorkspaceCatalog(stateRoot);
+    const store = new ConversationStore(catalog.database);
+    const first = store.addFolder(temporaryRoot("order-first"));
+    const second = store.addFolder(temporaryRoot("order-second"));
+    const third = store.addFolder(temporaryRoot("order-third"));
+
+    expect(store.reorderFolders([third.id, first.id, second.id]).map((item) => item.id)).toEqual([
+      third.id,
+      first.id,
+      second.id,
+    ]);
+    catalog.close();
+
+    const reopened = openWorkspaceCatalog(stateRoot);
+    expect(new ConversationStore(reopened.database).listFolders().map((item) => item.id)).toEqual([
+      third.id,
+      first.id,
+      second.id,
+    ]);
+    reopened.close();
+  });
+});
+
 describe("ConversationStore sessions", () => {
   it("keeps global chats separate and paginates folder sessions", () => {
     const stateRoot = temporaryRoot("sessions");

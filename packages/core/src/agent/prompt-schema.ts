@@ -77,14 +77,19 @@ function sourceExecutionSchema(language: "python" | "node" | undefined, boundedS
   } as const;
 }
 
-export function agentDecisionJsonSchema(
-  task: string,
-  finalResponse: boolean,
-  requiresSourceExecution: boolean,
-  sourceLineLimit?: number,
-) {
+interface AgentDecisionSchemaOptions {
+  finalResponse: boolean;
+  requiredLanguage?: "python" | "node";
+  requiresSourceExecution: boolean;
+  sourceLineLimit?: number;
+  task: string;
+}
+
+export function agentDecisionJsonSchema(options: AgentDecisionSchemaOptions) {
+  const { finalResponse, requiredLanguage, requiresSourceExecution, sourceLineLimit, task } =
+    options;
   if (finalResponse) return FINAL_RESPONSE_SCHEMA;
-  const language = namedSourceLanguage(task);
+  const language = requiredLanguage ?? namedSourceLanguage(task);
   const source = sourceExecutionSchema(language, requiresSourceExecution);
   const boundedSource =
     sourceLineLimit === undefined

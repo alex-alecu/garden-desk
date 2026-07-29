@@ -76,6 +76,7 @@
         "packages/core/src/runtime/inference.test.ts",
         "packages/core/src/runtime/models.ts",
         "packages/core/src/conversations/store.test.ts",
+        "packages/core/src/agent/attachment-materialization.ts",
         "packages/core/src/agent/inputs.ts",
         "packages/core/src/agent/records.ts",
         "packages/core/src/agent/store.ts",

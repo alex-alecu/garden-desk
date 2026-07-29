@@ -1,7 +1,8 @@
-interface ConfirmationRequest {
+export interface ConfirmationRequest {
   confirmLabel: string;
   description: string;
   title: string;
+  onConfirm(): void;
 }
 
 interface ConfirmationProps {

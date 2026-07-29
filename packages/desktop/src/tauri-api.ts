@@ -1,4 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
+import { getCurrentWebview } from "@tauri-apps/api/webview";
 import {
   AgentRunSnapshotSchema,
   AgentRunSummarySchema,
@@ -10,13 +11,26 @@ import {
   SessionPageSchema,
   SessionSummarySchema,
 } from "@vault/shared";
-import type { DesktopApi, DesktopBootstrap } from "./api.js";
+import type { DesktopApi, DesktopBootstrap, DroppedPaths } from "./api.js";
 
 function record(value: unknown): Record<string, unknown> {
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
     throw new Error("The desktop bridge returned an invalid response.");
   }
   return value as Record<string, unknown>;
+}
+
+function parseDroppedPaths(value: unknown): DroppedPaths {
+  const input = record(value);
+  if (
+    !Array.isArray(input.files) ||
+    !input.files.every((path) => typeof path === "string") ||
+    !Array.isArray(input.folders) ||
+    !input.folders.every((path) => typeof path === "string")
+  ) {
+    throw new Error("The desktop bridge returned invalid dropped paths.");
+  }
+  return { files: input.files as string[], folders: input.folders as string[] };
 }
 
 function parseBootstrap(value: unknown): DesktopBootstrap {
@@ -52,6 +66,15 @@ export const tauriDesktopApi: DesktopApi = {
     const value = await invoke<unknown | null>("choose_folder");
     return value === null ? undefined : FolderSummarySchema.parse(value);
   },
+  async classifyDroppedPaths(paths) {
+    return parseDroppedPaths(await invoke("classify_dropped_paths", { paths }));
+  },
+  async addFolders(paths) {
+    return FolderSummarySchema.array().parse(await invoke("add_dropped_folders", { paths }));
+  },
+  async reorderFolders(folderIds) {
+    return FolderSummarySchema.array().parse(await invoke("reorder_folders", { folderIds }));
+  },
   async revokeFolder(folderId) {
     return record(await invoke("revoke_folder", { folderId })).revoked === true;
   },
@@ -78,8 +101,16 @@ export const tauriDesktopApi: DesktopApi = {
   async chooseFiles(sessionId) {
     return AttachmentSummarySchema.array().parse(await invoke("choose_files", { sessionId }));
   },
+  async addFiles(sessionId, paths) {
+    return AttachmentSummarySchema.array().parse(
+      await invoke("add_dropped_files", { sessionId, paths }),
+    );
+  },
   async listAttachments(sessionId) {
     return AttachmentSummarySchema.array().parse(await invoke("list_attachments", { sessionId }));
+  },
+  async openAttachment(sessionId, attachmentId) {
+    await invoke("open_attachment", { sessionId, attachmentId });
   },
   async removeAttachment(sessionId, attachmentId) {
     return record(await invoke("remove_attachment", { sessionId, attachmentId })).removed === true;
@@ -112,5 +143,14 @@ export const tauriDesktopApi: DesktopApi = {
   },
   async revealDebugSnapshot(sessionId) {
     await invoke("reveal_debug_snapshot", { sessionId });
+  },
+  async listenForDroppedPaths(listener) {
+    return await getCurrentWebview().onDragDropEvent(({ payload }) => {
+      if (payload.type === "leave") {
+        listener({ type: "leave" });
+        return;
+      }
+      listener(payload.type === "over" ? { type: "over" } : payload);
+    });
   },
 };
