@@ -1,4 +1,5 @@
 import type { AgentStep } from "../steps.js";
+import { SourceCode } from "./source-code.js";
 import { ExecutionStatus, StreamTabs } from "./technical-logs.js";
 
 function TextBlock({ label, value }: { label: string; value: string }) {
@@ -15,18 +16,19 @@ function TextBlock({ label, value }: { label: string; value: string }) {
 function StepEvidence({ step }: { step: AgentStep }) {
   const execution = step.execution;
   if (execution === undefined) return null;
+  const source = execution.source ?? execution.command;
+  const path = execution.path ?? "Guest shell command";
   return (
     <>
-      <p className="step-detail-path">{execution.path ?? "Guest shell command"}</p>
       <p>
         Termination: {execution.termination ?? "in progress"}
         {execution.exitCode === null ? "" : ` · exit ${execution.exitCode}`}
       </p>
-      {execution.source === null && execution.command === null ? null : (
-        <TextBlock
-          label="Code the model wrote"
-          value={execution.source ?? execution.command ?? ""}
-        />
+      {source === null ? null : (
+        <details className="step-detail-block">
+          <summary>Code the model wrote</summary>
+          <SourceCode language={execution.language} path={path} source={source} />
+        </details>
       )}
       <StreamTabs execution={execution} />
     </>

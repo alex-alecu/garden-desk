@@ -67,7 +67,7 @@ const timeline: TimelineItem[] = [
     id: "exec-1-done",
     kind: "activity",
     runId,
-    text: "python finished with exit code 0.",
+    text: "Finished this step.",
   },
   {
     createdAt: timestamp,
@@ -92,7 +92,7 @@ const timeline: TimelineItem[] = [
     id: "exec-2-done",
     kind: "activity",
     runId,
-    text: "python finished with exit code 0.",
+    text: "Finished this step.",
   },
   {
     createdAt: timestamp,

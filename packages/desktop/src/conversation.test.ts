@@ -57,7 +57,7 @@ const restoredActivity = [
     id: "completed",
     kind: "activity",
     runId,
-    text: "Python finished with exit code 0.",
+    text: "Finished this step.",
   },
   {
     createdAt: "2026-07-20T12:00:05.500Z",
@@ -213,7 +213,7 @@ describe("conversation activity presentation", () => {
       "Build a report",
       "Loading the local model",
       "Inspecting the selected data",
-      "Python finished",
+      "Finished this step",
       "report.csv",
       "The report is ready",
     ];
@@ -242,7 +242,7 @@ describe("conversation activity presentation", () => {
     );
 
     expect(markup).toContain("Working locally");
-    expect(markup).toContain("Python finished with exit code 0.");
+    expect(markup).toContain("Finished this step.");
     expect(markup).toContain("1 execution completed");
   });
 });
@@ -287,7 +287,7 @@ describe("conversation step selection", () => {
     );
 
     expect(markup).toContain('class="activity-step"');
-    expect(markup).toContain('aria-label="Show technical details for: Python finished');
+    expect(markup).toContain('aria-label="Show technical details for: Finished this step.');
     expect(markup).toContain('aria-current="step"');
   });
 });

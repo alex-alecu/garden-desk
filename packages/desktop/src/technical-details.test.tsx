@@ -2,6 +2,7 @@ import { AgentArtifactSummarySchema, AgentExecutionSnapshotSchema } from "@vault
 import { renderToStaticMarkup } from "react-dom/server";
 import { expect, it } from "vitest";
 import type { DesktopApi } from "./api.js";
+import { SourceCode } from "./components/source-code.js";
 import {
   DebugSnapshotPanel,
   shouldFollowLog,
@@ -101,7 +102,7 @@ const timeline = [
     id: "output",
     kind: "activity",
     runId: "77ff5b22-555d-4ef2-9170-fdd7118738f1",
-    text: "Python finished with exit code 0.",
+    text: "Finished this step.",
   },
   {
     createdAt: timestamp,
@@ -115,7 +116,7 @@ const timeline = [
 
 const steps = agentSteps(timeline, [execution, activeExecution]);
 
-function renderTechnicalDetails(): string {
+function renderTechnicalDetails(selectedStepId?: string): string {
   return renderToStaticMarkup(
     <TechnicalDetails
       api={{} as DesktopApi}
@@ -135,7 +136,7 @@ function renderTechnicalDetails(): string {
       onClose={() => undefined}
       onSelectStep={() => undefined}
       open
-      selectedStepId={steps[1]?.id}
+      selectedStepId={selectedStepId}
       sessionId="da911f87-ff26-46d8-9a58-bad222a584ab"
       steps={steps}
       thinking={null}
@@ -145,7 +146,7 @@ function renderTechnicalDetails(): string {
   );
 }
 
-it("shows low-level evidence without generic progress", () => {
+it("keeps the overview separate from step evidence", () => {
   const markup = renderTechnicalDetails();
 
   expect(markup).toContain("Technical details");
@@ -158,6 +159,8 @@ it("shows low-level evidence without generic progress", () => {
   expect(markup).toContain("bounded microVM logs");
   expect(markup).toContain("approved channel");
   expect(markup).toContain('aria-label="Close technical details"');
+  expect(markup).toContain('aria-label="Technical details sections"');
+  expect(markup).toMatch(/aria-selected="true"[^>]*>Overview/);
   expect(markup).toContain("4 CPUs, 4 GiB memory, 128 MiB persistent workspace");
   expect(markup).toContain("Certified guest capabilities");
   expect(markup).toMatch(
@@ -165,16 +168,46 @@ it("shows low-level evidence without generic progress", () => {
   );
   expect(markup).toContain("Python: 3.14.5");
   expect(markup).toContain("/usr/bin/patch");
-  expect(markup).toContain("print(&#x27;ok&#x27;)");
-  expect(markup).toContain("Termination: completed");
   expect(markup).toContain("text/csv");
   expect(markup).toContain("42 bytes");
   expect(markup).not.toContain("Response completed");
+  expect(markup).not.toContain("Step 1 · Planning the task.");
+  expect(markup).not.toContain("Code the model wrote");
+});
+
+it("opens a selected step in its own tab with highlighted Python source", () => {
+  const markup = renderTechnicalDetails(steps[1]?.id);
+
+  expect(markup).toMatch(/aria-selected="true"[^>]*>Steps/);
   expect(markup).toContain("Step 1 · Planning the task.");
   expect(markup).toContain("Step 2 · Inspecting data.");
   expect(markup).toContain('aria-expanded="true"');
   expect(markup).toContain("Code the model wrote");
+  expect(markup).toContain("steps/0001.py");
+  expect(markup).toContain("Python");
+  expect(markup).toContain('class="syntax-builtin"');
+  expect(markup).toContain('class="syntax-string"');
   expect(markup).toContain("Recorded prompts are not loaded");
+  expect(markup).not.toContain("Local session ID:");
+  expect(markup).not.toContain("Certified guest capabilities");
+  expect(markup).not.toContain("text/csv");
+});
+
+it("highlights generated Node source with its assigned filename", () => {
+  const markup = renderToStaticMarkup(
+    <SourceCode
+      language="node"
+      path="steps/0002.mjs"
+      source={'import fs from "node:fs";\nconst count = 3;\nconsole.log(count);'}
+    />,
+  );
+
+  expect(markup).toContain("steps/0002.mjs");
+  expect(markup).toContain("Node.js");
+  expect(markup).toContain('class="syntax-keyword"');
+  expect(markup).toContain('class="syntax-string"');
+  expect(markup).toContain('class="syntax-number"');
+  expect(markup).toContain('class="syntax-builtin"');
 });
 
 it("shows pending, success, reveal, and failure states", () => {

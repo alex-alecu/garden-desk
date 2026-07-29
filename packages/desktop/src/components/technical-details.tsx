@@ -3,7 +3,7 @@ import type {
   AgentExecutionSnapshot,
   ModelRuntimeStatus,
 } from "@vault/shared";
-import { useReducer } from "react";
+import { useEffect, useReducer, useState } from "react";
 import capabilities from "../../../workers/images/agent/capabilities.json" with { type: "json" };
 import type { DesktopApi } from "../api.js";
 import {
@@ -16,6 +16,7 @@ import type { TimelineItem } from "../state.js";
 import type { AgentStep } from "../steps.js";
 import { Icon } from "./icons.js";
 import { StepList } from "./step-list.js";
+import { selectAdjacentTab } from "./tab-keyboard.js";
 
 export { shouldFollowLog } from "./technical-logs.js";
 
@@ -160,12 +161,7 @@ function Overview({
   executions,
   model,
   nativeActionMessage,
-  onSelectStep,
-  selectedStepId,
   sessionId,
-  steps,
-  thinking,
-  thinkingStepId,
   timeline,
 }: TechnicalDetailsProps) {
   const limits = timeline.find((item) => item.eventType === "run.started")?.text;
@@ -201,13 +197,6 @@ function Overview({
           <pre>{guestCapabilities()}</pre>
         </details>
       </article>
-      <StepList
-        onSelectStep={onSelectStep}
-        selectedStepId={selectedStepId}
-        steps={steps}
-        thinking={thinking}
-        thinkingStepId={thinkingStepId}
-      />
       {artifacts.map((item) => (
         <article className="technical-details-item" key={item.id}>
           <span className="activity-label">Generated file</span>
@@ -228,20 +217,71 @@ function Overview({
   );
 }
 
+function Steps({
+  onSelectStep,
+  selectedStepId,
+  steps,
+  thinking,
+  thinkingStepId,
+}: TechnicalDetailsProps) {
+  return (
+    <div className="technical-details-scroll" id="technical-steps-panel" role="tabpanel">
+      <StepList
+        onSelectStep={onSelectStep}
+        selectedStepId={selectedStepId}
+        steps={steps}
+        thinking={thinking}
+        thinkingStepId={thinkingStepId}
+      />
+    </div>
+  );
+}
+
+type DrawerTab = "overview" | "steps";
+const DRAWER_TABS = ["overview", "steps"] as const;
+
+function DrawerTabs({ active, onSelect }: { active: DrawerTab; onSelect(tab: DrawerTab): void }) {
+  return (
+    <div aria-label="Technical details sections" className="drawer-tabs" role="tablist">
+      {DRAWER_TABS.map((tab) => (
+        <button
+          aria-controls={`technical-${tab}-panel`}
+          aria-selected={active === tab}
+          key={tab}
+          onClick={() => onSelect(tab)}
+          onKeyDown={(event) => selectAdjacentTab(event, tab, DRAWER_TABS, onSelect)}
+          role="tab"
+          tabIndex={active === tab ? 0 : -1}
+          type="button"
+        >
+          {tab === "overview" ? "Overview" : "Steps"}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 export function TechnicalDetails(props: TechnicalDetailsProps) {
+  const [tab, setTab] = useState<DrawerTab>(
+    props.selectedStepId === undefined ? "overview" : "steps",
+  );
+  useEffect(() => {
+    if (props.selectedStepId !== undefined) setTab("steps");
+  }, [props.selectedStepId]);
   if (!props.open) return null;
   return (
     <aside aria-label="Technical details" className="technical-details-drawer">
       <header className="technical-details-header">
         <div>
           <h2>Technical details</h2>
-          <p>Local limits, step evidence, prompts, and bounded logs</p>
+          <p>Local limits, diagnostics, and generated-file metadata</p>
         </div>
         <button aria-label="Close technical details" onClick={props.onClose} type="button">
           <Icon name="close" />
         </button>
       </header>
-      <Overview {...props} />
+      <DrawerTabs active={tab} onSelect={setTab} />
+      {tab === "overview" ? <Overview {...props} /> : <Steps {...props} />}
     </aside>
   );
 }

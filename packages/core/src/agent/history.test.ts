@@ -28,7 +28,7 @@ function event(source: string, stderr: string, exitCode = 1): AgentEvent {
     runId: randomUUID(),
     sequence: 0,
     type: "execution.completed",
-    summary: `python finished with exit code ${exitCode}.`,
+    summary: exitCode === 0 ? "Finished this step." : "This step could not be completed.",
     language: "python",
     path: "steps/0001.py",
     source,

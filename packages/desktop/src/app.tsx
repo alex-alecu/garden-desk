@@ -118,7 +118,10 @@ export function App({ api, capabilities }: { api: DesktopApi; capabilities: Desk
           model={model}
           nativeActionMessage={nativeUnavailable}
           onAppearanceChange={appearance.cycle}
-          onTechnicalDetailsOpen={() => setTechnicalDetailsOpen(true)}
+          onTechnicalDetailsOpen={() => {
+            dispatch({ type: "step.select", stepId: undefined });
+            setTechnicalDetailsOpen(true);
+          }}
           onUnload={() => {
             void api
               .unloadModel()

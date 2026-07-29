@@ -69,9 +69,13 @@ export function xlsxContinuationResponse(executions: AgentExecutionResult[]): st
 
 export function executionCompletionSummary(result: AgentExecutionResult): string {
   const progress = completedXlsxSuccessfully(result) ? parseXlsxProgress(result.stdout) : undefined;
-  return progress === undefined
-    ? `${result.language} finished with exit code ${result.exitCode}.`
-    : `Processed ${progress.filesDone} of ${progress.filesTotal} XLSX files.`;
+  if (progress !== undefined) {
+    return `Processed ${progress.filesDone} of ${progress.filesTotal} XLSX files.`;
+  }
+  if (completedSuccessfully(result)) return "Finished this step.";
+  if (result.termination === "timeout") return "This step took too long and stopped.";
+  if (result.termination === "cancelled") return "This step was cancelled.";
+  return "This step could not be completed.";
 }
 
 export function verifiedXlsxOutput(

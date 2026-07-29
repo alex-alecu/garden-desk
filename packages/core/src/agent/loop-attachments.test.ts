@@ -37,7 +37,7 @@ function extractionHistory(source: string): DurableAgentHistory {
     runId: "1f2e3d4c-5b6a-4798-8b9c-0d1e2f3a4b5c",
     sequence: 0,
     type: "execution.completed",
-    summary: "python finished with exit code 0.",
+    summary: "Finished this step.",
     language: "python",
     path: "steps/1.py",
     source,

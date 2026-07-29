@@ -1474,12 +1474,35 @@ textarea:focus-visible {
 }
 
 .stream-tabs button:focus-visible,
+.drawer-tabs button:focus-visible,
 .activity-step:focus-visible,
 .execution-toggle:focus-visible,
 .technical-log-viewer textarea:focus-visible,
 .jump-to-latest:focus-visible {
   outline: 2px solid var(--focus);
   outline-offset: 2px;
+}
+
+.drawer-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 10px 14px 0;
+}
+
+.drawer-tabs button {
+  min-height: 32px;
+  padding: 0 10px;
+  border-radius: 8px;
+  color: var(--ink-soft);
+  background: transparent;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.drawer-tabs button[aria-selected="true"] {
+  color: var(--ink);
+  background: var(--navigation-selected);
+  font-weight: 650;
 }
 
 .technical-details-scroll {
@@ -2275,7 +2298,8 @@ textarea:focus-visible {
 .step-details {
   display: grid;
   gap: 8px;
-  padding-top: 8px;
+  padding: 10px 12px 12px;
+  border-top: 1px solid var(--reading-border);
 }
 
 .step-details .step-detail-title {
@@ -2296,6 +2320,81 @@ textarea:focus-visible {
   cursor: pointer;
   color: var(--accent-strong);
   font-size: 12px;
+}
+
+.source-code {
+  margin-top: 8px;
+  overflow: hidden;
+  border: 1px solid rgb(142 177 172 / 24%);
+  border-radius: 9px;
+  background: #071c21;
+}
+
+.source-code-header {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 7px 10px;
+  border-bottom: 1px solid rgb(142 177 172 / 20%);
+  color: #a8bab7;
+  font:
+    10px / 1.4 "IBM Plex Mono",
+    ui-monospace,
+    monospace;
+}
+
+.source-code-header span:first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.source-code-header span:last-child {
+  flex: 0 0 auto;
+  color: #dce7e4;
+}
+
+.source-code pre {
+  max-height: 360px;
+  margin: 0;
+  padding: 12px;
+  overflow: auto;
+  border-radius: 0;
+  color: #dce7e4;
+  background: transparent;
+  white-space: pre;
+  word-break: normal;
+}
+
+.syntax-comment {
+  color: #829b99;
+  font-style: italic;
+}
+
+.syntax-keyword {
+  color: #ff91b7;
+}
+
+.syntax-string {
+  color: #a9d88f;
+}
+
+.syntax-number {
+  color: #f3c66f;
+}
+
+.syntax-literal {
+  color: #c7adff;
+}
+
+.syntax-builtin {
+  color: #85cfea;
+}
+
+.syntax-meta {
+  color: #eeb47d;
 }
 
 .app-shell[data-theme="dark"] .timeline-activity:has(.activity-step[aria-current="step"]) {
