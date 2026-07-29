@@ -185,7 +185,43 @@ describe("agent step evidence", () => {
     expect(steps[1]?.turn?.structuredResponse).toEqual({ action: "execute" });
     expect(steps[3]?.turn).toBeUndefined();
   });
+});
 
+describe("agent step recovery evidence", () => {
+  it("does not reuse a hidden structured retry as the next planning turn", () => {
+    const recorded = trace(0);
+    if (recorded.status !== "recorded") throw new Error("Expected a recorded trace.");
+    const accepted = recorded.turns[0];
+    if (accepted === undefined) throw new Error("Expected one trace turn.");
+    const traces = [
+      {
+        ...recorded,
+        turns: [
+          {
+            ...accepted,
+            prompt: "Failed first attempt",
+            outcome: "inference_failed" as const,
+            executionSequence: null,
+          },
+          { ...accepted, sequence: 1, prompt: "Retry for step 1" },
+          { ...accepted, sequence: 2, prompt: "Plan for step 2", executionSequence: 1 },
+        ],
+      },
+    ];
+
+    const steps = agentSteps(
+      timeline,
+      [execution(0, "steps/1.py"), execution(1, "steps/2.py")],
+      traces,
+    );
+
+    expect(steps[0]?.turn?.prompt).toBe("Failed first attempt");
+    expect(steps[1]?.turn?.prompt).toBe("Retry for step 1");
+    expect(steps[3]?.turn?.prompt).toBe("Plan for step 2");
+  });
+});
+
+describe("agent step trace availability", () => {
   it("reports no turn when the run predates trace capture", () => {
     const notRecorded = AgentTraceSchema.parse({
       runId,
