@@ -69,8 +69,8 @@
   --chrome-border: rgb(202 225 220 / 14%);
   --chrome-text: #e8eee9;
   --chrome-muted: #95aaa7;
-  --reading: #f5f4eb;
-  --reading-raised: #f5f4eb;
+  --reading: #fafafa;
+  --reading-raised: #fafafa;
   --reading-soft: #d0cdc5;
   --reading-border: rgb(18 50 56 / 14%);
   --navigation-hover: rgb(40 111 109 / 8%);
@@ -160,7 +160,7 @@ textarea:focus-visible {
   overflow: hidden;
   background:
     radial-gradient(circle at 50% 48%, rgb(111 169 160 / 20%), transparent 42%),
-    rgb(245 244 235 / 76%);
+    rgb(250 250 250 / 76%);
   backdrop-filter: blur(8px) saturate(0.88);
   pointer-events: none;
   animation: drop-overlay-in 180ms ease-out both;
@@ -612,9 +612,7 @@ textarea:focus-visible {
   min-width: 0;
   min-height: 0;
   flex: 1 1 auto;
-  background:
-    radial-gradient(circle at 88% 8%, rgb(57 127 121 / 8%), transparent 26rem),
-    linear-gradient(140deg, var(--reading-raised), var(--reading) 44%);
+  background: var(--reading);
 }
 
 .workspace:has(.guided-examples) {
@@ -673,7 +671,7 @@ textarea:focus-visible {
   padding: 10px 20px 8px 22px;
   color: var(--ink);
   border-bottom: 1px solid var(--reading-border);
-  background: rgb(245 244 235 / 92%);
+  background: rgb(250 250 250 / 92%);
   backdrop-filter: blur(18px) saturate(1.15);
   user-select: none;
 }
@@ -814,7 +812,7 @@ textarea:focus-visible {
   border: 1px solid var(--border-color);
   border-radius: 16px 16px 6px;
   color: var(--ink);
-  background: rgb(245 244 235 / 88%);
+  background: rgb(250 250 250 / 88%);
   box-shadow: var(--surface-shadow);
   text-align: left;
   cursor: pointer;
@@ -1144,7 +1142,7 @@ textarea:focus-visible {
   padding: 5px 8px;
   border: 1px solid var(--border-color);
   border-radius: 8px;
-  background: rgb(245 244 235 / 72%);
+  background: rgb(250 250 250 / 72%);
   letter-spacing: 0.005em;
 }
 
@@ -1231,7 +1229,7 @@ textarea:focus-visible {
   padding: 13px 14px 10px;
   border: 1px solid var(--border-color);
   border-radius: 20px 20px 8px;
-  background: rgb(245 244 235 / 96%);
+  background: rgb(250 250 250 / 96%);
   box-shadow:
     0 12px 34px rgb(7 31 37 / 13%),
     inset 0 1px rgb(255 250 240 / 55%);
