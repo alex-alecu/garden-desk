@@ -71,10 +71,12 @@ The conversation timeline supports:
 - Streaming assistant text.
 - Concise model-planning, execution-purpose, completion, failure, and cancellation activity inline in chronological order without code or logs. A persistent **Working locally** card keeps the current action and completed execution count visible while a run is active. Long XLSX work stops at a verified local checkpoint after six executions and shows a dismissible **Continue this task?** question with exact file progress.
 - Generated scratch artifacts inline with the surrounding task activity and response.
-- A top-right **Technical details** control that opens a wider right-side drawer on **Overview**. The drawer uses the application surface and reduces the conversation workspace instead of covering it. Overview contains the live memory allocation, VRAM or unified-memory budget, context window, limits, compact execution summaries, collapsed code or commands, termination evidence, guest capabilities, and generated-file metadata without rendering log bodies.
+- A top-right **Technical details** control that opens a wider right-side drawer. The drawer uses the application surface and reduces the conversation workspace instead of covering it. It contains the live memory allocation, VRAM or unified-memory budget, context window, limits, guest capabilities, an ordered step list, and generated-file metadata.
 - Technical details retains the local session ID and catalog path and identifies the snapshot as a handoff for AI coding agents such as Codex or Claude Code, including the selected session's SQLite-backed records and bounded microVM logs. It provides **Create debug snapshot** plus **Reveal snapshot**. The webview supplies only the session ID; the desktop host derives the catalog and can reveal only the latest snapshot it created for that session. The selectable result path and privacy warning reset when the conversation changes.
-- A separate **Logs** tab lists executions newest first and collapsed by default. Selecting Logs auto-expands only the active execution. Each row selects one stream at a time: Output, Errors, or typed VM diagnostics, with byte counts, explicit state text, and truncation text.
-- Active output follows only while the viewer remains within 40 pixels of the bottom. Manual scrolling is preserved and exposes **Jump to latest**. Reopening the drawer or switching conversations resets it to Overview.
+- Every inline activity step in the conversation is a button. Selecting one opens Technical details with that step expanded and marks it as the current step; selecting it again collapses it. The drawer lists steps in run order and collapses all of them by default.
+- An expanded step shows its purpose, generated code or command, termination and exit status, and one log stream at a time: Output, Errors, or typed VM diagnostics, with byte counts, explicit state text, and truncation text. When recorded inference detail is available it also shows the model and allocated context, the exact prompt sent, the requested result shape, and the model's decision. Prompts and decisions are read on demand for the selected step's run, never during run polling, and a task recorded before inference capture reports that its prompts are not recorded.
+- While a step is generating, its current typed thought segment may appear within that step. It is held only in memory and disappears at the terminal result, so a completed or restored step never shows one.
+- Active output follows only while the viewer remains within 40 pixels of the bottom. Manual scrolling is preserved and exposes **Jump to latest**. Switching conversations clears the selected step.
 - Plain-language running, cancelling, cancelled, timed-out, failed, and completed states.
 - Security or unsupported-operation warnings.
 - A compact performance row beneath the newest assistant response ordered as prompt-processing tokens per second, generation tokens per second, and total run time.
@@ -116,7 +118,7 @@ Runtime, quantization, context-window, endpoint, and model-file vocabulary stays
 ## Accessibility And Platform Behavior
 
 - Full keyboard navigation and visible focus, including arrow-key tab selection and button-operated execution rows.
-- Screen-reader labels for folders, sessions, status, attachments, inline activity, Technical details, and composer actions.
+- Screen-reader labels for folders, sessions, status, attachments, inline activity, Technical details, and composer actions. Each activity step names the step it reveals, and the expanded step is exposed as the current step.
 - Focus restoration after dialogs, session switches, cancellation, and reconnect.
 - Reduced-motion support.
 - Usable at 200 percent scaling and narrow supported window widths.
@@ -142,5 +144,6 @@ Runtime, quantization, context-window, endpoint, and model-file vocabulary stays
 | 2026-07-25 | Added System, Light, and graphite Dark appearance modes and replaced the active sidebar edge rule with a softly raised selection pill. |
 | 2026-07-25 | Added background conversation activity pulses, RAM-bounded parallel sessions, and clear memory budget versus live-allocation labels. |
 | 2026-07-26 | Lightened the shared paper surface, made both side panels participate in layout, refined message sizing and alignment, and exposed runtime memory details in Technical details. |
+| 2026-07-29 | Made inline activity steps selectable and replaced the Overview and Logs tabs with one ordered step list carrying code, logs, recorded prompts, requested result shape, and decisions. |
 | 2026-07-27 | Added visible active-run progress and a dismissible saved-progress continuation question for long XLSX work. |
 | 2026-07-28 | Added clickable attachment transfer, whole-window file and folder drop routing with an animated affordance, and persistent accessible folder ordering. |

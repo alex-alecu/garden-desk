@@ -16,6 +16,8 @@ export const initialDesktopState: DesktopState = {
   executions: [],
   thinking: null,
   loaded: false,
+  selectedStepId: undefined,
+  traces: [],
 };
 
 export function emptyConversation(newSessionFolderId: string | null | undefined) {
@@ -30,5 +32,7 @@ export function emptyConversation(newSessionFolderId: string | null | undefined)
     artifacts: [],
     executions: [],
     thinking: null,
+    selectedStepId: undefined,
+    traces: [],
   };
 }

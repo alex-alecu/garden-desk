@@ -10,6 +10,7 @@ import {
 import { LogsPanel } from "./components/technical-logs.js";
 import { initialDebugSnapshotState } from "./debug-snapshot.js";
 import type { TimelineItem } from "./state.js";
+import { agentSteps } from "./steps.js";
 
 const timestamp = "2026-07-20T12:00:00.000Z";
 const artifact = AgentArtifactSummarySchema.parse({
@@ -73,6 +74,7 @@ const timeline = [
     eventType: "run.started",
     id: "limits",
     kind: "activity",
+    runId: "77ff5b22-555d-4ef2-9170-fdd7118738f1",
     text: "Offline limits: 4 CPUs, 4 GiB memory, 128 MiB persistent workspace.",
   },
   {
@@ -80,6 +82,7 @@ const timeline = [
     eventType: "inference.started",
     id: "planning",
     kind: "activity",
+    runId: "77ff5b22-555d-4ef2-9170-fdd7118738f1",
     text: "Planning the task.",
   },
   {
@@ -88,6 +91,7 @@ const timeline = [
     eventType: "execution.started",
     id: "code",
     kind: "activity",
+    runId: "77ff5b22-555d-4ef2-9170-fdd7118738f1",
     text: "Inspecting data.",
   },
   {
@@ -96,6 +100,7 @@ const timeline = [
     eventType: "execution.completed",
     id: "output",
     kind: "activity",
+    runId: "77ff5b22-555d-4ef2-9170-fdd7118738f1",
     text: "Python finished with exit code 0.",
   },
   {
@@ -103,9 +108,12 @@ const timeline = [
     eventType: "assistant.completed",
     id: "completed",
     kind: "activity",
+    runId: "77ff5b22-555d-4ef2-9170-fdd7118738f1",
     text: "Response completed.",
   },
 ] satisfies TimelineItem[];
+
+const steps = agentSteps(timeline, [execution, activeExecution]);
 
 function renderTechnicalDetails(): string {
   return renderToStaticMarkup(
@@ -125,8 +133,12 @@ function renderTechnicalDetails(): string {
         contextSizeTokens: 262_144,
       }}
       onClose={() => undefined}
+      onSelectStep={() => undefined}
       open
+      selectedStepId={steps[1]?.id}
       sessionId="da911f87-ff26-46d8-9a58-bad222a584ab"
+      steps={steps}
+      thinking={null}
       timeline={timeline}
     />,
   );
@@ -156,11 +168,12 @@ it("shows low-level evidence without generic progress", () => {
   expect(markup).toContain("Termination: completed");
   expect(markup).toContain("text/csv");
   expect(markup).toContain("42 bytes");
-  expect(markup).not.toContain("Planning the task");
   expect(markup).not.toContain("Response completed");
-  expect(markup).not.toContain("private output");
-  expect(markup).toContain('aria-selected="true" role="tab"');
-  expect(markup).toContain("Overview</button>");
+  expect(markup).toContain("Step 1 · Planning the task.");
+  expect(markup).toContain("Step 2 · Inspecting data.");
+  expect(markup).toContain('aria-expanded="true"');
+  expect(markup).toContain("Code the model wrote");
+  expect(markup).toContain("Recorded prompts are not loaded");
 });
 
 it("shows pending, success, reveal, and failure states", () => {

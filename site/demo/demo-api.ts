@@ -2,6 +2,7 @@ import type { AgentRunSnapshot, ConversationMessage, SessionSummary } from "@vau
 import {
   AgentRunSnapshotSchema,
   AgentRunSummarySchema,
+  AgentTraceSchema,
   ConversationMessageSchema,
   SessionDraftSchema,
   SessionSummarySchema,
@@ -202,6 +203,11 @@ export class DemoDesktopApi implements DesktopApi {
       ]);
     }
     return dynamic.snapshot;
+  }
+
+  // The demo runs no model, so no prompt or decision was ever recorded for a run.
+  async getAgentTrace(runId: string) {
+    return AgentTraceSchema.parse({ runId, captureVersion: 0, status: "not_recorded", turns: [] });
   }
 
   async listAgentRuns(sessionId: string) {

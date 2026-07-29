@@ -1,0 +1,27 @@
+import type { DesktopApi } from "./api.js";
+import type { DesktopAction, DesktopState } from "./state.js";
+import type { AgentStep } from "./steps.js";
+
+interface StepSelection {
+  api: DesktopApi;
+  dispatch(action: DesktopAction): void;
+  setError(message: string | undefined): void;
+  steps: AgentStep[];
+  traces: DesktopState["traces"];
+}
+
+/**
+ * Selecting a step opens its recorded prompts, so the expensive trace read happens on
+ * demand for that step's run and never inside the run-polling loop.
+ */
+export function selectStep(selection: StepSelection, stepId: string | undefined): void {
+  const { api, dispatch, setError, steps, traces } = selection;
+  dispatch({ type: "step.select", stepId });
+  const runId = steps.find((step) => step.id === stepId)?.runId;
+  if (runId === undefined || runId === null) return;
+  if (traces.some((trace) => trace.runId === runId)) return;
+  void api
+    .getAgentTrace(runId)
+    .then((trace) => dispatch({ type: "trace.load", trace }))
+    .catch(() => setError("The recorded prompts for this task could not be loaded."));
+}

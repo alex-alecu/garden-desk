@@ -3,7 +3,7 @@ import type {
   AgentExecutionSnapshot,
   ModelRuntimeStatus,
 } from "@vault/shared";
-import { useReducer, useState } from "react";
+import { useReducer } from "react";
 import capabilities from "../../../workers/images/agent/capabilities.json" with { type: "json" };
 import type { DesktopApi } from "../api.js";
 import {
@@ -13,9 +13,9 @@ import {
 } from "../debug-snapshot.js";
 import { modelUsage } from "../model-usage.js";
 import type { TimelineItem } from "../state.js";
+import type { AgentStep } from "../steps.js";
 import { Icon } from "./icons.js";
-import { selectAdjacentTab } from "./tab-keyboard.js";
-import { ExecutionStatus, LogsPanel } from "./technical-logs.js";
+import { StepList } from "./step-list.js";
 
 export { shouldFollowLog } from "./technical-logs.js";
 
@@ -28,11 +28,13 @@ interface TechnicalDetailsProps {
   open: boolean;
   sessionId: string | undefined;
   timeline: TimelineItem[];
+  steps: AgentStep[];
+  selectedStepId: string | undefined;
+  thinking: string | null;
   nativeActionMessage?: string | undefined;
   onClose(): void;
+  onSelectStep(stepId: string | undefined): void;
 }
-
-type DrawerTab = "overview" | "logs";
 
 function guestCapabilities(): string {
   const runtimes = Object.entries(capabilities.runtimes).map(
@@ -48,28 +50,6 @@ function guestCapabilities(): string {
     "Executables:",
     ...capabilities.executables,
   ].join("\n");
-}
-
-function DrawerTabs({ tab, setTab }: { tab: DrawerTab; setTab(tab: DrawerTab): void }) {
-  const tabs = ["overview", "logs"] as const;
-  return (
-    <div aria-label="Technical detail views" className="technical-tabs" role="tablist">
-      {tabs.map((item) => (
-        <button
-          aria-controls={`technical-${item}-panel`}
-          aria-selected={tab === item}
-          key={item}
-          onClick={() => setTab(item)}
-          onKeyDown={(event) => selectAdjacentTab(event, item, tabs, setTab)}
-          role="tab"
-          tabIndex={tab === item ? 0 : -1}
-          type="button"
-        >
-          {item === "overview" ? "Overview" : "Logs"}
-        </button>
-      ))}
-    </div>
-  );
 }
 
 export function DebugSnapshotPanel({
@@ -179,19 +159,13 @@ function Overview({
   executions,
   model,
   nativeActionMessage,
+  onSelectStep,
+  selectedStepId,
   sessionId,
+  steps,
+  thinking,
   timeline,
-}: Pick<
-  TechnicalDetailsProps,
-  | "api"
-  | "artifacts"
-  | "catalogPath"
-  | "executions"
-  | "model"
-  | "nativeActionMessage"
-  | "sessionId"
-  | "timeline"
->) {
+}: TechnicalDetailsProps) {
   const limits = timeline.find((item) => item.eventType === "run.started")?.text;
   return (
     <div className="technical-details-scroll" role="tabpanel" id="technical-overview-panel">
@@ -225,25 +199,12 @@ function Overview({
           <pre>{guestCapabilities()}</pre>
         </details>
       </article>
-      {executions.map((execution) => (
-        <article className="technical-details-item" key={execution.id}>
-          <div className="execution-heading">
-            <p>
-              Execution {execution.sequence + 1} · {execution.language}
-            </p>
-            <ExecutionStatus execution={execution} />
-          </div>
-          <p>{execution.path ?? "Guest shell command"}</p>
-          <p>
-            Termination: {execution.termination ?? "in progress"}
-            {execution.exitCode === null ? "" : ` · exit ${execution.exitCode}`}
-          </p>
-          <details>
-            <summary>Show code or command</summary>
-            <pre>{execution.source ?? execution.command}</pre>
-          </details>
-        </article>
-      ))}
+      <StepList
+        onSelectStep={onSelectStep}
+        selectedStepId={selectedStepId}
+        steps={steps}
+        thinking={thinking}
+      />
       {artifacts.map((item) => (
         <article className="technical-details-item" key={item.id}>
           <span className="activity-label">Generated file</span>
@@ -265,21 +226,19 @@ function Overview({
 }
 
 export function TechnicalDetails(props: TechnicalDetailsProps) {
-  const [tab, setTab] = useState<DrawerTab>("overview");
   if (!props.open) return null;
   return (
     <aside aria-label="Technical details" className="technical-details-drawer">
       <header className="technical-details-header">
         <div>
           <h2>Technical details</h2>
-          <p>Local limits, execution evidence, and bounded logs</p>
+          <p>Local limits, step evidence, prompts, and bounded logs</p>
         </div>
         <button aria-label="Close technical details" onClick={props.onClose} type="button">
           <Icon name="close" />
         </button>
       </header>
-      <DrawerTabs setTab={setTab} tab={tab} />
-      {tab === "overview" ? <Overview {...props} /> : <LogsPanel executions={props.executions} />}
+      <Overview {...props} />
     </aside>
   );
 }

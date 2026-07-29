@@ -269,3 +269,25 @@ describe("continuation question presentation", () => {
     expect(markup).toContain('aria-label="Dismiss continuation question"');
   });
 });
+
+describe("conversation step selection", () => {
+  it("exposes each activity step as a labelled button and marks the selected one", () => {
+    const markup = renderToStaticMarkup(
+      createElement(Conversation, {
+        artifacts: [],
+        ready: true,
+        timeline: restoredActivity,
+        onSuggestion: () => undefined,
+        onSelectStep: () => undefined,
+        selectedStepId: "completed",
+        performance: null,
+        runId,
+        thinking: null,
+      }),
+    );
+
+    expect(markup).toContain('class="activity-step"');
+    expect(markup).toContain('aria-label="Show technical details for: Python finished');
+    expect(markup).toContain('aria-current="step"');
+  });
+});

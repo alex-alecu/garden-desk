@@ -81,7 +81,7 @@ function StreamViewer({
   );
 }
 
-function StreamTabs({ execution }: { execution: AgentExecutionSnapshot }) {
+export function StreamTabs({ execution }: { execution: AgentExecutionSnapshot }) {
   const [stream, setStream] = useState<LogStream>("stdout");
   const streamIds = ["stdout", "stderr", "vm"] as const;
   const streams = [

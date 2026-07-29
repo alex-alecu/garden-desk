@@ -246,6 +246,14 @@ pub(crate) async fn get_agent_run(
 }
 
 #[tauri::command]
+pub(crate) async fn get_agent_trace(
+    core: State<'_, CoreBridge>,
+    run_id: String,
+) -> Result<Value, String> {
+    core.call("agent.trace", json!({ "runId": run_id }))
+}
+
+#[tauri::command]
 pub(crate) async fn list_agent_runs(
     core: State<'_, CoreBridge>,
     session_id: String,

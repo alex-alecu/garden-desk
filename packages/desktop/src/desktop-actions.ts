@@ -138,13 +138,14 @@ export async function deleteConversation(
 interface ShowMoreOptions {
   api: DesktopApi;
   folderId: string;
-  cursor: string | null;
+  folders: Array<{ id: string; nextCursor: string | null }>;
   dispatch: Dispatch;
   setError: SetError;
 }
 
 export async function showMore(options: ShowMoreOptions) {
-  const { api, folderId, cursor, dispatch, setError } = options;
+  const { api, folderId, folders, dispatch, setError } = options;
+  const cursor = folders.find((folder) => folder.id === folderId)?.nextCursor ?? null;
   if (cursor === null) return;
   try {
     const page = await api.listSessions(folderId, cursor);

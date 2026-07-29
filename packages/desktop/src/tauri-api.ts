@@ -3,6 +3,7 @@ import { getCurrentWebview } from "@tauri-apps/api/webview";
 import {
   AgentRunSnapshotSchema,
   AgentRunSummarySchema,
+  AgentTraceSchema,
   AttachmentSummarySchema,
   ConversationMessageSchema,
   FolderSummarySchema,
@@ -127,6 +128,9 @@ export const tauriDesktopApi: DesktopApi = {
   },
   async getAgentRun(runId) {
     return AgentRunSnapshotSchema.parse(await invoke("get_agent_run", { runId }));
+  },
+  async getAgentTrace(runId) {
+    return AgentTraceSchema.parse(await invoke("get_agent_trace", { runId }));
   },
   async listAgentRuns(sessionId) {
     return AgentRunSummarySchema.array().parse(await invoke("list_agent_runs", { sessionId }));

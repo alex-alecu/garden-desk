@@ -1,13 +1,12 @@
 import type { AgentArtifactSummary, AgentRunPerformance, AttachmentSummary } from "@vault/shared";
 import { useLayoutEffect, useRef } from "react";
-import Markdown, { type Components } from "react-markdown";
-import remarkGfm from "remark-gfm";
 import type { ContinuationQuestion } from "../continuation.js";
 import type { TimelineItem } from "../state.js";
 import { EmptyConversation } from "./empty-conversation.js";
-import { attachmentsByUserMessage, MessageAttachments } from "./message-attachments.js";
+import { attachmentsByUserMessage } from "./message-attachments.js";
 import { QuestionTool } from "./question-tool.js";
 import { RunProgress } from "./run-progress.js";
+import { type OrderedEntry, TimelineEntries } from "./timeline-entries.js";
 
 interface ConversationProps {
   artifacts: AgentArtifactSummary[];
@@ -17,6 +16,8 @@ interface ConversationProps {
   timeline: TimelineItem[];
   onSuggestion(text: string): void;
   onOpenAttachment?: ((attachmentId: string) => void) | undefined;
+  onSelectStep?: ((stepId: string | undefined) => void) | undefined;
+  selectedStepId?: string | undefined;
   performance: AgentRunPerformance | null;
   runId: string | undefined;
   thinking: string | null;
@@ -25,10 +26,6 @@ interface ConversationProps {
   onContinue?: (() => void) | undefined;
   onDismissContinuation?: (() => void) | undefined;
 }
-
-type OrderedEntry =
-  | { createdAt: string; item: AgentArtifactSummary; kind: "artifact"; order: number }
-  | { createdAt: string; item: TimelineItem; kind: "timeline"; order: number };
 
 function showsInConversation(item: TimelineItem): boolean {
   return (
@@ -65,57 +62,6 @@ export function isNearConversationBottom(
   return scrollHeight - scrollTop - clientHeight <= 48;
 }
 
-function formatDuration(milliseconds: number): string {
-  if (milliseconds < 1_000) return `${milliseconds}ms`;
-  if (milliseconds < 60_000) return `${(milliseconds / 1_000).toFixed(1)}s`;
-  const minutes = Math.floor(milliseconds / 60_000);
-  return `${minutes}m ${Math.round((milliseconds % 60_000) / 1_000)}s`;
-}
-
-function ResponseMetrics({ performance }: { performance: AgentRunPerformance }) {
-  return (
-    <footer className="response-metrics">
-      <span>
-        <strong>{performance.promptTokensPerSecond.toFixed(1)}</strong> prompt tok/s
-      </span>
-      <span>
-        <strong>{performance.tokensPerSecond.toFixed(1)}</strong> generation tok/s
-      </span>
-      <span>
-        <strong>{formatDuration(performance.totalDurationMs)}</strong> total
-      </span>
-    </footer>
-  );
-}
-
-// biome-ignore-start lint/a11y/noNoninteractiveTabindex: Overflowing tables need a keyboard scroll target.
-const assistantMarkdownComponents: Components = {
-  table({ children }) {
-    return (
-      <section aria-label="Response table" className="assistant-table-scroll" tabIndex={0}>
-        <table>{children}</table>
-      </section>
-    );
-  },
-};
-// biome-ignore-end lint/a11y/noNoninteractiveTabindex: Overflowing tables need a keyboard scroll target.
-
-function AssistantResponse({ children }: { children: string }) {
-  return (
-    <div className="assistant-markdown">
-      <Markdown
-        components={assistantMarkdownComponents}
-        disallowedElements={["a", "img"]}
-        remarkPlugins={[remarkGfm]}
-        skipHtml
-        unwrapDisallowed
-      >
-        {children}
-      </Markdown>
-    </div>
-  );
-}
-
 function ContinuationPrompt({
   continuation,
   onContinue,
@@ -140,74 +86,7 @@ function ContinuationPrompt({
   );
 }
 
-function TimelineMessage({
-  attachments,
-  item,
-  onOpenAttachment,
-  showMetrics,
-  performance,
-}: {
-  attachments: AttachmentSummary[];
-  item: TimelineItem;
-  onOpenAttachment(attachmentId: string): void;
-  performance: AgentRunPerformance | null;
-  showMetrics: boolean;
-}) {
-  return (
-    <article className={`timeline-item timeline-${item.kind}`}>
-      {item.kind === "assistant" ? (
-        <AssistantResponse>{item.text}</AssistantResponse>
-      ) : (
-        <>
-          <p>{item.text}</p>
-          <MessageAttachments attachments={attachments} onOpenAttachment={onOpenAttachment} />
-        </>
-      )}
-      {showMetrics && performance !== null ? <ResponseMetrics performance={performance} /> : null}
-    </article>
-  );
-}
-
-function TimelineEntries({
-  attachmentsByMessage,
-  entries,
-  lastAssistantId,
-  onOpenAttachment,
-  performance,
-  runId,
-}: {
-  attachmentsByMessage: Map<string, AttachmentSummary[]>;
-  entries: OrderedEntry[];
-  lastAssistantId: string | undefined;
-  onOpenAttachment(attachmentId: string): void;
-  performance: AgentRunPerformance | null;
-  runId: string | undefined;
-}) {
-  return entries.map((entry) => {
-    if (entry.kind === "artifact") {
-      return (
-        <article className="timeline-item timeline-artifact" key={entry.item.id}>
-          <span className="activity-label">Generated file</span>
-          <p>{entry.item.name}</p>
-        </article>
-      );
-    }
-    const item = entry.item;
-    const messageAttachments = attachmentsByMessage.get(item.id) ?? [];
-    const showMetrics = item.id === lastAssistantId && item.runId === runId && performance !== null;
-    return (
-      <TimelineMessage
-        attachments={messageAttachments}
-        item={item}
-        key={item.id}
-        onOpenAttachment={onOpenAttachment}
-        performance={performance}
-        showMetrics={showMetrics}
-      />
-    );
-  });
-}
-
+// biome-ignore lint/complexity/noExcessiveLinesPerFunction: one conversation composition boundary; entries and metrics live in timeline-entries.
 export function Conversation({
   artifacts,
   attachments = [],
@@ -216,6 +95,8 @@ export function Conversation({
   timeline,
   onSuggestion,
   onOpenAttachment = () => undefined,
+  onSelectStep = () => undefined,
+  selectedStepId,
   performance,
   runId,
   thinking,
@@ -258,6 +139,8 @@ export function Conversation({
           performance={performance}
           runId={runId}
           onOpenAttachment={onOpenAttachment}
+          onSelectStep={onSelectStep}
+          selectedStepId={selectedStepId}
         />
         {thinking === null || thinking.length === 0 ? null : (
           <article className="thinking-stream">

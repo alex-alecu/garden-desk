@@ -1475,37 +1475,8 @@ textarea:focus-visible {
   cursor: pointer;
 }
 
-.technical-tabs,
-.stream-tabs {
-  display: flex;
-  gap: 4px;
-  padding: 8px 14px;
-  border-bottom: 1px solid var(--reading-border);
-}
-
-.technical-tabs button,
-.stream-tabs button {
-  min-height: 34px;
-  padding: 0 10px;
-  border-radius: 8px;
-  color: var(--ink-soft);
-  background: transparent;
-  cursor: pointer;
-}
-
-.technical-tabs button {
-  font-size: 12px;
-}
-
-.technical-tabs button[aria-selected="true"],
-.stream-tabs button[aria-selected="true"] {
-  color: var(--ink);
-  background: var(--navigation-selected);
-  font-weight: 600;
-}
-
-.technical-tabs button:focus-visible,
 .stream-tabs button:focus-visible,
+.activity-step:focus-visible,
 .execution-toggle:focus-visible,
 .technical-log-viewer textarea:focus-visible,
 .jump-to-latest:focus-visible {
@@ -2283,4 +2254,53 @@ textarea:focus-visible {
   .question-tool-action:hover:not(:disabled) {
     transform: none;
   }
+}
+
+.activity-step {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  color: inherit;
+  background: transparent;
+  font: inherit;
+  text-align: left;
+  white-space: pre-wrap;
+  cursor: pointer;
+}
+
+.timeline-activity:has(.activity-step[aria-current="step"]) {
+  border-color: var(--accent-strong);
+  background: rgb(206 221 215 / 90%);
+}
+
+.step-details {
+  display: grid;
+  gap: 8px;
+  padding-top: 8px;
+}
+
+.step-details .step-detail-title {
+  color: var(--ink-soft);
+}
+
+.step-details .step-detail-path {
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 12px;
+}
+
+.step-details .step-detail-empty {
+  color: var(--ink-soft);
+  font-size: 12px;
+}
+
+.step-detail-block summary {
+  cursor: pointer;
+  color: var(--accent-strong);
+  font-size: 12px;
+}
+
+.app-shell[data-theme="dark"] .timeline-activity:has(.activity-step[aria-current="step"]) {
+  border-color: #4d8f8a;
+  background: rgb(24 52 58 / 92%);
 }
