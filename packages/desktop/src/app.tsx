@@ -90,7 +90,6 @@ export function App({ api, capabilities }: { api: DesktopApi; capabilities: Desk
         openDetails: () => setTechnicalDetailsOpen(true),
         setError: setDesktopError,
         steps,
-        traces: state.traces,
       },
       stepId,
     );
