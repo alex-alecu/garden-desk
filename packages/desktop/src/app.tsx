@@ -1,4 +1,3 @@
-import type { ModelRuntimeStatus } from "@vault/shared";
 import { useEffect, useReducer, useState } from "react";
 import type { DesktopApi } from "./api.js";
 import { useAppearance } from "./appearance.js";
@@ -7,6 +6,7 @@ import { ChatHeader } from "./components/chat-header.js";
 import { Composer } from "./components/composer.js";
 import { Confirmation, type ConfirmationRequest } from "./components/confirmation.js";
 import { Conversation } from "./components/conversation.js";
+import { DropOverlay } from "./components/drop-overlay.js";
 import { GuidedExamples } from "./components/guided-examples.js";
 import { Sidebar } from "./components/sidebar.js";
 import { TechnicalDetails } from "./components/technical-details.js";
@@ -23,11 +23,10 @@ import {
   showFolder,
   showMore,
 } from "./desktop-actions.js";
-import { type DropTarget, useNativeDrop } from "./desktop-drop.js";
+import { type DropIntent, useNativeDrop } from "./desktop-drop.js";
 import { initialModelStatus, useModelRefresh } from "./desktop-model.js";
 import { useDraftPersistence } from "./draft-persistence.js";
 import { desktopReducer, initialDesktopState } from "./state.js";
-
 // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: this is the single view-composition boundary for explicit desktop capabilities.
 // biome-ignore lint/complexity/noExcessiveLinesPerFunction: this is the single view-composition boundary; workflow logic remains in the small helpers above.
 export function App({ api, capabilities }: { api: DesktopApi; capabilities: DesktopCapabilities }) {
@@ -37,8 +36,8 @@ export function App({ api, capabilities }: { api: DesktopApi; capabilities: Desk
   const [submitting, setSubmitting] = useState(false);
   const [technicalDetailsOpen, setTechnicalDetailsOpen] = useState(false);
   const [confirmation, setConfirmation] = useState<ConfirmationRequest>();
-  const [dropTarget, setDropTarget] = useState<DropTarget>();
-  const [model, setModel] = useState<ModelRuntimeStatus>(initialModelStatus);
+  const [dropIntent, setDropIntent] = useState<DropIntent>();
+  const [model, setModel] = useState(initialModelStatus);
   useEffect(() => {
     void api
       .bootstrapDesktop()
@@ -76,7 +75,7 @@ export function App({ api, capabilities }: { api: DesktopApi; capabilities: Desk
     },
     dispatch,
     enabled: capabilities.nativeActions,
-    setDropTarget,
+    setDropIntent,
     setError: setDesktopError,
   });
   const runTask = (text: string) => {
@@ -101,7 +100,7 @@ export function App({ api, capabilities }: { api: DesktopApi; capabilities: Desk
       <Sidebar
         activeSessionId={state.activeSessionId}
         disabled={!state.loaded}
-        dropActive={dropTarget === "folders"}
+        dropActive={dropIntent === "folders" || dropIntent === "mixed"}
         dispatch={dispatch}
         folders={state.folders}
         globalSessions={state.globalSessions}
@@ -215,7 +214,7 @@ export function App({ api, capabilities }: { api: DesktopApi; capabilities: Desk
           attachments={state.attachments.filter((attachment) =>
             state.removableAttachmentIds.includes(attachment.id),
           )}
-          dropActive={dropTarget === "files"}
+          dropActive={dropIntent === "files" || dropIntent === "mixed"}
           draft={state.draft}
           disabled={!state.loaded || model.state === "unsupported"}
           nativeActionMessage={nativeUnavailable}
@@ -294,6 +293,7 @@ export function App({ api, capabilities }: { api: DesktopApi; capabilities: Desk
         }}
         request={confirmation}
       />
+      <DropOverlay intent={dropIntent} />
     </div>
   );
 }

@@ -63,6 +63,7 @@ export class DemoDesktopApi implements DesktopApi {
 
   unloadModel = demoUnavailable;
   chooseFolder = demoUnavailable;
+  classifyDroppedPaths = demoUnavailable;
   addFolders = demoUnavailable;
   reorderFolders = demoUnavailable;
   revokeFolder = demoUnavailable;

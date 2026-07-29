@@ -1,9 +1,9 @@
-import { type Dispatch, useEffect, useRef } from "react";
-import type { DesktopApi, NativeDropEvent } from "./api.js";
+import { type Dispatch, type MutableRefObject, useEffect, useRef } from "react";
+import type { DesktopApi, DroppedPaths, NativeDropEvent } from "./api.js";
 import { addDroppedFolders, attachDroppedFiles } from "./desktop-actions.js";
 import type { DesktopAction } from "./state.js";
 
-export type DropTarget = "files" | "folders";
+export type DropIntent = "checking" | "files" | "folders" | "mixed";
 
 interface DropContext {
   activeSessionId: string | undefined;
@@ -12,72 +12,103 @@ interface DropContext {
   running: boolean;
 }
 
-interface NativeDropOptions {
+export interface NativeDropOptions {
   api: DesktopApi;
   context: DropContext;
   dispatch: Dispatch<DesktopAction>;
-  setDropTarget(target: DropTarget | undefined): void;
+  setDropIntent(intent: DropIntent | undefined): void;
   setError(message: string | undefined): void;
 }
 
-export function dropTargetAt(x: number, y: number): DropTarget | undefined {
-  const target = document.elementFromPoint(x, y)?.closest<HTMLElement>("[data-drop-target]")
-    ?.dataset.dropTarget;
-  return target === "files" || target === "folders" ? target : undefined;
+export function intentForDroppedPaths(paths: DroppedPaths): DropIntent | undefined {
+  if (paths.files.length > 0 && paths.folders.length > 0) return "mixed";
+  if (paths.files.length > 0) return "files";
+  if (paths.folders.length > 0) return "folders";
+  return undefined;
 }
 
-function importDroppedPaths(target: DropTarget, paths: string[], options: NativeDropOptions) {
-  if (target === "folders") {
-    void addDroppedFolders(options.api, paths, options.dispatch, options.setError);
-    return;
+async function importDroppedPaths(paths: DroppedPaths, options: NativeDropOptions) {
+  const imports: Promise<void>[] = [];
+  if (paths.folders.length > 0) {
+    imports.push(addDroppedFolders(options.api, paths.folders, options.dispatch, options.setError));
   }
-  if (options.context.running) return;
-  void attachDroppedFiles({
-    api: options.api,
-    activeSessionId: options.context.activeSessionId,
-    newSessionFolderId: options.context.newSessionFolderId,
-    dispatch: options.dispatch,
-    draft: options.context.draft,
-    paths,
-    setError: options.setError,
-  });
-}
-
-function handleNativeDrop(event: NativeDropEvent, options: NativeDropOptions) {
-  if (event.type === "leave") {
-    options.setDropTarget(undefined);
-    return;
+  if (paths.files.length > 0 && !options.context.running) {
+    imports.push(
+      attachDroppedFiles({
+        api: options.api,
+        activeSessionId: options.context.activeSessionId,
+        newSessionFolderId: options.context.newSessionFolderId,
+        dispatch: options.dispatch,
+        draft: options.context.draft,
+        paths: paths.files,
+        setError: options.setError,
+      }),
+    );
   }
-  const target = dropTargetAt(event.x, event.y);
-  options.setDropTarget(target);
-  if (event.type !== "drop" || target === undefined) return;
-  options.setDropTarget(undefined);
-  importDroppedPaths(target, event.paths, options);
+  await Promise.all(imports);
 }
 
-interface UseNativeDropOptions extends Omit<NativeDropOptions, "context"> {
-  context: DropContext;
+interface UseNativeDropOptions extends NativeDropOptions {
   enabled: boolean;
 }
 
+async function classifyHover(
+  paths: string[],
+  options: NativeDropOptions,
+  sequence: MutableRefObject<number>,
+): Promise<void> {
+  const request = ++sequence.current;
+  options.setDropIntent("checking");
+  try {
+    const classified = await options.api.classifyDroppedPaths(paths);
+    if (sequence.current === request) options.setDropIntent(intentForDroppedPaths(classified));
+  } catch {
+    if (sequence.current === request) options.setDropIntent(undefined);
+  }
+}
+
+export async function handleNativeDrop(
+  event: NativeDropEvent,
+  options: NativeDropOptions,
+  sequence: MutableRefObject<number>,
+): Promise<void> {
+  if (event.type === "over") return;
+  if (event.type === "leave") {
+    sequence.current += 1;
+    options.setDropIntent(undefined);
+    return;
+  }
+  if (event.type === "enter") {
+    await classifyHover(event.paths, options, sequence);
+    return;
+  }
+  sequence.current += 1;
+  options.setDropIntent(undefined);
+  try {
+    await importDroppedPaths(await options.api.classifyDroppedPaths(event.paths), options);
+  } catch {
+    options.setError("The dropped files or folders could not be read.");
+  }
+}
+
 export function useNativeDrop(options: UseNativeDropOptions) {
-  const { api, dispatch, enabled, setDropTarget, setError } = options;
+  const { api, dispatch, enabled, setDropIntent, setError } = options;
   const context = useRef(options.context);
+  const sequence = useRef(0);
   context.current = options.context;
   useEffect(() => {
     if (!enabled || api.listenForDroppedPaths === undefined) return;
     let disposed = false;
     let unlisten: (() => void) | undefined;
+    const handle = (event: NativeDropEvent) => {
+      void handleNativeDrop(
+        event,
+        { api, context: context.current, dispatch, setDropIntent, setError },
+        sequence,
+      );
+    };
     void api
-      .listenForDroppedPaths((event) =>
-        handleNativeDrop(event, {
-          api,
-          context: context.current,
-          dispatch,
-          setDropTarget,
-          setError,
-        }),
-      )
+      .listenForDroppedPaths(handle)
       .then((stop) => {
         if (disposed) stop();
         else unlisten = stop;
@@ -85,7 +116,8 @@ export function useNativeDrop(options: UseNativeDropOptions) {
       .catch(() => setError("File and folder drop could not be started."));
     return () => {
       disposed = true;
+      sequence.current += 1;
       unlisten?.();
     };
-  }, [api, dispatch, enabled, setDropTarget, setError]);
+  }, [api, dispatch, enabled, setDropIntent, setError]);
 }

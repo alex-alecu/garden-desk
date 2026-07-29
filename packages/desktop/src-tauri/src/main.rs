@@ -12,6 +12,7 @@ use tauri_plugin_shell::process::CommandChild;
 mod attachment_commands;
 mod commands;
 mod diagnostics;
+mod drop_commands;
 mod package_integrity;
 
 const MAX_RESPONSE_BYTES: u64 = 192 * 1024 * 1024;
@@ -250,6 +251,7 @@ fn main() {
             commands::choose_folder,
             commands::choose_files,
             commands::create_session,
+            drop_commands::classify_dropped_paths,
             diagnostics::create_debug_snapshot,
             commands::delete_session,
             commands::desktop_bootstrap,

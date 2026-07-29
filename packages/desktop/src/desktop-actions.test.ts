@@ -1,7 +1,12 @@
-import { AttachmentSummarySchema, SessionDraftSchema, SessionSummarySchema } from "@vault/shared";
+import {
+  AttachmentSummarySchema,
+  FolderSummarySchema,
+  SessionDraftSchema,
+  SessionSummarySchema,
+} from "@vault/shared";
 import { describe, expect, it, vi } from "vitest";
 import type { DesktopApi } from "./api.js";
-import { attach } from "./desktop-actions.js";
+import { addDroppedFolders, attach } from "./desktop-actions.js";
 import type { DesktopAction } from "./state.js";
 
 const session = SessionSummarySchema.parse({
@@ -19,6 +24,38 @@ const attachment = AttachmentSummarySchema.parse({
   byteLength: 42,
   contentHash: `sha256:${"a".repeat(64)}`,
   createdAt: "2026-07-28T12:03:38.909Z",
+});
+const folder = FolderSummarySchema.parse({
+  id: "d86a8131-d93a-42e4-8f10-b93b1ff17d28",
+  name: "Client files",
+  createdAt: "2026-07-28T12:03:34.813Z",
+});
+const secondFolder = FolderSummarySchema.parse({
+  id: "017b8017-6372-40dd-9f44-a09c70ae921f",
+  name: "Research",
+  createdAt: "2026-07-28T12:03:35.813Z",
+});
+
+describe("desktop folder actions", () => {
+  it("opens a new conversation in the last dropped folder", async () => {
+    const actions: DesktopAction[] = [];
+    const api = {
+      addFolders: vi.fn(async () => [folder, secondFolder]),
+    } as unknown as DesktopApi;
+
+    await addDroppedFolders(
+      api,
+      ["/Users/alex/Documents/Client files"],
+      (action) => actions.push(action),
+      () => undefined,
+    );
+
+    expect(actions).toEqual([
+      { type: "folder.add", folder },
+      { type: "folder.add", folder: secondFolder },
+      { type: "session.new", folderId: secondFolder.id },
+    ]);
+  });
 });
 
 describe("desktop attachment actions", () => {

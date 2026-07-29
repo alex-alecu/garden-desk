@@ -139,6 +139,7 @@ textarea:focus-visible {
 }
 
 .app-shell {
+  position: relative;
   display: flex;
   width: 100%;
   height: 100%;
@@ -148,6 +149,106 @@ textarea:focus-visible {
   transition:
     color 220ms ease,
     background 220ms ease;
+}
+
+.drop-overlay {
+  position: absolute;
+  z-index: 50;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 50% 48%, rgb(111 169 160 / 20%), transparent 42%),
+    rgb(245 244 235 / 76%);
+  backdrop-filter: blur(8px) saturate(0.88);
+  pointer-events: none;
+  animation: drop-overlay-in 180ms ease-out both;
+}
+
+.drop-overlay::before {
+  position: absolute;
+  width: min(64vw, 760px);
+  aspect-ratio: 1;
+  border: 1px solid rgb(57 127 121 / 16%);
+  border-radius: 50%;
+  box-shadow:
+    0 0 0 46px rgb(57 127 121 / 5%),
+    0 0 0 100px rgb(57 127 121 / 3%);
+  content: "";
+  animation: drop-ripple 1.5s ease-in-out infinite alternate;
+}
+
+.drop-overlay-card {
+  position: relative;
+  display: grid;
+  min-width: min(420px, calc(100vw - 48px));
+  padding: 34px 44px 30px;
+  border: 1px solid rgb(57 127 121 / 22%);
+  border-radius: 28px;
+  place-items: center;
+  color: var(--ink);
+  background: rgb(255 254 248 / 90%);
+  box-shadow:
+    0 28px 80px rgb(7 31 37 / 18%),
+    inset 0 1px 0 rgb(255 255 255 / 86%);
+  animation: drop-card-in 260ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.drop-overlay-icons {
+  display: flex;
+  height: 66px;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 14px;
+}
+
+.drop-overlay-icon {
+  display: grid;
+  width: 62px;
+  height: 62px;
+  border: 1px solid rgb(57 127 121 / 20%);
+  border-radius: 20px;
+  place-items: center;
+  color: var(--accent-strong);
+  background: var(--accent-soft);
+  box-shadow: 0 12px 26px rgb(7 31 37 / 12%);
+  transform: rotate(-5deg);
+}
+
+.drop-overlay-icon + .drop-overlay-icon {
+  margin-left: -10px;
+  transform: translateY(5px) rotate(6deg);
+}
+
+.drop-overlay-card h2 {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-size: clamp(22px, 2.6vw, 30px);
+  font-weight: 600;
+  letter-spacing: -0.025em;
+}
+
+.drop-overlay-card p {
+  margin: 7px 0 0;
+  color: var(--ink-soft);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.app-shell[data-theme="dark"] .drop-overlay {
+  background:
+    radial-gradient(circle at 50% 48%, rgb(111 169 160 / 18%), transparent 42%), rgb(19 21 23 / 78%);
+}
+
+.app-shell[data-theme="dark"] .drop-overlay-card {
+  border-color: rgb(134 190 180 / 18%);
+  background: rgb(32 34 36 / 92%);
+  box-shadow:
+    0 28px 80px rgb(0 0 0 / 42%),
+    inset 0 1px 0 rgb(255 255 255 / 6%);
 }
 
 .app-shell[data-theme="dark"] {
@@ -1300,6 +1401,12 @@ textarea:focus-visible {
   stroke-width: 1.7;
 }
 
+.drop-overlay-icon .icon {
+  width: 29px;
+  height: 29px;
+  stroke-width: 1.8;
+}
+
 .header-action .icon {
   width: 16px;
   height: 16px;
@@ -1984,6 +2091,40 @@ textarea:focus-visible {
   }
 }
 
+@keyframes drop-overlay-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes drop-card-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.94);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes drop-ripple {
+  from {
+    opacity: 0.62;
+    transform: scale(0.96);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1.03);
+  }
+}
+
 .error-banner button {
   padding: 0 2px;
   color: inherit;
@@ -2106,6 +2247,9 @@ textarea:focus-visible {
 
   .model-state-busy i,
   .model-state-loading i,
+  .drop-overlay,
+  .drop-overlay-card,
+  .drop-overlay::before,
   .sidebar-working-indicator,
   .thinking-pulse {
     animation: none;

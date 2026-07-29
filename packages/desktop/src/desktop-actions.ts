@@ -23,11 +23,16 @@ export async function addDroppedFolders(
 ) {
   setError(undefined);
   try {
-    for (const folder of await api.addFolders(paths)) {
+    const folders = await api.addFolders(paths);
+    for (const folder of folders) {
       dispatch({ type: "folder.add", folder });
     }
+    const activeFolder = folders.at(-1);
+    if (activeFolder !== undefined) {
+      dispatch({ type: "session.new", folderId: activeFolder.id });
+    }
   } catch {
-    setError("Drop folders on the sidebar to add them.");
+    setError("The dropped folders could not be added.");
   }
 }
 

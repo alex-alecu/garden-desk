@@ -50,7 +50,7 @@ Every remove or unmount action requires confirmation. Unmounting a folder remove
 
 ## New Chat
 
-New chat prepares a blank composer with no folder grant; pressing it repeatedly does not persist placeholder conversations. The session is created when the user submits its first message or selects attachments. Users can attach one or more files through a native file dialog or by dropping them on the composer. Folders dropped on the sidebar become scoped grants. Vault Core validates, copies, and verifies explicit files into session-owned read-only inputs before the agent can access them.
+New chat prepares a blank composer with no folder grant; pressing it repeatedly does not persist placeholder conversations. The session is created when the user submits its first message or selects attachments. Users can attach one or more files through a native file dialog or by dropping them anywhere in the application window. Folders dropped anywhere in the window become scoped workspaces, then the last added workspace opens with a new blank conversation. During a native drag, a full-window animated affordance identifies whether release will attach files, add folder workspaces, or do both. Vault Core validates, copies, and verifies explicit files into session-owned read-only inputs before the agent can access them.
 
 New chat must never silently inherit the previously selected folder. Attachments are clickable, removable chips before sending; after submission they move beneath the durable user message and remain clickable immutable input records. Opening an attachment materializes a verified owner-only temporary copy and delegates to the operating system. Removing a pending attachment requires confirmation and never changes the original host file.
 
@@ -143,4 +143,4 @@ Runtime, quantization, context-window, endpoint, and model-file vocabulary stays
 | 2026-07-25 | Added background conversation activity pulses, RAM-bounded parallel sessions, and clear memory budget versus live-allocation labels. |
 | 2026-07-26 | Lightened the shared paper surface, made both side panels participate in layout, refined message sizing and alignment, and exposed runtime memory details in Technical details. |
 | 2026-07-27 | Added visible active-run progress and a dismissible saved-progress continuation question for long XLSX work. |
-| 2026-07-28 | Added clickable attachment transfer, file and folder drop targets, and persistent accessible folder ordering. |
+| 2026-07-28 | Added clickable attachment transfer, whole-window file and folder drop routing with an animated affordance, and persistent accessible folder ordering. |

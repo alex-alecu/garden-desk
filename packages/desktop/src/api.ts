@@ -25,15 +25,21 @@ export interface DesktopBootstrap {
 }
 
 export type NativeDropEvent =
-  | { type: "enter" | "drop"; paths: string[]; x: number; y: number }
-  | { type: "over"; x: number; y: number }
+  | { type: "enter" | "drop"; paths: string[] }
+  | { type: "over" }
   | { type: "leave" };
+
+export interface DroppedPaths {
+  files: string[];
+  folders: string[];
+}
 
 export interface DesktopApi {
   bootstrapDesktop(): Promise<DesktopBootstrap>;
   getModelStatus(): Promise<ModelRuntimeStatus>;
   unloadModel(): Promise<boolean>;
   chooseFolder(): Promise<FolderSummary | undefined>;
+  classifyDroppedPaths(paths: string[]): Promise<DroppedPaths>;
   addFolders(paths: string[]): Promise<FolderSummary[]>;
   reorderFolders(folderIds: string[]): Promise<FolderSummary[]>;
   revokeFolder(folderId: string): Promise<boolean>;
