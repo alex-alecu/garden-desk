@@ -27,7 +27,7 @@ export interface GenerationRequestIdentity {
   jobId: JobId;
 }
 
-const GEMMA_FUNCTION_CALL_SUFFIX = "\nCall exactly one available function with your answer.";
+export const GEMMA_FUNCTION_CALL_SUFFIX = "\nCall exactly one available function with your answer.";
 
 export function effectiveGenerationInput(input: GenerationInput): GenerationInput {
   if (!input.modelId.startsWith("gemma-4") || input.prompt.endsWith(GEMMA_FUNCTION_CALL_SUFFIX)) {

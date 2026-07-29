@@ -12,12 +12,14 @@ const performance = {
 };
 
 describe("AgentLoop structured recovery", () => {
-  it("retries one missing Gemma function call with an exact stronger prompt", async () => {
+  it("retries one missing Gemma function call with a different stronger prompt", async () => {
     const prompts: string[] = [];
+    const requests: Array<Record<string, unknown>> = [];
     let attempt = 0;
     const model: Pick<InferenceService, "generate"> = {
       async generate(input) {
         prompts.push(input.prompt);
+        requests.push(input.jsonSchema);
         attempt += 1;
         if (attempt === 1) throw new Error("structured_tool_call_required");
         return {
@@ -50,8 +52,11 @@ describe("AgentLoop structured recovery", () => {
 
     expect(result.response).toBe("Recovered.");
     expect(prompts).toHaveLength(2);
-    expect(prompts[1]).toContain("Your previous attempt did not call a function.");
+    expect(prompts[1]).not.toBe(prompts[0]);
+    expect(prompts[1]).toContain("returned prose instead of calling a function");
     expect(prompts[1]).toMatch(/Call exactly one available function with your answer\.$/u);
+    expect(prompts[1]?.match(/Call exactly one available function/gu)).toHaveLength(1);
+    expect(requests[1]).toHaveProperty("oneOf");
   });
 });
 
