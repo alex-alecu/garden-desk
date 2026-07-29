@@ -67,6 +67,26 @@ function structuredFunctions(schema: Record<string, unknown>): ChatSessionModelF
   };
 }
 
+function plainResponse(schema: Record<string, unknown>, text: string): unknown | undefined {
+  const alternatives = Array.isArray(schema.oneOf) ? schema.oneOf : [schema];
+  const responseSchema = alternatives
+    .map((alternative) => record(alternative))
+    .find((alternative) => record(record(alternative?.properties)?.action)?.const === "respond");
+  const response = record(record(responseSchema?.properties)?.response);
+  const items = record(response?.items);
+  const value = text.trim();
+  if (response?.type !== "array" || items?.type !== "string" || value.length === 0) {
+    return undefined;
+  }
+  const lines = value.split(/\r?\n/u);
+  const maxItems =
+    typeof response.maxItems === "number" ? response.maxItems : Number.POSITIVE_INFINITY;
+  const maxLength =
+    typeof items.maxLength === "number" ? items.maxLength : Number.POSITIVE_INFINITY;
+  if (lines.length > maxItems || lines.some((line) => line.length > maxLength)) return undefined;
+  return { action: "respond", response: lines };
+}
+
 async function gemmaStructuredValue(
   request: StructuredGenerationRequest,
   session: LlamaChatSession,
@@ -82,6 +102,8 @@ async function gemmaStructuredValue(
       onToken: callbacks.onToken,
     });
     if (result.stopReason === "maxTokens") throw new Error("generation_token_limit");
+    const response = plainResponse(request.jsonSchema, result.responseText);
+    if (response !== undefined) return response;
     throw new Error("structured_tool_call_required");
   } catch (error) {
     if (error instanceof StructuredResult) return error.value;

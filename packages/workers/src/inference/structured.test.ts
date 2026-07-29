@@ -53,7 +53,9 @@ describe("structuredValue", () => {
     expect(effectivePrompt).toBe("Respond.");
     expect(value).toEqual({ action: "respond", response: ["Done."] });
   });
+});
 
+describe("structuredValue limits", () => {
   it("reports the generation token limit before parsing an incomplete action", async () => {
     const session = {
       async promptWithMeta() {
@@ -72,5 +74,65 @@ describe("structuredValue", () => {
         onToken: () => undefined,
       }),
     ).rejects.toThrow("generation_token_limit");
+  });
+});
+
+describe("structuredValue plain responses", () => {
+  it("accepts bounded plain text as a response when Gemma omits the function call", async () => {
+    const session = {
+      async promptWithMeta() {
+        return {
+          response: [],
+          responseText: "## Result\n\nNo matching transactions were found.",
+          stopReason: "eogToken",
+          remainingGenerationAfterStop: undefined,
+        };
+      },
+    } as unknown as LlamaChatSession;
+
+    await expect(
+      structuredValue(request, {} as never, session, {
+        onResponseChunk: () => undefined,
+        onToken: () => undefined,
+      }),
+    ).resolves.toEqual({
+      action: "respond",
+      response: ["## Result", "", "No matching transactions were found."],
+    });
+  });
+});
+
+describe("structuredValue plain response boundary", () => {
+  it("never converts plain text into an execution action", async () => {
+    const executeRequest = {
+      ...request,
+      jsonSchema: {
+        type: "object",
+        properties: {
+          action: { const: "execute" },
+          language: { const: "shell" },
+          command: { type: "array", items: { type: "string" } },
+          summary: { type: "string" },
+        },
+        required: ["action", "language", "command", "summary"],
+      },
+    } satisfies StructuredGenerationRequest;
+    const session = {
+      async promptWithMeta() {
+        return {
+          response: [],
+          responseText: "Run a command.",
+          stopReason: "eogToken",
+          remainingGenerationAfterStop: undefined,
+        };
+      },
+    } as unknown as LlamaChatSession;
+
+    await expect(
+      structuredValue(executeRequest, {} as never, session, {
+        onResponseChunk: () => undefined,
+        onToken: () => undefined,
+      }),
+    ).rejects.toThrow("structured_tool_call_required");
   });
 });
