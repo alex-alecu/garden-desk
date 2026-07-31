@@ -256,6 +256,7 @@ fn main() {
             commands::delete_session,
             commands::desktop_bootstrap,
             commands::get_agent_run,
+            commands::get_agent_trace,
             commands::list_agent_runs,
             commands::list_attachments,
             commands::list_messages,

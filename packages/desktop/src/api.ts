@@ -1,6 +1,7 @@
 import type {
   AgentRunSnapshot,
   AgentRunSummary,
+  AgentTrace,
   AttachmentSummary,
   ConversationMessage,
   FolderSummary,
@@ -58,6 +59,7 @@ export interface DesktopApi {
   loadDraft(sessionId: string): Promise<SessionDraft | undefined>;
   startAgent(sessionId: string, task: string): Promise<AgentRunSummary>;
   getAgentRun(runId: string): Promise<AgentRunSnapshot>;
+  getAgentTrace(runId: string): Promise<AgentTrace>;
   listAgentRuns(sessionId: string): Promise<AgentRunSummary[]>;
   cancelAgent(jobId: string): Promise<boolean>;
   createDebugSnapshot(sessionId: string): Promise<string>;

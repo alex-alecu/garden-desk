@@ -22,7 +22,7 @@ import {
   inferenceFailureCode,
 } from "./inference-errors.js";
 import { type ActiveInferenceExecution, inferenceTimeoutMs } from "./inference-timeout.js";
-import { DEFAULT_MODEL_ID, modelRuntimeStatus } from "./model-status.js";
+import { DEFAULT_MODEL_ID, lastKnownContext, modelRuntimeStatus } from "./model-status.js";
 import type { ModelResolver } from "./models.js";
 import type { ResourceScheduler } from "./scheduler.js";
 import { AsyncSerial } from "./serial.js";
@@ -151,7 +151,7 @@ export class InferenceSupervisor implements InferenceService {
   private async releaseResident(): Promise<boolean> {
     const resident = this.resident;
     this.resident = undefined;
-    this.measurements = {};
+    this.measurements = lastKnownContext(this.measurements);
     const unloaded = await this.port.unload();
     if (resident === undefined) return unloaded;
     try {

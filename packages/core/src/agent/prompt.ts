@@ -21,8 +21,14 @@ import {
   generationTokenReserve,
   type PromptBounds,
   serializePrompt,
+  usablePromptTokens,
 } from "./prompt-budget.js";
-import { continuationInstructions, selectedInputInstructions } from "./prompt-inputs.js";
+import {
+  attachedPdfAlreadyExtracted,
+  continuationInstructions,
+  selectedInputInstructions,
+} from "./prompt-inputs.js";
+import { observationStreamCharacters, observations } from "./prompt-observations.js";
 import { rejectionInstructions } from "./prompt-rejection.js";
 import {
   agentDecisionJsonSchema,
@@ -122,21 +128,6 @@ interface GenerationInputOptions {
   recovery?: GenerationRecovery;
 }
 
-function observations(executions: AgentExecutionResult[]) {
-  return executions.map((result, index) => ({
-    step: index + 1,
-    language: result.language,
-    path: result.path,
-    source: result.source,
-    command: result.command,
-    exitCode: result.exitCode,
-    stdout: result.stdout,
-    stderr: result.stderr,
-    termination: result.termination,
-    artifacts: result.artifacts.map((artifact) => artifact.name),
-  }));
-}
-
 function prompt(
   input: AgentPromptInput,
   progress: AgentProgress,
@@ -160,7 +151,7 @@ function prompt(
     ...continuationInstructions(input.continuation),
     ...selectedInputInstructions(inputNames),
     `Task: ${input.task}`,
-    `Completed execution observations: ${JSON.stringify(observations(executions))}`,
+    `Completed execution observations: ${JSON.stringify(observations(executions, observationStreamCharacters(usablePromptTokens(options))))}`,
     `Successful execution count: ${successfulExecutionCount}.`,
     `Remaining execution capacity: ${Math.max(0, MAX_EXECUTIONS - executions.length)}.`,
     `Rejected duplicate or pathologically repetitive programs: ${rejectedDuplicates}. A rejected program was not executed and does not advance the task. After a rejection, start from a fresh short strategy instead of copying the rejected source.`,
@@ -195,10 +186,12 @@ function generationSchema(
     !finalResponse &&
     requiresXlsxWorkflow(input, progress.executions) &&
     xlsxWorkflowPhase(xlsxProcessingExecutions(progress.executions), requiredLabels) !== "complete";
+  const inputNames = input.inputNames ?? [];
   const requiresAttachedPdfExecution =
     !finalResponse &&
     progress.executions.length === 0 &&
-    (input.inputNames ?? []).some((name) => name.toLocaleLowerCase("en-US").endsWith(".pdf"));
+    inputNames.some((name) => name.toLocaleLowerCase("en-US").endsWith(".pdf")) &&
+    !attachedPdfAlreadyExtracted(inputNames, input.history);
   const generationLimitRecovery = recovery === "generation_limit" && !finalResponse;
   return agentDecisionJsonSchema({
     task: input.task,

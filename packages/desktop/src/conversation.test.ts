@@ -57,7 +57,7 @@ const restoredActivity = [
     id: "completed",
     kind: "activity",
     runId,
-    text: "Python finished with exit code 0.",
+    text: "Finished this step.",
   },
   {
     createdAt: "2026-07-20T12:00:05.500Z",
@@ -213,7 +213,7 @@ describe("conversation activity presentation", () => {
       "Build a report",
       "Loading the local model",
       "Inspecting the selected data",
-      "Python finished",
+      "Finished this step",
       "report.csv",
       "The report is ready",
     ];
@@ -242,7 +242,7 @@ describe("conversation activity presentation", () => {
     );
 
     expect(markup).toContain("Working locally");
-    expect(markup).toContain("Python finished with exit code 0.");
+    expect(markup).toContain("Finished this step.");
     expect(markup).toContain("1 execution completed");
   });
 });
@@ -267,5 +267,27 @@ describe("continuation question presentation", () => {
     expect(markup).toContain("Processed 18 of 50 XLSX files");
     expect(markup).toContain("Continue from saved progress");
     expect(markup).toContain('aria-label="Dismiss continuation question"');
+  });
+});
+
+describe("conversation step selection", () => {
+  it("exposes each activity step as a labelled button and marks the selected one", () => {
+    const markup = renderToStaticMarkup(
+      createElement(Conversation, {
+        artifacts: [],
+        ready: true,
+        timeline: restoredActivity,
+        onSuggestion: () => undefined,
+        onSelectStep: () => undefined,
+        selectedStepId: "completed",
+        performance: null,
+        runId,
+        thinking: null,
+      }),
+    );
+
+    expect(markup).toContain('class="activity-step"');
+    expect(markup).toContain('aria-label="Show technical details for: Finished this step.');
+    expect(markup).toContain('aria-current="step"');
   });
 });

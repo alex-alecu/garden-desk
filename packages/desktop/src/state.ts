@@ -1,9 +1,9 @@
 import type {
   AgentArtifactSummary,
-  AgentEventType,
   AgentExecutionSnapshot,
   AgentRunSnapshot,
   AgentRunSummary,
+  AgentTrace,
   AttachmentSummary,
   ConversationMessage,
   FolderSummary,
@@ -14,24 +14,10 @@ import { applyAgentSnapshot } from "./agent-state.js";
 import type { DesktopBootstrap } from "./api.js";
 import { appendMessage } from "./message-state.js";
 import { emptyConversation } from "./state-initial.js";
+import type { FolderGroup, TimelineItem } from "./state-types.js";
 
 export { initialDesktopState } from "./state-initial.js";
-
-export interface FolderGroup extends FolderSummary {
-  sessions: SessionSummary[];
-  expanded: boolean;
-  nextCursor: string | null;
-}
-
-export interface TimelineItem {
-  createdAt: string;
-  eventType?: AgentEventType;
-  id: string;
-  kind: "user" | "assistant" | "activity";
-  text: string;
-  detail?: string;
-  runId?: string | null;
-}
+export type { FolderGroup, TimelineItem } from "./state-types.js";
 
 export interface DesktopState {
   catalogPath: string;
@@ -49,6 +35,8 @@ export interface DesktopState {
   executions: AgentExecutionSnapshot[];
   thinking: string | null;
   loaded: boolean;
+  selectedStepId: string | undefined;
+  traces: AgentTrace[];
 }
 
 export type DesktopAction =
@@ -76,7 +64,9 @@ export type DesktopAction =
   | { type: "agent.started"; run: AgentRunSummary }
   | { type: "agent.snapshot"; snapshot: AgentRunSnapshot }
   | { type: "draft.load"; sessionId: string; draft: string }
-  | { type: "draft.change"; draft: string };
+  | { type: "draft.change"; draft: string }
+  | { type: "step.select"; stepId: string | undefined }
+  | { type: "trace.load"; trace: AgentTrace };
 
 function hydrate(state: DesktopState, snapshot: DesktopBootstrap): DesktopState {
   const pages = new Map(snapshot.folderSessions.map((item) => [item.folderId, item.page]));
@@ -123,6 +113,13 @@ function addSession(state: DesktopState, session: SessionSummary): DesktopState 
         ? { ...folder, expanded: true, sessions: [session, ...folder.sessions] }
         : folder,
     ),
+  };
+}
+
+function withTrace(state: DesktopState, trace: AgentTrace): DesktopState {
+  return {
+    ...state,
+    traces: [...state.traces.filter((item) => item.runId !== trace.runId), trace],
   };
 }
 
@@ -291,5 +288,7 @@ export function desktopReducer(state: DesktopState, action: DesktopAction): Desk
       ? { ...state, draft: action.draft }
       : state;
   }
+  if (action.type === "step.select") return { ...state, selectedStepId: action.stepId };
+  if (action.type === "trace.load") return withTrace(state, action.trace);
   return { ...state, draft: action.draft };
 }

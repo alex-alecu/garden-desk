@@ -169,7 +169,7 @@ The existing workspace catalog remains the one authoritative database. M3 adds n
 - Turns and drafts.
 - Attachment identities and immutable staged bytes.
 - Agent runs, terminal state, observable events, and bounded numeric response-performance evidence.
-- Normalized execution attempts with identity, ordering, source or command, terminal evidence, 1 MB stdout, 1 MB stderr, 256 KiB allowlisted VM diagnostics, truncation flags, and recovery timestamps. Catalog migration v7 backfills historical execution events.
+- Normalized execution attempts with identity, ordering, source or command, terminal evidence, 1 MB stdout, 1 MB stderr, 256 KiB allowlisted VM diagnostics, truncation flags, and recovery timestamps. Catalog migration v7 backfills historical execution events. Those durable 1 MB stream caps are independent of the smaller middle-elided excerpt each stream contributes to the next decision prompt.
 - Versioned inference turns linked to runs, with prompt, schema, and pre-parse structured-result content hashes; worker request metadata; decision outcomes; execution links; and recovery timestamps. Catalog migration v8 leaves historical runs explicitly unrecorded.
 - Generated artifact metadata and immutable bytes accepted from guest scratch.
 - Session-scoped content-addressed workspace manifests stored under the private `.vault` state root.

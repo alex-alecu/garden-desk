@@ -127,6 +127,19 @@ describe("M3 model residency", () => {
     await expect(inference.unloadModel()).resolves.toBe(true);
     await expect(inference.modelStatus()).resolves.toMatchObject({ state: "unloaded" });
   });
+
+  it("keeps the allocated context after unload and drops live allocation", async () => {
+    const inference = await supervisor(new FakeInferenceWorker(), []);
+
+    await inference.generate(generationInput);
+    await expect(inference.unloadModel()).resolves.toBe(true);
+
+    const status = await inference.modelStatus();
+    expect(status).toMatchObject({ state: "unloaded", contextSizeTokens: 512 });
+    expect(status.cpuRamBytes).toBeUndefined();
+    expect(status.gpuVramBytes).toBeUndefined();
+    expect(status.memoryBudgetBytes).toBeUndefined();
+  });
 });
 
 describe("M2 model staging cancellation", () => {

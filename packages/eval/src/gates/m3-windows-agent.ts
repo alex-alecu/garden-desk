@@ -35,6 +35,7 @@ interface AgentEvidenceInput {
   finishToken?: string;
   cancel?: boolean;
   expectedError?: string;
+  expectLiveOutput?: boolean;
 }
 
 async function prepareModelStore(): Promise<void> {
@@ -106,28 +107,34 @@ async function awaitRun(
   throw new Error(`Windows agent run timed out: ${runId}`);
 }
 
-function requireLiveEvidence(
+function requireAgentEvidence(
   result: { snapshot: AgentRunSnapshot; live: boolean },
-  finishToken: string | undefined,
-  cancelled: boolean,
-  expectedError: string | undefined,
+  input: AgentEvidenceInput,
 ) {
   const execution = result.snapshot.executions.find((item) => item.stdout.length > 0);
-  const terminalState =
-    expectedError === undefined
-      ? result.snapshot.run.state === "succeeded"
-      : result.snapshot.run.state === "failed" && result.snapshot.run.error === expectedError;
+  const terminalState = expectedTerminalState(result.snapshot, input.expectedError);
+  const hasFinishToken =
+    input.finishToken === undefined || execution?.stdout.includes(input.finishToken) === true;
   if (
-    !result.live ||
+    ((input.expectLiveOutput ?? true) && !result.live) ||
     execution === undefined ||
     execution.vmDiagnostics.length === 0 ||
-    (cancelled
+    (input.cancel
       ? result.snapshot.run.state !== "cancelled" || execution.state !== "cancelled"
-      : !terminalState || (finishToken !== undefined && !execution.stdout.includes(finishToken)))
+      : !terminalState || !hasFinishToken)
   ) {
-    throw new Error(`Windows live-log proof failed: ${JSON.stringify(result.snapshot)}`);
+    throw new Error(`Windows agent proof failed: ${JSON.stringify(result.snapshot)}`);
   }
   return execution;
+}
+
+function expectedTerminalState(
+  snapshot: AgentRunSnapshot,
+  expectedError: string | undefined,
+): boolean {
+  return expectedError === undefined
+    ? snapshot.run.state === "succeeded"
+    : snapshot.run.state === "failed" && snapshot.run.error === expectedError;
 }
 
 async function runAgentEvidence(input: AgentEvidenceInput) {
@@ -149,12 +156,7 @@ async function runAgentEvidence(input: AgentEvidenceInput) {
     const session = await core.createSession(folder.id);
     const run = await core.startAgent(session.id, input.prompt);
     const result = await awaitRun(core, run.id, input.liveToken, input.cancel ?? false);
-    const execution = requireLiveEvidence(
-      result,
-      input.finishToken,
-      input.cancel ?? false,
-      input.expectedError,
-    );
+    const execution = requireAgentEvidence(result, input);
     await core.revokeFolder(folder.id);
     const afterTeardown = await core.getAgentRun(run.id);
     const teardown = afterTeardown.executions.some((item) =>
@@ -186,7 +188,7 @@ async function runWindowsEvidence(root: string, artifacts: WindowsArtifacts) {
     root,
     name: "node",
     prompt:
-      "Execute exactly one Node.js source file. Write 'node-start\\n', wait 3 seconds, then write 'node-finish\\n'. Do not respond before it finishes.",
+      "Execute exactly one Node.js source file. Call process.stdout.write('node-start\\n'), wait 3 seconds, then call process.stdout.write('node-finish\\n'). Do not write these markers to a file. Do not respond before it finishes.",
     liveToken: "node-start",
     finishToken: "node-finish",
   });
@@ -204,9 +206,13 @@ async function runWindowsEvidence(root: string, artifacts: WindowsArtifacts) {
     prompt:
       "Execute exactly one Python source file. Print 'limit-start' with flush=True, then print 1100000 letter x characters.",
     liveToken: "limit-start",
-    expectedError: "agent_context_exhausted",
+    finishToken: "limit-start",
+    expectLiveOutput: false,
   });
   if (!limits.stdoutTruncated) throw new Error("Windows stdout truncation proof failed.");
+  if (limits.runState !== "succeeded") {
+    throw new Error(`Windows bounded-observation proof failed: ${limits.runState}`);
+  }
   const malformedFrames = await malformedFrameEvidence(root, artifacts);
   return { python, node, cancellation, limits, malformedFrames };
 }

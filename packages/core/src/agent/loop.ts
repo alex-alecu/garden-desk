@@ -14,6 +14,7 @@ import { createGenerationRequest } from "../runtime/inference.js";
 import { addPerformance, emptyPerformance } from "./inference-performance.js";
 import { rejectedExecutionReason } from "./loop-decisions.js";
 import { executeAgentDecision, rejectExecution } from "./loop-execution.js";
+import { structuredRetryInput } from "./loop-retry.js";
 import { xlsxContinuationResponse } from "./output-contract.js";
 import {
   type AgentProgress,
@@ -28,8 +29,6 @@ import {
 import type { AgentTraceStore } from "./trace-store.js";
 
 const MAX_DECISIONS = 12;
-const STRUCTURED_RETRY_SUFFIX =
-  "\nYour previous attempt did not call a function. Call exactly one available function with your answer.";
 const GENERATION_LIMIT_ERROR = "generation_token_limit";
 
 export interface AgentExecutor {
@@ -105,10 +104,15 @@ export class AgentLoop {
     }
     const request =
       recovery === "structured_call"
-        ? createGenerationRequest({
-            ...initialRequest.input,
-            prompt: `${initialRequest.input.prompt}${STRUCTURED_RETRY_SUFFIX}`,
-          })
+        ? createGenerationRequest(
+            structuredRetryInput({
+              input,
+              progress,
+              finalResponse,
+              previous: initialRequest.input,
+              contextTokens: this.contextTokens,
+            }),
+          )
         : createGenerationRequest(
             generationInput(input, progress, finalResponse, {
               contextTokens: this.contextTokens,
