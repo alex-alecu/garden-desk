@@ -51,10 +51,13 @@ describe("M3 Windows package contract", () => {
 
 describe("M3 Windows application authority", () => {
   it("requests the HCS administrator boundary at application launch", async () => {
-    const manifest = await readFile(
-      join(process.cwd(), "packages/desktop/src-tauri/windows-app-manifest.xml"),
-      "utf8",
-    );
+    const [manifest, build] = await Promise.all([
+      readFile(join(process.cwd(), "packages/desktop/src-tauri/windows-app-manifest.xml"), "utf8"),
+      readFile(join(process.cwd(), "packages/desktop/src-tauri/build.rs"), "utf8"),
+    ]);
     expect(manifest).toContain('level="requireAdministrator"');
+    expect(build).toContain(
+      ["fn main() {", "    anchor_windows_package();", "    build_desktop();", "}"].join("\n"),
+    );
   });
 });

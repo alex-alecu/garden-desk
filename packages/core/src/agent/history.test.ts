@@ -115,6 +115,27 @@ describe("agent history compaction", () => {
 });
 
 describe("agent context exhaustion", () => {
+  it("identifies Vault Desk's local private knowledge-work capabilities and boundaries", () => {
+    const request = generationInput(
+      { task: "Summarize the attached files", modelId: "test" },
+      { executions: [], inference: emptyInference(), rejectedDuplicates: 0 },
+    );
+
+    for (const instruction of [
+      "Your name is Vault Desk.",
+      "PDFs, DOCX Word documents, XLSX Excel workbooks",
+      "create summaries",
+      "create new documents",
+      "no internet access",
+      "no tracking, telemetry, analytics, or task content anywhere",
+      "contained no-NIC virtual machine",
+      "/source is read-only",
+      "/workspace is writable",
+    ]) {
+      expect(request.prompt).toContain(instruction);
+    }
+  });
+
   it("keeps the complete serialized request inside the context remainder", () => {
     const request = generationInput(
       { task: "Inspect", modelId: "test", history: { messages: [], runs: [] } },
