@@ -30,6 +30,7 @@ function commonInputs(desktopRoot: string, repositoryRoot: string): string[] {
     join(desktopRoot, "src", "package-resource-contract.ts"),
     join(desktopRoot, "src", "resource-hashes.ts"),
     join(desktopRoot, "src", "runtime-package-contract.ts"),
+    join(desktopRoot, "src", "windows-signing-mode.ts"),
   ];
 }
 
