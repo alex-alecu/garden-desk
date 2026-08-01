@@ -108,6 +108,8 @@ src/main.tsx
 src/app.tsx
 src/api.ts                 typed Tauri command adapter
 src/desktop-actions.ts     narrow desktop workflow calls
+src/dev-resource-progress.ts development startup stage labels
+src/package-resource-contract.ts packaged migration inventory
 src/state.ts               plain React reducer
 src/styles.css
 src/components/chat-header.tsx

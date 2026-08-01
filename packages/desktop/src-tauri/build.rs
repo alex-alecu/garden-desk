@@ -38,14 +38,14 @@ fn anchor_windows_package() {
     println!("cargo:rustc-env=VAULT_SIDECAR_SHA256={}", sha256(&sidecar));
 }
 
-fn main() {
-    anchor_windows_package();
-    if std::env::var("PROFILE").as_deref() != Ok("release") {
-        tauri_build::build();
-        return;
-    }
+fn build_desktop() {
     let windows = tauri_build::WindowsAttributes::new()
         .app_manifest(include_str!("windows-app-manifest.xml"));
     let attributes = tauri_build::Attributes::new().windows_attributes(windows);
     tauri_build::try_build(attributes).expect("failed to run Tauri build script");
+}
+
+fn main() {
+    anchor_windows_package();
+    build_desktop();
 }

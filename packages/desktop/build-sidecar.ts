@@ -9,6 +9,7 @@ import { signExecutable, stripWindowsSignature } from "./build-signing.js";
 import { debugSidecarCheckArguments } from "./debug-sidecar-check.js";
 import { installResources } from "./package-resources.js";
 import { seaConfiguration } from "./sidecar-sea.js";
+import { reportDevelopmentResourceStage } from "./src/dev-resource-progress.js";
 
 const desktopRoot = fileURLToPath(new URL(".", import.meta.url));
 const repositoryRoot = resolve(desktopRoot, "../..");
@@ -97,7 +98,9 @@ await rm(resourcesRoot, { recursive: true, force: true });
 await mkdir(generatedRoot, { recursive: true });
 await mkdir(join(resourcesRoot, "migrations"), { recursive: true });
 await mkdir(binariesRoot, { recursive: true });
+reportDevelopmentResourceStage("coreBundle");
 const bundle = await buildBundle();
+reportDevelopmentResourceStage("coreExecutable");
 const executable = await prepareSea(bundle);
 await chmod(executable, 0o755);
 const signingMode = signExecutable(executable);
