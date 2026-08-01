@@ -25,6 +25,8 @@ function commonInputs(desktopRoot: string, repositoryRoot: string): string[] {
     join(desktopRoot, "package-resources.ts"),
     join(desktopRoot, "package-compliance.ts"),
     join(desktopRoot, "runtime-packages.ts"),
+    join(desktopRoot, "src", "dev-resource-progress.ts"),
+    join(desktopRoot, "src", "package-resource-contract.ts"),
     join(desktopRoot, "src", "runtime-package-contract.ts"),
   ];
 }

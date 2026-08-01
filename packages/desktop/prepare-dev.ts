@@ -8,6 +8,10 @@ const desktopRoot = fileURLToPath(new URL(".", import.meta.url));
 const repositoryRoot = resolve(desktopRoot, "../..");
 const { inputRoots, requiredOutputs } = developmentResourceContract(desktopRoot, repositoryRoot);
 
+console.log(
+  "[Vault Desk startup] Checking offline desktop resources before starting the frontend.",
+);
+
 async function newestModifiedAt(path: string): Promise<number> {
   const metadata = await lstat(path);
   if (!metadata.isDirectory()) return metadata.mtimeMs;
@@ -30,9 +34,11 @@ async function resourcesAreCurrent(): Promise<boolean> {
 }
 
 if (await resourcesAreCurrent()) {
-  console.log("Vault Desk development resources are current.");
+  console.log("[Vault Desk startup] Offline resources are current; starting the frontend.");
 } else {
-  console.log("Preparing Vault Desk offline development resources; this can take a few minutes.");
+  console.log(
+    "[Vault Desk startup] Offline resources changed; rebuilding the self-contained development package.",
+  );
   const result = spawnSync(
     process.execPath,
     ["--import", "tsx", join(desktopRoot, "build-sidecar.ts")],
@@ -41,4 +47,5 @@ if (await resourcesAreCurrent()) {
   if (result.error !== undefined) throw result.error;
   if (result.status !== 0)
     throw new Error(`Development resource preparation exited ${result.status}.`);
+  console.log("[Vault Desk startup] Offline resources are ready; starting the frontend.");
 }

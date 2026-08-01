@@ -9,6 +9,8 @@ import { build } from "esbuild";
 import { signExecutable } from "./build-signing.js";
 import { writePackageCompliance, writePackageIdentity } from "./package-compliance.js";
 import { copyRuntimePackage } from "./runtime-packages.js";
+import { reportDevelopmentResourceStage } from "./src/dev-resource-progress.js";
+import { packagedMigrationNames } from "./src/package-resource-contract.js";
 import { installWindowsCudaAssets } from "./windows-runtime-assets.js";
 
 const desktopRoot = fileURLToPath(new URL(".", import.meta.url));
@@ -17,18 +19,6 @@ const resourcesRoot = join(desktopRoot, "src-tauri", "resources", "core");
 const inferenceRoot = join(resourcesRoot, "inference");
 const workerResourcesRoot = join(resourcesRoot, "workers");
 const modelResourcesRoot = join(resourcesRoot, "models");
-const migrationNames = [
-  "0001-initial.sql",
-  "0002-audit-head.sql",
-  "0003-conversations.sql",
-  "0004-agent.sql",
-  "0005-agent-performance.sql",
-  "0006-agent-workspace.sql",
-  "0007-agent-executions.sql",
-  "0008-agent-inference-traces.sql",
-  "0009-folder-order.sql",
-];
-
 export interface ResourceHashes {
   migrations: Record<string, string>;
   windowsPipeGuard?: string;
@@ -74,6 +64,7 @@ async function installAgentImage(
   architecture: "aarch64" | "x86_64",
   kernelName: "Image" | "bzImage",
 ): Promise<Pick<ResourceHashes, "agentKernel" | "agentInitramfs">> {
+  reportDevelopmentResourceStage("agentImage");
   const imageSource = join(repositoryRoot, "packages/workers/images");
   const imageDestination = join(workerResourcesRoot, "images");
   const artifactDestination = join(imageDestination, ".generated/agent/artifacts", architecture);
@@ -109,6 +100,7 @@ async function installAgentImage(
 async function installMacAgentResources(): Promise<
   Pick<ResourceHashes, "agentHelper" | "agentHelperSignature" | "agentKernel" | "agentInitramfs">
 > {
+  reportDevelopmentResourceStage("agentHelper");
   runPnpm(["workers:macos:build"]);
   await mkdir(workerResourcesRoot, { recursive: true });
   const helper = join(workerResourcesRoot, "vault-vz-helper");
@@ -127,6 +119,7 @@ async function installMacAgentResources(): Promise<
 async function installWindowsAgentResources(): Promise<
   Pick<ResourceHashes, "agentHelper" | "agentHelperSignature" | "agentKernel" | "agentInitramfs">
 > {
+  reportDevelopmentResourceStage("agentHelper");
   runPnpm(["workers:windows:build"]);
   await mkdir(workerResourcesRoot, { recursive: true });
   const helper = join(workerResourcesRoot, "vault-hcs-helper.exe");
@@ -148,6 +141,7 @@ async function installWindowsAgentResources(): Promise<
 async function installWindowsInferenceHelper(): Promise<
   Pick<ResourceHashes, "inferenceHelper" | "inferenceHelperSignature">
 > {
+  reportDevelopmentResourceStage("inferenceIsolation");
   runPnpm(["workers:windows-native:build"]);
   const helper = join(inferenceRoot, "vault-appcontainer-launcher.exe");
   await copyFile(
@@ -176,6 +170,7 @@ async function installInferenceResources(): Promise<
   >
 > {
   await mkdir(inferenceRoot, { recursive: true });
+  reportDevelopmentResourceStage("inferenceWorker");
   const worker = join(inferenceRoot, "worker.mjs");
   await build({
     absWorkingDir: repositoryRoot,
@@ -187,6 +182,7 @@ async function installInferenceResources(): Promise<
     platform: "node",
     target: "node24",
   });
+  reportDevelopmentResourceStage("inferenceRuntime");
   await copyRuntimePackage(
     "node-llama-cpp",
     createRequire(join(repositoryRoot, "packages/workers/package.json")),
@@ -197,8 +193,10 @@ async function installInferenceResources(): Promise<
   await copyFile(process.execPath, runtime);
   await chmod(runtime, 0o755);
   const inferenceRuntimeSignature = signExecutable(runtime);
+  const isolation = process.platform === "win32" ? await installWindowsInferenceHelper() : {};
+  if (process.platform === "win32") reportDevelopmentResourceStage("cudaRuntime");
   return {
-    ...(process.platform === "win32" ? await installWindowsInferenceHelper() : {}),
+    ...isolation,
     ...(process.platform === "win32"
       ? { cudaAssets: await installWindowsCudaAssets(inferenceRoot) }
       : {}),
@@ -209,6 +207,7 @@ async function installInferenceResources(): Promise<
 }
 
 async function installModelResources(): Promise<Pick<ResourceHashes, "generationModel">> {
+  reportDevelopmentResourceStage("model");
   await mkdir(modelResourcesRoot, { recursive: true });
   const modelName = "gemma-4-12b-it-qat-q4_0.gguf";
   const source = join(repositoryRoot, "packages/eval/.generated/models", modelName);
@@ -254,6 +253,7 @@ async function installProductResources(): Promise<Omit<ResourceHashes, "migratio
 
 async function installWindowsPipeGuard(): Promise<string | undefined> {
   if (process.platform !== "win32" || process.argv.includes("--check")) return undefined;
+  reportDevelopmentResourceStage("currentUserTransport");
   runPnpm(["core:windows-pipe-guard:build"]);
   const pipeGuard = join(resourcesRoot, "vault-pipe-guard.exe");
   await copyFile(
@@ -268,7 +268,7 @@ export async function installResources(
   targetTriple: string,
 ): Promise<ResourceHashes> {
   const migrations: Record<string, string> = {};
-  for (const name of migrationNames) {
+  for (const name of packagedMigrationNames) {
     const source = join(repositoryRoot, "packages/core/src/workspace/migrations", name);
     const destination = join(resourcesRoot, "migrations", name);
     await copyFile(source, destination);
@@ -282,6 +282,7 @@ export async function installResources(
     sidecar: identity,
     resources: { migrations, ...productResources },
   });
+  if (productBuild()) reportDevelopmentResourceStage("manifest");
   const resourceManifest = productBuild()
     ? await writePackageCompliance(
         resourcesRoot,
