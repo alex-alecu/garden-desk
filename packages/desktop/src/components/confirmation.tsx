@@ -1,6 +1,8 @@
 export interface ConfirmationRequest {
+  cancelLabel?: string;
   confirmLabel: string;
   description: string;
+  intent?: "danger" | "primary";
   title: string;
   onConfirm(): void;
 }
@@ -26,9 +28,15 @@ export function Confirmation({ request, onCancel, onConfirm }: ConfirmationProps
         <p id="confirmation-description">{request.description}</p>
         <div className="confirmation-actions">
           <button onClick={onCancel} type="button">
-            Cancel
+            {request.cancelLabel ?? "Cancel"}
           </button>
-          <button className="confirmation-remove" onClick={onConfirm} type="button">
+          <button
+            className={
+              request.intent === "primary" ? "confirmation-primary" : "confirmation-remove"
+            }
+            onClick={onConfirm}
+            type="button"
+          >
             {request.confirmLabel}
           </button>
         </div>

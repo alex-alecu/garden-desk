@@ -2,6 +2,7 @@ const stageLabels = {
   coreBundle: "Bundling the Vault Core backend",
   coreExecutable: "Creating and signing the Vault Core executable",
   currentUserTransport: "Building the current-user local transport helper",
+  windowsPermissionSetup: "Building the one-time Windows permission helper",
   inferenceWorker: "Bundling the local inference worker",
   inferenceRuntime: "Copying the local inference runtime and native backends",
   inferenceIsolation: "Building the Windows inference isolation helper",

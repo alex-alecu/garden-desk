@@ -96,6 +96,8 @@ For an ordinary implementation pull request:
 
 Run `pnpm test:gate --milestone <n>` only when claiming that milestone's gate is complete. Missing required hardware, models, workers, or packages must be reported as failures or not-run prerequisites, never silent skips.
 
+Windows desktop authority changes require separate standard-user evidence for development and the staged production application: the main executable must remain `asInvoker`, only the fixed setup helper may request UAC, a different credentialed administrator must still add the requesting account, a new sign-in must activate HCS access, and tampered setup bytes must be rejected. macOS evidence must independently prove that no Windows helper, administrator prompt, or elevated launch was introduced.
+
 ### Verification Report
 
 ```markdown

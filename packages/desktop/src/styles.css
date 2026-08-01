@@ -615,8 +615,37 @@ textarea:focus-visible {
   background: var(--reading);
 }
 
-.workspace:has(.guided-examples) {
+.workspace:has(.guided-examples),
+.workspace:has(.secure-workspace-banner) {
   grid-template-rows: 68px auto minmax(0, 1fr) auto;
+}
+
+.workspace:has(.guided-examples):has(.secure-workspace-banner) {
+  grid-template-rows: 68px auto auto minmax(0, 1fr) auto;
+}
+
+.secure-workspace-banner {
+  display: flex;
+  min-height: 42px;
+  padding: 8px 22px;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  border-bottom: 1px solid var(--border-color);
+  color: var(--ink-soft);
+  background: var(--accent-soft);
+  font-size: 13px;
+  text-align: center;
+}
+
+.secure-workspace-banner button {
+  min-height: 30px;
+  padding: 0 12px;
+  border: 1px solid rgb(40 111 109 / 24%);
+  border-radius: 8px;
+  color: var(--shell);
+  background: var(--accent);
+  cursor: pointer;
 }
 
 .guided-examples {
@@ -1810,6 +1839,12 @@ textarea:focus-visible {
   background: var(--ember);
 }
 
+.confirmation-actions .confirmation-primary {
+  border-color: rgb(40 111 109 / 24%);
+  color: var(--shell);
+  background: var(--accent);
+}
+
 .error-banner {
   position: absolute;
   z-index: 2;
@@ -2054,6 +2089,11 @@ textarea:focus-visible {
 .app-shell[data-theme="dark"] .confirmation-actions .confirmation-remove {
   color: #17191a;
   background: var(--ember);
+}
+
+.app-shell[data-theme="dark"] .confirmation-actions .confirmation-primary {
+  color: #071f25;
+  background: var(--accent);
 }
 
 .app-shell[data-theme="dark"] .technical-details-drawer {

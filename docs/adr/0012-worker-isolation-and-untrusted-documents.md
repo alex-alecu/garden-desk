@@ -20,6 +20,8 @@ The microVM exposes only a narrow host/guest socket for versioned typed IPC. Tha
 
 macOS uses one read-only VirtioFS share. Windows certification requires an HCS Plan9 share with both host `ReadOnly` and guest read-only mount enforcement over Hyper-V sockets, without a virtual NIC or copy fallback. This scoped Plan9 transport is not a network broker. Windows is not certified until physical evidence proves the boundary.
 
+Both desktop hosts and Vault Core run as the current user. macOS requires no administrator setup. Windows HCS accepts administrators or Hyper-V Administrators, so the Windows package includes one narrowly scoped signed helper that may elevate after an explicit disclosure, derive the requesting account from the non-elevated parent process token, and add only that account to Hyper-V Administrators. Hyper-V must already be enabled. The helper cannot enable features, accept another SID, or launch arbitrary work. After a new Windows sign-in, the standard-user desktop owns HCS lifecycle and the fixed Hyper-V socket admits Hyper-V Administrators. This standing group membership grants all processes under that account Hyper-V management authority and is part of the disclosed Windows security boundary.
+
 The offline dev agent defined by [ADR 0018](0018-offline-dev-agent-first.md) is an executable-tool guest role under this boundary. Every session starts from the immutable image with pinned offline interpreters and libraries; dependency installation is forbidden. Vault Core calls the separately confined host-native inference worker, then sends only validated execution requests to the guest. The guest receives no model-server socket, Vault Core API, external-connection broker, approval authority, or export authority.
 
 Agent protocol v3 streams only execution stdout, stderr, and typed lifecycle diagnostics with execution identity and monotonic sequence validation. Core caps and durably records those streams before exposing them through polling. Native helper stderr, temporary host paths, credentials, model reasoning, and arbitrary platform logger output never enter the execution record.
@@ -79,6 +81,7 @@ Negative:
 - Native accelerator tests proving OS-enforced network denial and absence of arbitrary filesystem, credential, shell, and tool authority.
 - Proof that workers cannot write exports or authoritative workspace state directly.
 - Packaging tests proving that process-only compatibility mode cannot be reported as microVM-certified.
+- Windows package tests proving that the desktop remains `asInvoker`, only the fixed setup helper elevates, tampered helper bytes are rejected, and macOS packages exclude the helper and any administrator setup.
 - Generated-code tests covering dependency-install attempts, network and host-path access, process storms, infinite loops, resource exhaustion, oversized output, malformed result IPC, generic model-endpoint access, and approval/export attempts.
 
 ## Revision History
@@ -90,3 +93,4 @@ Negative:
 | 2026-07-13 | Applied the same boundary to the generated-code fallback and added typed host-mediated inference plus code-specific limits. |
 | 2026-07-20 | Applied the boundary to the V1 generic offline dev agent under ADR 0018. |
 | 2026-07-23 | Added the live read-only folder share and session-scoped persistent workspace boundary, including required macOS VirtioFS and Windows Plan9 enforcement. |
+| 2026-08-01 | Replaced recurring Windows desktop elevation with a signed one-time Hyper-V Administrators membership helper while preserving non-elevated macOS operation. |
