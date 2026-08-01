@@ -1,3 +1,5 @@
+import type { GenerationContextLimitReason } from "@vault/shared";
+
 const MINIMUM_GENERATION_CONTEXT = 8_192;
 const STANDARD_MAXIMUM_GENERATION_CONTEXT = 65_536;
 const HIGH_MEMORY_MAXIMUM_GENERATION_CONTEXT = 131_072;
@@ -9,6 +11,11 @@ const WINDOWS_HIGH_MEMORY_THRESHOLD_BYTES = 24 * GiB;
 export interface InferenceAllocation {
   cpuRamBytes: number;
   gpuVramBytes: number;
+}
+
+export interface GenerationContextLimit {
+  maximumContextTokens: number;
+  reason: GenerationContextLimitReason;
 }
 
 export function resolveRuntimeMemoryBudget(
@@ -29,11 +36,37 @@ export function resolveMaximumGenerationContext(
   totalMemoryBytes: number,
   gpuVramBytes: number,
 ): number {
-  const highMemory =
-    platform === "darwin"
-      ? totalMemoryBytes > MAC_HIGH_MEMORY_THRESHOLD_BYTES
-      : platform === "win32" && gpuVramBytes > WINDOWS_HIGH_MEMORY_THRESHOLD_BYTES;
-  return highMemory ? HIGH_MEMORY_MAXIMUM_GENERATION_CONTEXT : STANDARD_MAXIMUM_GENERATION_CONTEXT;
+  return resolveGenerationContextLimit(platform, totalMemoryBytes, gpuVramBytes)
+    .maximumContextTokens;
+}
+
+export function resolveGenerationContextLimit(
+  platform: NodeJS.Platform,
+  totalMemoryBytes: number,
+  gpuVramBytes: number,
+): GenerationContextLimit {
+  if (platform === "darwin") {
+    const highMemory = totalMemoryBytes > MAC_HIGH_MEMORY_THRESHOLD_BYTES;
+    return {
+      maximumContextTokens: highMemory
+        ? HIGH_MEMORY_MAXIMUM_GENERATION_CONTEXT
+        : STANDARD_MAXIMUM_GENERATION_CONTEXT,
+      reason: highMemory ? "mac_unified_memory_above_32_gib" : "mac_unified_memory_at_most_32_gib",
+    };
+  }
+  if (platform === "win32") {
+    const highMemory = gpuVramBytes > WINDOWS_HIGH_MEMORY_THRESHOLD_BYTES;
+    return {
+      maximumContextTokens: highMemory
+        ? HIGH_MEMORY_MAXIMUM_GENERATION_CONTEXT
+        : STANDARD_MAXIMUM_GENERATION_CONTEXT,
+      reason: highMemory ? "windows_gpu_vram_above_24_gib" : "windows_gpu_vram_at_most_24_gib",
+    };
+  }
+  return {
+    maximumContextTokens: STANDARD_MAXIMUM_GENERATION_CONTEXT,
+    reason: "certified_standard",
+  };
 }
 
 export function resolveGenerationContextSize(requested: "auto" | number, maximum: number) {

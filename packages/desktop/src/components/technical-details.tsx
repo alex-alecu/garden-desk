@@ -11,12 +11,12 @@ import {
   debugSnapshotReducer,
   initialDebugSnapshotState,
 } from "../debug-snapshot.js";
-import { modelUsage } from "../model-usage.js";
 import type { TimelineItem } from "../state.js";
 import type { AgentStep } from "../steps.js";
 import { Icon } from "./icons.js";
 import { StepList } from "./step-list.js";
 import { selectAdjacentTab } from "./tab-keyboard.js";
+import { TechnicalModelUsage } from "./technical-model-usage.js";
 
 export { shouldFollowLog } from "./technical-logs.js";
 
@@ -124,33 +124,6 @@ function DebugSnapshotControls({
       onReveal={() => void reveal()}
       state={state}
     />
-  );
-}
-
-function TechnicalModelUsage({ model }: { model: ModelRuntimeStatus }) {
-  const usage = modelUsage(model);
-  if (usage === undefined) return null;
-  return (
-    <dl className="technical-model-usage">
-      {usage.allocated === undefined ? null : (
-        <div>
-          <dt>Memory allocation</dt>
-          <dd>{usage.allocated}</dd>
-        </div>
-      )}
-      {usage.budget === undefined ? null : (
-        <div>
-          <dt>VRAM / unified memory budget</dt>
-          <dd>{usage.budget}</dd>
-        </div>
-      )}
-      {usage.context === undefined ? null : (
-        <div>
-          <dt>Context window</dt>
-          <dd>{usage.context} tokens</dd>
-        </div>
-      )}
-    </dl>
   );
 }
 

@@ -2,12 +2,50 @@ import { describe, expect, it } from "vitest";
 import {
   combinedAllocationBytes,
   fitCombinedGenerationContext,
+  resolveGenerationContextLimit,
   resolveGenerationContextSize,
   resolveMaximumGenerationContext,
   resolveRuntimeMemoryBudget,
 } from "./memory.js";
 
 const GiB = 1024 * 1024 * 1024;
+const contextCaps = [
+  {
+    platform: "darwin",
+    memory: 24,
+    vram: 48,
+    maximum: 65_536,
+    reason: "mac_unified_memory_at_most_32_gib",
+  },
+  {
+    platform: "darwin",
+    memory: 32,
+    vram: 48,
+    maximum: 65_536,
+    reason: "mac_unified_memory_at_most_32_gib",
+  },
+  {
+    platform: "darwin",
+    memory: 48,
+    vram: 16,
+    maximum: 131_072,
+    reason: "mac_unified_memory_above_32_gib",
+  },
+  {
+    platform: "win32",
+    memory: 128,
+    vram: 24,
+    maximum: 65_536,
+    reason: "windows_gpu_vram_at_most_24_gib",
+  },
+  {
+    platform: "win32",
+    memory: 16,
+    vram: 32,
+    maximum: 131_072,
+    reason: "windows_gpu_vram_above_24_gib",
+  },
+] as const;
 
 describe("inference memory budget", () => {
   it("uses the full detected Windows GPU VRAM for generation", () => {
@@ -27,16 +65,14 @@ describe("inference memory budget", () => {
 });
 
 describe("generation context caps", () => {
-  it.each([
-    ["darwin", 24, 48, 65_536],
-    ["darwin", 32, 48, 65_536],
-    ["darwin", 48, 16, 131_072],
-    ["win32", 128, 24, 65_536],
-    ["win32", 16, 32, 131_072],
-  ] as const)(
-    "caps %s generation with %d GiB memory and %d GiB VRAM at %d tokens",
-    (platform, memory, vram, maximum) => {
+  it.each(contextCaps)(
+    "caps $platform generation with $memory GiB memory and $vram GiB VRAM at $maximum tokens",
+    ({ platform, memory, vram, maximum, reason }) => {
       expect(resolveMaximumGenerationContext(platform, memory * GiB, vram * GiB)).toBe(maximum);
+      expect(resolveGenerationContextLimit(platform, memory * GiB, vram * GiB)).toEqual({
+        maximumContextTokens: maximum,
+        reason,
+      });
     },
   );
 

@@ -4,6 +4,13 @@ import { JobIdSchema, RequestIdSchema } from "./ids.js";
 
 export const InferenceProfileSchema = z.enum(["auto", "local12", "local16"]);
 export const InferenceOperationSchema = z.enum(["generate", "embed", "probe"]);
+export const GenerationContextLimitReasonSchema = z.enum([
+  "mac_unified_memory_at_most_32_gib",
+  "mac_unified_memory_above_32_gib",
+  "windows_gpu_vram_at_most_24_gib",
+  "windows_gpu_vram_above_24_gib",
+  "certified_standard",
+]);
 
 const JsonSchemaSchema = z.record(z.string(), z.unknown());
 export const MAX_EFFECTIVE_GENERATION_PROMPT_CHARACTERS = 256_054;
@@ -49,6 +56,8 @@ export const InferenceMemoryReportSchema = z.object({
   budgetBytes: z.number().int().positive(),
   detectedGpuVramBytes: z.number().int().nonnegative(),
   contextSizeTokens: z.number().int().positive().optional(),
+  contextLimitTokens: z.number().int().positive().optional(),
+  contextLimitReason: GenerationContextLimitReasonSchema.optional(),
 });
 
 export const InferencePerformanceSchema = z.object({
@@ -119,6 +128,7 @@ export const InferenceWorkerMessageSchema = z.union([
 
 export type InferenceProfile = z.infer<typeof InferenceProfileSchema>;
 export type InferenceOperation = z.infer<typeof InferenceOperationSchema>;
+export type GenerationContextLimitReason = z.infer<typeof GenerationContextLimitReasonSchema>;
 export type StructuredGenerationRequest = z.infer<typeof StructuredGenerationRequestSchema>;
 export type EmbeddingRequest = z.infer<typeof EmbeddingRequestSchema>;
 export type NativeWorkerProbeRequest = z.infer<typeof NativeWorkerProbeRequestSchema>;

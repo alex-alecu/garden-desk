@@ -80,7 +80,7 @@ Every supported tier uses:
 - The same citation and approval requirements.
 - The same context-compaction architecture.
 
-The runtime fits the active generation context from an 8K minimum through the applicable 64K or 128K cap after applying the tier budget. macOS fitting uses combined CPU and GPU estimates and rejects a measured allocation above the selected total budget. Macs require more than 32 GB unified memory for the 128K cap because inference shares memory with the operating system, desktop, and agent guests. Windows requires more than 24 GB detected GPU VRAM for 128K because its generation allocation lives primarily in a discrete GPU pool. The typed response records the actual memory budget and allocated context. Stability remains a validation question until measured on physical hardware under the full workload.
+The runtime fits the active generation context from an 8K minimum through the applicable 64K or 128K cap after applying the tier budget. macOS fitting uses combined CPU and GPU estimates and rejects a measured allocation above the selected total budget. Macs require more than 32 GB unified memory for the 128K cap because inference shares memory with the operating system, desktop, and agent guests. Windows requires more than 24 GB detected GPU VRAM for 128K because its generation allocation lives primarily in a discrete GPU pool. The typed response records measured CPU RAM and GPU VRAM allocation, the memory budget, allocated context, hardware cap, and the exact threshold rule that selected that cap. Stability remains a validation question until measured on physical hardware under the full workload.
 
 The goal is reliability on professional documents, not maximum context-window marketing.
 
@@ -208,4 +208,4 @@ Each certified profile needs:
 | 2026-07-20 | Moved embedding and multimodal document certification after V1 and aligned model evaluation with the generic agent product gate. |
 | 2026-07-22 | Aligned the 12B and E2B QAT SHA-256 digests with their pinned revisions in the canonical model manifest. |
 | 2026-07-22 | Replaced the fixed 8K product context with automatic macOS memory tiers, complete detected Windows GPU VRAM use, and runtime-fitted context up to 256K. |
-| 2026-08-01 | Capped automatic context at 64K or 128K using separate Mac unified-memory and Windows VRAM thresholds. |
+| 2026-08-01 | Capped automatic context at 64K or 128K using separate Mac unified-memory and Windows VRAM thresholds and exposed the measured allocations, selected cap, and threshold reason through the typed runtime status. |

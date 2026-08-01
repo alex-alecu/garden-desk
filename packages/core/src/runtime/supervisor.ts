@@ -22,7 +22,12 @@ import {
   inferenceFailureCode,
 } from "./inference-errors.js";
 import { type ActiveInferenceExecution, inferenceTimeoutMs } from "./inference-timeout.js";
-import { DEFAULT_MODEL_ID, lastKnownContext, modelRuntimeStatus } from "./model-status.js";
+import {
+  DEFAULT_MODEL_ID,
+  generationMeasurements,
+  lastKnownContext,
+  modelRuntimeStatus,
+} from "./model-status.js";
 import type { ModelResolver } from "./models.js";
 import type { ResourceScheduler } from "./scheduler.js";
 import { AsyncSerial } from "./serial.js";
@@ -109,14 +114,7 @@ export class InferenceSupervisor implements InferenceService {
       );
     }
     if (response.operation === "generate") {
-      this.measurements = {
-        memoryBudgetBytes: response.memory.budgetBytes,
-        cpuRamBytes: response.memory.cpuRamBytes,
-        gpuVramBytes: response.memory.gpuVramBytes,
-        ...(response.memory.contextSizeTokens === undefined
-          ? {}
-          : { contextSizeTokens: response.memory.contextSizeTokens }),
-      };
+      this.measurements = generationMeasurements(response.memory);
     }
     recordInferenceAudit(this.audit, {
       operation: request.operation,
