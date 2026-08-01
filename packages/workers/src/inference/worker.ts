@@ -1,3 +1,4 @@
+import { totalmem } from "node:os";
 import type {
   EmbeddingRequest,
   InferenceWorkerMessage,
@@ -23,6 +24,7 @@ import {
   combinedAllocationBytes,
   fitCombinedGenerationContext,
   resolveGenerationContextSize,
+  resolveMaximumGenerationContext,
   resolveRuntimeMemoryBudget,
 } from "./memory.js";
 import { probe } from "./probe.js";
@@ -39,7 +41,7 @@ function argument(name: string): string | undefined {
 function failure(requestId: RequestId, error: unknown): InferenceWorkerResponse {
   const text = error instanceof Error ? error.message : String(error);
   const code =
-    text === "supported_gpu_required"
+    text === "supported_gpu_required" || text === "context_size_exceeds_hardware_cap"
       ? "unsupported"
       : /memory|allocation|out of memory/iu.test(text)
         ? "out_of_memory"
@@ -126,11 +128,15 @@ async function runtime(operation: "generate" | "embed"): Promise<LoadedRuntime> 
   return loadedRuntime;
 }
 
-async function automaticMacContextSize(runtime: LoadedRuntime): Promise<number> {
+async function automaticMacContextSize(
+  runtime: LoadedRuntime,
+  maximumContextSize: number,
+): Promise<number> {
   const modelMemory = await runtime.llama.getLlamaMemoryUsage();
   return fitCombinedGenerationContext(
     runtime.budget,
     { cpuRamBytes: modelMemory.cpuRam, gpuVramBytes: modelMemory.gpuVram },
+    maximumContextSize,
     async (contextSize) => {
       const estimate = await runtime.model.fileInsights.estimateContextResourceRequirementsV2({
         contextSize,
@@ -148,10 +154,15 @@ async function createGenerationContext(
   request: StructuredGenerationRequest,
   runtime: LoadedRuntime,
 ) {
+  const maximumContextSize = resolveMaximumGenerationContext(
+    process.platform,
+    totalmem(),
+    runtime.detectedGpuVramBytes,
+  );
   const contextSize =
     request.contextSize === "auto" && process.platform === "darwin"
-      ? await automaticMacContextSize(runtime)
-      : resolveGenerationContextSize(request.contextSize);
+      ? await automaticMacContextSize(runtime, maximumContextSize)
+      : resolveGenerationContextSize(request.contextSize, maximumContextSize);
   const context = await runtime.model.createContext({ contextSize });
   if (process.platform === "darwin") {
     const memory = await runtime.llama.getLlamaMemoryUsage();

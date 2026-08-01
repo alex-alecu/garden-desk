@@ -73,7 +73,7 @@ The small suite ran on 2026-07-26 on the physical 48 GB Apple-silicon Mac. The o
 
 The focused repair casefolds both the search needle and cell text, advances the XLSX workflow after a successful inspection even when stdout is empty, discovers amount indexes from worksheet headers, requires every explicit `LABEL=<value>` task contract before accepting result stdout, keeps mixed-format branches reachable, and fails after two consecutive duplicate proposals with an accurate planning-stall error. It does not increase execution limits, weaken duplicate rejection, hardcode stress values, or add a deterministic document subsystem.
 
-The unchanged suite then passed on the same physical Mac. The real model finished ready with a 17,179,869,184-byte budget, 1,112,334,048 CPU RAM bytes, 12,396,953,088 GPU VRAM bytes, and 262,144-token context. All eight agent runs reached terminal `succeeded` state, and the unsafe-root, missing-folder, regular-file, and invalid-session requests were rejected before model or VM work.
+The unchanged suite then passed on the same physical Mac under the context policy that preceded the 2026-08-01 cap amendment. The real model finished ready with a 17,179,869,184-byte budget, 1,112,334,048 CPU RAM bytes, 12,396,953,088 GPU VRAM bytes, and 262,144-token context. All eight agent runs reached terminal `succeeded` state, and the unsafe-root, missing-folder, regular-file, and invalid-session requests were rejected before model or VM work.
 
 | Case | Wall time | Evidence result |
 |---|---:|---|

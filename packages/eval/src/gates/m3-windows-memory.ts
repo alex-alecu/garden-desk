@@ -2,6 +2,7 @@ import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir, totalmem } from "node:os";
 import { basename, join } from "node:path";
 import { createVaultCore } from "@vault/core";
+import { resolveMaximumGenerationContext } from "@vault/workers";
 import { readCanonicalModelManifest, verifyModelFile } from "../models.js";
 
 const modelId = "gemma-4-12b-it-qat-q4_0";
@@ -63,8 +64,14 @@ const workspaceDir = await mkdtemp(join(tmpdir(), "vault-m3-windows-memory-"));
 try {
   const result = await generate(workspaceDir);
   const memory = result.memory;
+  const maximumContextSize = resolveMaximumGenerationContext(
+    process.platform,
+    totalmem(),
+    memory.detectedGpuVramBytes,
+  );
   if (
     (memory.contextSizeTokens ?? 0) <= 8_192 ||
+    (memory.contextSizeTokens ?? 0) > maximumContextSize ||
     memory.budgetBytes !== memory.detectedGpuVramBytes ||
     memory.gpuVramBytes > memory.budgetBytes
   ) {

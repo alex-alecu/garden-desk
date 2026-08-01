@@ -4,7 +4,7 @@ Date: 2026-07-10
 
 ## Status
 
-Accepted; amended 2026-07-22
+Accepted; amended 2026-08-01
 
 ## Context
 
@@ -31,16 +31,17 @@ All supported hardware tiers use:
 
 The automatic macOS policy is:
 
-| Physical memory | Model-plus-context budget | Product behavior |
-|---:|---:|---|
-| 8 GB | None | Do not start inference; explain that the Mac is unsupported |
-| More than 8 GB through 16 GB | 10 GiB | Fit the largest stable context inside the budget |
-| More than 16 GB through 24 GB | 12 GiB | Fit the largest stable context inside the budget |
-| More than 24 GB | 16 GiB | Fit the largest stable context inside the budget |
+| Physical memory | Model-plus-context budget | Context cap | Product behavior |
+|---:|---:|---:|---|
+| 8 GB | None | None | Do not start inference; explain that the Mac is unsupported |
+| More than 8 GB through 16 GB | 10 GiB | 64K | Fit the largest stable context inside the budget and cap |
+| More than 16 GB through 24 GB | 12 GiB | 64K | Fit the largest stable context inside the budget and cap |
+| More than 24 GB through 32 GB | 16 GiB | 64K | Preserve unified memory for the host and agent guests |
+| More than 32 GB | 16 GiB | 128K | Fit the largest stable context inside the budget and cap |
 
-On Windows, generation uses the complete GPU VRAM capacity reported by the pinned runtime. A supported GPU with a positive finite VRAM capacity is required; there is no smaller product-selected VRAM cap. The terminal response reports detected GPU VRAM independently so the physical canary can require exact equality with the applied cap.
+On Windows, generation uses the complete GPU VRAM capacity reported by the pinned runtime. A supported GPU with a positive finite VRAM capacity is required; there is no smaller product-selected VRAM budget. Windows GPUs through 24 GB VRAM receive a 64K context cap and GPUs above 24 GB receive 128K. The terminal response reports detected GPU VRAM independently so the physical canary can require exact equality with the applied budget.
 
-Automatic generation context starts from the existing 8K floor and may grow through the model's 256K trained maximum. On macOS, Vault Desk searches the pinned runtime's CPU and GPU estimates for the largest aligned context whose combined model-plus-context allocation fits, then rejects a created context if its measured total exceeds the tier budget. On Windows, the pinned runtime chooses the largest allocation within the full-VRAM cap. The terminal inference response records the actual allocated context and memory budget. These results still require physical-platform stability evidence before public support claims.
+Automatic generation context starts from the existing 8K floor and may grow through the applicable 64K or 128K product cap, not the model's 256K trained maximum. On macOS, Vault Desk searches the pinned runtime's CPU and GPU estimates for the largest aligned context whose combined model-plus-context allocation fits, then rejects a created context if its measured total exceeds the tier budget. A Mac requires more than 32 GB unified memory for 128K because inference shares memory with the operating system, desktop, and agent guests. On Windows, the pinned runtime chooses the largest allocation within the full-VRAM budget and applicable context cap; discrete GPU VRAM above 24 GB unlocks 128K without consuming the host RAM pool. The terminal inference response records the actual allocated context and memory budget. These results still require physical-platform stability evidence before public support claims.
 
 ## Consequences
 
@@ -87,3 +88,4 @@ This ADR does not decide:
 |---|---|
 | 2026-07-10 | Accepted Local 12 and Local 16 as first Gemma 4 12B QAT certification profiles. |
 | 2026-07-22 | Replaced the fixed 8K implementation and manually selected product profile with automatic macOS memory tiers, full Windows GPU VRAM use, and runtime-fitted context up to 256K. |
+| 2026-08-01 | Replaced the 256K ceiling with 64K and 128K caps using a higher threshold for shared Mac memory than discrete Windows VRAM. |

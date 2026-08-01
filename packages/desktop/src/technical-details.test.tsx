@@ -131,7 +131,7 @@ function renderTechnicalDetails(selectedStepId?: string): string {
         memoryBudgetBytes: 16 * 1024 ** 3,
         cpuRamBytes: 1024 ** 3,
         gpuVramBytes: 11.5 * 1024 ** 3,
-        contextSizeTokens: 262_144,
+        contextSizeTokens: 131_072,
       }}
       onClose={() => undefined}
       onSelectStep={() => undefined}
@@ -164,7 +164,7 @@ it("keeps the overview separate from step evidence", () => {
   expect(markup).toContain("4 CPUs, 4 GiB memory, 128 MiB persistent workspace");
   expect(markup).toContain("Certified guest capabilities");
   expect(markup).toMatch(
-    /Certified guest capabilities.*Memory allocation.*12.5 GiB.*VRAM \/ unified memory budget.*16.0 GiB.*Context window.*256K tokens/s,
+    /Certified guest capabilities.*Memory allocation.*12.5 GiB.*VRAM \/ unified memory budget.*16.0 GiB.*Context window.*128K tokens/s,
   );
   expect(markup).toContain("Python: 3.14.5");
   expect(markup).toContain("/usr/bin/patch");

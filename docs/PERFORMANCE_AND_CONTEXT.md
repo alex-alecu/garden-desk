@@ -10,13 +10,15 @@ Research claims in this document are research-derived until validated on target 
 
 The implemented product policy is:
 
-| Hardware | Model-plus-context budget | Main model | Required behavior |
-|---|---:|---|---|
-| 8 GB Mac | None | None | Do not start inference and explain the hardware requirement |
-| More than 8 GB through 16 GB Mac | 10 GiB | Gemma 4 12B QAT | Automatically fit the largest context inside the budget |
-| More than 16 GB through 24 GB Mac | 12 GiB | Gemma 4 12B QAT | Automatically fit the largest context inside the budget |
-| More than 24 GB Mac | 16 GiB | Gemma 4 12B QAT | Automatically fit the largest context inside the budget |
-| Windows | Detected GPU VRAM | Gemma 4 12B QAT | Use the complete GPU VRAM capacity reported by the pinned runtime |
+| Hardware | Model-plus-context budget | Context cap | Main model | Required behavior |
+|---|---:|---:|---|---|
+| 8 GB Mac | None | None | None | Do not start inference and explain the hardware requirement |
+| More than 8 GB through 16 GB Mac | 10 GiB | 64K | Gemma 4 12B QAT | Automatically fit the largest context inside the budget and cap |
+| More than 16 GB through 24 GB Mac | 12 GiB | 64K | Gemma 4 12B QAT | Automatically fit the largest context inside the budget and cap |
+| More than 24 GB through 32 GB Mac | 16 GiB | 64K | Gemma 4 12B QAT | Preserve shared memory for the host and agent guests |
+| More than 32 GB Mac | 16 GiB | 128K | Gemma 4 12B QAT | Automatically fit the largest context inside the budget and cap |
+| Windows through 24 GB detected GPU VRAM | Detected GPU VRAM | 64K | Gemma 4 12B QAT | Use the complete GPU VRAM capacity reported by the pinned runtime |
+| Windows above 24 GB detected GPU VRAM | Detected GPU VRAM | 128K | Gemma 4 12B QAT | Use the complete GPU VRAM capacity reported by the pinned runtime |
 
 Hardware tiers differ only in the memory available to model weights, runtime overhead, and active context. Do not create a lower-quality product by changing the model, weakening verification, skipping citations, disabling compaction, or reducing supported workflows.
 
@@ -52,15 +54,16 @@ Post-V1 document intelligence adds parsing, retrieval, evidence-pack, citation, 
 
 ## Active Context Targets
 
-The advertised Gemma 4 12B context window is a ceiling to validate, not the certified default.
+The advertised Gemma 4 12B context window is a trained capability, not the product ceiling.
 
 The runtime now fits context automatically after applying the hardware budget:
 
 | Minimum | Maximum | Rule |
 |---:|---:|---|
-| 8K active tokens | 256K active tokens | Select the largest allocation that fits model weights, runtime overhead, and context inside the tier budget |
+| 8K active tokens | 64K active tokens | Macs through 32 GB unified memory and Windows GPUs through 24 GB VRAM |
+| 8K active tokens | 128K active tokens | Macs above 32 GB unified memory and Windows GPUs above 24 GB VRAM |
 
-On macOS, the worker searches the pinned runtime's CPU and GPU context estimates for the largest aligned context whose combined model-plus-context allocation fits the tier budget, then checks the measured allocation after creation. An over-budget allocation is rejected. The selected 10/12/16 GiB value is a ceiling; live allocation can be lower once Gemma reaches its 256K trained context maximum, so the desktop reports budget and measured combined allocation separately. On Windows, the runtime fits context against a generation cap equal to separately reported detected GPU VRAM. The terminal inference response records the actual allocation. Automatic selection is implemented behavior, not by itself a public stability claim; each hardware tier still needs the full workload suite. Long context without evidence selection is not a document strategy.
+On macOS, the worker searches the pinned runtime's CPU and GPU context estimates for the largest aligned context whose combined model-plus-context allocation fits both the tier budget and hardware context cap, then checks the measured allocation after creation. An over-budget allocation is rejected. The selected 10/12/16 GiB value is a ceiling, so the desktop reports budget and measured combined allocation separately. The Mac requires more than 32 GB unified memory for 128K because its model, context, operating system, desktop, and agent guests share one memory pool. On Windows, the runtime fits context against a generation cap equal to separately reported detected GPU VRAM; 128K requires more than 24 GB VRAM. The terminal inference response records the actual allocation. Automatic selection is implemented behavior, not by itself a public stability claim; each hardware tier still needs the full workload suite. Long context without evidence selection is not a document strategy.
 
 ## Memory Budget Rules
 
@@ -262,3 +265,4 @@ Do not:
 | 2026-07-11 | Added official-GGUF packaging rule, verified MTP drafter memory cost, and joint QAT/KV-quant/MTP certification warning. |
 | 2026-07-11 | Made product workflow, compaction, recovery, and packaged offline operation explicit prerequisites for Local 12 and Local 16 certification. |
 | 2026-07-22 | Replaced the fixed 8K product context with hardware-derived macOS budgets, complete detected Windows GPU VRAM use, and automatic context fitting up to 256K. |
+| 2026-08-01 | Replaced the 256K product ceiling with 64K and 128K caps derived from Mac unified memory or Windows GPU VRAM. |

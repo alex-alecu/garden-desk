@@ -19,7 +19,7 @@ export const StructuredGenerationRequestSchema = RequestBaseSchema.extend({
   modelId: z.string().min(1),
   prompt: z.string().min(1).max(MAX_EFFECTIVE_GENERATION_PROMPT_CHARACTERS),
   jsonSchema: JsonSchemaSchema,
-  contextSize: z.union([z.literal("auto"), z.number().int().min(512).max(262_144)]),
+  contextSize: z.union([z.literal("auto"), z.number().int().min(512).max(131_072)]),
   maxTokens: z.number().int().positive().max(MAX_GENERATION_TOKENS),
 });
 

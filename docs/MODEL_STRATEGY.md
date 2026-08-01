@@ -20,18 +20,20 @@ The first cross-platform desktop runtime is also singular: node-llama-cpp with t
 
 ## Certified Profiles
 
-| Hardware | Budget | Main model | Intended use |
-|---|---:|---|---|
-| 8 GB Mac | Unsupported | None | Keep the product available to explain that local inference cannot run |
-| More than 8 GB through 16 GB Mac | 10 GiB total | Gemma 4 12B QAT (default) | Automatically fitted local generation |
-| More than 16 GB through 24 GB Mac | 12 GiB total | Gemma 4 12B QAT (default) | Automatically fitted local generation |
-| More than 24 GB Mac | 16 GiB total | Gemma 4 12B QAT (default) | Automatically fitted local generation |
-| Windows | Complete detected GPU VRAM | Gemma 4 12B QAT (default) | Automatically fitted GPU generation |
-| Retrieval | Separate bounded reservation | Qwen3-Embedding-0.6B | Dense retrieval and semantic search over local document corpora |
+| Hardware | Budget | Context cap | Main model | Intended use |
+|---|---:|---:|---|---|
+| 8 GB Mac | Unsupported | None | None | Keep the product available to explain that local inference cannot run |
+| More than 8 GB through 16 GB Mac | 10 GiB total | 64K | Gemma 4 12B QAT (default) | Automatically fitted local generation |
+| More than 16 GB through 24 GB Mac | 12 GiB total | 64K | Gemma 4 12B QAT (default) | Automatically fitted local generation |
+| More than 24 GB through 32 GB Mac | 16 GiB total | 64K | Gemma 4 12B QAT (default) | Automatically fitted local generation |
+| More than 32 GB Mac | 16 GiB total | 128K | Gemma 4 12B QAT (default) | Automatically fitted local generation |
+| Windows through 24 GB detected GPU VRAM | Complete detected GPU VRAM | 64K | Gemma 4 12B QAT (default) | Automatically fitted GPU generation |
+| Windows above 24 GB detected GPU VRAM | Complete detected GPU VRAM | 128K | Gemma 4 12B QAT (default) | Automatically fitted GPU generation |
+| Retrieval | Separate bounded reservation | 32K | Qwen3-Embedding-0.6B | Dense retrieval and semantic search over local document corpora |
 
 Google's current Gemma 4 documentation lists approximate Q4_0 inference-load memory of 6.7 GB for 12B, 14.4 GB for 26B A4B, and 17.5 GB for 31B. Those numbers are model-load estimates, not whole-product budgets. Vault Desk still needs room for KV cache, runtime overhead, embeddings, document parsers, OCR, indexes, UI, and operating-system memory.
 
-Gemma 4's medium models support up to 256K context according to the current docs. Vault Desk treats that as the automatic allocation ceiling, not a promise that every tier reaches it. Gemma 4's hybrid attention (interleaved local sliding-window plus global) keeps KV-cache growth sublinear at long context, which strengthens the hardware-derived budget strategy but is still research-derived until measured under full product load.
+Gemma 4's medium models support up to 256K context according to the current docs, but Vault Desk does not expose that trained maximum. The product caps automatic allocation at 64K or 128K according to hardware. Gemma 4's hybrid attention (interleaved local sliding-window plus global) keeps KV-cache growth sublinear at long context, which strengthens the hardware-derived budget strategy but is still research-derived until measured under full product load.
 
 Licensing (verified 2026-07-15): Gemma 4 is Apache 2.0 and Qwen3-Embedding-0.6B is Apache 2.0, so the default shipped stack is fully Apache 2.0. EmbeddingGemma remains under the Gemma Terms of Use; that burden is why it is no longer the default encoder (ADR 0016).
 
@@ -78,7 +80,7 @@ Every supported tier uses:
 - The same citation and approval requirements.
 - The same context-compaction architecture.
 
-The runtime fits the active generation context from an 8K minimum through Gemma's 256K trained maximum after applying the tier budget. macOS fitting uses combined CPU and GPU estimates and rejects a measured allocation above the selected total budget. The budget is a ceiling, not a target allocation: a 48 GiB Mac selects 16 GiB even when the model reaches its trained context maximum with less memory. Windows generation uses the complete GPU VRAM capacity reported by the pinned runtime, and the typed response records detected VRAM separately from the applied cap. The actual memory budget and allocated context are returned as typed evidence. Stability remains a validation question until measured on physical hardware under the full workload.
+The runtime fits the active generation context from an 8K minimum through the applicable 64K or 128K cap after applying the tier budget. macOS fitting uses combined CPU and GPU estimates and rejects a measured allocation above the selected total budget. Macs require more than 32 GB unified memory for the 128K cap because inference shares memory with the operating system, desktop, and agent guests. Windows requires more than 24 GB detected GPU VRAM for 128K because its generation allocation lives primarily in a discrete GPU pool. The typed response records the actual memory budget and allocated context. Stability remains a validation question until measured on physical hardware under the full workload.
 
 The goal is reliability on professional documents, not maximum context-window marketing.
 
@@ -206,3 +208,4 @@ Each certified profile needs:
 | 2026-07-20 | Moved embedding and multimodal document certification after V1 and aligned model evaluation with the generic agent product gate. |
 | 2026-07-22 | Aligned the 12B and E2B QAT SHA-256 digests with their pinned revisions in the canonical model manifest. |
 | 2026-07-22 | Replaced the fixed 8K product context with automatic macOS memory tiers, complete detected Windows GPU VRAM use, and runtime-fitted context up to 256K. |
+| 2026-08-01 | Capped automatic context at 64K or 128K using separate Mac unified-memory and Windows VRAM thresholds. |
