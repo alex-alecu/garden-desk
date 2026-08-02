@@ -34,6 +34,7 @@ interface LaunchOptions {
   modelStoreDir: string;
   packagedModelStore: boolean;
   parentPid: number | undefined;
+  promptDirectory: string | undefined;
   profile: "auto" | "local12" | "local16";
   readyFile: string | undefined;
   sessionsOnly: boolean;
@@ -59,6 +60,7 @@ function launchOptions(args: string[]): LaunchOptions {
     modelStoreDir,
     packagedModelStore: args.includes("--packaged-model-store"),
     parentPid: parentPidArgument(args),
+    promptDirectory: argument(args, "--prompt-directory", false),
     profile,
     readyFile: argument(args, "--ready-file", false),
     sessionsOnly: args.includes("--sessions-only"),
@@ -78,6 +80,7 @@ function coreOptions(options: LaunchOptions): VaultCoreOptions {
   if (options.migrationDirectory !== undefined) {
     configured.migrationDirectory = options.migrationDirectory;
   }
+  if (options.promptDirectory !== undefined) configured.promptDirectory = options.promptDirectory;
   if (options.workerEntryPath !== undefined) configured.workerEntryPath = options.workerEntryPath;
   if (options.inferenceRuntimePath !== undefined) {
     configured.inferenceRuntimePath = options.inferenceRuntimePath;

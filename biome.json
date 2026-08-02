@@ -75,6 +75,7 @@
         "packages/core/src/runtime/compose-hardware.test.ts",
         "packages/core/src/runtime/inference.test.ts",
         "packages/core/src/runtime/models.ts",
+        "packages/core/src/prompt-files.ts",
         "packages/core/src/conversations/store.test.ts",
         "packages/core/src/agent/attachment-materialization.ts",
         "packages/core/src/agent/inputs.ts",

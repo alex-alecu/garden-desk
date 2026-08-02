@@ -98,6 +98,8 @@ impl CoreBridge {
             "auto".to_owned(),
             "--migration-directory".to_owned(),
             path_text(&core_resources.join("migrations"))?,
+            "--prompt-directory".to_owned(),
+            path_text(&core_resources.join("prompts"))?,
             "--ready-file".to_owned(),
             path_text(&ready_file)?,
             "--parent-pid".to_owned(),

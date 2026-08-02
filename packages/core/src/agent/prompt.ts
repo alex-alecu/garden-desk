@@ -3,11 +3,10 @@ import {
   AgentDecisionSchema,
   type AgentExecutionResult,
   type InferencePerformance,
-  MAX_GENERATION_TOKENS,
 } from "@vault/shared";
-import capabilities from "../../../workers/images/agent/capabilities.json" with { type: "json" };
 import { effectiveGenerationInput, type GenerationInput } from "../runtime/inference.js";
 import type { DurableAgentHistory } from "./history.js";
+import { MAX_AGENT_EXECUTIONS } from "./limits.js";
 import {
   completedSuccessfully,
   missingOutputLabels,
@@ -23,61 +22,24 @@ import {
   serializePrompt,
   usablePromptTokens,
 } from "./prompt-budget.js";
-import {
-  attachedPdfAlreadyExtracted,
-  continuationInstructions,
-  selectedInputInstructions,
-} from "./prompt-inputs.js";
-import { observationStreamCharacters, observations } from "./prompt-observations.js";
+import { systemPrompt, taskStatePrompt } from "./prompt-content.js";
+import { attachedPdfAlreadyExtracted, continuationInstructions } from "./prompt-inputs.js";
+import { defaultPromptLibrary, type PromptLibrary } from "./prompt-library.js";
+import { observationStreamCharacters } from "./prompt-observations.js";
 import { rejectionInstructions } from "./prompt-rejection.js";
 import {
   agentDecisionJsonSchema,
   GENERATION_LIMIT_RECOVERY_SOURCE_LINES,
-  SHELL_COMMAND_CHARACTER_LIMIT,
 } from "./prompt-schema.js";
 import {
   requiresXlsxWorkflow,
   xlsxPhaseInstructions,
   xlsxProcessingExecutions,
 } from "./prompt-xlsx.js";
-import { XLSX_EXECUTION_INSTRUCTIONS } from "./xlsx-prompt.js";
 
 export { requiresXlsxWorkflow } from "./prompt-xlsx.js";
 
-export const MAX_EXECUTIONS = 6;
-const RUNTIME_CAPABILITIES = Object.entries(capabilities.runtimes)
-  .map(([name, version]) => `${name} ${version}`)
-  .join(", ");
-const TOOL_CAPABILITIES = ["sh", "find", "grep", "sed", "awk", "diff", "patch", "tar"]
-  .filter((name) => capabilities.executables.some((path) => path.endsWith(`/${name}`)))
-  .join(", ");
-const EXECUTION_INSTRUCTIONS = [
-  "Your name is Vault Desk. You are a completely private, local, offline knowledge-work agent.",
-  "You can analyze supported files in the selected folder or attachments, including PDFs, DOCX Word documents, XLSX Excel workbooks, CSVs, images, and text; create summaries; and create new documents and other requested files in /workspace with the installed tools.",
-  "Everything you receive and every model or tool operation stays on this computer. You have no internet access, and Vault Desk sends no tracking, telemetry, analytics, or task content anywhere.",
-  "Your tools run only inside a contained no-NIC virtual machine. You cannot access host APIs, credentials, or a host shell; /source is read-only and only the bounded private /workspace is writable, protecting the host and selected files from guest writes.",
-  "Choose one action. Execute only when inspection, editing, or verification is needed.",
-  "When the task names Python or Node executions, every execution action must use that language, including inspection; do not use shell. Follow an explicit execution count exactly.",
-  "The selected folder is mounted live and read-only at /source with its original hierarchy. Host changes become visible immediately; writes must fail.",
-  "Your persistent writable work tree is /workspace. It survives later steps, follow-ups, VM eviction, and application restart.",
-  "Temporary files may use the bounded ephemeral /run/user directory through TMPDIR. Do not write elsewhere in the guest.",
-  "Python and Node executions use a safe /workspace-relative path and complete source. Reuse the same path when repairing a failed program.",
-  "When path is omitted, Vault Desk assigns steps/NNNN.py or steps/NNNN.mjs. Never use absolute paths, backslashes, empty components, dot components, or parent traversal.",
-  `Shell executions run command through ${capabilities.shell} from ${capabilities.workspaceMount.path}. Installed tools include ${TOOL_CAPABILITIES}. Keep a shell command shorter than ${SHELL_COMMAND_CHARACTER_LIMIT.toLocaleString("en-US")} characters; a command that reaches that boundary is treated as potentially truncated and is not executed.`,
-  "Never embed a Python or Node program in a shell command. Choose the matching Python or Node source action so Vault Desk writes the source to a workspace file and executes it.",
-  `Each model turn can generate at most ${MAX_GENERATION_TOKENS.toLocaleString("en-US")} tokens. If a complete program cannot fit, use multiple Python or Node source actions that create or patch one bounded part of a file under /workspace, then execute the completed file with a short command.`,
-  "The source field is an array of complete lines with no newline inside an item. The command field is a one-item array containing the complete shell program string; keep every executable and its arguments in that one item and keep it below the stated 4,096-character boundary.",
-  "The response field is an array of at most 100 complete output lines, with no newline inside an item.",
-  "Never request networks, credentials, writes to /source, host APIs, or package installation.",
-  `Certified guest runtimes and libraries: ${RUNTIME_CAPABILITIES}. Import only modules used by the current execution. Never import pandas. Node.js has built-in modules only.`,
-  "Node source is written to an .mjs ES module. Use ESM import syntax; require is unavailable.",
-  "Source contains only the executable program. Never include tool-call, channel, thought, or structured-response delimiter text in source.",
-  "Explicit file attachments, when present, are immutable files under /run/attachments.",
-  "Inspect the real hierarchy under /source. Use recursive discovery and never assume a flat folder or guess a path.",
-  "When discovering files by extension, match the extension case-insensitively; with find, use -iname instead of -name.",
-  "After a failure, use the recorded path, source or command, exit status, stdout, and stderr to repair or replace the approach. Every repair must be a short complete runnable program, never a truncated fragment or a copy of corrupted or repetitive source.",
-  "Always return final responses as concise GitHub Flavored Markdown, including single-line answers. Never return raw HTML, images, or Markdown links.",
-] as const;
+export const MAX_EXECUTIONS = MAX_AGENT_EXECUTIONS;
 
 export interface AgentPromptInput {
   task: string;
@@ -85,6 +47,7 @@ export interface AgentPromptInput {
   inputNames?: string[];
   history?: DurableAgentHistory;
   continuation?: boolean;
+  promptLibrary?: PromptLibrary;
 }
 
 export interface AgentProgress {
@@ -108,7 +71,10 @@ function needsShellSourceRepair(progress: AgentProgress): boolean {
   );
 }
 
-function shellSourceRepairInstructions(progress: AgentProgress): readonly string[] {
+function shellSourceRepairInstructions(
+  progress: AgentProgress,
+  library: PromptLibrary,
+): readonly string[] {
   const latest = progress.executions.at(-1);
   if (
     latest?.language !== "shell" ||
@@ -116,10 +82,7 @@ function shellSourceRepairInstructions(progress: AgentProgress): readonly string
     !/unterminated quoted string/iu.test(latest.stderr)
   )
     return [];
-  return [
-    "The last shell command failed because it contained an unterminated quoted string.",
-    "Do not repair it as another shell command. Submit a Python or Node source action instead; Vault Desk writes that source to a workspace file and executes it.",
-  ];
+  return [library.recovery("shell-quote")];
 }
 
 export type GenerationRecovery = "generation_limit" | undefined;
@@ -131,50 +94,54 @@ interface GenerationInputOptions {
   recovery?: GenerationRecovery;
 }
 
+function joinedPromptSections(sections: readonly string[]): string {
+  return sections.filter((section) => section.length > 0).join("\n\n");
+}
+
 function prompt(
   input: AgentPromptInput,
   progress: AgentProgress,
   finalResponse: boolean,
   options: PromptOptions,
 ): string {
-  const { executions, rejectedDuplicates } = progress;
-  const inputNames = input.inputNames ?? [];
-  const artifacts = executions.flatMap((result) =>
-    result.artifacts.map((artifact) => artifact.name),
-  );
-  const hasXlsxInput = requiresXlsxWorkflow(input, executions);
+  const library = input.promptLibrary ?? defaultPromptLibrary();
+  const { executions } = progress;
+  const hasXlsxInput = requiresXlsxWorkflow(input, progress.executions);
   const requiredLabels = requiredOutputLabels(input.task);
-  const successfulExecutionCount = executions.filter(completedSuccessfully).length;
   const completed = executions.filter(completedSuccessfully);
   const missingLabels = missingOutputLabels(completed.at(-1)?.stdout ?? "", requiredLabels);
-  const current = [
-    ...EXECUTION_INSTRUCTIONS,
-    ...(hasXlsxInput ? XLSX_EXECUTION_INSTRUCTIONS : []),
-    ...generationRecoveryInstructions(options.recovery, finalResponse),
-    ...continuationInstructions(input.continuation),
-    ...selectedInputInstructions(inputNames),
-    `Task: ${input.task}`,
-    `Completed execution observations: ${JSON.stringify(observations(executions, observationStreamCharacters(usablePromptTokens(options))))}`,
-    `Successful execution count: ${successfulExecutionCount}.`,
-    `Remaining execution capacity: ${Math.max(0, MAX_EXECUTIONS - executions.length)}.`,
-    `Rejected duplicate or pathologically repetitive programs: ${rejectedDuplicates}. A rejected program was not executed and does not advance the task. After a rejection, start from a fresh short strategy instead of copying the rejected source.`,
-    ...rejectionInstructions(progress),
-    ...shellSourceRepairInstructions(progress),
-    `Required output labels: ${JSON.stringify(requiredLabels)}. A result is complete only when stdout contains every label exactly as LABEL=value with no spaces around the equals sign.`,
-    `Produced artifact names: ${JSON.stringify(artifacts)}.`,
-    "These observations are authoritative. Never repeat completed code or a completed task step.",
-    "When an execution failed or produced no useful output, repair its recorded source or command or replace it with a different bounded strategy.",
-    "For ordered task steps, completed execution 1 means step 1 is done; the next action must implement step 2.",
-    "Choose execute only if a requested step is still missing from the observations.",
-    "If every requested execution and artifact is evidenced, you must choose respond now and must not execute again.",
+  const beforeTask = [
+    systemPrompt(input, progress, library),
+    ...generationRecoveryInstructions(options.recovery, finalResponse, library),
+    ...continuationInstructions(input.continuation, library),
+  ];
+  const afterTask = [
+    ...rejectionInstructions(progress, library),
+    ...shellSourceRepairInstructions(progress, library),
     ...xlsxPhaseInstructions({
       finalResponse,
       hasXlsxInput,
       executions,
+      library,
       requiredLabels,
       missingLabels,
     }),
-  ].join("\n");
+  ];
+  const fixed = joinedPromptSections([
+    ...beforeTask,
+    taskStatePrompt(input, progress, library, 0),
+    ...afterTask,
+  ]);
+  const remainingCharacters = Math.max(0, usablePromptTokens(options) * 4 - fixed.length);
+  const observationCharacters = Math.min(
+    remainingCharacters,
+    observationStreamCharacters(Math.floor(remainingCharacters / 4)),
+  );
+  const current = joinedPromptSections([
+    ...beforeTask,
+    taskStatePrompt(input, progress, library, observationCharacters),
+    ...afterTask,
+  ]);
   return serializePrompt(current, input.history, options);
 }
 

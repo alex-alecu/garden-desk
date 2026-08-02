@@ -1,0 +1,1 @@
+[{{omitted_characters}} characters omitted from the middle of this stream. This observation is an excerpt, not the complete output. Write the complete text to a /workspace file and read back the part you need instead of printing it again.]

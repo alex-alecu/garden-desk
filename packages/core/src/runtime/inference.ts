@@ -12,6 +12,7 @@ import type {
   StructuredGenerationResult,
 } from "@vault/shared";
 import { JobIdSchema } from "@vault/shared";
+import { gemmaFunctionCallSuffix } from "./prompt-instructions.js";
 
 export type GenerationInput = Omit<
   StructuredGenerationRequest,
@@ -27,13 +28,13 @@ export interface GenerationRequestIdentity {
   jobId: JobId;
 }
 
-export const GEMMA_FUNCTION_CALL_SUFFIX = "\nCall exactly one available function with your answer.";
-
 export function effectiveGenerationInput(input: GenerationInput): GenerationInput {
-  if (!input.modelId.startsWith("gemma-4") || input.prompt.endsWith(GEMMA_FUNCTION_CALL_SUFFIX)) {
+  if (!input.modelId.startsWith("gemma-4")) {
     return input;
   }
-  return { ...input, prompt: `${input.prompt}${GEMMA_FUNCTION_CALL_SUFFIX}` };
+  const suffix = gemmaFunctionCallSuffix();
+  if (input.prompt.endsWith(suffix)) return input;
+  return { ...input, prompt: `${input.prompt}${suffix}` };
 }
 
 export function createGenerationRequest(

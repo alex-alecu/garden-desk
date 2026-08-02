@@ -3,6 +3,10 @@ use serde_json::Value;
 #[cfg(any(windows, test))]
 use sha2::{Digest, Sha256};
 #[cfg(any(windows, test))]
+use std::collections::HashSet;
+#[cfg(any(windows, test))]
+use std::ffi::OsStr;
+#[cfg(any(windows, test))]
 use std::fs::{File, OpenOptions};
 #[cfg(any(windows, test))]
 use std::io::{Read, Seek, SeekFrom};
@@ -103,6 +107,38 @@ fn expected_resource_hash(manifest: &Value, required: &str) -> Result<String, St
     Ok(hash)
 }
 
+#[cfg(any(windows, test))]
+fn lock_prompt_resources(core_resources: &Path, manifest: &Value) -> Result<Vec<File>, String> {
+    let entries = manifest
+        .get("files")
+        .and_then(Value::as_array)
+        .ok_or_else(|| "Packaged resource manifest is invalid.".to_owned())?;
+    let mut seen = HashSet::new();
+    let mut files = Vec::new();
+    for entry in entries {
+        let Some(relative_text) = entry.get("path").and_then(Value::as_str) else {
+            continue;
+        };
+        let relative = safe_relative_path(relative_text)?;
+        if relative.components().next() != Some(std::path::Component::Normal(OsStr::new("prompts")))
+        {
+            continue;
+        }
+        let expected = entry
+            .get("sha256")
+            .and_then(Value::as_str)
+            .ok_or_else(|| "Packaged prompt manifest entry is invalid.".to_owned())?;
+        if !seen.insert(relative.to_path_buf()) {
+            return Err("Packaged resource manifest contains a duplicate prompt path.".to_owned());
+        }
+        files.push(open_verified(&core_resources.join(relative), expected)?);
+    }
+    if files.is_empty() {
+        return Err("Packaged resource manifest contains no prompt assets.".to_owned());
+    }
+    Ok(files)
+}
+
 #[cfg(windows)]
 pub(crate) fn lock_packaged_runtime(
     resource_root: &Path,
@@ -127,6 +163,7 @@ pub(crate) fn lock_packaged_runtime(
     let manifest: Value = serde_json::from_reader(&mut manifest_file)
         .map_err(|_| "Packaged resource manifest is invalid.".to_owned())?;
     files.push(manifest_file);
+    files.extend(lock_prompt_resources(core_resources, &manifest)?);
     for relative in ELEVATED_RESOURCES {
         let expected = expected_resource_hash(&manifest, relative)?;
         files.push(open_verified(&core_resources.join(relative), &expected)?);
@@ -181,3 +218,7 @@ mod tests {
         assert!(expected_resource_hash(&manifest, "outside.exe").is_err());
     }
 }
+
+#[cfg(test)]
+#[path = "package_integrity_prompt_tests.rs"]
+mod prompt_tests;

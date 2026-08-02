@@ -5,7 +5,7 @@ import {
   xlsxWorkflowPhase,
 } from "./output-contract.js";
 import type { AgentPromptInput } from "./prompt.js";
-import { XLSX_CONTINUE_PHASE, XLSX_REPAIR_PHASE, XLSX_WORK_PHASE } from "./xlsx-prompt.js";
+import type { PromptLibrary } from "./prompt-library.js";
 
 function discoveredXlsxForDataTask(
   input: AgentPromptInput,
@@ -35,35 +35,26 @@ interface PhaseInstructionInput {
   hasCleanUnmarkedOutput: boolean;
   hasCleanLabeledOutput: boolean;
   hasXlsxInput: boolean;
+  library: PromptLibrary;
   xlsxPhase: XlsxWorkflowPhase;
 }
 
 function phaseInstructions(input: PhaseInstructionInput): readonly string[] {
   if (input.finalResponse) {
-    return [
-      "No execution capacity remains. Respond now from the observations. State clearly if the task could not be completed or verified.",
-    ];
+    return [input.library.state("final-response")];
   }
   if (!input.hasXlsxInput) return [];
-  if (input.xlsxPhase === "work") return XLSX_WORK_PHASE;
+  if (input.xlsxPhase === "work") return [input.library.state("xlsx-work")];
   if (input.xlsxPhase === "repair") {
     if (input.hasCleanLabeledOutput) {
-      return [
-        "The last execution produced every requested output label, but it did not prove complete XLSX coverage with the three required VAULT_XLSX progress markers.",
-        "Execute corrected source now. Reuse or replace the working calculation, then print FILES_DONE as the fully processed XLSX file count, FILES_TOTAL as the discovered XLSX file count, and COMPLETE=1 only when they are equal and every workbook was read.",
-        "Do not respond and do not repeat the unchanged source.",
-      ];
+      return [input.library.state("xlsx-missing-coverage")];
     }
     if (input.hasCleanUnmarkedOutput) {
-      return [
-        "The last execution finished cleanly but did not print all three required VAULT_XLSX progress markers.",
-        "Repair or replace the program so every normal exit path, including the 75-second checkpoint path, prints FILES_DONE, FILES_TOTAL, and COMPLETE. Print final output labels only when COMPLETE=1.",
-        "Do not repeat the unchanged source.",
-      ];
+      return [input.library.state("xlsx-missing-markers")];
     }
-    return XLSX_REPAIR_PHASE;
+    return [input.library.state("xlsx-repair")];
   }
-  if (input.xlsxPhase === "continue") return XLSX_CONTINUE_PHASE;
+  if (input.xlsxPhase === "continue") return [input.library.state("xlsx-continue")];
   return [];
 }
 
@@ -106,6 +97,7 @@ interface XlsxPhaseInstructionsInput {
   finalResponse: boolean;
   hasXlsxInput: boolean;
   executions: AgentExecutionResult[];
+  library: PromptLibrary;
   requiredLabels: string[];
   missingLabels: string[];
 }
@@ -121,6 +113,7 @@ export function xlsxPhaseInstructions(input: XlsxPhaseInstructionsInput): readon
       input.missingLabels,
     ),
     hasXlsxInput: input.hasXlsxInput,
+    library: input.library,
     xlsxPhase: xlsxWorkflowPhase(executions, input.requiredLabels),
   });
 }
