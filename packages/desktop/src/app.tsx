@@ -1,4 +1,4 @@
-import { useEffect, useReducer, useState } from "react";
+import { useEffect, useReducer, useRef, useState } from "react";
 import type { DesktopApi } from "./api.js";
 import { useAppearance } from "./appearance.js";
 import type { DesktopCapabilities } from "./capabilities.js";
@@ -15,6 +15,7 @@ import { attach, openAttachment, remove, selectSession, send } from "./desktop-a
 import { type DropIntent, useNativeDrop } from "./desktop-drop.js";
 import { initialModelStatus, useModelRefresh } from "./desktop-model.js";
 import { useDraftPersistence } from "./draft-persistence.js";
+import { type DesktopBootstrapRequest, desktopBootstrapRequest } from "./startup.js";
 import { desktopReducer, initialDesktopState } from "./state.js";
 import { selectStep } from "./step-selection.js";
 import { activeThinkingStepId, agentSteps } from "./steps.js";
@@ -29,10 +30,13 @@ export function App({ api, capabilities }: { api: DesktopApi; capabilities: Desk
   const [confirmation, setConfirmation] = useState<ConfirmationRequest>();
   const [dropIntent, setDropIntent] = useState<DropIntent>();
   const [model, setModel] = useState(initialModelStatus);
+  const bootstrap = useRef<DesktopBootstrapRequest | undefined>(undefined);
   useEffect(() => {
-    void api
-      .bootstrapDesktop()
+    bootstrap.current = desktopBootstrapRequest(api, bootstrap.current);
+    let active = true;
+    void bootstrap.current.promise
       .then((snapshot) => {
+        if (!active) return;
         setModel(snapshot.model);
         if (snapshot.model.state === "unsupported" && snapshot.model.message !== undefined) {
           setDesktopError(snapshot.model.message);
@@ -42,7 +46,12 @@ export function App({ api, capabilities }: { api: DesktopApi; capabilities: Desk
           void selectSession(api, snapshot.initialSessionId, dispatch, setDesktopError);
         }
       })
-      .catch(() => setDesktopError("Vault Core could not be started."));
+      .catch(() => {
+        if (active) setDesktopError("Vault Desk could not finish loading.");
+      });
+    return () => {
+      active = false;
+    };
   }, [api]);
   useModelRefresh(api, state.loaded, state.activeRun?.state, setModel);
   const nativeUnavailable = capabilities.nativeActions

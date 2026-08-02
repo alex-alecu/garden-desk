@@ -1,6 +1,6 @@
 ---
 name: terminal-commands
-description: Guides complete terminal commands for source-code inspection, folder discovery, text search, and command-line pipelines. Use when any task may require locating files or text, inspecting a codebase, or running shell tools in the selected folder.
+description: Guides complete terminal commands for source-code inspection, folder discovery, text search, and command-line pipelines. Use when the task requires locating files or text, inspecting a codebase, or running shell tools in the selected folder.
 ---
 
 # Terminal Commands

@@ -41,13 +41,22 @@ describe("PromptLibrary skill selection", () => {
         task: "Summarize the attachment.",
         inputNames: ["REPORT.PDF"],
       }),
-    ]).toEqual(["pdf-reading", "terminal-commands"]);
+    ]).toEqual(["pdf-reading"]);
     expect([
       ...prompts.activeSkillNames({
         task: "Total every salary in the workbooks.",
         inputNames: [],
       }),
-    ]).toEqual(["terminal-commands", "xlsx-workbooks"]);
+    ]).toEqual(["xlsx-workbooks"]);
+  });
+
+  it("keeps unrelated skill bodies out of direct-answer prompts", () => {
+    expect([
+      ...library().activeSkillNames({
+        task: "Explain what offline means.",
+        inputNames: [],
+      }),
+    ]).toEqual([]);
   });
 
   it("allows typed workflows to require a skill without routing on untrusted output", () => {
@@ -58,7 +67,7 @@ describe("PromptLibrary skill selection", () => {
         inputNames: [],
         requiredSkillNames: ["xlsx-workbooks"],
       }),
-    ]).toEqual(["terminal-commands", "xlsx-workbooks"]);
+    ]).toEqual(["xlsx-workbooks"]);
   });
 
   it("keeps template-shaped runtime data literal", () => {

@@ -106,7 +106,6 @@ function routingTerms(value: string): Set<string> {
 
 function skillApplies(skill: PromptSkill, input: SkillSelectionInput): boolean {
   if (input.requiredSkillNames?.includes(skill.name) === true) return true;
-  if (/\buse when (?:any|every) task\b/iu.test(skill.description)) return true;
   const evidence = [input.task, ...input.inputNames].join("\n");
   const evidenceTerms = routingTerms(evidence);
   const triggerText = skill.description.split(/\buse when\b/iu).at(-1) ?? skill.description;

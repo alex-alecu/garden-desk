@@ -227,7 +227,8 @@ function expectObservationPrompts(prompts: string[]): void {
   expect(prompts[1]).toContain("Selected input count: 1.");
   expect(prompts[1]).toContain("Successful execution count: 1.");
   expect(prompts[1]).toContain("Never import pandas");
-  expect(prompts[1]).toContain("never assume a flat folder");
+  expect(prompts[1]).toContain("terminal-commands (available)");
+  expect(prompts[1]).not.toContain("never assume a flat folder");
   expect(prompts[1]).toContain("sheet.iter_rows(values_only=True)");
   expect(prompts[1]).toContain("Choose the simplest bounded strategy");
   expect(prompts[1]).toContain("replace it with a different bounded strategy");

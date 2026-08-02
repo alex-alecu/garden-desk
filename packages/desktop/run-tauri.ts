@@ -26,18 +26,18 @@ const pathName = pathVariable();
 const currentPath = process.env[pathName] ?? "";
 const rustBin = cargoDirectory(currentPath);
 const tauriCli = createRequire(import.meta.url).resolve("@tauri-apps/cli/tauri.js");
-const result = spawnSync(process.execPath, [tauriCli, ...process.argv.slice(2)], {
+const tauriArguments = process.argv.slice(2);
+const result = spawnSync(process.execPath, [tauriCli, ...tauriArguments], {
   env: { ...process.env, [pathName]: [rustBin, currentPath].filter(Boolean).join(delimiter) },
   stdio: "inherit",
 });
-
 if (result.error !== undefined) throw result.error;
 process.exitCode = result.status ?? 1;
 if (
   process.exitCode === 0 &&
   process.platform === "win32" &&
-  process.argv[2] === "build" &&
-  !process.argv.includes("--debug")
+  tauriArguments[0] === "build" &&
+  !tauriArguments.includes("--debug")
 ) {
   const { stageWindowsApplication } = await import("./stage-windows-application.js");
   await stageWindowsApplication();

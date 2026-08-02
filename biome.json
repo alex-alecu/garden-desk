@@ -111,6 +111,8 @@
         "packages/workers/native/windows-appcontainer-launcher/build.ts",
         "packages/eval/src/**/*.ts",
         "packages/desktop/run-tauri.ts",
+        "packages/desktop/start-dev.ts",
+        "packages/desktop/src/windows-dev-elevation.ts",
         "packages/desktop/build-sidecar.ts",
         "packages/desktop/build-signing.ts",
         "packages/desktop/package-compliance.ts",

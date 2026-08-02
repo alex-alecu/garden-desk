@@ -132,7 +132,8 @@ describe("AgentLoop discovered XLSX routing", () => {
 
     expect(result.response).toBe("ALL_MONTHS=12");
     expect(calls).toEqual([discovery, analysis]);
-    expect(prompts[0]).toContain("use -iname instead of -name");
+    expect(prompts[0]).toContain("terminal-commands (available)");
+    expect(prompts[0]).not.toContain("use -iname instead of -name");
     expect(prompts[0]).not.toContain("VAULT_XLSX_FILES_DONE");
     expect(prompts[1]).toContain("VAULT_XLSX_FILES_DONE");
     expect(prompts[1]).toContain("Current required phase: perform bounded XLSX work.");

@@ -46,6 +46,11 @@ To run the desktop locally:
    pnpm desktop:dev
    ```
 
+   On Windows, run this command from a PowerShell terminal opened with **Run as administrator**. The
+   preflight rejects a standard-user terminal before Cargo starts instead of trying to transfer a
+   long-lived dev process through UAC. The Windows Rust watcher is disabled to prevent privileged
+   host restart loops; Vite still reloads frontend edits. Restart after changing native Rust code.
+
 ## Public website
 
 Explore the [public website and interactive demo](https://alex-alecu.github.io/vault-desk/) or run it locally with `pnpm site:dev`.
