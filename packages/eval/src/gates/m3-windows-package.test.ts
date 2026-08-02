@@ -61,12 +61,17 @@ describe("M3 Windows application authority", () => {
     expect(manifest).not.toContain('level="requireAdministrator"');
     expect(launcher).not.toContain("--vault-windows-elevated-dev");
     expect(launcher).not.toContain("-Verb RunAs");
+    expect(launcher).toContain('process.platform === "win32"');
+    expect(launcher).toContain('tauriArguments[0] === "dev"');
+    expect(launcher).toContain('tauriArguments.push("--no-watch")');
     expect(commands).toContain("crate::windows_setup::require_ready()?");
     expect(build).toContain(
       ["fn main() {", "    anchor_windows_package();", "    build_desktop();", "}"].join("\n"),
     );
   });
+});
 
+describe("M3 Windows setup helper", () => {
   it("builds and signs only the fixed Windows permission helper", async () => {
     const [signing, setup, setupArguments, resources, setupResource] = await Promise.all([
       readFile(join(process.cwd(), "packages/desktop/build-signing.ts"), "utf8"),

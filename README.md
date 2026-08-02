@@ -48,6 +48,8 @@ To run the desktop locally:
 
    On Windows Pro or Enterprise, Hyper-V must already be enabled. The first launch explains and requests one administrator-approved change that adds the current user to Hyper-V Administrators; sign out and back in once afterward. Vault Desk and later development launches remain non-elevated. macOS requires no administrator setup and continues to launch as the current user.
 
+   On Windows, Vite continues to reload frontend changes while `desktop:dev` disables Tauri's Rust file watcher. Some Windows filesystems report source-file reads as access changes, which Tauri can mistake for edits and restart forever. Restart `desktop:dev` after changing Rust desktop-host code. macOS keeps Tauri's normal Rust watcher.
+
 ## Public website
 
 Explore the [public website and interactive demo](https://alex-alecu.github.io/vault-desk/) or run it locally with `pnpm site:dev`.
