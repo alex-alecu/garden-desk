@@ -45,7 +45,7 @@ Current community targets:
 - Macs through 16 GB use a 10 GiB model-plus-context budget; Macs through 24 GB use 12 GiB; Macs above 24 GB use 16 GiB.
 - Windows generation uses the complete GPU VRAM capacity reported by the pinned runtime and requires a supported GPU.
 - Windows agent execution requires Windows Pro or Enterprise with Hyper-V already enabled. The Windows-only setup helper adds the requesting account to Hyper-V Administrators once; it does not enable or download Windows features. macOS has no administrator prerequisite.
-- Active context is fitted automatically inside the selected budget rather than configured by the user.
+- Active context is fitted automatically inside the selected budget rather than configured by the user. Macs through 32 GB unified memory and Windows GPUs through 24 GB VRAM are capped at 64K; Macs and Windows GPUs above their respective thresholds are capped at 128K.
 
 The public V1 launch baseline is intentionally simpler than the internal memory tiers: an Apple silicon Mac with at least 16 GB unified memory, or a Windows PC with an NVIDIA GPU and at least 12 GB VRAM. Physical Windows headless validation now covers an RTX 4080 with 12 GB VRAM; broader configuration claims remain launch targets until their exact hardware and signed release gate pass. The website and download surfaces must not describe an untested configuration as certified or imply that installers are available before the signed release gate passes.
 
@@ -58,7 +58,7 @@ Current model target:
 - Retrieval-first prompting and bounded active context.
 - One resident Gemma generation at a time, with different conversations allowed to overlap guest work within the RAM-derived VM capacity.
 - Background ingestion throttled around available memory.
-- Automatic active context from an 8K floor through the model's 256K trained maximum.
+- Automatic active context from an 8K floor through a 64K or 128K hardware cap. The Mac requires more than 32 GB unified memory for 128K so the model and context do not consume the shared pool needed by the operating system, desktop, and agent guests; Windows requires more than 24 GB discrete VRAM.
 - One first desktop runtime and model format across Windows and macOS: node-llama-cpp with the pinned official Gemma 4 QAT GGUF, per [ADR 0013](adr/0013-first-desktop-runtime.md).
 - A hardware capability check that selects the memory budget or returns a clear unsupported state before the user starts a model-dependent workflow.
 
@@ -170,3 +170,4 @@ Avoid company-wide exclusivity. Vendor-specific SKUs are acceptable, but the com
 | 2026-07-25 | Added the public V1 launch baseline of Apple silicon with at least 16 GB unified memory or Windows with NVIDIA and at least 12 GB VRAM, explicitly pending physical certification and signed installers. |
 | 2026-07-27 | Defined one Windows package containing CUDA plus Vulkan, with bundled cuBLAS and no user-installed CUDA Toolkit. |
 | 2026-07-28 | Physically validated the single package's CUDA and Vulkan initialization plus real-Gemma CUDA execution on an RTX 4080 and AMD Radeon 610M system. |
+| 2026-08-01 | Added 64K and 128K context caps with separate Mac unified-memory and Windows VRAM thresholds. |

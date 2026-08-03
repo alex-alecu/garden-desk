@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { GenerationContextLimitReasonSchema } from "./inference.js";
 
 const Sha256Schema = z.string().regex(/^[a-f0-9]{64}$/u);
 const ModelIdSchema = z.string().regex(/^[a-z0-9][a-z0-9._-]*$/u);
@@ -116,6 +117,8 @@ export const ModelRuntimeStatusSchema = z.object({
   cpuRamBytes: z.number().int().nonnegative().optional(),
   gpuVramBytes: z.number().int().nonnegative().optional(),
   contextSizeTokens: z.number().int().positive().optional(),
+  contextLimitTokens: z.number().int().positive().optional(),
+  contextLimitReason: GenerationContextLimitReasonSchema.optional(),
 });
 
 export type ModelRedistributionStatus = z.infer<typeof ModelRedistributionStatusSchema>;

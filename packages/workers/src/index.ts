@@ -1,6 +1,7 @@
 export type { InferenceExecution } from "./inference/client.js";
 export { InferenceWorkerClient, InferenceWorkerError } from "./inference/client.js";
 export { FakeInferenceWorker } from "./inference/fake.js";
+export { resolveMaximumGenerationContext } from "./inference/memory.js";
 export { decodeFrame, encodeFrame, FrameDecoder } from "./ipc.js";
 export type {
   AgentExecutionObserver,

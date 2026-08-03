@@ -1,4 +1,8 @@
-import type { ModelRuntimeStatus } from "@vault/shared";
+import type {
+  GenerationContextLimitReason,
+  ModelRuntimeStatus,
+  StructuredGenerationResult,
+} from "@vault/shared";
 
 export const DEFAULT_MODEL_ID = "gemma-4-12b-it-qat-q4_0";
 
@@ -7,6 +11,27 @@ export interface ModelRuntimeMeasurements {
   contextSizeTokens?: number;
   cpuRamBytes?: number;
   gpuVramBytes?: number;
+  contextLimitTokens?: number;
+  contextLimitReason?: GenerationContextLimitReason;
+}
+
+export function generationMeasurements(
+  memory: StructuredGenerationResult["memory"],
+): ModelRuntimeMeasurements {
+  return {
+    memoryBudgetBytes: memory.budgetBytes,
+    cpuRamBytes: memory.cpuRamBytes,
+    gpuVramBytes: memory.gpuVramBytes,
+    ...(memory.contextSizeTokens === undefined
+      ? {}
+      : { contextSizeTokens: memory.contextSizeTokens }),
+    ...(memory.contextLimitTokens === undefined
+      ? {}
+      : { contextLimitTokens: memory.contextLimitTokens }),
+    ...(memory.contextLimitReason === undefined
+      ? {}
+      : { contextLimitReason: memory.contextLimitReason }),
+  };
 }
 
 /**
@@ -17,7 +42,15 @@ export interface ModelRuntimeMeasurements {
 export function lastKnownContext(measurements: ModelRuntimeMeasurements): ModelRuntimeMeasurements {
   return measurements.contextSizeTokens === undefined
     ? {}
-    : { contextSizeTokens: measurements.contextSizeTokens };
+    : {
+        contextSizeTokens: measurements.contextSizeTokens,
+        ...(measurements.contextLimitTokens === undefined
+          ? {}
+          : { contextLimitTokens: measurements.contextLimitTokens }),
+        ...(measurements.contextLimitReason === undefined
+          ? {}
+          : { contextLimitReason: measurements.contextLimitReason }),
+      };
 }
 
 export function modelRuntimeStatus(

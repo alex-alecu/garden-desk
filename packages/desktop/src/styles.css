@@ -1584,6 +1584,19 @@ textarea:focus-visible {
   text-align: right;
 }
 
+.technical-model-usage .technical-model-reason {
+  display: block;
+  margin-top: 4px;
+}
+
+.technical-model-reason dd {
+  margin-top: 2px;
+  color: var(--ink-soft);
+  font-weight: 400;
+  line-height: 1.45;
+  text-align: left;
+}
+
 .technical-details-item .technical-limits {
   margin-top: 8px;
   color: var(--ink-soft);

@@ -123,6 +123,8 @@ describe("M3 model residency", () => {
       cpuRamBytes: 1024,
       gpuVramBytes: 2048,
       contextSizeTokens: 512,
+      contextLimitTokens: 65_536,
+      contextLimitReason: "certified_standard",
     });
     await expect(inference.unloadModel()).resolves.toBe(true);
     await expect(inference.modelStatus()).resolves.toMatchObject({ state: "unloaded" });
@@ -135,7 +137,12 @@ describe("M3 model residency", () => {
     await expect(inference.unloadModel()).resolves.toBe(true);
 
     const status = await inference.modelStatus();
-    expect(status).toMatchObject({ state: "unloaded", contextSizeTokens: 512 });
+    expect(status).toMatchObject({
+      state: "unloaded",
+      contextSizeTokens: 512,
+      contextLimitTokens: 65_536,
+      contextLimitReason: "certified_standard",
+    });
     expect(status.cpuRamBytes).toBeUndefined();
     expect(status.gpuVramBytes).toBeUndefined();
     expect(status.memoryBudgetBytes).toBeUndefined();

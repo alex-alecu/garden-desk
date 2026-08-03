@@ -50,7 +50,7 @@ describe("bounded observation streams", () => {
   });
 
   it("shrinks the excerpt for a small prompt budget and never exceeds the ceiling", () => {
-    expect(observationStreamCharacters(262_144)).toBe(OBSERVATION_STREAM_CHARACTERS);
+    expect(observationStreamCharacters(131_072)).toBe(OBSERVATION_STREAM_CHARACTERS);
     expect(observationStreamCharacters(4_096)).toBe(8_192);
     expect(observationStreamCharacters(0)).toBe(2_048);
   });
