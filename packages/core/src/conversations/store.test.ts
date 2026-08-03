@@ -53,7 +53,7 @@ describe("ConversationStore folder grants", () => {
     const stateRoot = temporaryRoot("symlink-state");
     const selectedRoot = temporaryRoot("symlink-target");
     const link = join(temporaryRoot("symlink-parent"), "linked");
-    symlinkSync(selectedRoot, link, "dir");
+    symlinkSync(selectedRoot, link, process.platform === "win32" ? "junction" : "dir");
     const catalog = openWorkspaceCatalog(stateRoot);
     const store = new ConversationStore(catalog.database);
 

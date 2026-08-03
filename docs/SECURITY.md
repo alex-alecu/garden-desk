@@ -32,6 +32,12 @@ Vault Desk must treat privacy, permissions, auditability, and reversibility as p
 - Generated code and interpreter libraries may be malicious, incorrect, nondeterministic, resource-exhausting, or crafted to escape their boundary.
 - The Tauri webview and its rendered model or document content may be exposed to injection attempts and must remain unprivileged.
 
+## Desktop Authority
+
+The Tauri desktop, Vault Core, inference process, and ordinary native helpers run as the current user on Windows and macOS. macOS requires no administrator grant. On Windows only, HCS requires membership in Administrators or Hyper-V Administrators. Vault Desk packages a fixed signed helper that elevates once, reads the requesting non-elevated desktop process token, and adds only that SID to the built-in Hyper-V Administrators group. It cannot accept an arbitrary SID, enable Hyper-V, run commands, install a service, or schedule work.
+
+The helper is hash-verified and read-locked before UAC. The user receives an explicit disclosure before elevation and must sign out and back in before the new group SID enters the desktop token. Until then, Vault Desk is browse-only and the native task command rejects execution. Hyper-V Administrators is a standing account permission: every process under that Windows user can manage Hyper-V, not only Vault Desk. This is narrower than running the complete application as administrator but remains a material permission that must be visible in product and installation guidance.
+
 ## Agent Security Model
 
 The model may propose an action. It must not execute one directly.

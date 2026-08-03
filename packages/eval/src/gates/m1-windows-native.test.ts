@@ -104,6 +104,7 @@ describeWindows("M1 certified Windows microVM", () => {
       expect(document.VirtualMachine.Devices.Plan9).not.toHaveProperty("ReadOnly");
       expect(JSON.stringify(document)).toContain('"ReadOnly":true');
       expect(JSON.stringify(document)).toContain('"ReadOnly":false');
+      expect(JSON.stringify(document)).toContain("S-1-5-32-578");
     } finally {
       await rm(root, { recursive: true, force: true });
     }

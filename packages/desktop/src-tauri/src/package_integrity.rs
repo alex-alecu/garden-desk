@@ -9,6 +9,8 @@ use std::io::{Read, Seek, SeekFrom};
 #[cfg(any(windows, test))]
 use std::path::Component;
 use std::path::Path;
+#[cfg(any(windows, test))]
+use std::path::PathBuf;
 
 #[cfg(windows)]
 const ELEVATED_RESOURCES: [&str; 3] = [
@@ -20,6 +22,19 @@ const ELEVATED_RESOURCES: [&str; 3] = [
 pub(crate) struct PackageLocks {
     #[cfg(windows)]
     _files: Vec<File>,
+}
+
+#[cfg(any(windows, test))]
+pub(crate) struct LockedSetupHelper {
+    path: PathBuf,
+    _files: Vec<File>,
+}
+
+#[cfg(any(windows, test))]
+impl LockedSetupHelper {
+    pub(crate) fn path(&self) -> &Path {
+        &self.path
+    }
 }
 
 #[cfg(any(windows, test))]
@@ -134,6 +149,35 @@ pub(crate) fn lock_packaged_runtime(
     Ok(PackageLocks { _files: files })
 }
 
+#[cfg(any(windows, test))]
+fn lock_setup_helper_with_manifest(
+    core_resources: &Path,
+    manifest_hash: &str,
+) -> Result<LockedSetupHelper, String> {
+    let path = core_resources.join("windows/vault-hyper-v-setup.exe");
+    let manifest_path = core_resources.join("resource-manifest.json");
+    let mut manifest_file = open_verified(&manifest_path, manifest_hash)?;
+    manifest_file
+        .seek(SeekFrom::Start(0))
+        .map_err(|error| error.to_string())?;
+    let manifest: Value = serde_json::from_reader(&mut manifest_file)
+        .map_err(|_| "Packaged resource manifest is invalid.".to_owned())?;
+    let expected = expected_resource_hash(&manifest, "windows/vault-hyper-v-setup.exe")?;
+    Ok(LockedSetupHelper {
+        _files: vec![manifest_file, open_verified(&path, &expected)?],
+        path,
+    })
+}
+
+#[cfg(windows)]
+pub(crate) fn lock_windows_setup_helper(
+    core_resources: &Path,
+) -> Result<LockedSetupHelper, String> {
+    let manifest_hash = option_env!("VAULT_RESOURCE_MANIFEST_SHA256")
+        .ok_or_else(|| "Windows package integrity anchor is missing.".to_owned())?;
+    lock_setup_helper_with_manifest(core_resources, manifest_hash)
+}
+
 #[cfg(not(windows))]
 pub(crate) fn lock_packaged_runtime(_: &Path, _: &Path) -> Result<PackageLocks, String> {
     Ok(PackageLocks {})
@@ -179,5 +223,31 @@ mod tests {
             "abc"
         );
         assert!(expected_resource_hash(&manifest, "outside.exe").is_err());
+    }
+
+    #[test]
+    fn rejects_tampered_windows_setup_bytes_from_the_manifest_contract() {
+        let root = temporary_root();
+        let windows = root.join("windows");
+        create_dir(&windows).expect("windows resources");
+        let path = windows.join("vault-hyper-v-setup.exe");
+        write(&path, b"signed setup").expect("fixture");
+        let expected = file_sha256(&mut File::open(&path).expect("fixture")).expect("hash");
+        let manifest = serde_json::json!({
+            "files": [{
+                "path": "windows/vault-hyper-v-setup.exe",
+                "sha256": expected
+            }]
+        });
+        let manifest_path = root.join("resource-manifest.json");
+        write(&manifest_path, manifest.to_string()).expect("manifest");
+        let manifest_hash =
+            file_sha256(&mut File::open(&manifest_path).expect("manifest")).expect("hash");
+        drop(lock_setup_helper_with_manifest(&root, &manifest_hash).expect("valid helper"));
+        write(&path, b"substituted setup").expect("tamper");
+        assert!(lock_setup_helper_with_manifest(&root, &manifest_hash).is_err());
+        std::fs::remove_file(&path).expect("remove helper");
+        assert!(lock_setup_helper_with_manifest(&root, &manifest_hash).is_err());
+        remove_dir_all(root).expect("cleanup");
     }
 }
