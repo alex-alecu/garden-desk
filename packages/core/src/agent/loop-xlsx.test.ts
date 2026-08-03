@@ -28,12 +28,43 @@ function discoveredXlsx(command: string): AgentExecutionResult {
 function expectXlsxDiscoveryInstructions(prompt: string): void {
   expect(prompt).toContain('warnings.filterwarnings("ignore")');
   expect(prompt).toContain("load_workbook(path, read_only=True, data_only=True)");
-  expect(prompt).toContain('path.suffix.lower() == ".xlsx"');
+  expect(prompt).toContain('filename.lower().endswith(".xlsx")');
+  expect(prompt).toContain('filename.endswith(".xlsx")` is invalid');
   expect(prompt).toContain("keep the workbook accumulator distinct");
   expect(prompt).toContain("process only XLSX workbooks");
   expect(prompt).toContain("DONE and TOTAL count XLSX workbooks only");
   expect(prompt).toContain("complete restored set of completed workbook paths");
+  expect(prompt).toContain("immediately add that amount to one cumulative total");
+  expect(prompt).toContain(
+    "Never use a workbook count, worksheet count, row count, or match count",
+  );
+  expect(prompt).toContain("checkpoint, requested stdout labels, and any generated artifact");
+  expect(prompt).toContain("process it in one pass and do not create or load a checkpoint");
+  expect(prompt).toContain("do not build fragile `range(...)` expressions");
+  expect(prompt).toContain(
+    "compare the fresh case-insensitive corpus with the checkpointed corpus",
+  );
 }
+
+describe("AgentLoop XLSX routing", () => {
+  it("routes bare XLSX wording to source-only work on the first turn", async () => {
+    const schemas: Array<Record<string, unknown>> = [];
+    const source = "print('XLSX_MATCHES=1\\nXLSX_TOTAL=25')";
+    const result = await new AgentLoop(
+      inference([execute(source, "Analyze every workbook")], [], schemas),
+      executor(
+        [{ ...completed, source, stdout: completeXlsx("XLSX_MATCHES=1\nXLSX_TOTAL=25") }],
+        [],
+      ),
+    ).run({
+      task: "Analyze every XLSX workbook and print XLSX_MATCHES=<count> and XLSX_TOTAL=<sum>.",
+      modelId: "test-model",
+    });
+
+    expect(result.response).toBe("XLSX_MATCHES=1\nXLSX_TOTAL=25");
+    expect(schemas[0]).not.toHaveProperty("oneOf");
+  });
+});
 
 describe("AgentLoop XLSX progress", () => {
   it("advances after an empty inspection and returns verified calculation stdout", async () => {
@@ -66,7 +97,7 @@ describe("AgentLoop XLSX progress", () => {
     expect(prompts[0]).toContain("Close each workbook in a finally block");
     expect(prompts[0]).toContain("for sheet in workbook.worksheets");
     expect(prompts[0]).toContain("never break or return from the worksheet loop");
-    expect(prompts[0]).toContain("finish a small corpus in one short pass without checkpointing");
+    expect(prompts[0]).toContain("process it in one pass and do not create or load a checkpoint");
     expect(prompts[0]).toContain("resumed executions never double count it");
     expect(prompts[0]).toContain("never persist or reuse an old start time");
     expect(prompts[0]).toContain("never True, False, or a comparison expression");

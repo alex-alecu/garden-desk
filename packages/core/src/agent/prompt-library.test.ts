@@ -114,6 +114,34 @@ describe("PromptLibrary invalid PDF validation", () => {
   });
 });
 
+describe("PromptLibrary workbook aggregates", () => {
+  it("loads one cumulative amount contract", () => {
+    const prompts = library();
+    const input = { task: "Total matching amounts in every XLSX workbook.", inputNames: [] };
+    const body = prompts.activeSkills(input, {
+      shell_command_character_limit: "4,096",
+      shell_path: "/bin/sh",
+      tool_capabilities: "find, grep",
+      workspace_path: "/workspace",
+    });
+
+    expect([...prompts.activeSkillNames(input)]).toEqual(["xlsx-workbooks"]);
+    expect(body).toContain('filename.lower().endswith(".xlsx")');
+    expect(body).toContain('filename.endswith(".xlsx")` is invalid');
+    expect(body).toContain("immediately add that amount to one cumulative total");
+    expect(body).toContain(
+      "Never use a workbook count, worksheet count, row count, or match count",
+    );
+    expect(body).toContain("checkpoint, requested stdout labels, and any generated artifact");
+    expect(body).toContain("Never substitute corpus or match counts for an amount total");
+    expect(body).toContain("process it in one pass and do not create or load a checkpoint");
+    expect(body).toContain("do not build fragile `range(...)` expressions");
+    expect(body).toContain(
+      "compare the fresh case-insensitive corpus with the checkpointed corpus",
+    );
+  });
+});
+
 describe("PromptLibrary skill routing precision", () => {
   it("does not select PDF guidance just because a source task asks to read text", () => {
     expect([
