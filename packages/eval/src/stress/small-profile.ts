@@ -22,7 +22,8 @@ export type SmallCaseId = "pdf" | "workbook" | "xlsx-folder" | "mixed-folder" | 
 
 const INVALID_TASK = [
   "Use exactly one Python execution with pypdf to validate every PDF under /source.",
-  "When parsing fails, stop immediately without repair or artifacts and print INVALID_DOCUMENT_STOP=1.",
+  "A pypdf parse exception is the expected invalid-input result: catch it, print exactly INVALID_DOCUMENT_STOP=1 to stdout, then exit normally with code 0.",
+  "The marker completes the task; do not repair the PDF, write artifacts, print a traceback, or execute again.",
   "Do not respond before the validation execution.",
 ].join(" ");
 
@@ -58,7 +59,7 @@ const CASES: StressCaseDefinition<SmallCaseId>[] = [
     task: INVALID_TASK,
     create: createInvalidCorpus,
     expected: () => ["INVALID_DOCUMENT_STOP=1"],
-    maxExecutions: 2,
+    maxExecutions: 1,
   },
 ];
 

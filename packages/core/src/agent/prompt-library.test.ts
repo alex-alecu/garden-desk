@@ -92,6 +92,28 @@ describe("PromptLibrary skill selection", () => {
   });
 });
 
+describe("PromptLibrary invalid PDF validation", () => {
+  it("routes the task to clean-stop guidance", () => {
+    const prompts = library();
+    const input = {
+      task: "Validate every PDF and print INVALID_DOCUMENT_STOP=1 when parsing fails.",
+      inputNames: [],
+    };
+    const body = prompts.activeSkills(input, {
+      shell_command_character_limit: "4,096",
+      shell_path: "/bin/sh",
+      tool_capabilities: "find, grep",
+      workspace_path: "/workspace",
+    });
+
+    expect([...prompts.activeSkillNames(input)]).toEqual(["pdf-reading"]);
+    expect(body).toContain("print that exact marker to stdout");
+    expect(body).toContain("exit normally with code 0");
+    expect(body).toContain("do not repair the PDF, write an artifact");
+    expect(body).toContain("or execute again");
+  });
+});
+
 describe("PromptLibrary skill routing precision", () => {
   it("does not select PDF guidance just because a source task asks to read text", () => {
     expect([
