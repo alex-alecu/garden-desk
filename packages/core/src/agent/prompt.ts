@@ -7,6 +7,7 @@ import {
 import { effectiveGenerationInput, type GenerationInput } from "../runtime/inference.js";
 import type { DurableAgentHistory } from "./history.js";
 import { MAX_AGENT_EXECUTIONS } from "./limits.js";
+import type { RejectedExecutionReason } from "./loop-decisions.js";
 import {
   completedSuccessfully,
   missingOutputLabels,
@@ -22,7 +23,7 @@ import {
   serializePrompt,
   usablePromptTokens,
 } from "./prompt-budget.js";
-import { systemPrompt, taskStatePrompt } from "./prompt-content.js";
+import { activePromptSkillNames, systemPrompt, taskStatePrompt } from "./prompt-content.js";
 import { attachedPdfAlreadyExtracted, continuationInstructions } from "./prompt-inputs.js";
 import { defaultPromptLibrary, type PromptLibrary } from "./prompt-library.js";
 import { observationStreamCharacters } from "./prompt-observations.js";
@@ -53,7 +54,7 @@ export interface AgentPromptInput {
 export interface AgentProgress {
   executions: AgentExecutionResult[];
   inference: InferencePerformance;
-  lastRejectedProgramReason?: "duplicate" | "invalid" | "shell_limit" | "shell_source" | undefined;
+  lastRejectedProgramReason?: RejectedExecutionReason | undefined;
   rejectedDuplicates: number;
 }
 
@@ -68,6 +69,22 @@ function needsShellSourceRepair(progress: AgentProgress): boolean {
     latest?.language === "shell" &&
     latest.exitCode !== 0 &&
     /unterminated quoted string/iu.test(latest.stderr)
+  );
+}
+
+function needsSourceDiscoveryRepair(
+  input: AgentPromptInput,
+  progress: AgentProgress,
+  library: PromptLibrary,
+): boolean {
+  if (!activePromptSkillNames(input, progress, library).has("terminal-commands")) return false;
+  const latest = progress.executions.at(-1);
+  return (
+    latest?.language === "shell" &&
+    (latest.exitCode !== 0 ||
+      latest.termination !== "completed" ||
+      latest.stderr.trim().length > 0 ||
+      latest.stdout.trim().length === 0)
   );
 }
 
@@ -145,12 +162,22 @@ function prompt(
   return serializePrompt(current, input.history, options);
 }
 
+function recoverySourceLineLimit(
+  generationLimitRecovery: boolean,
+  sourceDiscoveryRecovery: boolean,
+): { sourceLineLimit?: number } {
+  if (generationLimitRecovery) return { sourceLineLimit: GENERATION_LIMIT_RECOVERY_SOURCE_LINES };
+  if (sourceDiscoveryRecovery) return { sourceLineLimit: 40 };
+  return {};
+}
+
 function generationSchema(
   input: AgentPromptInput,
   progress: AgentProgress,
   finalResponse: boolean,
   recovery: GenerationRecovery,
 ) {
+  const library = input.promptLibrary ?? defaultPromptLibrary();
   const requiredLabels = requiredOutputLabels(input.task);
   const requiresXlsxExecution =
     !finalResponse &&
@@ -163,6 +190,8 @@ function generationSchema(
     inputNames.some((name) => name.toLocaleLowerCase("en-US").endsWith(".pdf")) &&
     !attachedPdfAlreadyExtracted(inputNames, input.history);
   const generationLimitRecovery = recovery === "generation_limit" && !finalResponse;
+  const sourceDiscoveryRecovery =
+    progress.lastRejectedProgramReason === "source_allowlist" && !finalResponse;
   return agentDecisionJsonSchema({
     task: input.task,
     finalResponse,
@@ -170,8 +199,9 @@ function generationSchema(
       requiresXlsxExecution ||
       requiresAttachedPdfExecution ||
       needsShellSourceRepair(progress) ||
+      needsSourceDiscoveryRepair(input, progress, library) ||
       generationLimitRecovery,
-    ...(generationLimitRecovery ? { sourceLineLimit: GENERATION_LIMIT_RECOVERY_SOURCE_LINES } : {}),
+    ...recoverySourceLineLimit(generationLimitRecovery, sourceDiscoveryRecovery),
     ...(requiresAttachedPdfExecution ? { requiredLanguage: "python" as const } : {}),
   });
 }

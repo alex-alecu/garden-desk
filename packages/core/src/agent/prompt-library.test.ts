@@ -30,6 +30,12 @@ describe("PromptLibrary discovery", () => {
     expect([...prompts.activeSkillNames(input)]).toEqual(["terminal-commands"]);
     expect(body).toContain("Confirm every executable, option, redirection, and pipeline stage");
     expect(body).toContain("empty output identifies no candidate");
+    expect(body).toContain(
+      "Do not restrict initial source discovery to a guessed extension allowlist",
+    );
+    expect(body).toContain("never gate candidates with `filename.endswith((...))`");
+    expect(body).toContain("switch to one short Python or Node source action");
+    expect(body).toContain("never invent a conventional path");
   });
 });
 

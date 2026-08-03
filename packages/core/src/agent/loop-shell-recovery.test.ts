@@ -97,35 +97,127 @@ describe("AgentLoop shell command limit", () => {
 });
 
 describe("AgentLoop embedded shell source", () => {
-  it.each([`python3 -c "print('salary')"`, "python3 - <<'PY'\nprint('salary')\nPY"])(
-    "rejects embedded Python source before execution: %s",
-    async (embedded) => {
-      const calls: string[] = [];
-      const prompts: string[] = [];
-      const schemas: Array<Record<string, unknown>> = [];
-      const repaired = { ...completed, source: "print('salary')" };
-      const loop = new AgentLoop(
-        capturingInference(
-          [
-            { action: "execute", language: "shell", command: embedded, summary: "Search" },
-            { action: "execute", language: "python", source: repaired.source, summary: "Search" },
-            { action: "respond", response: "Done." },
-          ],
-          prompts,
-          schemas,
-        ),
-        executor([repaired], calls),
-      );
+  it.each([
+    `python3 -c "print('salary')"`,
+    `python314 -c "print('salary')"`,
+    "python3 - <<'PY'\nprint('salary')\nPY",
+  ])("rejects embedded Python source before execution: %s", async (embedded) => {
+    const calls: string[] = [];
+    const prompts: string[] = [];
+    const schemas: Array<Record<string, unknown>> = [];
+    const repaired = { ...completed, source: "print('salary')" };
+    const loop = new AgentLoop(
+      capturingInference(
+        [
+          { action: "execute", language: "shell", command: embedded, summary: "Search" },
+          { action: "execute", language: "python", source: repaired.source, summary: "Search" },
+          { action: "respond", response: "Done." },
+        ],
+        prompts,
+        schemas,
+      ),
+      executor([repaired], calls),
+    );
 
-      const result = await loop.run({ task: "Find salary entries", modelId: "test-model" });
+    const result = await loop.run({ task: "Find salary entries", modelId: "test-model" });
 
-      expect(calls).toEqual([repaired.source]);
-      expect(result.executions).toEqual([repaired]);
-      expect(prompts[1]).toContain("embedded a Python or Node program");
-      expect(prompts[1]).toContain("executes it without shell quoting");
-      expect(schemas[1]).not.toHaveProperty("oneOf");
+    expect(calls).toEqual([repaired.source]);
+    expect(result.executions).toEqual([repaired]);
+    expect(prompts[1]).toContain("embedded a Python or Node program");
+    expect(prompts[1]).toContain("executes it without shell quoting");
+    expect(schemas[1]).not.toHaveProperty("oneOf");
+  });
+});
+
+function shellResult(
+  command: string,
+  result: Pick<AgentExecutionResult, "exitCode" | "stdout" | "stderr" | "termination">,
+): AgentExecutionResult {
+  return {
+    language: "shell",
+    path: null,
+    source: null,
+    command,
+    durationMs: 1,
+    artifacts: [],
+    ...result,
+  };
+}
+
+describe("AgentLoop source discovery repair", () => {
+  it.each([
+    {
+      name: "failed",
+      result: {
+        exitCode: 2,
+        stdout: "",
+        stderr: "grep: missing operand\n",
+        termination: "crash" as const,
+      },
     },
-  );
+    {
+      name: "empty",
+      result: { exitCode: 0, stdout: "", stderr: "", termination: "completed" as const },
+    },
+  ])("requires Python or Node source after $name shell discovery", async ({ result }) => {
+    const command = "find /source -type f";
+    const repaired = { ...completed, source: "print('/source/src/rules.unknown')" };
+    const calls: string[] = [];
+    const prompts: string[] = [];
+    const schemas: Array<Record<string, unknown>> = [];
+    await new AgentLoop(
+      capturingInference(
+        [
+          { action: "execute", language: "shell", command, summary: "Discover" },
+          { action: "execute", language: "python", source: repaired.source, summary: "Recover" },
+          { action: "respond", response: "Done." },
+        ],
+        prompts,
+        schemas,
+      ),
+      executor([shellResult(command, result), repaired], calls),
+    ).run({
+      task: "Inspect this codebase and locate the file defining the pricing rule.",
+      modelId: "test-model",
+    });
+
+    expect(calls).toEqual([command, repaired.source]);
+    expect(schemas[1]).not.toHaveProperty("oneOf");
+    expect(prompts[1]).toContain("After failed or empty shell discovery");
+    expect(prompts[1]).toContain("Do not restrict initial source discovery");
+  });
+});
+
+describe("AgentLoop source allowlist rejection", () => {
+  it("rejects a guessed source extension allowlist during combined XLSX work", async () => {
+    const filtered = "for file in files:\n    if file.endswith(('.py', '.js')): print(file)";
+    const repaired = { ...completed, source: "for file in files:\n    print(file)" };
+    const calls: string[] = [];
+    const prompts: string[] = [];
+    const schemas: Array<Record<string, unknown>> = [];
+    await new AgentLoop(
+      capturingInference(
+        [
+          { action: "execute", language: "python", source: filtered, summary: "Discover" },
+          { action: "execute", language: "python", source: repaired.source, summary: "Recover" },
+          { action: "respond", response: "Done." },
+        ],
+        prompts,
+        schemas,
+      ),
+      executor([repaired], calls),
+    ).run({
+      task: "Inspect this codebase, locate the pricing rule, and analyze every XLSX workbook.",
+      modelId: "test-model",
+    });
+
+    expect(calls).toEqual([repaired.source]);
+    expect(prompts[1]).toContain("guessed extension allowlist");
+    expect(prompts[1]).toContain("attempt to read every ordinary file");
+    expect(prompts[1]).toContain("source-discovery-only");
+    expect(schemas[1]).not.toHaveProperty("oneOf");
+    expect(JSON.stringify(schemas[1])).toContain('"maxItems":40');
+  });
 });
 
 function failedShellResult(command: string): AgentExecutionResult {

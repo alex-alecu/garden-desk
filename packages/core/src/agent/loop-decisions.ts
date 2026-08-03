@@ -6,7 +6,12 @@ import {
 } from "@vault/shared";
 import { SHELL_COMMAND_CHARACTER_LIMIT } from "./prompt-schema.js";
 
-export type RejectedExecutionReason = "duplicate" | "invalid" | "shell_limit" | "shell_source";
+export type RejectedExecutionReason =
+  | "duplicate"
+  | "invalid"
+  | "shell_limit"
+  | "shell_source"
+  | "source_allowlist";
 
 function sameProgram(
   decision: Extract<AgentDecision, { action: "execute" }>,
@@ -69,9 +74,20 @@ function reachedShellCommandLimit(
 function embedsSourceProgram(decision: Extract<AgentDecision, { action: "execute" }>): boolean {
   return (
     decision.language === "shell" &&
-    /(?:^|[;&|]\s*|\n)\s*(?:env\s+)?(?:\S*\/)?(?:python3?|node)(?:(?:\s+-\S+)*\s+-(?:c|e)(?:\s|$)|(?:\s+-\S+)*\s+(?:-\s*)?<<)/iu.test(
+    /(?:^|[;&|]\s*|\n)\s*(?:env\s+)?(?:\S*\/)?(?:python(?:\d+(?:\.\d+)*)?|node)(?:(?:\s+-\S+)*\s+-(?:c|e)(?:\s|$)|(?:\s+-\S+)*\s+(?:-\s*)?<<)/iu.test(
       decision.command,
     )
+  );
+}
+
+function usesGuessedSourceExtensionAllowlist(
+  decision: Extract<AgentDecision, { action: "execute" }>,
+  task: string,
+): boolean {
+  return (
+    decision.language !== "shell" &&
+    /\b(?:codebase|source\s+(?:code|file)|locat(?:e|ing)|search(?:ing)?)\b/iu.test(task) &&
+    /\b(?:file|filename|name)\s*\.endswith\s*\(\s*\(/u.test(decision.source)
   );
 }
 
@@ -86,14 +102,27 @@ function isInvalidProgram(
   );
 }
 
+function policyRejectionReason(
+  decision: Extract<AgentDecision, { action: "execute" }>,
+  rejectIncompleteSource: boolean,
+  task: string,
+): RejectedExecutionReason | undefined {
+  if (reachedShellCommandLimit(decision)) return "shell_limit";
+  if (embedsSourceProgram(decision)) return "shell_source";
+  if (rejectIncompleteSource && usesGuessedSourceExtensionAllowlist(decision, task))
+    return "source_allowlist";
+  if (isInvalidProgram(decision, rejectIncompleteSource)) return "invalid";
+  return undefined;
+}
+
 export function rejectedExecutionReason(
   decision: Extract<AgentDecision, { action: "execute" }>,
   executions: AgentExecutionResult[],
   rejectIncompleteSource = false,
+  task = "",
 ): RejectedExecutionReason | undefined {
-  if (reachedShellCommandLimit(decision)) return "shell_limit";
-  if (embedsSourceProgram(decision)) return "shell_source";
-  if (isInvalidProgram(decision, rejectIncompleteSource)) return "invalid";
+  const policyRejection = policyRejectionReason(decision, rejectIncompleteSource, task);
+  if (policyRejection !== undefined) return policyRejection;
   const matching = executions.filter((execution) => sameProgram(decision, execution));
   const latest = matching.at(-1);
   if (latest === undefined) return undefined;

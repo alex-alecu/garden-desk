@@ -35,3 +35,14 @@ The realistic fixture contained 10 files: TypeScript, JSON, CSV, Markdown, two X
 | `pnpm verify` | **PASS** | Source limits, lint, type checking, 328 unit tests with one skip, two native tests, native helpers, desktop builds, and Rust checks passed. | None. |
 
 The backend, daemon, model, guest isolation, audit, and canonical gate remained healthy. The stress result is still a limit rather than a pass because realistic terminal-command reliability and two bounded agent-loop behaviors were incorrect.
+
+## Reliability fix validation
+
+### Source discovery recovery cycle — 2026-08-03
+
+- Focused loop and prompt tests passed: 16 tests across `loop-shell-recovery.test.ts` and `prompt-library.test.ts`.
+- `pnpm verify` passed with 331 unit tests, one skip, two native tests, desktop builds, native helpers, and Rust checks.
+- The realistic skill runner was repeated twice. Terminal-only passed both times. Combined source discovery also passed both times with `SOURCE_FILE=/source/src/pricing-rules.ts` and `SURCHARGE_BPS=275`, then reached workbook analysis without a guessed path or duplicate stall. The still-expected combined XLSX corpus/total limit remained for the aggregate-guidance commit. Reports: `packages/eval/.generated/stress/realistic-skills-2026-08-03T14-46-03.506Z.json` and `packages/eval/.generated/stress/realistic-skills-2026-08-03T14-50-38.346Z.json`.
+- The small suite preserved all previous passes, including all three concurrent cases with `maximumRunning=3`. Invalid PDF and sequential XLSX-folder totals remained the planned later failures. Report: `packages/eval/.generated/stress/small-2026-08-03T14-55-01.388Z.json`.
+- Scaled sequential and concurrent runs preserved the separately reported XLSX-folder aggregate limit; the one-million-row workbook and mixed 50-file workflow passed in both modes. Reports: `packages/eval/.generated/stress/scaled-sequential-2026-08-03T15-01-11.980Z.json` and `packages/eval/.generated/stress/scaled-concurrent-2026-08-03T15-16-33.806Z.json`.
+- `pnpm test:m3:macos` remained certified with real Python and Node artifacts, persistence, cancellation, limits, no-NIC confinement, cleanup, two overlapping VM lifetimes, and the 131,072-token context cap. This command emits terminal evidence rather than a JSON report.

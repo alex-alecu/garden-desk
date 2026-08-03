@@ -11,6 +11,9 @@ export function rejectionInstructions(
   if (progress.lastRejectedProgramReason === "shell_source") {
     return [library.recovery("shell-source")];
   }
+  if (progress.lastRejectedProgramReason === "source_allowlist") {
+    return [library.recovery("source-allowlist")];
+  }
   if (progress.lastRejectedProgramReason === "invalid") {
     return [library.recovery("invalid-program")];
   }
