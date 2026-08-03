@@ -14,6 +14,9 @@ mod commands;
 mod diagnostics;
 mod drop_commands;
 mod package_integrity;
+mod windows_setup;
+#[cfg(windows)]
+mod windows_setup_windows;
 
 const MAX_RESPONSE_BYTES: u64 = 192 * 1024 * 1024;
 
@@ -270,8 +273,10 @@ fn main() {
             commands::revoke_folder,
             diagnostics::reveal_debug_snapshot,
             commands::save_draft,
+            windows_setup::secure_workspace_status,
             commands::start_agent,
             commands::unload_model,
+            windows_setup::configure_secure_workspace,
         ])
         .build(tauri::generate_context!())
         .expect("Vault Desk desktop failed");

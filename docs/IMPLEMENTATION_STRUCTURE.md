@@ -120,6 +120,7 @@ src/components/technical-details.tsx
 src/components/composer.tsx
 src/components/confirmation.tsx
 package-resources.ts       verified sidecar, model, guest, helper, and inference assets
+native/windows-hyper-v-setup/ fixed Windows-only one-time group membership helper
 prepare-dev.ts             cached development-resource readiness before Vite starts
 runtime-packages.ts        recursive packaged node-llama-cpp dependency copy
 windows-runtime-assets.ts  pinned NVIDIA redistributable verification and staging
@@ -136,6 +137,8 @@ src-tauri/src/diagnostics.rs fixed packaged-sidecar snapshot and reveal commands
 ```
 
 Plain React state is sufficient. Do not add a router, component library, CSS framework, state-management package, webview filesystem plugin, shell permission, HTTP plugin, updater, analytics, or crash reporter for V1. The Rust host may use the reviewed shell plugin only for fixed supervision of the exact packaged Core sidecar.
+
+The Windows-only Hyper-V setup helper owns exactly one elevated operation: derive the requesting user SID from the non-elevated parent process token and add it to the built-in Hyper-V Administrators group. It is packaged and invoked only on Windows. The Windows desktop, Core, and later HCS lifecycle run non-elevated after sign-in; macOS remains non-elevated and neither builds nor packages this helper.
 
 ### `packages/cli`
 

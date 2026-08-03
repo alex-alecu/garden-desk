@@ -50,14 +50,52 @@ describe("M3 Windows package contract", () => {
 });
 
 describe("M3 Windows application authority", () => {
-  it("requests the HCS administrator boundary at application launch", async () => {
-    const [manifest, build] = await Promise.all([
+  it("keeps the application non-elevated and enforces setup natively", async () => {
+    const [manifest, build, launcher, commands] = await Promise.all([
       readFile(join(process.cwd(), "packages/desktop/src-tauri/windows-app-manifest.xml"), "utf8"),
       readFile(join(process.cwd(), "packages/desktop/src-tauri/build.rs"), "utf8"),
+      readFile(join(process.cwd(), "packages/desktop/run-tauri.ts"), "utf8"),
+      readFile(join(process.cwd(), "packages/desktop/src-tauri/src/commands.rs"), "utf8"),
     ]);
-    expect(manifest).toContain('level="requireAdministrator"');
+    expect(manifest).toContain('level="asInvoker"');
+    expect(manifest).not.toContain('level="requireAdministrator"');
+    expect(launcher).not.toContain("--vault-windows-elevated-dev");
+    expect(launcher).not.toContain("-Verb RunAs");
+    expect(launcher).toContain('process.platform === "win32"');
+    expect(launcher).toContain('tauriArguments[0] === "dev"');
+    expect(launcher).toContain('tauriArguments.push("--no-watch")');
+    expect(commands).toContain("crate::windows_setup::require_ready()?");
     expect(build).toContain(
       ["fn main() {", "    anchor_windows_package();", "    build_desktop();", "}"].join("\n"),
     );
+  });
+});
+
+describe("M3 Windows setup helper", () => {
+  it("builds and signs only the fixed Windows permission helper", async () => {
+    const [signing, setup, setupArguments, resources, setupResource] = await Promise.all([
+      readFile(join(process.cwd(), "packages/desktop/build-signing.ts"), "utf8"),
+      readFile(
+        join(process.cwd(), "packages/desktop/native/windows-hyper-v-setup/src/main.rs"),
+        "utf8",
+      ),
+      readFile(
+        join(
+          process.cwd(),
+          "packages/desktop/native/windows-hyper-v-setup/src/windows/arguments.rs",
+        ),
+        "utf8",
+      ),
+      readFile(join(process.cwd(), "packages/desktop/package-resources.ts"), "utf8"),
+      readFile(join(process.cwd(), "packages/desktop/windows-setup-resource.ts"), "utf8"),
+    ]);
+    expect(signing).toContain("windowsSigningConfiguration");
+    expect(signing).toContain("VAULT_SIGN_THUMBPRINT");
+    expect(setupArguments).toContain('arguments[0] != "--requester-pid"');
+    expect(setup).toContain("S-1-5-32-578");
+    expect(setup).toContain("NetLocalGroupAddMembers");
+    expect(resources).toContain("installWindowsSetupHelper");
+    expect(setupResource).toContain("windowsSetupHelperSignature");
+    expect(setupResource).toContain("vault-hyper-v-setup.exe");
   });
 });

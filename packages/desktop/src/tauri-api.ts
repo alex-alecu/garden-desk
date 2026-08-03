@@ -12,7 +12,14 @@ import {
   SessionPageSchema,
   SessionSummarySchema,
 } from "@vault/shared";
-import type { DesktopApi, DesktopBootstrap, DroppedPaths } from "./api.js";
+import type {
+  DesktopApi,
+  DesktopBootstrap,
+  DroppedPaths,
+  SecureWorkspaceSetupResult,
+  SecureWorkspaceState,
+  SecureWorkspaceStatus,
+} from "./api.js";
 
 function record(value: unknown): Record<string, unknown> {
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
@@ -53,9 +60,46 @@ function parseBootstrap(value: unknown): DesktopBootstrap {
   };
 }
 
+const secureWorkspaceStates = new Set<SecureWorkspaceState>([
+  "ready",
+  "permission_required",
+  "sign_out_required",
+  "unavailable",
+]);
+
+function parseSecureWorkspaceStatus(value: unknown): SecureWorkspaceStatus {
+  const input = record(value);
+  if (
+    typeof input.state !== "string" ||
+    !secureWorkspaceStates.has(input.state as SecureWorkspaceState)
+  ) {
+    throw new Error("The desktop bridge returned an invalid secure workspace status.");
+  }
+  return { state: input.state as SecureWorkspaceState };
+}
+
+function parseSecureWorkspaceSetupResult(value: unknown): SecureWorkspaceSetupResult {
+  const input = record(value);
+  if (
+    !["completed", "existing_membership", "cancelled", "not_needed"].includes(String(input.outcome))
+  ) {
+    throw new Error("The desktop bridge returned an invalid secure workspace setup result.");
+  }
+  return {
+    outcome: input.outcome as SecureWorkspaceSetupResult["outcome"],
+    status: parseSecureWorkspaceStatus(input.status),
+  };
+}
+
 export const tauriDesktopApi: DesktopApi = {
   async bootstrapDesktop() {
     return parseBootstrap(await invoke<unknown>("desktop_bootstrap"));
+  },
+  async getSecureWorkspaceStatus() {
+    return parseSecureWorkspaceStatus(await invoke("secure_workspace_status"));
+  },
+  async configureSecureWorkspace() {
+    return parseSecureWorkspaceSetupResult(await invoke("configure_secure_workspace"));
   },
   async getModelStatus() {
     return ModelRuntimeStatusSchema.parse(await invoke("model_status"));

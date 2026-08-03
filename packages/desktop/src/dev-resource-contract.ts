@@ -25,9 +25,12 @@ function commonInputs(desktopRoot: string, repositoryRoot: string): string[] {
     join(desktopRoot, "package-resources.ts"),
     join(desktopRoot, "package-compliance.ts"),
     join(desktopRoot, "runtime-packages.ts"),
+    join(desktopRoot, "windows-setup-resource.ts"),
     join(desktopRoot, "src", "dev-resource-progress.ts"),
     join(desktopRoot, "src", "package-resource-contract.ts"),
+    join(desktopRoot, "src", "resource-hashes.ts"),
     join(desktopRoot, "src", "runtime-package-contract.ts"),
+    join(desktopRoot, "src", "windows-signing-mode.ts"),
   ];
 }
 
@@ -89,6 +92,7 @@ function windowsContract(
       ...rustHelperInputs(
         join(repositoryRoot, "packages", "workers", "native", "windows-appcontainer-launcher"),
       ),
+      ...rustHelperInputs(join(desktopRoot, "native", "windows-hyper-v-setup")),
       join(desktopRoot, "windows-runtime-assets.json"),
       join(desktopRoot, "windows-runtime-assets.ts"),
     ],
@@ -102,6 +106,7 @@ function windowsContract(
         join(resourcesRoot, "inference", "node_modules", "@node-llama-cpp", name, "package.json"),
       ),
       join(resourcesRoot, "workers", "vault-hcs-helper.exe"),
+      join(resourcesRoot, "windows", "vault-hyper-v-setup.exe"),
       ...guestOutputs(resourcesRoot, "x86_64", "bzImage"),
       join(desktopRoot, "src-tauri", "binaries", "vault-core-x86_64-pc-windows-msvc.exe"),
     ],

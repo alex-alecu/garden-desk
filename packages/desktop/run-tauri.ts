@@ -26,7 +26,15 @@ const pathName = pathVariable();
 const currentPath = process.env[pathName] ?? "";
 const rustBin = cargoDirectory(currentPath);
 const tauriCli = createRequire(import.meta.url).resolve("@tauri-apps/cli/tauri.js");
-const result = spawnSync(process.execPath, [tauriCli, ...process.argv.slice(2)], {
+const tauriArguments = process.argv.slice(2);
+if (
+  process.platform === "win32" &&
+  tauriArguments[0] === "dev" &&
+  !tauriArguments.includes("--no-watch")
+) {
+  tauriArguments.push("--no-watch");
+}
+const result = spawnSync(process.execPath, [tauriCli, ...tauriArguments], {
   env: { ...process.env, [pathName]: [rustBin, currentPath].filter(Boolean).join(delimiter) },
   stdio: "inherit",
 });
