@@ -16,8 +16,8 @@ import { attach, openAttachment, remove, selectSession, send } from "./desktop-a
 import { type DropIntent, useNativeDrop } from "./desktop-drop.js";
 import { initialModelStatus, useModelRefresh } from "./desktop-model.js";
 import { useDraftPersistence } from "./draft-persistence.js";
-import { type DesktopBootstrapRequest, desktopBootstrapRequest } from "./startup.js";
 import { secureWorkspaceAllowsTasks } from "./secure-workspace.js";
+import { type DesktopBootstrapRequest, desktopBootstrapRequest } from "./startup.js";
 import { desktopReducer, initialDesktopState } from "./state.js";
 import { selectStep } from "./step-selection.js";
 import { activeThinkingStepId, agentSteps } from "./steps.js";

@@ -21,15 +21,15 @@ describe("PromptLibrary discovery", () => {
       task: "Tell me where the system prompt is in this source code folder.",
       inputNames: [],
     };
+    const body = prompts.activeSkills(input, {
+      shell_command_character_limit: "4,096",
+      shell_path: "/bin/sh",
+      tool_capabilities: "find, grep",
+      workspace_path: "/workspace",
+    });
     expect([...prompts.activeSkillNames(input)]).toEqual(["terminal-commands"]);
-    expect(
-      prompts.activeSkills(input, {
-        shell_command_character_limit: "4,096",
-        shell_path: "/bin/sh",
-        tool_capabilities: "find, grep",
-        workspace_path: "/workspace",
-      }),
-    ).toContain("Confirm every executable, option, redirection, and pipeline stage");
+    expect(body).toContain("Confirm every executable, option, redirection, and pipeline stage");
+    expect(body).toContain("empty output identifies no candidate");
   });
 });
 
@@ -83,5 +83,25 @@ describe("PromptLibrary skill selection", () => {
         "---\nname: other-skill\ndescription: Guides a workflow. Use when needed.\n---\n# Skill",
       ),
     ).toThrow("Agent Skills contract");
+  });
+});
+
+describe("PromptLibrary skill routing precision", () => {
+  it("does not select PDF guidance just because a source task asks to read text", () => {
+    expect([
+      ...library().activeSkillNames({
+        task: "Inspect this codebase, locate the system prompt, and read it to verify its contents.",
+        inputNames: [],
+      }),
+    ]).toEqual(["terminal-commands"]);
+  });
+
+  it("does not select terminal guidance for an explicit Node source-execution task", () => {
+    expect([
+      ...library().activeSkillNames({
+        task: "Use two Node source executions to read an input and write a result.",
+        inputNames: [],
+      }),
+    ]).toEqual([]);
   });
 });

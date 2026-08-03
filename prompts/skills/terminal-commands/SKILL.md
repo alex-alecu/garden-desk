@@ -21,7 +21,7 @@ Produce direct evidence with the smallest complete command. Prefer Python or Nod
 3. Read a shell command from start to finish before submitting it. Confirm every executable, option, redirection, and pipeline stage has all required operands. Leave no quote, escape, flag, or operator unfinished.
 4. Submit one complete command string below {{shell_command_character_limit}} characters with no newline in the command field.
 5. Use recursive discovery and exact paths; never assume a flat folder or guess a location. Match extensions case-insensitively; with `find`, use -iname instead of -name.
-6. Treat only successful stdout and stderr as evidence. Inspect candidate contents when the question asks about them. Change strategy after failure; never repeat an unchanged command.
+6. Treat only successful stdout and stderr as evidence. An exit-zero command with empty output identifies no candidate: never infer a conventional filename or path from it. Broaden or change the search and inspect a real candidate before answering. Change strategy after failure; never repeat an unchanged command.
 
 Installed command-line tools include {{tool_capabilities}} and run through {{shell_path}} from {{workspace_path}}.
 
