@@ -38,14 +38,13 @@ const result = spawnSync(process.execPath, [tauriCli, ...tauriArguments], {
   env: { ...process.env, [pathName]: [rustBin, currentPath].filter(Boolean).join(delimiter) },
   stdio: "inherit",
 });
-
 if (result.error !== undefined) throw result.error;
 process.exitCode = result.status ?? 1;
 if (
   process.exitCode === 0 &&
   process.platform === "win32" &&
-  process.argv[2] === "build" &&
-  !process.argv.includes("--debug")
+  tauriArguments[0] === "build" &&
+  !tauriArguments.includes("--debug")
 ) {
   const { stageWindowsApplication } = await import("./stage-windows-application.js");
   await stageWindowsApplication();

@@ -38,6 +38,26 @@ packages/eval/     fixtures and milestone gates
 
 Existing M0-M2 paths remain unless M3 replaces a provisional harness with product coverage.
 
+### Root prompt assets
+
+All authored model instructions live under one repository-root prompt tree:
+
+```text
+prompts/system/*.md                 base identity, boundary, task-state, and protocol prompts
+prompts/states/*.md                 conditional workflow-state instructions
+prompts/recovery/*.md               bounded repair instructions
+prompts/skills/<name>/SKILL.md      progressively disclosed Agent Skills-compatible workflows
+```
+
+TypeScript owns only typed runtime facts, prompt selection, placeholder rendering, limits, and
+schema construction. A skill directory and its required `name` and `description` frontmatter
+follow the open Agent Skills contract; the name matches the lowercase hyphenated directory and
+the description states what the skill does and when to use it. Core loads the metadata catalog,
+selects relevant bodies from the user task, attachment names, and explicit typed workflow state,
+and never routes on arbitrary file contents or model output. It rejects malformed prompt assets at startup. The desktop package copies the complete tree into its
+offline Core resources. The resource manifest hashes every prompt, and the Windows host verifies
+and read-locks every packaged prompt before starting Core.
+
 ## M3 Package Shape
 
 ### `packages/shared`
@@ -62,6 +82,7 @@ src/folders/grants.ts        canonical folder grants and revocation
 src/sessions/sessions.ts     sessions, newest-five query, cursor expansion, turns, drafts
 src/sessions/attachments.ts  explicit-file staging for New chat
 src/agent/loop.ts            bounded Core-owned agent orchestration
+src/agent/prompt-library.ts  validated root prompt and skill loading
 src/agent/guest.ts           CodeAgentPort consumed by the loop
 src/agent/events.ts          observable event persistence and polling/streaming
 src/diagnostics/             private read-only session snapshot adapter and process mode
@@ -79,7 +100,8 @@ src/policy/policy.ts   folder/attachment/agent-run decisions
 src/audit/log.ts       M3 observable security events
 ```
 
-No generic repository, service locator, event bus, plugin registry, or workflow framework is added.
+No generic repository, service locator, event bus, downloadable plugin registry, or workflow
+framework is added.
 
 ### `packages/workers`
 

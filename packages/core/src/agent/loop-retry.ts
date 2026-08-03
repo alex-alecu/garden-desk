@@ -1,18 +1,21 @@
-import { GEMMA_FUNCTION_CALL_SUFFIX, type GenerationInput } from "../runtime/inference.js";
+import type { GenerationInput } from "../runtime/inference.js";
 import { type AgentProgress, type AgentPromptInput, generationInput } from "./prompt.js";
+import { defaultPromptLibrary } from "./prompt-library.js";
 
-const STRUCTURED_RETRY_INSTRUCTION =
-  "\nYour previous attempt returned prose instead of calling a function. Observations below are shorter than the previous attempt; do not restate them.";
 const STRUCTURED_RETRY_CONTEXT_TOKENS = 16_384;
 
 /**
  * Inserts the retry instruction ahead of any trailing function-call sentence so the
  * prompt keeps exactly one such instruction as its final line.
  */
-function withStructuredRetryInstruction(prompt: string): string {
-  return prompt.endsWith(GEMMA_FUNCTION_CALL_SUFFIX)
-    ? `${prompt.slice(0, -GEMMA_FUNCTION_CALL_SUFFIX.length)}${STRUCTURED_RETRY_INSTRUCTION}${GEMMA_FUNCTION_CALL_SUFFIX}`
-    : `${prompt}${STRUCTURED_RETRY_INSTRUCTION}`;
+function withStructuredRetryInstruction(
+  prompt: string,
+  instruction: string,
+  functionCallSuffix: string,
+): string {
+  return prompt.endsWith(functionCallSuffix)
+    ? `${prompt.slice(0, -functionCallSuffix.length)}\n${instruction}${functionCallSuffix}`
+    : `${prompt}\n${instruction}`;
 }
 
 interface StructuredRetry {
@@ -41,5 +44,14 @@ export function structuredRetryInput(retry: StructuredRetry): GenerationInput {
     rebuilt = retry.previous;
   }
   const base = rebuilt.prompt.length < retry.previous.prompt.length ? rebuilt : retry.previous;
-  return { ...base, prompt: withStructuredRetryInstruction(base.prompt) };
+  const library = retry.input.promptLibrary ?? defaultPromptLibrary();
+  const functionCallSuffix = `\n${library.system("function-call")}`;
+  return {
+    ...base,
+    prompt: withStructuredRetryInstruction(
+      base.prompt,
+      library.recovery("structured-call"),
+      functionCallSuffix,
+    ),
+  };
 }

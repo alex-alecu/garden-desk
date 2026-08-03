@@ -34,7 +34,7 @@
     "model:fetch": "node --import tsx packages/eval/src/gates/fetch-model.ts",
     "tauri:build-sidecar": "node --import tsx packages/eval/src/platform/tauri-smoke/build.ts",
     "tauri:check": "node --import tsx packages/eval/src/platform/tauri-smoke/build.ts --tauri",
-    "desktop:dev": "pnpm --filter @vault/desktop tauri dev",
+    "desktop:dev": "pnpm --filter @vault/desktop start:dev",
     "desktop:build-sidecar": "pnpm --filter @vault/desktop build:sidecar",
     "desktop:build-web": "pnpm --filter @vault/desktop build:web",
     "desktop:check": "pnpm --filter @vault/desktop check:sidecar && pnpm desktop:build-web && cargo fmt --manifest-path packages/desktop/src-tauri/Cargo.toml --check && cargo clippy --manifest-path packages/desktop/src-tauri/Cargo.toml --locked -- -D warnings",

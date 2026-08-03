@@ -1,28 +1,21 @@
 import type { AgentProgress } from "./prompt.js";
+import type { PromptLibrary } from "./prompt-library.js";
 
-export function rejectionInstructions(progress: AgentProgress): readonly string[] {
+export function rejectionInstructions(
+  progress: AgentProgress,
+  library: PromptLibrary,
+): readonly string[] {
   if (progress.lastRejectedProgramReason === "shell_limit") {
-    return [
-      "The most recent shell command reached the 4,096-character command limit and may have been truncated, so it was not executed.",
-      "Do not shorten or repeat that shell command. Submit a Python or Node source action instead; Vault Desk writes the complete source to a workspace file and executes it.",
-    ];
+    return [library.recovery("shell-limit", { shell_command_character_limit: "4,096" })];
   }
   if (progress.lastRejectedProgramReason === "shell_source") {
-    return [
-      "The most recent shell proposal embedded a Python or Node program, so it was not executed.",
-      "Submit that program as a Python or Node source action instead; Vault Desk writes the complete source to a workspace file and executes it without shell quoting.",
-    ];
+    return [library.recovery("shell-source")];
   }
   if (progress.lastRejectedProgramReason === "invalid") {
-    return [
-      "The most recent proposal was rejected because its source was only imports or was pathologically repetitive.",
-      "Do not repeat or extend that fragment. Name a materially different strategy in the summary, then submit its complete executable body with each required import listed once.",
-    ];
+    return [library.recovery("invalid-program")];
   }
   if (progress.lastRejectedProgramReason === "duplicate") {
-    return [
-      "The most recent proposal duplicated a program that did not make new verified progress. Use a materially different repair or strategy.",
-    ];
+    return [library.recovery("duplicate")];
   }
   return [];
 }

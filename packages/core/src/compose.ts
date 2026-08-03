@@ -1,6 +1,7 @@
 import { resolve } from "node:path";
 import type { InferenceProfile, WorkspaceStatus } from "@vault/shared";
 import { createCodeAgentLauncher } from "./agent/launcher.js";
+import { PromptLibrary } from "./agent/prompt-library.js";
 import { AgentService } from "./agent/service.js";
 import { AgentStore } from "./agent/store.js";
 import { AuditLog } from "./audit/log.js";
@@ -13,6 +14,7 @@ import { ConversationStore } from "./conversations/store.js";
 import { createFacade, type VaultCore, type VaultCorePorts } from "./facade.js";
 import { JobStore } from "./jobs/jobs.js";
 import { createInferenceService, unavailableInference } from "./runtime/compose.js";
+import { configurePromptDirectory } from "./runtime/prompt-instructions.js";
 import type { InferenceSupervisor } from "./runtime/supervisor.js";
 import { ArtifactStore } from "./workspace/artifacts.js";
 import { openWorkspaceCatalog } from "./workspace/catalog.js";
@@ -30,6 +32,7 @@ export interface VaultCoreOptions {
   inferenceRuntimePath?: string;
   agentHelperPath?: string;
   agentImageRoot?: string;
+  promptDirectory?: string;
 }
 // biome-ignore lint/complexity/noExcessiveLinesPerFunction: the explicit port list keeps each authority visible at assembly.
 function createConversationPorts(
@@ -198,6 +201,8 @@ function assembleVaultCore(services: CoreServices): VaultCore {
 
 // biome-ignore lint/complexity/noExcessiveLinesPerFunction: composition remains one explicit authority wiring boundary.
 export async function createVaultCore(options: VaultCoreOptions): Promise<VaultCore> {
+  const promptDirectory = resolve(options.promptDirectory ?? "prompts");
+  configurePromptDirectory(promptDirectory);
   const scope = await WorkspaceScope.create(resolve(options.workspaceDir));
   const workspaceRoot = scope.root;
   const catalog = openWorkspaceCatalog(workspaceRoot, {
@@ -244,6 +249,7 @@ export async function createVaultCore(options: VaultCoreOptions): Promise<VaultC
           ),
           audit,
           agentSessionCapacity,
+          new PromptLibrary(promptDirectory),
         );
   const restoredSessionId = conversations.mostRecentSessionId();
   if (agent !== undefined && restoredSessionId !== undefined) {

@@ -21,18 +21,12 @@ import { historyForSession } from "./history.js";
 import { AgentInputResolver } from "./inputs.js";
 import { AGENT_MODEL_ID, AGENT_WORKER_LIMITS } from "./limits.js";
 import { AgentLoop } from "./loop.js";
+import { defaultPromptLibrary, type PromptLibrary } from "./prompt-library.js";
 import { AgentRunCapacity } from "./run-capacity.js";
+import type { ActiveRun } from "./service-active.js";
 import { agentFailureEvent, agentFailureText, tokenRate } from "./service-results.js";
 import { AgentSessionManager } from "./session-manager.js";
 import type { AgentStore } from "./store.js";
-
-interface ActiveRun {
-  controller: AbortController;
-  finished: Promise<void>;
-  runId: string;
-  sessionId: string;
-  thinking: string | null;
-}
 
 export class AgentService {
   private readonly active = new Map<string, ActiveRun>();
@@ -52,6 +46,7 @@ export class AgentService {
     launcher: CodeAgentLauncher,
     private readonly audit: AuditLog,
     maximumConcurrentRuns = 1,
+    private readonly promptLibrary: PromptLibrary = defaultPromptLibrary(),
   ) {
     this.sessions = new AgentSessionManager(
       launcher,
@@ -229,6 +224,7 @@ export class AgentService {
         modelId: AGENT_MODEL_ID,
         inputNames: this.store.listAttachments(run.sessionId).map((item) => item.name),
         history,
+        promptLibrary: this.promptLibrary,
         signal,
         onThinking: (thinking) => {
           const active = this.active.get(run.jobId);

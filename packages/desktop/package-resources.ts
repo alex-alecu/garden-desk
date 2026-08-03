@@ -1,7 +1,7 @@
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { constants, createReadStream } from "node:fs";
-import { chmod, copyFile, mkdir, readFile, stat, writeFile } from "node:fs/promises";
+import { chmod, copyFile, cp, mkdir, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -263,6 +263,9 @@ export async function installResources(
   identity: { executableSha256: string; signingMode: string },
   targetTriple: string,
 ): Promise<ResourceHashes> {
+  const promptResources = join(resourcesRoot, "prompts");
+  await rm(promptResources, { force: true, recursive: true });
+  await cp(join(repositoryRoot, "prompts"), promptResources, { recursive: true });
   const migrations: Record<string, string> = {};
   for (const name of packagedMigrationNames) {
     const source = join(repositoryRoot, "packages/core/src/workspace/migrations", name);
