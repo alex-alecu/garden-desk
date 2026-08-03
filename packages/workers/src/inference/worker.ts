@@ -1,5 +1,7 @@
+import { totalmem } from "node:os";
 import type {
   EmbeddingRequest,
+  GenerationContextLimitReason,
   InferenceWorkerMessage,
   InferenceWorkerRequest,
   InferenceWorkerResponse,
@@ -22,9 +24,11 @@ import {
 import {
   combinedAllocationBytes,
   fitCombinedGenerationContext,
+  resolveGenerationContextLimit,
   resolveGenerationContextSize,
   resolveRuntimeMemoryBudget,
 } from "./memory.js";
+import { memoryReport } from "./memory-report.js";
 import { probe } from "./probe.js";
 import { loadLlamaRuntime } from "./runtime-loader.js";
 import { structuredValue } from "./structured.js";
@@ -39,7 +43,7 @@ function argument(name: string): string | undefined {
 function failure(requestId: RequestId, error: unknown): InferenceWorkerResponse {
   const text = error instanceof Error ? error.message : String(error);
   const code =
-    text === "supported_gpu_required"
+    text === "supported_gpu_required" || text === "context_size_exceeds_hardware_cap"
       ? "unsupported"
       : /memory|allocation|out of memory/iu.test(text)
         ? "out_of_memory"
@@ -82,23 +86,14 @@ interface LoadedRuntime {
   generation?: {
     requestedContextSize: StructuredGenerationRequest["contextSize"];
     contextSize: number;
+    contextLimitTokens: number;
+    contextLimitReason: GenerationContextLimitReason;
     session: LlamaChatSession;
   };
   embedding?: { contextSize: number; context: LlamaEmbeddingContext };
 }
 
 let loadedRuntime: Promise<LoadedRuntime> | undefined;
-
-async function memoryReport(runtime: LoadedRuntime, contextSizeTokens: number) {
-  const memory = await runtime.llama.getLlamaMemoryUsage();
-  return {
-    cpuRamBytes: memory.cpuRam,
-    gpuVramBytes: memory.gpuVram,
-    budgetBytes: runtime.budget,
-    detectedGpuVramBytes: runtime.detectedGpuVramBytes,
-    contextSizeTokens,
-  };
-}
 
 async function runtime(operation: "generate" | "embed"): Promise<LoadedRuntime> {
   loadedRuntime ??= (async () => {
@@ -126,11 +121,15 @@ async function runtime(operation: "generate" | "embed"): Promise<LoadedRuntime> 
   return loadedRuntime;
 }
 
-async function automaticMacContextSize(runtime: LoadedRuntime): Promise<number> {
+async function automaticMacContextSize(
+  runtime: LoadedRuntime,
+  maximumContextSize: number,
+): Promise<number> {
   const modelMemory = await runtime.llama.getLlamaMemoryUsage();
   return fitCombinedGenerationContext(
     runtime.budget,
     { cpuRamBytes: modelMemory.cpuRam, gpuVramBytes: modelMemory.gpuVram },
+    maximumContextSize,
     async (contextSize) => {
       const estimate = await runtime.model.fileInsights.estimateContextResourceRequirementsV2({
         contextSize,
@@ -148,10 +147,15 @@ async function createGenerationContext(
   request: StructuredGenerationRequest,
   runtime: LoadedRuntime,
 ) {
+  const contextLimit = resolveGenerationContextLimit(
+    process.platform,
+    totalmem(),
+    runtime.detectedGpuVramBytes,
+  );
   const contextSize =
     request.contextSize === "auto" && process.platform === "darwin"
-      ? await automaticMacContextSize(runtime)
-      : resolveGenerationContextSize(request.contextSize);
+      ? await automaticMacContextSize(runtime, contextLimit.maximumContextTokens)
+      : resolveGenerationContextSize(request.contextSize, contextLimit.maximumContextTokens);
   const context = await runtime.model.createContext({ contextSize });
   if (process.platform === "darwin") {
     const memory = await runtime.llama.getLlamaMemoryUsage();
@@ -163,16 +167,18 @@ async function createGenerationContext(
       throw new Error("combined_memory_budget_exceeded");
     }
   }
-  return context;
+  return { context, contextLimit };
 }
 
 async function generationSession(request: StructuredGenerationRequest, runtime: LoadedRuntime) {
   if (runtime.generation === undefined) {
     const { Gemma4ChatWrapper, LlamaChatSession } = await import("node-llama-cpp");
-    const context = await createGenerationContext(request, runtime);
+    const { context, contextLimit } = await createGenerationContext(request, runtime);
     runtime.generation = {
       requestedContextSize: request.contextSize,
       contextSize: context.contextSize,
+      contextLimitTokens: contextLimit.maximumContextTokens,
+      contextLimitReason: contextLimit.reason,
       session: new LlamaChatSession({
         contextSequence: context.getSequence(),
         ...(request.modelId.startsWith("gemma-4")
@@ -185,7 +191,7 @@ async function generationSession(request: StructuredGenerationRequest, runtime: 
     throw new Error("worker_context_size_change_unsupported");
   }
   runtime.generation.session.resetChatHistory();
-  return runtime.generation.session;
+  return runtime.generation;
 }
 
 function performanceReport(input: {
@@ -210,7 +216,8 @@ async function generate(
   runtime: LoadedRuntime,
   emit: (message: InferenceWorkerMessage) => void,
 ): Promise<InferenceWorkerResponse> {
-  const session = await generationSession(request, runtime);
+  const generation = await generationSession(request, runtime);
+  const { session } = generation;
   const initialMeter = session.sequence.tokenMeter.getState();
   const startedAt = performance.now();
   let firstTokenAt: number | undefined;
@@ -240,7 +247,10 @@ async function generate(
     status: "ok",
     operation: "generate",
     value,
-    memory: await memoryReport(runtime, session.sequence.contextSize),
+    memory: await memoryReport(runtime, session.sequence.contextSize, {
+      tokens: generation.contextLimitTokens,
+      reason: generation.contextLimitReason,
+    }),
     performance: performanceReport({
       initial: initialMeter,
       final: finalMeter,

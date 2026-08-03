@@ -96,6 +96,12 @@ For an ordinary implementation pull request:
 
 Run `pnpm test:gate --milestone <n>` only when claiming that milestone's gate is complete. Missing required hardware, models, workers, or packages must be reported as failures or not-run prerequisites, never silent skips.
 
+Windows desktop authority changes require separate standard-user evidence for development and the staged production application: the main executable must remain `asInvoker`, only the fixed setup helper may request UAC, a different credentialed administrator must still add the requesting account, a new sign-in must activate HCS access, and tampered setup bytes must be rejected. macOS evidence must independently prove that no Windows helper, administrator prompt, or elevated launch was introduced.
+
+Windows `desktop:dev` keeps Vite frontend hot reload but passes `--no-watch` to Tauri because NTFS access notifications can otherwise be misclassified as Rust source edits and cause a rebuild loop. Restart the development command after changing Rust desktop-host code. macOS retains Tauri's normal Rust watcher.
+
+Windows development signing uses the disposable current-user identity. A public production build sets `VAULT_WINDOWS_SIGNING_MODE=production` and `VAULT_WINDOWS_SIGNING_CERTIFICATE_THUMBPRINT` to an owner-controlled code-signing certificate in the current-user certificate store; an optional `VAULT_WINDOWS_SIGNING_TIMESTAMP_URL` enables the configured timestamp service. Production mode fails closed when the certificate is missing, lacks its private key, or does not match the requested thumbprint. The recorded signing mode includes that public thumbprint.
+
 ### Verification Report
 
 ```markdown

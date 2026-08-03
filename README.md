@@ -46,10 +46,9 @@ To run the desktop locally:
    pnpm desktop:dev
    ```
 
-   On Windows, run this command from a PowerShell terminal opened with **Run as administrator**. The
-   preflight rejects a standard-user terminal before Cargo starts instead of trying to transfer a
-   long-lived dev process through UAC. The Windows Rust watcher is disabled to prevent privileged
-   host restart loops; Vite still reloads frontend edits. Restart after changing native Rust code.
+   On Windows Pro or Enterprise, Hyper-V must already be enabled. The first launch explains and requests one administrator-approved change that adds the current user to Hyper-V Administrators; sign out and back in once afterward. Vault Desk and later development launches remain non-elevated. macOS requires no administrator setup and continues to launch as the current user.
+
+   On Windows, Vite continues to reload frontend changes while `desktop:dev` disables Tauri's Rust file watcher. Some Windows filesystems report source-file reads as access changes, which Tauri can mistake for edits and restart forever. Restart `desktop:dev` after changing Rust desktop-host code. macOS keeps Tauri's normal Rust watcher.
 
 ## Public website
 
@@ -75,7 +74,7 @@ On Apple silicon, Vault Desk uses Apple's **Virtualization.framework**. It provi
 
 ### Windows
 
-On Windows Pro and Enterprise, Vault Desk uses **HCS and Hyper-V** utility VMs. These are the platform-native isolation and lifecycle primitives. A read-only **Plan9** share exposes the selected folder, and a fixed **Hyper-V socket** carries typed messages without adding a network adapter or general network path.
+On Windows Pro and Enterprise with Hyper-V already enabled, Vault Desk uses **HCS and Hyper-V** utility VMs. These are the platform-native isolation and lifecycle primitives. A read-only **Plan9** share exposes the selected folder, and a fixed **Hyper-V socket** carries typed messages without adding a network adapter or general network path. A signed Windows-only helper elevates once to add the requesting user to Hyper-V Administrators; the application and Vault Core then run as that standard user without recurring UAC. This standing group membership gives every process under that Windows account Hyper-V management authority. Vault Desk does not enable or download Windows features.
 
 ## Project status
 

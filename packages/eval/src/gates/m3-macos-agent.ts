@@ -1,9 +1,9 @@
 import { mkdir, mkdtemp, rm, stat, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { tmpdir, totalmem } from "node:os";
 import { basename, join } from "node:path";
 import { createVaultCore, resolveInferenceHardwarePolicy } from "@vault/core";
 import type { AgentRunSnapshot } from "@vault/shared";
-import { MacOsMicroVmLauncher } from "@vault/workers";
+import { MacOsMicroVmLauncher, resolveMaximumGenerationContext } from "@vault/workers";
 import { readCanonicalModelManifest, verifyModelFile } from "../models.js";
 import { runGuestEvidence } from "./m3-guest.js";
 
@@ -115,12 +115,14 @@ function maximumVmOverlap(snapshots: AgentRunSnapshot[], observedAt: number): nu
 async function automaticModelEvidence(core: Awaited<ReturnType<typeof createVaultCore>>) {
   const model = await core.modelStatus();
   const policy = resolveInferenceHardwarePolicy("auto");
+  const maximumContextSize = resolveMaximumGenerationContext(process.platform, totalmem(), 0);
   if (
     !policy.supported ||
     model.state !== "ready" ||
     model.memoryBudgetBytes !== policy.memoryBudgetBytes ||
     (model.cpuRamBytes ?? 0) + (model.gpuVramBytes ?? 0) > policy.memoryBudgetBytes ||
-    (model.contextSizeTokens ?? 0) <= 8_192
+    (model.contextSizeTokens ?? 0) <= 8_192 ||
+    (model.contextSizeTokens ?? 0) > maximumContextSize
   ) {
     throw new Error(`Automatic model memory or context proof failed: ${JSON.stringify(model)}`);
   }

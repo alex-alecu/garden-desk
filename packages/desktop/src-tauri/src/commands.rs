@@ -231,6 +231,7 @@ pub(crate) async fn start_agent(
     session_id: String,
     task: String,
 ) -> Result<Value, String> {
+    crate::windows_setup::require_ready()?;
     core.call(
         "agent.start",
         json!({ "sessionId": session_id, "task": task }),

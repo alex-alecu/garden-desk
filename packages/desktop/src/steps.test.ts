@@ -120,7 +120,7 @@ function trace(executionSequence: number | null) {
         modelId: "gemma-4-12b-it-qat-q4_0",
         contextSize: "auto",
         maxTokens: 32_768,
-        allocatedContextTokens: 262_144,
+        allocatedContextTokens: 131_072,
         promptHash: `sha256:${"a".repeat(64)}`,
         schemaHash: `sha256:${"b".repeat(64)}`,
         responseHash: `sha256:${"c".repeat(64)}`,

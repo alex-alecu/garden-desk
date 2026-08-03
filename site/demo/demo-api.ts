@@ -52,6 +52,17 @@ export class DemoDesktopApi implements DesktopApi {
     };
   }
 
+  async getSecureWorkspaceStatus() {
+    return { state: "ready" as const };
+  }
+
+  async configureSecureWorkspace() {
+    return {
+      outcome: "not_needed" as const,
+      status: { state: "ready" as const },
+    };
+  }
+
   async getModelStatus() {
     return {
       modelId: "public-demo",

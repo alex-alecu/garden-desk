@@ -1,5 +1,6 @@
 import { spawnSync } from "node:child_process";
 import { join } from "node:path";
+import { windowsSigningConfiguration } from "./src/windows-signing-mode.js";
 
 function run(command: string, args: string[], env?: NodeJS.ProcessEnv): void {
   const result = spawnSync(command, args, { encoding: "utf8", env, stdio: "pipe" });
@@ -28,7 +29,7 @@ export function stripWindowsSignature(executable: string): void {
   });
 }
 
-function signWindows(executable: string): string {
+function signWindowsDevelopment(executable: string): string {
   const powerShell = windowsPowerShell();
   const script =
     "$p=$env:VAULT_SIGN_PATH;$c=$null;try{$c=New-SelfSignedCertificate -Subject 'CN=Vault Desk M3 Development' -Type CodeSigningCert -CertStoreLocation Cert:\\CurrentUser\\My;Set-AuthenticodeSignature -FilePath $p -Certificate $c | Out-Null;$s=Get-AuthenticodeSignature -FilePath $p;$ok=$null -ne $s.SignerCertificate -and $s.Status -ne 'HashMismatch' -and $s.Status -ne 'NotSigned'}finally{if($null -ne $c){Remove-Item ('Cert:\\CurrentUser\\My\\'+$c.Thumbprint)}};if(-not $ok){exit 1}";
@@ -38,6 +39,35 @@ function signWindows(executable: string): string {
     VAULT_SIGN_PATH: executable,
   });
   return "windows-ephemeral-self-signed";
+}
+
+function signWindowsProduction(
+  executable: string,
+  certificateThumbprint: string,
+  timestampUrl?: string,
+): string {
+  const powerShell = windowsPowerShell();
+  const script =
+    "$p=$env:VAULT_SIGN_PATH;$t=$env:VAULT_SIGN_THUMBPRINT;$c=Get-Item ('Cert:\\CurrentUser\\My\\'+$t) -ErrorAction Stop;if(-not $c.HasPrivateKey){exit 1};$a=@{FilePath=$p;Certificate=$c;HashAlgorithm='SHA256'};if(-not [string]::IsNullOrWhiteSpace($env:VAULT_SIGN_TIMESTAMP)){$a.TimestampServer=$env:VAULT_SIGN_TIMESTAMP};Set-AuthenticodeSignature @a | Out-Null;$s=Get-AuthenticodeSignature -FilePath $p;$actual=$s.SignerCertificate.Thumbprint.Replace(' ','').ToUpperInvariant();$ok=$actual -eq $t -and $s.Status -ne 'HashMismatch' -and $s.Status -ne 'NotSigned';if(-not $ok){exit 1}";
+  run(powerShell.executable, ["-NoProfile", "-NonInteractive", "-Command", script], {
+    ...process.env,
+    PSModulePath: powerShell.modulePath,
+    VAULT_SIGN_PATH: executable,
+    VAULT_SIGN_THUMBPRINT: certificateThumbprint,
+    ...(timestampUrl === undefined ? {} : { VAULT_SIGN_TIMESTAMP: timestampUrl }),
+  });
+  return `windows-certificate-${certificateThumbprint}`;
+}
+
+function signWindows(executable: string): string {
+  const configuration = windowsSigningConfiguration(process.env);
+  return configuration.mode === "development"
+    ? signWindowsDevelopment(executable)
+    : signWindowsProduction(
+        executable,
+        configuration.certificateThumbprint,
+        configuration.timestampUrl,
+      );
 }
 
 export function signExecutable(executable: string): string {

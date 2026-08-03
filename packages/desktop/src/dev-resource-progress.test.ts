@@ -9,5 +9,8 @@ describe("desktop development resource progress", () => {
     expect(developmentResourceStageMessage("manifest")).toBe(
       "[Vault Desk startup] Hashing and recording the complete offline resource package...",
     );
+    expect(developmentResourceStageMessage("windowsPermissionSetup")).toBe(
+      "[Vault Desk startup] Building the one-time Windows permission helper...",
+    );
   });
 });

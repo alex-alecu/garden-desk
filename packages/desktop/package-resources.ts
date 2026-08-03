@@ -11,7 +11,9 @@ import { writePackageCompliance, writePackageIdentity } from "./package-complian
 import { copyRuntimePackage } from "./runtime-packages.js";
 import { reportDevelopmentResourceStage } from "./src/dev-resource-progress.js";
 import { packagedMigrationNames } from "./src/package-resource-contract.js";
+import type { ResourceHashes } from "./src/resource-hashes.js";
 import { installWindowsCudaAssets } from "./windows-runtime-assets.js";
+import { installWindowsSetupHelper } from "./windows-setup-resource.js";
 
 const desktopRoot = fileURLToPath(new URL(".", import.meta.url));
 const repositoryRoot = resolve(desktopRoot, "../..");
@@ -19,22 +21,8 @@ const resourcesRoot = join(desktopRoot, "src-tauri", "resources", "core");
 const inferenceRoot = join(resourcesRoot, "inference");
 const workerResourcesRoot = join(resourcesRoot, "workers");
 const modelResourcesRoot = join(resourcesRoot, "models");
-export interface ResourceHashes {
-  migrations: Record<string, string>;
-  windowsPipeGuard?: string;
-  inferenceHelper?: string;
-  inferenceHelperSignature?: string;
-  inferenceRuntime?: string;
-  inferenceRuntimeSignature?: string;
-  inferenceWorker?: string;
-  cudaAssets?: Record<string, string>;
-  agentHelper?: string;
-  agentHelperSignature?: string;
-  agentKernel?: string;
-  agentInitramfs?: string;
-  generationModel?: string;
-  resourceManifest?: string;
-}
+
+export type { ResourceHashes } from "./src/resource-hashes.js";
 
 function run(command: string, args: string[]): void {
   const result = spawnSync(command, args, { encoding: "utf8", stdio: "pipe" });
@@ -245,7 +233,15 @@ async function installProductResources(): Promise<Omit<ResourceHashes, "migratio
   return {
     ...(await installInferenceResources()),
     ...(process.platform === "win32"
-      ? await installWindowsAgentResources()
+      ? {
+          ...(await installWindowsSetupHelper({
+            build: () => runPnpm(["desktop:windows-hyper-v-setup:build"]),
+            repositoryRoot,
+            resourcesRoot,
+            sha256,
+          })),
+          ...(await installWindowsAgentResources()),
+        }
       : await installMacAgentResources()),
     ...(await installModelResources()),
   };

@@ -9,6 +9,7 @@ import { Confirmation, type ConfirmationRequest } from "./components/confirmatio
 import { Conversation } from "./components/conversation.js";
 import { DropOverlay } from "./components/drop-overlay.js";
 import { GuidedExamples } from "./components/guided-examples.js";
+import { SecureWorkspaceBanner } from "./components/secure-workspace-banner.js";
 import { TechnicalDetails } from "./components/technical-details.js";
 import { useContinuationQuestion } from "./continuation.js";
 import { attach, openAttachment, remove, selectSession, send } from "./desktop-actions.js";
@@ -16,9 +17,11 @@ import { type DropIntent, useNativeDrop } from "./desktop-drop.js";
 import { initialModelStatus, useModelRefresh } from "./desktop-model.js";
 import { useDraftPersistence } from "./draft-persistence.js";
 import { type DesktopBootstrapRequest, desktopBootstrapRequest } from "./startup.js";
+import { secureWorkspaceAllowsTasks } from "./secure-workspace.js";
 import { desktopReducer, initialDesktopState } from "./state.js";
 import { selectStep } from "./step-selection.js";
 import { activeThinkingStepId, agentSteps } from "./steps.js";
+import { useSecureWorkspace } from "./use-secure-workspace.js";
 // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: this is the single view-composition boundary for explicit desktop capabilities.
 // biome-ignore lint/complexity/noExcessiveLinesPerFunction: this is the single view-composition boundary; workflow logic remains in the small helpers above.
 export function App({ api, capabilities }: { api: DesktopApi; capabilities: DesktopCapabilities }) {
@@ -31,6 +34,7 @@ export function App({ api, capabilities }: { api: DesktopApi; capabilities: Desk
   const [dropIntent, setDropIntent] = useState<DropIntent>();
   const [model, setModel] = useState(initialModelStatus);
   const bootstrap = useRef<DesktopBootstrapRequest | undefined>(undefined);
+  const secureWorkspace = useSecureWorkspace(api, setConfirmation, setDesktopError);
   useEffect(() => {
     bootstrap.current = desktopBootstrapRequest(api, bootstrap.current);
     let active = true;
@@ -64,6 +68,7 @@ export function App({ api, capabilities }: { api: DesktopApi; capabilities: Desk
   )?.name;
   const running =
     submitting || state.activeRun?.state === "queued" || state.activeRun?.state === "running";
+  const tasksAllowed = secureWorkspaceAllowsTasks(secureWorkspace.status);
   const draftPersistence = useDraftPersistence(api, setDesktopError);
   useNativeDrop({
     api,
@@ -79,6 +84,10 @@ export function App({ api, capabilities }: { api: DesktopApi; capabilities: Desk
     setError: setDesktopError,
   });
   const runTask = (text: string) => {
+    if (!tasksAllowed) {
+      setDesktopError("Set up the secure workspace before starting a new task.");
+      return;
+    }
     draftPersistence.cancel();
     void send({
       api,
@@ -142,8 +151,13 @@ export function App({ api, capabilities }: { api: DesktopApi; capabilities: Desk
               .catch(() => setDesktopError("The model could not be unloaded."));
           }}
         />
+        <SecureWorkspaceBanner
+          busy={secureWorkspace.busy}
+          onSetup={secureWorkspace.showSetup}
+          status={secureWorkspace.status}
+        />
         <GuidedExamples
-          disabled={!state.loaded || running}
+          disabled={!state.loaded || running || !tasksAllowed}
           examples={capabilities.guidedExamples ?? []}
           onRun={runTask}
         />
@@ -189,7 +203,7 @@ export function App({ api, capabilities }: { api: DesktopApi; capabilities: Desk
           )}
           dropActive={dropIntent === "files" || dropIntent === "mixed"}
           draft={state.draft}
-          disabled={!state.loaded || model.state === "unsupported"}
+          disabled={!state.loaded || model.state === "unsupported" || !tasksAllowed}
           nativeActionMessage={nativeUnavailable}
           onAttach={() =>
             void attach({

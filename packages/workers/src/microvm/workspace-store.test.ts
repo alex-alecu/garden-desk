@@ -1,5 +1,5 @@
 import { createHash, randomUUID } from "node:crypto";
-import { mkdtemp, rm, stat, symlink, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, rm, stat, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -151,11 +151,12 @@ describe("agent workspace blob integrity", () => {
     const bytes = Buffer.from("outside");
     const contentHash = createHash("sha256").update(bytes).digest("hex");
     await store.commit(sessionId, [file("result.txt", bytes)]);
-    const outside = join(root, "outside.txt");
+    const outside = join(root, process.platform === "win32" ? "outside" : "outside.txt");
     const blob = join(root, "blobs", contentHash);
-    await writeFile(outside, bytes);
+    if (process.platform === "win32") await mkdir(outside);
+    else await writeFile(outside, bytes);
     await rm(blob);
-    await symlink(outside, blob);
+    await symlink(outside, blob, process.platform === "win32" ? "junction" : "file");
 
     await expect(store.load(sessionId)).rejects.toThrow("workspace_blob_invalid");
   });

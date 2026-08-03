@@ -16,7 +16,7 @@ describe("model hardware status", () => {
           memoryBudgetBytes: 16 * 1024 ** 3,
           cpuRamBytes: 1024 ** 3,
           gpuVramBytes: 11.5 * 1024 ** 3,
-          contextSizeTokens: 262_144,
+          contextSizeTokens: 131_072,
         }}
         onAppearanceChange={() => undefined}
         onTechnicalDetailsOpen={() => undefined}
@@ -29,7 +29,7 @@ describe("model hardware status", () => {
     expect(markup).not.toContain("model-usage");
     expect(markup).not.toContain("16.0 GiB budget");
     expect(markup).not.toContain("12.5 GiB allocated");
-    expect(markup).not.toContain("256K context");
+    expect(markup).not.toContain("128K context");
     expect(markup).not.toContain("VRAM");
   });
 });

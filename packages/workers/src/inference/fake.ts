@@ -6,7 +6,9 @@ function memoryReport(request: { contextSize: number | "auto" }, budgetBytes: nu
     gpuVramBytes: 2048,
     budgetBytes,
     detectedGpuVramBytes: budgetBytes,
-    contextSizeTokens: request.contextSize === "auto" ? 262_144 : request.contextSize,
+    contextSizeTokens: request.contextSize === "auto" ? 65_536 : request.contextSize,
+    contextLimitTokens: 65_536,
+    contextLimitReason: "certified_standard" as const,
   };
 }
 

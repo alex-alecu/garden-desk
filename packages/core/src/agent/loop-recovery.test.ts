@@ -70,14 +70,14 @@ describe("AgentLoop structured retry prompts", () => {
       inference: performance,
       rejectedDuplicates: 0,
     };
-    const previous = generationInput(input, progress, false, { contextTokens: 262_144 });
+    const previous = generationInput(input, progress, false, { contextTokens: 131_072 });
 
     const retry = structuredRetryInput({
       input,
       progress,
       finalResponse: false,
       previous,
-      contextTokens: 262_144,
+      contextTokens: 131_072,
     });
 
     expect(retry.maxTokens).toBe(previous.maxTokens);

@@ -49,6 +49,8 @@ Vault Core is a separate Node.js/TypeScript process and the sole product authori
 
 Unit tests may use the programmatic facade, but every desktop capability also crosses the daemon protocol. macOS uses a Unix domain socket; Windows uses the protected current-user named pipe. Desktop mode has no TCP listener.
 
+The desktop and Vault Core run without administrator privileges on both platforms. Windows HCS requires either an administrator or Hyper-V Administrators account, so a signed Windows-only setup helper may elevate once, identify the requesting account from the non-elevated desktop process token, and add only that account to the built-in Hyper-V Administrators group. After the next Windows sign-in, the ordinary desktop token owns HCS lifecycle and the fixed Hyper-V socket admits that group. macOS retains its existing current-user Virtualization.framework path and has no administrator setup helper or prompt.
+
 ## Agent MicroVM
 
 Each agent session starts or reuses one microVM under ADR 0012. Only one execution runs at a time per conversation, while independent conversations may overlap within the hardware-derived VM capacity. The VM configuration contains no virtual network adapter, DNS, route, NAT, bridge, or generic host proxy.
@@ -85,7 +87,7 @@ OpenCode informs interaction and loop design but is not a runtime dependency. A 
 
 The first runtime is node-llama-cpp with an approved hash-pinned local model. It remains host-native for Metal, CUDA, HIP, or Vulkan acceleration, but runs under an operating-system capability boundary with no external networking, credentials, shell, tools, arbitrary workspace access, or approval authority.
 
-The agent guest never connects directly to inference. Vault Core mediates each request, enforces model identity, schema, token and output limits, cancellation, memory budget, and audit. Concurrent conversations queue model turns through the same resident worker, so parallel guests never multiply the Gemma allocation. The packaged desktop selects the budget automatically: 10 GiB on Macs through 16 GB, 12 GiB through 24 GB, 16 GiB above 24 GB, and the complete runtime-reported GPU VRAM capacity on Windows. An 8 GB Mac exposes an unsupported status and cannot start agent inference. Within the selected budget, the worker fits the largest generation context from 8K through the model's 256K ceiling. macOS fitting accounts for combined model and context CPU-plus-GPU allocation and verifies the measured post-creation total. Windows reports detected VRAM separately from the applied cap. After a successful request, the worker process and approved model remain resident for the next turn. An idle-only typed unload command, a model switch, a contained failure, or Core shutdown terminates the complete worker; the operating system then reclaims the model and cached contexts as one process-scoped unit.
+The agent guest never connects directly to inference. Vault Core mediates each request, enforces model identity, schema, token and output limits, cancellation, memory budget, and audit. Concurrent conversations queue model turns through the same resident worker, so parallel guests never multiply the Gemma allocation. The packaged desktop selects the budget automatically: 10 GiB on Macs through 16 GB, 12 GiB through 24 GB, 16 GiB above 24 GB, and the complete runtime-reported GPU VRAM capacity on Windows. An 8 GB Mac exposes an unsupported status and cannot start agent inference. Within the selected budget, the worker fits the largest generation context from the 8K floor through a hardware cap: 64K on Macs through 32 GB unified memory and Windows GPUs through 24 GB VRAM, or 128K above those platform-specific thresholds. The higher Mac threshold preserves host memory because inference and the rest of the product share one pool. macOS fitting accounts for combined model and context CPU-plus-GPU allocation and verifies the measured post-creation total. Windows reports detected VRAM separately from the applied cap. After a successful request, the worker process and approved model remain resident for the next turn. An idle-only typed unload command, a model switch, a contained failure, or Core shutdown terminates the complete worker; the operating system then reclaims the model and cached contexts as one process-scoped unit.
 
 Gemma 4 reasoning is enabled through its supported chat wrapper. Only explicitly typed `thought` segments may cross the worker stream into bounded, transient active-run memory for live display. Those segments never enter the workspace database, conversation, agent event, or audit log. Token counts and timing measurements cross in the terminal typed response and are aggregated into persisted numeric run metrics.
 
@@ -111,7 +113,7 @@ Raw hidden model reasoning is never persisted. Supported typed thought segments 
 
 ## Packaging
 
-V1 packages the Tauri host, exact Vault Core sidecar, native helpers, approved model assets, and verified guest image. First launch performs zero downloads.
+V1 packages the Tauri host, exact Vault Core sidecar, native helpers, approved model assets, and verified guest image. First launch performs zero downloads. The Windows package alone contains the one-time Hyper-V membership helper; its signature and hash are recorded in the application-anchored resource manifest and verified before elevation. The macOS bundle excludes it.
 
 Platform packages verify identities, hashes, signatures, notices, SBOMs, current-user endpoint permissions, no-NIC VM configuration, model confinement, and restart behavior on physical macOS and Windows systems.
 
@@ -134,3 +136,4 @@ The same control-plane boundaries may later support supported personal computers
 | 2026-07-22 | Grouped sidebar creation actions under their Chats and Folders sections. |
 | 2026-07-22 | Added hardware-derived model-plus-context budgets, full Windows GPU VRAM use, automatic context fitting, and the unsupported 8 GB Mac state. |
 | 2026-07-25 | Added RAM-bounded parallel conversation guests and serialized model-turn reuse of one resident Gemma worker. |
+| 2026-08-01 | Capped automatic context at 64K through 32 GB Mac unified memory or 24 GB Windows VRAM and at 128K above those thresholds. |

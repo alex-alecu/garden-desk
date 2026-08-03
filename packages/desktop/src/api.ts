@@ -35,8 +35,25 @@ export interface DroppedPaths {
   folders: string[];
 }
 
+export type SecureWorkspaceState =
+  | "ready"
+  | "permission_required"
+  | "sign_out_required"
+  | "unavailable";
+
+export interface SecureWorkspaceStatus {
+  state: SecureWorkspaceState;
+}
+
+export interface SecureWorkspaceSetupResult {
+  outcome: "completed" | "existing_membership" | "cancelled" | "not_needed";
+  status: SecureWorkspaceStatus;
+}
+
 export interface DesktopApi {
   bootstrapDesktop(): Promise<DesktopBootstrap>;
+  getSecureWorkspaceStatus(): Promise<SecureWorkspaceStatus>;
+  configureSecureWorkspace(): Promise<SecureWorkspaceSetupResult>;
   getModelStatus(): Promise<ModelRuntimeStatus>;
   unloadModel(): Promise<boolean>;
   chooseFolder(): Promise<FolderSummary | undefined>;
