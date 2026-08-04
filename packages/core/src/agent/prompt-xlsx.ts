@@ -25,7 +25,7 @@ export function requiresXlsxWorkflow(
 ): boolean {
   return (
     (input.inputNames ?? []).some((name) => name.toLowerCase().endsWith(".xlsx")) ||
-    /\bexcel\b|\.xlsx?\b/iu.test(input.task) ||
+    /\b(?:excel|xlsx)\b|\.xlsx?\b/iu.test(input.task) ||
     discoveredXlsxForDataTask(input, executions)
   );
 }

@@ -1,0 +1,3 @@
+The last Python or Node program gated source candidates with a guessed extension allowlist, so Vault Desk rejected it before execution.
+
+Submit one fresh source-discovery-only Python or Node program of at most 40 lines now. Walk `/source`, attempt to read every ordinary file while handling unreadable or binary files as exceptions, inspect actual contents, and print the observed source evidence. Do not reuse `filename.endswith((...))`, a suffix set, or any other extension filter. Do not import workbook libraries, process XLSX files, create artifacts, or add checkpoint logic in this recovery; the next turn handles remaining workbook work.

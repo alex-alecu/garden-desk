@@ -30,6 +30,12 @@ describe("PromptLibrary discovery", () => {
     expect([...prompts.activeSkillNames(input)]).toEqual(["terminal-commands"]);
     expect(body).toContain("Confirm every executable, option, redirection, and pipeline stage");
     expect(body).toContain("empty output identifies no candidate");
+    expect(body).toContain(
+      "Do not restrict initial source discovery to a guessed extension allowlist",
+    );
+    expect(body).toContain("never gate candidates with `filename.endswith((...))`");
+    expect(body).toContain("switch to one short Python or Node source action");
+    expect(body).toContain("never invent a conventional path");
   });
 });
 
@@ -83,6 +89,56 @@ describe("PromptLibrary skill selection", () => {
         "---\nname: other-skill\ndescription: Guides a workflow. Use when needed.\n---\n# Skill",
       ),
     ).toThrow("Agent Skills contract");
+  });
+});
+
+describe("PromptLibrary invalid PDF validation", () => {
+  it("routes the task to clean-stop guidance", () => {
+    const prompts = library();
+    const input = {
+      task: "Validate every PDF and print INVALID_DOCUMENT_STOP=1 when parsing fails.",
+      inputNames: [],
+    };
+    const body = prompts.activeSkills(input, {
+      shell_command_character_limit: "4,096",
+      shell_path: "/bin/sh",
+      tool_capabilities: "find, grep",
+      workspace_path: "/workspace",
+    });
+
+    expect([...prompts.activeSkillNames(input)]).toEqual(["pdf-reading"]);
+    expect(body).toContain("print that exact marker to stdout");
+    expect(body).toContain("exit normally with code 0");
+    expect(body).toContain("do not repair the PDF, write an artifact");
+    expect(body).toContain("or execute again");
+  });
+});
+
+describe("PromptLibrary workbook aggregates", () => {
+  it("loads one cumulative amount contract", () => {
+    const prompts = library();
+    const input = { task: "Total matching amounts in every XLSX workbook.", inputNames: [] };
+    const body = prompts.activeSkills(input, {
+      shell_command_character_limit: "4,096",
+      shell_path: "/bin/sh",
+      tool_capabilities: "find, grep",
+      workspace_path: "/workspace",
+    });
+
+    expect([...prompts.activeSkillNames(input)]).toEqual(["xlsx-workbooks"]);
+    expect(body).toContain('filename.lower().endswith(".xlsx")');
+    expect(body).toContain('filename.endswith(".xlsx")` is invalid');
+    expect(body).toContain("immediately add that amount to one cumulative total");
+    expect(body).toContain(
+      "Never use a workbook count, worksheet count, row count, or match count",
+    );
+    expect(body).toContain("checkpoint, requested stdout labels, and any generated artifact");
+    expect(body).toContain("Never substitute corpus or match counts for an amount total");
+    expect(body).toContain("process it in one pass and do not create or load a checkpoint");
+    expect(body).toContain("do not build fragile `range(...)` expressions");
+    expect(body).toContain(
+      "compare the fresh case-insensitive corpus with the checkpointed corpus",
+    );
   });
 });
 

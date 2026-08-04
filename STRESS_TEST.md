@@ -10,28 +10,62 @@ Task-specific evaluations use an ignored TypeScript runner under `packages/eval/
 
 ## Latest results
 
-The latest run was performed on 2026-08-03 on physical Apple silicon against `main` at `58937a4` (`Centralize agent prompts and skills`). This is macOS evidence only; it does not establish current Windows behavior.
+The latest validation cycle was performed on 2026-08-03 on physical Apple silicon against `m3-stress-reliability` after the three reliability changes. This is macOS evidence only; it does not establish current Windows behavior.
 
 The realistic fixture contained 10 files: TypeScript, JSON, CSV, Markdown, two XLSX workbooks with 10,000 rows, two DOCX files with 16 pages, and an eight-page PDF. Five sessions were started together.
 
 | Suite or check | Result | Evidence | Failure or limit |
 |---|---|---|---|
-| Small stress suite | **LIMIT FOUND** | 6 of 8 cases passed. | Sequential XLSX-folder and invalid-PDF cases failed. |
+| Small stress suite | **PASS** | All 8 sequential and concurrent results passed twice consecutively. | None. |
 | Sequential PDF | **PASS** | `PDF_PAGES=12`; `PDF_CHECKSUM=1326`. | None. |
 | Sequential workbook | **PASS** | `XLSX_MATCHES=2`; `XLSX_TOTAL=2003`. | None. |
-| Sequential XLSX folder | **FAIL** | Found all 6 matches and all 3 workbooks. | Returned `XLSX_TOTAL=0.0` instead of `12009`; generated code found row amounts but never added them to the total. |
+| Sequential XLSX folder | **PASS** | `XLSX_MATCHES=6`; `XLSX_TOTAL=12009`; one execution in both final runs. | None. |
 | Sequential mixed folder | **PASS** | Exact XLSX and DOCX counts and checksums. | None. |
-| Invalid PDF | **FAIL** | Printed the requested stop token. | Incorrectly attempted repairs, executed four times, and ended in `agent_stalled_duplicate`. |
+| Invalid PDF | **PASS** | Printed `INVALID_DOCUMENT_STOP=1` in one successful execution with no repair or artifact. | None. |
 | Three concurrent cases | **PASS** | PDF, XLSX-folder, and mixed-folder cases passed with `maximumRunning: 3`. | None. |
-| Realistic skill suite | **LIMIT FOUND** | 3 of 5 cases passed across five simultaneously started sessions. | Terminal-only and combined terminal-plus-XLSX cases stalled. |
+| Realistic skill suite | **PASS** | All 5 cases passed twice consecutively across five simultaneously started sessions; audit valid. | None. |
 | Direct response; no skill | **PASS** | Returned a correct concise response with zero executions. | None. |
-| Terminal-only source discovery | **FAIL** | `terminal-commands` was active on every turn. | Emitted malformed or incomplete commands such as `grep, -r` and `grep -r `, then duplicate-stalled. |
+| Terminal-only source discovery | **PASS** | Located `/source/src/pricing-rules.ts` and returned `SURCHARGE_BPS=275` without guessed paths or duplicate stall. | None. |
 | Hidden-answer XLSX analysis | **PASS** | `XLSX_MATCHES=4`; `XLSX_TOTAL=6006.0`. | None. |
 | Attached-PDF analysis | **PASS** | `PDF_PAGES=8`; `PDF_CHECKSUM=612`. | None. |
-| Combined terminal and XLSX | **FAIL** | Both required skills were active. | Discovery omitted the real `.ts` file, guessed a nonexistent path, and duplicate-stalled before workbook analysis. |
-| Dynamic skill disclosure | **PASS** | Direct: none; terminal: `terminal-commands`; workbook: `xlsx-workbooks`; PDF: `pdf-reading`; combined: terminal plus XLSX. Unselected skill bodies remained unloaded. | Correct disclosure did not guarantee that Gemma followed the terminal guidance. |
+| Combined terminal and XLSX | **PASS** | Returned exact source evidence, `XLSX_MATCHES=4`, `XLSX_TOTAL=6006`, and `q2-audit.md` in both final runs. | None. |
+| Dynamic skill disclosure | **PASS** | Direct: none; terminal: `terminal-commands`; workbook: `xlsx-workbooks`; PDF: `pdf-reading`; combined: terminal plus XLSX. Unselected skill bodies remained unloaded. | None. |
 | Model and audit | **PASS** | Audit chain verified; model moved from `unloaded` to `ready`. | None. |
+| Scaled sequential | **PASS** | 100-page PDF, one-million-row workbook, 50 workbooks, and 50-file mixed workflow returned exact results. | Large workbook workflows required resumable recovery and exceeded the intended 75-second work window in individual executions. |
+| Scaled concurrent | **PASS** | Workbook, 50-workbook, and mixed workflows passed with `maximumRunning: 3`. | Large workflows used four to six executions and long-running batches. |
 | Canonical `pnpm test:m3:macos` gate | **CERTIFIED** | Real Python and Node artifacts, persistence, cancellation, limits, live read-only source, confinement, cleanup, two overlapping VM lifetimes, and the 131,072-token cap passed. | macOS evidence only. |
-| `pnpm verify` | **PASS** | Source limits, lint, type checking, 328 unit tests with one skip, two native tests, native helpers, desktop builds, and Rust checks passed. | None. |
+| `pnpm verify` | **PASS** | Source limits, lint, type checking, 335 unit tests with one skip, two native tests, native helpers, desktop builds, and Rust checks passed. | None. |
 
-The backend, daemon, model, guest isolation, audit, and canonical gate remained healthy. The stress result is still a limit rather than a pass because realistic terminal-command reliability and two bounded agent-loop behaviors were incorrect.
+The backend, daemon, model, guest isolation, audit, and canonical gate remained healthy. All four original reliability failures now pass. The final scaled suites also passed, while their long resumable executions remain reported separately rather than treated as proof of tighter work-window behavior.
+
+## Reliability fix validation
+
+### Source discovery recovery cycle — 2026-08-03
+
+- Focused loop and prompt tests passed: 16 tests across `loop-shell-recovery.test.ts` and `prompt-library.test.ts`.
+- `pnpm verify` passed with 331 unit tests, one skip, two native tests, desktop builds, native helpers, and Rust checks.
+- The realistic skill runner was repeated twice. Terminal-only passed both times. Combined source discovery also passed both times with `SOURCE_FILE=/source/src/pricing-rules.ts` and `SURCHARGE_BPS=275`, then reached workbook analysis without a guessed path or duplicate stall. The still-expected combined XLSX corpus/total limit remained for the aggregate-guidance commit. Reports: `packages/eval/.generated/stress/realistic-skills-2026-08-03T14-46-03.506Z.json` and `packages/eval/.generated/stress/realistic-skills-2026-08-03T14-50-38.346Z.json`.
+- The small suite preserved all previous passes, including all three concurrent cases with `maximumRunning=3`. Invalid PDF and sequential XLSX-folder totals remained the planned later failures. Report: `packages/eval/.generated/stress/small-2026-08-03T14-55-01.388Z.json`.
+- Scaled sequential and concurrent runs preserved the separately reported XLSX-folder aggregate limit; the one-million-row workbook and mixed 50-file workflow passed in both modes. Reports: `packages/eval/.generated/stress/scaled-sequential-2026-08-03T15-01-11.980Z.json` and `packages/eval/.generated/stress/scaled-concurrent-2026-08-03T15-16-33.806Z.json`.
+- `pnpm test:m3:macos` remained certified with real Python and Node artifacts, persistence, cancellation, limits, no-NIC confinement, cleanup, two overlapping VM lifetimes, and the 131,072-token context cap. This command emits terminal evidence rather than a JSON report.
+
+### Invalid PDF clean-stop cycle — 2026-08-03
+
+- Focused PDF routing and attachment prompt tests passed: 14 tests across `prompt-library.test.ts` and `loop-attachments.test.ts`.
+- `pnpm verify` passed with 332 unit tests, one skip, two native tests, desktop builds, native helpers, and Rust checks.
+- The realistic skill suite preserved the source-discovery fixes, PDF and XLSX-only passes, skill routing, and audit validity. Combined XLSX totals remained the planned aggregate-guidance failure. Report: `packages/eval/.generated/stress/realistic-skills-2026-08-03T15-31-01.178Z.json`.
+- The small suite was repeated twice. Invalid PDF passed both times with exactly one execution, `INVALID_DOCUMENT_STOP=1`, exit code 0, no repair, and no artifacts. `pypdf` emitted the bounded `EOF marker not found` parser diagnostic before the caught exception. The sequential XLSX-folder total remained the only small-suite failure; all previous and concurrent cases passed with `maximumRunning=3`. Reports: `packages/eval/.generated/stress/small-2026-08-03T15-36-30.587Z.json` and `packages/eval/.generated/stress/small-2026-08-03T15-42-36.222Z.json`.
+- Scaled sequential preserved the XLSX-folder aggregate limit while the one-million-row workbook and mixed workflow passed. Report: `packages/eval/.generated/stress/scaled-sequential-2026-08-03T15-48-39.833Z.json`.
+- The first scaled-concurrent run had a stochastic one-workbook total miss while the 50-file XLSX and mixed cases passed; the identical repeat restored the previous profile with workbook and mixed passes and only the known XLSX-folder aggregate limit. Reports: `packages/eval/.generated/stress/scaled-concurrent-2026-08-03T16-03-27.691Z.json` and `packages/eval/.generated/stress/scaled-concurrent-2026-08-03T16-13-52.846Z.json`.
+- `pnpm test:m3:macos` remained certified with real Python and Node artifacts, persistence, cancellation, limits, no-NIC confinement, cleanup, two overlapping VM lifetimes, and the 131,072-token context cap. This command emits terminal evidence rather than a JSON report.
+
+### Workbook aggregate and combined-workflow cycle — 2026-08-03
+
+- Focused XLSX, source-recovery, rejection, and prompt tests passed: 28 tests across `loop-xlsx.test.ts`, `loop-shell-recovery.test.ts`, `loop-source-recovery.test.ts`, and `prompt-library.test.ts`.
+- `pnpm verify` passed with 335 unit tests, one skip, two native tests, desktop builds, native helpers, and Rust checks.
+- The final realistic skill suite passed twice consecutively. Terminal-only and combined source discovery returned `/source/src/pricing-rules.ts` and `SURCHARGE_BPS=275`; XLSX-only and combined processing used the complete case-insensitive corpus; combined returned `XLSX_MATCHES=4`, `XLSX_TOTAL=6006`, and `q2-audit.md`. Both reports retained `maximumRunning=5`, correct skill routing, and a valid audit chain. Reports: `packages/eval/.generated/stress/realistic-skills-2026-08-03T17-29-39.052Z.json` and `packages/eval/.generated/stress/realistic-skills-2026-08-03T18-15-31.820Z.json`.
+- The final small suite passed twice consecutively. Sequential and concurrent XLSX-folder cases both returned `XLSX_MATCHES=6` and `XLSX_TOTAL=12009` in one execution; the one-workbook and mixed totals remained correct; invalid PDF still stopped cleanly in one execution; concurrent runs retained `maximumRunning=3`. Reports: `packages/eval/.generated/stress/small-2026-08-03T17-34-49.093Z.json` and `packages/eval/.generated/stress/small-2026-08-03T18-20-51.953Z.json`.
+- Scaled sequential passed the 100-page PDF, one-million-row workbook, 50-workbook, and mixed 50-file workflows. The workbook folder returned `XLSX_MATCHES=500` and `XLSX_TOTAL=12752750`; mixed returned `XLSX_MATCHES=200`, `XLSX_TOTAL=2101100`, `WORD_PAGES=3000`, and `WORD_CHECKSUM=46651500`. Report: `packages/eval/.generated/stress/scaled-sequential-2026-08-03T17-39-20.658Z.json`.
+- Scaled concurrent passed the one-million-row workbook, 50-workbook, and mixed workflows with `maximumRunning=3` and the same exact totals. The 50-workbook run used four executions and the mixed run used all six; long batches still exceeded the intended 75-second work window. Report: `packages/eval/.generated/stress/scaled-concurrent-2026-08-03T18-00-08.345Z.json`.
+- The non-qualifying iterations exposed and retained exact evidence for a case-sensitive uppercase-XLSX miss, overcomplicated small-corpus checkpoint repair, guessed source extension allowlists, and an overlong combined recovery. Reports: `packages/eval/.generated/stress/realistic-skills-2026-08-03T16-30-56.384Z.json`, `packages/eval/.generated/stress/small-2026-08-03T16-45-16.946Z.json`, `packages/eval/.generated/stress/realistic-skills-2026-08-03T17-01-57.566Z.json`, `packages/eval/.generated/stress/realistic-skills-2026-08-03T17-11-59.149Z.json`, and `packages/eval/.generated/stress/realistic-skills-2026-08-03T17-18-34.096Z.json`.
+- `pnpm test:m3:macos` remained certified with real Python and Node artifacts, persistence, cancellation, limits, no-NIC confinement, cleanup, two overlapping VM lifetimes, and the 131,072-token context cap. This command emits terminal evidence rather than a JSON report.

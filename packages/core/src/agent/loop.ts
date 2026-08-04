@@ -275,6 +275,7 @@ export class AgentLoop {
         decision,
         progress.executions,
         requiresXlsxWorkflow(input, progress.executions),
+        input.task,
       );
       if (rejection !== undefined) {
         consecutiveDuplicates = rejectExecution(input, progress, {

@@ -26,16 +26,29 @@ export interface PromptContentProgress {
   rejectedDuplicates: number;
 }
 
+function skillSelection(input: PromptContentInput, progress: PromptContentProgress) {
+  return {
+    task: input.task,
+    inputNames: input.inputNames ?? [],
+    requiredSkillNames: requiresXlsxWorkflow(input, progress.executions) ? ["xlsx-workbooks"] : [],
+  };
+}
+
+export function activePromptSkillNames(
+  input: PromptContentInput,
+  progress: PromptContentProgress,
+  library: PromptLibrary,
+): ReadonlySet<string> {
+  return library.activeSkillNames(skillSelection(input, progress));
+}
+
 export function systemPrompt(
   input: PromptContentInput,
   progress: PromptContentProgress,
   library: PromptLibrary,
 ): string {
-  const selection = {
-    task: input.task,
-    inputNames: input.inputNames ?? [],
-    requiredSkillNames: requiresXlsxWorkflow(input, progress.executions) ? ["xlsx-workbooks"] : [],
-  };
+  const selection = skillSelection(input, progress);
+  const activeNames = activePromptSkillNames(input, progress, library);
   return library.system("agent", {
     active_skills: library.activeSkills(selection, {
       shell_command_character_limit: SHELL_COMMAND_CHARACTER_LIMIT.toLocaleString("en-US"),
@@ -45,7 +58,7 @@ export function systemPrompt(
     }),
     max_generation_tokens: MAX_GENERATION_TOKENS.toLocaleString("en-US"),
     runtime_capabilities: RUNTIME_CAPABILITIES,
-    skill_catalog: library.skillCatalog(library.activeSkillNames(selection)),
+    skill_catalog: library.skillCatalog(activeNames),
   });
 }
 
