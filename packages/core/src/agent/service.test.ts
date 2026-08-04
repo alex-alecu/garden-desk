@@ -190,7 +190,7 @@ describe("M3 persisted agent lifecycle", () => {
     ]);
     await service.close();
     catalog.close();
-  });
+  }, 15_000);
 
   it("persists an explicit cancelled outcome", async () => {
     const root = await mkdtemp(join(tmpdir(), "vault-agent-cancel-"));

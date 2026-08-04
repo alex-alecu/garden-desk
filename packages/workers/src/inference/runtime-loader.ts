@@ -1,4 +1,5 @@
 import type { Llama, LlamaGpuType } from "node-llama-cpp";
+import { resolveDetectedGpuVramBytes } from "./memory.js";
 
 export const windowsGpuOrder: readonly LlamaGpuType[] = ["cuda", "vulkan"];
 
@@ -19,14 +20,34 @@ async function tryWindowsGpu(gpu: LlamaGpuType): Promise<Llama | undefined> {
   return undefined;
 }
 
-export async function loadLlamaRuntime(): Promise<Llama> {
+async function runtimeWithDedicatedVram(llama: Llama) {
+  try {
+    const [vram, gpuDeviceNames] = await Promise.all([
+      llama.getVramState(),
+      llama.getGpuDeviceNames(),
+    ]);
+    return {
+      llama,
+      detectedGpuVramBytes: resolveDetectedGpuVramBytes(
+        process.platform,
+        vram,
+        gpuDeviceNames.length,
+      ),
+    };
+  } catch (error) {
+    await llama.dispose();
+    throw error;
+  }
+}
+
+export async function loadLlamaRuntime() {
   if (process.platform === "win32") {
     for (const gpu of windowsGpuOrder) {
       const llama = await tryWindowsGpu(gpu);
-      if (llama !== undefined) return llama;
+      if (llama !== undefined) return await runtimeWithDedicatedVram(llama);
     }
     throw new Error("supported_gpu_required");
   }
   const { getLlama, LlamaLogLevel } = await import("node-llama-cpp");
-  return await getLlama({ logLevel: LlamaLogLevel.error });
+  return await runtimeWithDedicatedVram(await getLlama({ logLevel: LlamaLogLevel.error }));
 }

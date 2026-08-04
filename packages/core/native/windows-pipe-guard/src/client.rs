@@ -4,6 +4,7 @@ use std::error::Error;
 use std::ffi::OsStr;
 use std::io::{Read, Write};
 use std::ptr::null_mut;
+use std::time::Duration;
 
 const GENERIC_READ: u32 = 0x8000_0000;
 const GENERIC_WRITE: u32 = 0x4000_0000;
@@ -12,6 +13,7 @@ const OPEN_EXISTING: u32 = 3;
 const ERROR_BROKEN_PIPE: u32 = 109;
 const ERROR_NO_DATA: u32 = 232;
 const ERROR_PIPE_NOT_CONNECTED: u32 = 233;
+const ERROR_FILE_NOT_FOUND: u32 = 2;
 const ERROR_PIPE_BUSY: u32 = 231;
 const BUFFER_BYTES: usize = 65_536;
 
@@ -61,7 +63,12 @@ fn connect(endpoint: &str) -> Result<Handle, Box<dyn Error>> {
         if pipe != invalid_handle() {
             return Handle::new(pipe, "daemon pipe open");
         }
-        if unsafe { GetLastError() } != ERROR_PIPE_BUSY {
+        let error = unsafe { GetLastError() };
+        if error == ERROR_FILE_NOT_FOUND {
+            std::thread::sleep(Duration::from_millis(10));
+            continue;
+        }
+        if error != ERROR_PIPE_BUSY {
             return Err(last_error("daemon pipe open"));
         }
         unsafe { WaitNamedPipeW(endpoint.as_ptr(), 50) };
