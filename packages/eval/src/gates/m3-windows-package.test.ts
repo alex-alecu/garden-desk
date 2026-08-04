@@ -33,6 +33,7 @@ describe("M3 Windows package contract", () => {
       "vault-core.exe",
       "resource-manifest.json",
       "nativeRuntimePackages()",
+      "canonicalGenerationModelPath",
     ]) {
       expect(staging).toContain(value);
     }
@@ -46,6 +47,18 @@ describe("M3 Windows package contract", () => {
       "cublasLt64_13.dll",
       "NVIDIA-CUDA-LICENSE.txt",
     ]);
+  });
+});
+
+describe("M3 model package input", () => {
+  it("maps the canonical model directly into packaged resources", async () => {
+    const configuration = JSON.parse(
+      await readFile(join(process.cwd(), "packages/desktop/src-tauri/tauri.conf.json"), "utf8"),
+    ) as { bundle: { resources: Record<string, string> } };
+    expect(configuration.bundle.resources).toMatchObject({
+      "../../eval/.generated/models/gemma-4-12b-it-qat-q4_0.gguf":
+        "resources/core/models/gemma-4-12b-it-qat-q4_0.gguf",
+    });
   });
 });
 

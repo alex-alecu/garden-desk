@@ -4,7 +4,7 @@ import { developmentResourceStageMessage } from "./dev-resource-progress.js";
 describe("desktop development resource progress", () => {
   it("explains long-running offline startup stages", () => {
     expect(developmentResourceStageMessage("model")).toBe(
-      "[Vault Desk startup] Copying and hashing the 6.5 GiB local model...",
+      "[Vault Desk startup] Verifying the 6.5 GiB local model for packaging...",
     );
     expect(developmentResourceStageMessage("manifest")).toBe(
       "[Vault Desk startup] Hashing and recording the complete offline resource package...",

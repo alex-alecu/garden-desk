@@ -4,6 +4,10 @@ import { copyFile, mkdir, readdir, rm, stat, writeFile } from "node:fs/promises"
 import { basename, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { signExecutable } from "./build-signing.js";
+import {
+  canonicalGenerationModelPath,
+  packagedGenerationModelPath,
+} from "./src/package-model-contract.js";
 import { nativeRuntimePackages } from "./src/runtime-package-contract.js";
 
 const desktopRoot = fileURLToPath(new URL(".", import.meta.url));
@@ -72,6 +76,9 @@ export async function stageWindowsApplication(): Promise<void> {
   const applicationSigningMode = signExecutable(application);
   await copyFile(join(tauriRoot, "binaries", "vault-core-x86_64-pc-windows-msvc.exe"), sidecar);
   await copyTree(join(tauriRoot, "resources", "core"), join(packageRoot, "resources", "core"));
+  const packagedModel = packagedGenerationModelPath(join(packageRoot, "resources", "core"));
+  await mkdir(join(packageRoot, "resources", "core", "models"), { recursive: true });
+  await copyFile(canonicalGenerationModelPath(join(desktopRoot, "../..")), packagedModel);
   await mkdir(join(packageRoot, "assets", "fonts"), { recursive: true });
   await copyFile(
     join(desktopRoot, "..", "..", "assets", "fonts", "LICENSE.txt"),

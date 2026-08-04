@@ -1,6 +1,6 @@
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { constants, createReadStream } from "node:fs";
+import { createReadStream } from "node:fs";
 import { chmod, copyFile, cp, mkdir, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 import { join, resolve } from "node:path";
@@ -10,6 +10,7 @@ import { signExecutable } from "./build-signing.js";
 import { writePackageCompliance, writePackageIdentity } from "./package-compliance.js";
 import { copyRuntimePackage } from "./runtime-packages.js";
 import { reportDevelopmentResourceStage } from "./src/dev-resource-progress.js";
+import * as model from "./src/package-model-contract.js";
 import { packagedMigrationNames } from "./src/package-resource-contract.js";
 import type { ResourceHashes } from "./src/resource-hashes.js";
 import { installWindowsCudaAssets } from "./windows-runtime-assets.js";
@@ -197,20 +198,17 @@ async function installInferenceResources(): Promise<
 async function installModelResources(): Promise<Pick<ResourceHashes, "generationModel">> {
   reportDevelopmentResourceStage("model");
   await mkdir(modelResourcesRoot, { recursive: true });
-  const modelName = "gemma-4-12b-it-qat-q4_0.gguf";
-  const source = join(repositoryRoot, "packages/eval/.generated/models", modelName);
-  const destination = join(modelResourcesRoot, modelName);
-  await copyFile(source, destination, constants.COPYFILE_FICLONE);
-  const digest = await sha256(destination);
-  const size = (await stat(destination)).size;
+  const source = model.canonicalGenerationModelPath(repositoryRoot);
+  const digest = await sha256(source);
+  const size = (await stat(source)).size;
   await writeFile(
     join(modelResourcesRoot, "installed-models.json"),
     `${JSON.stringify({
       schemaVersion: 1,
       models: [
         {
-          modelId: "gemma-4-12b-it-qat-q4_0",
-          storeKey: modelName,
+          modelId: model.generationModelId,
+          storeKey: model.generationModelFileName,
           byteLength: size,
           sha256: digest,
           runtimeBuild: "node-llama-cpp@3.19.0",
@@ -286,6 +284,7 @@ export async function installResources(
     ? await writePackageCompliance(
         resourcesRoot,
         join(workerResourcesRoot, "images/agent/manifest.json"),
+        [model.generationModelPackageFile(repositoryRoot)],
       )
     : undefined;
   return {

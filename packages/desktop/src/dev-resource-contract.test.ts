@@ -15,6 +15,12 @@ describe("desktop development resource contract", () => {
     expect(contract.requiredOutputs.some((path) => path.includes("win-x64"))).toBe(false);
     expect(contract.inputRoots.some((path) => path.includes("windows-appcontainer"))).toBe(false);
     expect(contract.requiredOutputs.some((path) => path.includes("hyper-v-setup"))).toBe(false);
+    expect(contract.inputRoots.some((path) => path.endsWith("gemma-4-12b-it-qat-q4_0.gguf"))).toBe(
+      true,
+    );
+    expect(
+      contract.requiredOutputs.some((path) => path.endsWith("gemma-4-12b-it-qat-q4_0.gguf")),
+    ).toBe(false);
   });
 
   it("requires only Windows runtime outputs on Windows x64", () => {

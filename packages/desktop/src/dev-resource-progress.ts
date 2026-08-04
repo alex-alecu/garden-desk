@@ -9,7 +9,7 @@ const stageLabels = {
   cudaRuntime: "Verifying and copying the Windows CUDA runtime",
   agentHelper: "Building the no-network agent VM helper",
   agentImage: "Copying the no-network agent VM image",
-  model: "Copying and hashing the 6.5 GiB local model",
+  model: "Verifying the 6.5 GiB local model for packaging",
   manifest: "Hashing and recording the complete offline resource package",
 } as const;
 

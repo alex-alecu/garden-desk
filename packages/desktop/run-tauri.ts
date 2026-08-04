@@ -3,6 +3,16 @@ import { existsSync } from "node:fs";
 import { createRequire } from "node:module";
 import { homedir } from "node:os";
 import { delimiter, join } from "node:path";
+import { fileURLToPath } from "node:url";
+import {
+  cleanModelCopies,
+  cleanupDevelopmentModelOutput,
+  packageBuildTarget,
+  preparePackageBuild,
+  rollbackPackageBuild,
+} from "./package-output-cleanup.js";
+
+const desktopRoot = fileURLToPath(new URL(".", import.meta.url));
 
 function pathVariable(): string {
   return Object.keys(process.env).find((name) => name.toLowerCase() === "path") ?? "PATH";
@@ -34,18 +44,39 @@ if (
 ) {
   tauriArguments.push("--no-watch");
 }
+const packageTarget = packageBuildTarget(
+  desktopRoot,
+  process.platform,
+  process.arch,
+  tauriArguments,
+);
+const packageBackupCreated =
+  packageTarget === undefined ? false : await preparePackageBuild(packageTarget);
 const result = spawnSync(process.execPath, [tauriCli, ...tauriArguments], {
   env: { ...process.env, [pathName]: [rustBin, currentPath].filter(Boolean).join(delimiter) },
   stdio: "inherit",
 });
-if (result.error !== undefined) throw result.error;
-process.exitCode = result.status ?? 1;
-if (
-  process.exitCode === 0 &&
-  process.platform === "win32" &&
-  tauriArguments[0] === "build" &&
-  !tauriArguments.includes("--debug")
-) {
-  const { stageWindowsApplication } = await import("./stage-windows-application.js");
-  await stageWindowsApplication();
+if (tauriArguments[0] === "dev") await cleanupDevelopmentModelOutput(desktopRoot);
+if (result.error !== undefined) {
+  if (packageTarget !== undefined) {
+    await rollbackPackageBuild(packageTarget, packageBackupCreated);
+  }
+  throw result.error;
+}
+if (result.status !== 0) {
+  if (packageTarget !== undefined) {
+    await rollbackPackageBuild(packageTarget, packageBackupCreated);
+  }
+  process.exitCode = result.status ?? 1;
+} else if (packageTarget !== undefined) {
+  try {
+    if (process.platform === "win32") {
+      const { stageWindowsApplication } = await import("./stage-windows-application.js");
+      await stageWindowsApplication();
+    }
+    await cleanModelCopies(packageTarget);
+  } catch (error) {
+    await rollbackPackageBuild(packageTarget, packageBackupCreated);
+    throw error;
+  }
 }
