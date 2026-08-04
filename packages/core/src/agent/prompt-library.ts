@@ -142,7 +142,7 @@ function formatSkillApplies(skill: PromptSkill, input: SkillSelectionInput): boo
       /\.xlsx\b/iu.test(task) ||
       taskRequestsFormat(
         task,
-        "xlsx|excel\\s+(?:file|spreadsheet|workbook)|workbooks?|spreadsheet\\s+(?:deliverable|file|workbook)",
+        "xlsx|excel\\s+(?:file|spreadsheet|workbook)|workbooks?|spreadsheets?",
       )
     );
   }

@@ -162,6 +162,12 @@ describe("PromptLibrary skill routing precision", () => {
       "xlsx-workbooks",
     ]);
     expect([
+      ...prompts.activeSkillNames({
+        task: "Create a spreadsheet with these totals.",
+        inputNames: [],
+      }),
+    ]).toEqual(["xlsx-workbooks"]);
+    expect([
       ...prompts.activeSkillNames({ task: "Create a styled PDF report.", inputNames: [] }),
     ]).toEqual(["pdf-documents"]);
     expect([
