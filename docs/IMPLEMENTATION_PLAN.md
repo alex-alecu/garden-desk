@@ -1,8 +1,8 @@
 # Implementation Plan
 
-Updated: 2026-07-28
+Updated: 2026-08-04
 
-This is the authoritative implementation sequence for the first Vault Desk release. M0, cross-platform M1, and cross-platform M2 are complete. The repository owner activated M3 on 2026-07-20 as the first full product milestone. The macOS stage and canonical Windows headless product integration are physically certified; the named installed-Windows UI, debug-snapshot, and release-signing evidence remain before M3 or Community Desktop V1 can close.
+This is the authoritative implementation sequence for the first Vault Desk release. M0, cross-platform M1, and cross-platform M2 are complete. The repository owner activated M3 on 2026-07-20 as the first full product milestone. The macOS stage and Windows headless and installed-product integration are physically certified; dedicated-standard-user setup, macOS lower-tier context, and release-signing evidence remain before M3 or Community Desktop V1 can close.
 
 The shortest path to V1 is a generic offline desktop agent, not a format-specific document pipeline. The agent may write and run Python or Node.js programs and installed guest commands inside a session-scoped no-NIC microVM. It sees the selected folder live and read-only at `/source` and works in a persistent bounded `/workspace`. It cannot write to the selected host folder, install packages, reach a network, inherit credentials, or call an unrestricted host service.
 
@@ -116,7 +116,7 @@ The cross-platform supervisor, model resolver, memory scheduler, typed inference
 
 ### M3 — Offline Dev-Agent Desktop V1 — active
 
-Stage state: macOS implementation and physical acceptance pass; Windows implementation and canonical physical headless acceptance pass; installed-Windows UI, debug-snapshot, and release-signing observations remain open.
+Stage state: macOS implementation and physical acceptance pass; Windows implementation, canonical physical headless acceptance, and installed-product UI, live-execution, and debug-snapshot observations pass; dedicated-standard-user setup, macOS lower-tier context, and release-signing observations remain open.
 
 Scope:
 

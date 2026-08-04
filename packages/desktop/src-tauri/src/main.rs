@@ -193,8 +193,17 @@ fn connect(endpoint: &str) -> std::io::Result<std::os::unix::net::UnixStream> {
 }
 
 #[cfg(windows)]
-fn connect(endpoint: &str) -> std::io::Result<std::fs::File> {
+fn transient_pipe_open_error(error: &std::io::Error) -> bool {
+    const ERROR_FILE_NOT_FOUND: i32 = 2;
     const ERROR_PIPE_BUSY: i32 = 231;
+    matches!(
+        error.raw_os_error(),
+        Some(ERROR_FILE_NOT_FOUND | ERROR_PIPE_BUSY)
+    )
+}
+
+#[cfg(windows)]
+fn connect(endpoint: &str) -> std::io::Result<std::fs::File> {
     let deadline = Instant::now() + Duration::from_secs(5);
     loop {
         match std::fs::OpenOptions::new()
@@ -203,9 +212,7 @@ fn connect(endpoint: &str) -> std::io::Result<std::fs::File> {
             .open(endpoint)
         {
             Ok(stream) => return Ok(stream),
-            Err(error)
-                if error.raw_os_error() == Some(ERROR_PIPE_BUSY) && Instant::now() < deadline =>
-            {
+            Err(error) if transient_pipe_open_error(&error) && Instant::now() < deadline => {
                 std::thread::sleep(Duration::from_millis(10));
             }
             Err(error) => return Err(error),
