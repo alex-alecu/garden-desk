@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   combinedAllocationBytes,
   fitCombinedGenerationContext,
+  resolveDetectedGpuVramBytes,
   resolveGenerationContextLimit,
   resolveGenerationContextSize,
   resolveMaximumGenerationContext,
@@ -48,6 +49,27 @@ const contextCaps = [
 ] as const;
 
 describe("inference memory budget", () => {
+  it("uses one Windows device's dedicated VRAM", () => {
+    expect(resolveDetectedGpuVramBytes("win32", { total: 16 * GiB, unifiedSize: 0 }, 1)).toBe(
+      16 * GiB,
+    );
+  });
+
+  it("rejects Windows multi-device aggregates and unified memory", () => {
+    expect(() =>
+      resolveDetectedGpuVramBytes("win32", { total: 32 * GiB, unifiedSize: 0 }, 2),
+    ).toThrow("dedicated_gpu_vram_required");
+    expect(() =>
+      resolveDetectedGpuVramBytes("win32", { total: 16 * GiB, unifiedSize: 8 * GiB }, 1),
+    ).toThrow("dedicated_gpu_vram_required");
+  });
+
+  it("preserves unified memory reporting outside Windows", () => {
+    expect(
+      resolveDetectedGpuVramBytes("darwin", { total: 48 * GiB, unifiedSize: 48 * GiB }, 1),
+    ).toBe(48 * GiB);
+  });
+
   it("uses the full detected Windows GPU VRAM for generation", () => {
     expect(resolveRuntimeMemoryBudget(64 * GiB, 16 * GiB, "win32", "generate")).toBe(16 * GiB);
   });

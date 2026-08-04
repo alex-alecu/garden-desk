@@ -43,7 +43,9 @@ function argument(name: string): string | undefined {
 function failure(requestId: RequestId, error: unknown): InferenceWorkerResponse {
   const text = error instanceof Error ? error.message : String(error);
   const code =
-    text === "supported_gpu_required" || text === "context_size_exceeds_hardware_cap"
+    text === "supported_gpu_required" ||
+    text === "dedicated_gpu_vram_required" ||
+    text === "context_size_exceeds_hardware_cap"
       ? "unsupported"
       : /memory|allocation|out of memory/iu.test(text)
         ? "out_of_memory"
@@ -102,18 +104,17 @@ async function runtime(operation: "generate" | "embed"): Promise<LoadedRuntime> 
     if (modelPath === undefined || !Number.isSafeInteger(requestedBudget) || requestedBudget <= 0) {
       throw new Error("Invalid worker launch arguments.");
     }
-    const llama = await loadLlamaRuntime();
-    const vram = await llama.getVramState();
+    const { llama, detectedGpuVramBytes } = await loadLlamaRuntime();
     const budget = resolveRuntimeMemoryBudget(
       requestedBudget,
-      vram.total,
+      detectedGpuVramBytes,
       process.platform,
       operation,
     );
     await llama.setVramCap(budget);
     return {
       budget,
-      detectedGpuVramBytes: vram.total,
+      detectedGpuVramBytes,
       llama,
       model: await llama.loadModel({ modelPath }),
     };
@@ -267,8 +268,7 @@ async function infer(
 ): Promise<InferenceWorkerResponse> {
   if (request.operation === "probe") return probe(request);
   const loaded = await runtime(request.operation);
-  // Native resources remain process-scoped. Manual unload terminates this worker so the OS
-  // reclaims the model and contexts together instead of relying on unsafe partial teardown.
+  // Manual unload terminates the worker so the OS safely reclaims all native resources.
   return request.operation === "embed"
     ? await embed(request, loaded)
     : await generate(request, loaded, emit);

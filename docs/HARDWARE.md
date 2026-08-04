@@ -43,9 +43,9 @@ Current community targets:
 
 - 8 GB Macs do not start local inference and explain the requirement to the user.
 - Macs through 16 GB use a 10 GiB model-plus-context budget; Macs through 24 GB use 12 GiB; Macs above 24 GB use 16 GiB.
-- Windows generation uses the complete GPU VRAM capacity reported by the pinned runtime and requires a supported GPU.
+- Windows generation uses one selected non-unified device's complete dedicated VRAM and requires a supported GPU; aggregate multi-device or unified and shared memory readings are unsupported.
 - Windows agent execution requires Windows Pro or Enterprise with Hyper-V already enabled. The Windows-only setup helper adds the requesting account to Hyper-V Administrators once; it does not enable or download Windows features. macOS has no administrator prerequisite.
-- Active context is fitted automatically inside the selected budget rather than configured by the user. Macs through 32 GB unified memory and Windows GPUs through 24 GB VRAM are capped at 64K; Macs and Windows GPUs above their respective thresholds are capped at 128K.
+- Active context is fitted automatically inside the selected budget rather than configured by the user. Macs through 32 GB unified memory and Windows GPUs through 24 GB dedicated VRAM are capped at 64K; Macs and Windows GPUs above their respective thresholds are capped at 128K.
 
 The public V1 launch baseline is intentionally simpler than the internal memory tiers: an Apple silicon Mac with at least 16 GB unified memory, or a Windows PC with an NVIDIA GPU and at least 12 GB VRAM. Physical Windows headless validation now covers an RTX 4080 with 12 GB VRAM; broader configuration claims remain launch targets until their exact hardware and signed release gate pass. The website and download surfaces must not describe an untested configuration as certified or imply that installers are available before the signed release gate passes.
 
@@ -171,3 +171,4 @@ Avoid company-wide exclusivity. Vendor-specific SKUs are acceptable, but the com
 | 2026-07-27 | Defined one Windows package containing CUDA plus Vulkan, with bundled cuBLAS and no user-installed CUDA Toolkit. |
 | 2026-07-28 | Physically validated the single package's CUDA and Vulkan initialization plus real-Gemma CUDA execution on an RTX 4080 and AMD Radeon 610M system. |
 | 2026-08-01 | Added 64K and 128K context caps with separate Mac unified-memory and Windows VRAM thresholds. |
+| 2026-08-04 | Restricted Windows automatic budgets and context tiers to one device's dedicated VRAM. |

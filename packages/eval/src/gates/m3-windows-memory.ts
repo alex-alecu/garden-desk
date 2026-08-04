@@ -8,6 +8,11 @@ import { readCanonicalModelManifest, verifyModelFile } from "../models.js";
 const modelId = "gemma-4-12b-it-qat-q4_0";
 const modelRoot = join(process.cwd(), "packages/eval/.generated/models");
 const modelPath = join(modelRoot, `${modelId}.gguf`);
+const packagedInference = join(
+  process.cwd(),
+  "packages/desktop/src-tauri/target/release/bundle/windows/Vault Desk/resources/core/inference",
+);
+const GiB = 1024 * 1024 * 1024;
 
 async function prepareModelStore(): Promise<void> {
   const manifest = await readCanonicalModelManifest();
@@ -37,7 +42,14 @@ async function prepareModelStore(): Promise<void> {
 }
 
 async function generate(workspaceDir: string) {
-  const core = await createVaultCore({ workspaceDir, modelStoreDir: modelRoot, profile: "auto" });
+  const core = await createVaultCore({
+    workspaceDir,
+    modelStoreDir: modelRoot,
+    profile: "auto",
+    workerEntryPath: join(packagedInference, "worker.mjs"),
+    inferenceHelperPath: join(packagedInference, "vault-appcontainer-launcher.exe"),
+    inferenceRuntimePath: join(packagedInference, "node.exe"),
+  });
   try {
     return await core.generate({
       modelId,
@@ -70,8 +82,11 @@ try {
     memory.detectedGpuVramBytes,
   );
   if (
-    (memory.contextSizeTokens ?? 0) <= 8_192 ||
-    (memory.contextSizeTokens ?? 0) > maximumContextSize ||
+    memory.contextSizeTokens !== 65_536 ||
+    memory.contextLimitTokens !== 65_536 ||
+    memory.contextLimitReason !== "windows_gpu_vram_at_most_24_gib" ||
+    maximumContextSize !== 65_536 ||
+    memory.detectedGpuVramBytes > 24 * GiB ||
     memory.budgetBytes !== memory.detectedGpuVramBytes ||
     memory.gpuVramBytes > memory.budgetBytes
   ) {
