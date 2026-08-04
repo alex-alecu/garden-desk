@@ -18,6 +18,18 @@ export interface GenerationContextLimit {
   reason: GenerationContextLimitReason;
 }
 
+export function resolveDetectedGpuVramBytes(
+  platform: NodeJS.Platform,
+  vram: { total: number; unifiedSize: number },
+  gpuDeviceCount: number,
+): number {
+  if (platform !== "win32") return vram.total;
+  if (gpuDeviceCount !== 1 || vram.unifiedSize !== 0) {
+    throw new Error("dedicated_gpu_vram_required");
+  }
+  return vram.total;
+}
+
 export function resolveRuntimeMemoryBudget(
   requestedBudgetBytes: number,
   gpuVramBytes: number,
