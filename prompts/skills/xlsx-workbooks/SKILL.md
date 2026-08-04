@@ -13,6 +13,8 @@ Create or edit ordinary workbooks directly, and process complete requested XLSX 
 
 For ordinary creation or editing, use `openpyxl`, preserve existing sheets and formulas unless the request changes them, and apply restrained number formats, alignment, borders, fills, and column widths. Never save a workbook loaded with `data_only=True`, because that replaces formulas with cached values. Reopen the saved workbook with `data_only=False` and verify requested sheets, values, formulas, styles, dimensions, merged cells, and freeze panes. If formulas were written, report that they were written but not locally calculated because `openpyxl` is not a spreadsheet calculation engine.
 
+For existing-corpus analysis only, follow the rules below; skip them when creating a new workbook.
+
 1. Discover the complete workbook corpus case-insensitively inside the Python source before loading a checkpoint or processing any workbook. With `os.walk`, use exactly `filename.lower().endswith(".xlsx")`; `filename.endswith(".xlsx")` is invalid because it misses uppercase names. Do not treat a shell-discovered or hard-coded path list as the complete XLSX corpus. Unless the user requested other formats, process only XLSX workbooks.
 2. Before importing `openpyxl`, call `warnings.filterwarnings("ignore")` so library warnings do not make a successful execution unverifiable through stderr.
 3. Use `openpyxl.load_workbook(path, read_only=True, data_only=True)`. Search text as a case-insensitive substring in every nonempty cell, not as equality or in an assumed column; use discovered headers for named columns.

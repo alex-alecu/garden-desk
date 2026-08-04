@@ -116,6 +116,21 @@ describe("PromptLibrary invalid PDF validation", () => {
 });
 
 describe("PromptLibrary workbook aggregates", () => {
+  it("separates new workbook creation from corpus analysis rules", () => {
+    const body = library().activeSkills(
+      { task: "Create a spreadsheet with these totals.", inputNames: [] },
+      {
+        shell_command_character_limit: "4,096",
+        shell_path: "/bin/sh",
+        tool_capabilities: "find, grep",
+        workspace_path: "/workspace",
+      },
+    );
+    expect(body).toContain(
+      "For existing-corpus analysis only, follow the rules below; skip them when creating a new workbook.",
+    );
+  });
+
   it("loads one cumulative amount contract", () => {
     const prompts = library();
     const input = { task: "Total matching amounts in every XLSX workbook.", inputNames: [] };
