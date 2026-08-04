@@ -33,8 +33,13 @@ describe("artifact RPC", () => {
     const sessionId = "22222222-2222-4222-8222-222222222222";
     const artifactId = "33333333-3333-4333-8333-333333333333";
     const materializeArtifact = vi.fn(async () => "/tmp/generated/report.pdf");
+    const recordArtifactOpen = vi.fn(async () => undefined);
     const exportArtifact = vi.fn(async () => undefined);
-    const core = { materializeArtifact, exportArtifact } as unknown as VaultCore;
+    const core = {
+      materializeArtifact,
+      recordArtifactOpen,
+      exportArtifact,
+    } as unknown as VaultCore;
 
     const opened = await dispatchRpc(core, {
       jsonrpc: "2.0",
@@ -50,10 +55,19 @@ describe("artifact RPC", () => {
       params: { sessionId, artifactId, destination: "/tmp/saved.pdf" },
       protocolVersion: 1,
     });
+    const recorded = await dispatchRpc(core, {
+      jsonrpc: "2.0",
+      id: "record-open",
+      method: "artifacts.recordOpen",
+      params: { sessionId, artifactId, outcome: "failed" },
+      protocolVersion: 1,
+    });
 
     expect(opened).toMatchObject({ result: "/tmp/generated/report.pdf" });
     expect(exported).toMatchObject({ result: { exported: true } });
+    expect(recorded).toMatchObject({ result: { recorded: true } });
     expect(materializeArtifact).toHaveBeenCalledWith(sessionId, artifactId);
+    expect(recordArtifactOpen).toHaveBeenCalledWith(sessionId, artifactId, "failed");
     expect(exportArtifact).toHaveBeenCalledWith(sessionId, artifactId, "/tmp/saved.pdf");
   });
 });

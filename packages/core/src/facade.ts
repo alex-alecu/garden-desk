@@ -35,6 +35,11 @@ export interface VaultCorePorts extends InferenceService {
   listAttachments(sessionId: string): Promise<AttachmentSummary[]>;
   materializeAttachment(sessionId: string, attachmentId: string): Promise<string>;
   materializeArtifact(sessionId: string, artifactId: string): Promise<string>;
+  recordArtifactOpen(
+    sessionId: string,
+    artifactId: string,
+    outcome: "failed" | "succeeded",
+  ): Promise<void>;
   exportArtifact(sessionId: string, artifactId: string, destination: string): Promise<void>;
   removeAttachment(sessionId: string, attachmentId: string): Promise<boolean>;
   startAgent(sessionId: string, task: string): Promise<AgentRunSummary>;
@@ -48,6 +53,17 @@ export interface VaultCorePorts extends InferenceService {
 }
 
 export interface VaultCore extends VaultCorePorts {}
+
+function artifactPorts(ports: VaultCorePorts) {
+  return {
+    materializeArtifact: (sessionId: string, artifactId: string) =>
+      ports.materializeArtifact(sessionId, artifactId),
+    recordArtifactOpen: (sessionId: string, artifactId: string, outcome: "failed" | "succeeded") =>
+      ports.recordArtifactOpen(sessionId, artifactId, outcome),
+    exportArtifact: (sessionId: string, artifactId: string, destination: string) =>
+      ports.exportArtifact(sessionId, artifactId, destination),
+  };
+}
 
 export function createFacade(ports: VaultCorePorts): VaultCore {
   return {
@@ -68,10 +84,7 @@ export function createFacade(ports: VaultCorePorts): VaultCore {
     listAttachments: (sessionId) => ports.listAttachments(sessionId),
     materializeAttachment: (sessionId, attachmentId) =>
       ports.materializeAttachment(sessionId, attachmentId),
-    materializeArtifact: (sessionId, artifactId) =>
-      ports.materializeArtifact(sessionId, artifactId),
-    exportArtifact: (sessionId, artifactId, destination) =>
-      ports.exportArtifact(sessionId, artifactId, destination),
+    ...artifactPorts(ports),
     removeAttachment: (sessionId, attachmentId) => ports.removeAttachment(sessionId, attachmentId),
     startAgent: (sessionId, task) => ports.startAgent(sessionId, task),
     listAgentRuns: (sessionId) => ports.listAgentRuns(sessionId),

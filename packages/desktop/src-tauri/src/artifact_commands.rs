@@ -20,9 +20,20 @@ pub(crate) async fn open_artifact(
     let path = path
         .as_str()
         .ok_or_else(|| "Vault Core returned an invalid generated file path.".to_owned())?;
-    app.shell()
-        .open(path, None)
-        .map_err(|error| error.to_string())
+    let open_result = app.shell().open(path, None);
+    let outcome = if open_result.is_ok() {
+        "succeeded"
+    } else {
+        "failed"
+    };
+    let audit_result = core.call(
+        "artifacts.recordOpen",
+        json!({ "sessionId": session_id, "artifactId": artifact_id, "outcome": outcome }),
+    );
+    match open_result {
+        Ok(()) => audit_result.map(|_| ()),
+        Err(error) => Err(error.to_string()),
+    }
 }
 
 #[tauri::command]

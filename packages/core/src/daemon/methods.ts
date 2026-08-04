@@ -239,6 +239,7 @@ async function dispatchMethod(core: VaultCore, request: RpcRequest): Promise<Rpc
     case "attachments.remove":
       return removeAttachment(core, request);
     case "artifacts.materialize":
+    case "artifacts.recordOpen":
     case "artifacts.export":
       return success(request, await dispatchArtifactMethod(core, request));
     case "agent.start":

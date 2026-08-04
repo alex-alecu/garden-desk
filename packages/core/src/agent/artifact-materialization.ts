@@ -183,10 +183,30 @@ async function auditedArtifactAction<T>(options: {
 export async function materializeAndAuditArtifact(
   reference: ArtifactReference & { audit: AuditLog },
 ): Promise<string> {
-  return await auditedArtifactAction({
-    ...reference,
+  try {
+    return await materializeArtifact(reference);
+  } catch (error) {
+    reference.audit.append({
+      type: "artifact.opened",
+      outcome: "failed",
+      metadata: { sessionId: reference.sessionId, artifactId: reference.artifactId },
+    });
+    throw error;
+  }
+}
+
+export function recordArtifactOpen(
+  reference: ArtifactReference & { audit: AuditLog; outcome: "failed" | "succeeded" },
+): void {
+  if (
+    artifactForSession(reference.database, reference.sessionId, reference.artifactId) === undefined
+  ) {
+    throw new Error("artifact_not_found");
+  }
+  reference.audit.append({
     type: "artifact.opened",
-    action: async () => await materializeArtifact(reference),
+    outcome: reference.outcome,
+    metadata: { sessionId: reference.sessionId, artifactId: reference.artifactId },
   });
 }
 
@@ -214,6 +234,17 @@ export class ArtifactMaterializer {
       audit: this.audit,
       sessionId,
       artifactId,
+    });
+  }
+
+  recordOpen(sessionId: string, artifactId: string, outcome: "failed" | "succeeded"): void {
+    recordArtifactOpen({
+      database: this.database,
+      artifacts: this.artifacts,
+      audit: this.audit,
+      sessionId,
+      artifactId,
+      outcome,
     });
   }
 

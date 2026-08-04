@@ -90,6 +90,9 @@ export class AgentService {
   async materializeArtifact(sessionId: string, artifactId: string): Promise<string> {
     return await this.artifactMaterializer.materialize(sessionId, artifactId);
   }
+  async recordArtifactOpen(sessionId: string, artifactId: string, outcome: "failed" | "succeeded") {
+    this.artifactMaterializer.recordOpen(sessionId, artifactId, outcome);
+  }
   async exportArtifact(sessionId: string, artifactId: string, destination: string): Promise<void> {
     await this.artifactMaterializer.export(sessionId, artifactId, destination);
   }

@@ -14,6 +14,12 @@ export async function dispatchArtifactMethod(core: VaultCore, request: RpcReques
   if (request.method === "artifacts.materialize") {
     return await core.materializeArtifact(sessionId, artifactId);
   }
+  if (request.method === "artifacts.recordOpen") {
+    const { outcome } = request.params;
+    if (outcome !== "failed" && outcome !== "succeeded") throw new Error("invalid_open_outcome");
+    await core.recordArtifactOpen(sessionId, artifactId, outcome);
+    return { recorded: true };
+  }
   const { destination } = request.params;
   if (typeof destination !== "string") throw new Error("invalid_export_destination");
   await core.exportArtifact(sessionId, artifactId, destination);

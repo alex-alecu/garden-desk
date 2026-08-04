@@ -8,7 +8,11 @@ import { JobStore } from "../jobs/jobs.js";
 import { ArtifactStore } from "../workspace/artifacts.js";
 import { openWorkspaceCatalog } from "../workspace/catalog.js";
 import { WorkspaceScope } from "../workspace/scope.js";
-import { exportAndAuditArtifact, materializeArtifact } from "./artifact-materialization.js";
+import {
+  ArtifactMaterializer,
+  exportAndAuditArtifact,
+  materializeArtifact,
+} from "./artifact-materialization.js";
 import { AgentStore } from "./store.js";
 
 const roots: string[] = [];
@@ -66,6 +70,23 @@ describe("artifact materialization and export", () => {
         artifactId: item.id,
       }),
     ).rejects.toThrow("artifact_hash_mismatch");
+    catalog.close();
+  });
+
+  it("records the native Open result after materialization", async () => {
+    const { catalog, artifacts, session, item } = await fixture();
+    const audit = new AuditLog(catalog.database);
+    const materializer = new ArtifactMaterializer(catalog.database, artifacts, audit);
+    await materializer.materialize(session.id, item.id);
+    expect(catalog.database.prepare("SELECT COUNT(*) AS count FROM audit_events").get()).toEqual({
+      count: 0,
+    });
+    materializer.recordOpen(session.id, item.id, "failed");
+    const event = catalog.database.prepare("SELECT event_json FROM audit_events").get() as {
+      event_json: string;
+    };
+    expect(event.event_json).toContain('"type":"artifact.opened"');
+    expect(event.event_json).toContain('"outcome":"failed"');
     catalog.close();
   });
 });
