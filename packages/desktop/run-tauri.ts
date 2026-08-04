@@ -37,6 +37,9 @@ const currentPath = process.env[pathName] ?? "";
 const rustBin = cargoDirectory(currentPath);
 const tauriCli = createRequire(import.meta.url).resolve("@tauri-apps/cli/tauri.js");
 const tauriArguments = process.argv.slice(2);
+if (tauriArguments[0] === "dev" || tauriArguments[0] === "build") {
+  tauriArguments.push("--config", join(desktopRoot, "src-tauri", "tauri.package-model.conf.json"));
+}
 if (
   process.platform === "win32" &&
   tauriArguments[0] === "dev" &&
