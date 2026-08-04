@@ -34,6 +34,8 @@ export interface VaultCorePorts extends InferenceService {
   addAttachment(sessionId: string, path: string): Promise<AttachmentSummary>;
   listAttachments(sessionId: string): Promise<AttachmentSummary[]>;
   materializeAttachment(sessionId: string, attachmentId: string): Promise<string>;
+  materializeArtifact(sessionId: string, artifactId: string): Promise<string>;
+  exportArtifact(sessionId: string, artifactId: string, destination: string): Promise<void>;
   removeAttachment(sessionId: string, attachmentId: string): Promise<boolean>;
   startAgent(sessionId: string, task: string): Promise<AgentRunSummary>;
   listAgentRuns(sessionId: string): Promise<AgentRunSummary[]>;
@@ -66,6 +68,10 @@ export function createFacade(ports: VaultCorePorts): VaultCore {
     listAttachments: (sessionId) => ports.listAttachments(sessionId),
     materializeAttachment: (sessionId, attachmentId) =>
       ports.materializeAttachment(sessionId, attachmentId),
+    materializeArtifact: (sessionId, artifactId) =>
+      ports.materializeArtifact(sessionId, artifactId),
+    exportArtifact: (sessionId, artifactId, destination) =>
+      ports.exportArtifact(sessionId, artifactId, destination),
     removeAttachment: (sessionId, attachmentId) => ports.removeAttachment(sessionId, attachmentId),
     startAgent: (sessionId, task) => ports.startAgent(sessionId, task),
     listAgentRuns: (sessionId) => ports.listAgentRuns(sessionId),

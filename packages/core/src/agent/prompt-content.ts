@@ -1,5 +1,6 @@
 import { type AgentExecutionResult, MAX_GENERATION_TOKENS } from "@vault/shared";
 import capabilities from "../../../workers/images/agent/capabilities.json" with { type: "json" };
+import { artifactCandidateNames } from "./artifact-declarations.js";
 import { MAX_AGENT_EXECUTIONS } from "./limits.js";
 import { completedSuccessfully, requiredOutputLabels } from "./output-contract.js";
 import { attachmentFiles, selectedInputInstructions } from "./prompt-inputs.js";
@@ -70,9 +71,7 @@ export function taskStatePrompt(
 ): string {
   const requiredLabels = requiredOutputLabels(input.task);
   const inputs = attachmentFiles(input.inputNames ?? []);
-  const artifacts = progress.executions.flatMap((result) =>
-    result.artifacts.map((artifact) => artifact.name),
-  );
+  const artifacts = artifactCandidateNames(progress.executions);
   return library.system("task-state", {
     artifact_names: JSON.stringify(artifacts),
     observations: JSON.stringify(observations(progress.executions, observationCharacters, library)),

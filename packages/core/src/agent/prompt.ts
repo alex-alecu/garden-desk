@@ -5,6 +5,7 @@ import {
   type InferencePerformance,
 } from "@vault/shared";
 import { effectiveGenerationInput, type GenerationInput } from "../runtime/inference.js";
+import { artifactCandidateNames } from "./artifact-declarations.js";
 import type { DurableAgentHistory } from "./history.js";
 import { MAX_AGENT_EXECUTIONS } from "./limits.js";
 import type { RejectedExecutionReason } from "./loop-decisions.js";
@@ -192,7 +193,9 @@ function generationSchema(
   const generationLimitRecovery = recovery === "generation_limit" && !finalResponse;
   const sourceDiscoveryRecovery =
     progress.lastRejectedProgramReason === "source_allowlist" && !finalResponse;
+  const artifactNames = artifactCandidateNames(progress.executions);
   return agentDecisionJsonSchema({
+    artifactNames,
     task: input.task,
     finalResponse,
     requiresSourceExecution:

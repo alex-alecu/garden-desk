@@ -147,7 +147,7 @@
       "name": "tauri-plugin-dialog",
       "version": "2.7.2",
       "license": "Apache-2.0 OR MIT",
-      "use": "product_native_folder_dialog"
+      "use": "product_native_folder_file_and_save_dialogs"
     },
     {
       "name": "tauri-plugin-shell",

@@ -1,15 +1,17 @@
 ---
 name: xlsx-workbooks
-description: Guides verified local processing of XLSX Excel workbooks, including streaming, batching, checkpoints, coverage markers, and repair. Use when the task or observations mention Excel, XLSX, workbooks, spreadsheets, transactions, salaries, or advances.
+description: Guides local XLSX workbook creation, reading, editing, and large-corpus processing. Use when the task or an attachment explicitly identifies XLSX, an Excel workbook, or a spreadsheet deliverable.
 ---
 
 # XLSX Workbooks
 
 ## Overview
 
-Process the complete requested XLSX corpus with bounded Python source and explicit coverage evidence.
+Create or edit ordinary workbooks directly, and process complete requested XLSX corpora with bounded Python source and explicit coverage evidence.
 
 ## Process
+
+For ordinary creation or editing, use `openpyxl`, preserve existing sheets and formulas unless the request changes them, and apply restrained number formats, alignment, borders, fills, and column widths. Never save a workbook loaded with `data_only=True`, because that replaces formulas with cached values. Reopen the saved workbook with `data_only=False` and verify requested sheets, values, formulas, styles, dimensions, merged cells, and freeze panes. If formulas were written, report that they were written but not locally calculated because `openpyxl` is not a spreadsheet calculation engine.
 
 1. Discover the complete workbook corpus case-insensitively inside the Python source before loading a checkpoint or processing any workbook. With `os.walk`, use exactly `filename.lower().endswith(".xlsx")`; `filename.endswith(".xlsx")` is invalid because it misses uppercase names. Do not treat a shell-discovered or hard-coded path list as the complete XLSX corpus. Unless the user requested other formats, process only XLSX workbooks.
 2. Before importing `openpyxl`, call `warnings.filterwarnings("ignore")` so library warnings do not make a successful execution unverifiable through stderr.
@@ -38,6 +40,9 @@ Process the complete requested XLSX corpus with bounded Python source and explic
 
 ## Verification
 
+- [ ] An edited workbook was never saved from a `data_only=True` load.
+- [ ] New or edited sheets, formulas, values, and restrained styles survive reopening with `data_only=False`.
+- [ ] Written formulas are not represented as locally calculated results.
 - [ ] DONE and TOTAL count the exact XLSX corpus and are equal for final output.
 - [ ] COMPLETE is the integer 1 only after every workbook was read.
 - [ ] Every matching numeric amount was added immediately to the one cumulative total.

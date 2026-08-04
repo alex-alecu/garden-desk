@@ -8,9 +8,11 @@ import {
   AgentGuestExecuteRequestSchema,
   AgentGuestResultSchema,
 } from "@vault/shared";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { encodeFrame } from "../ipc.js";
 import { AgentHelperTransport } from "./agent-transport.js";
+import { FramedAgentSession } from "./macos-agent-session.js";
+import type { AgentWorkspaceStore } from "./workspace-store.js";
 
 function fakeChild(): {
   child: ChildProcessWithoutNullStreams;
@@ -115,6 +117,77 @@ describe("agent helper ordered live stream", () => {
 
     await expect(result).resolves.toMatchObject({ operation: "execute", executionId });
     expect(updates).toEqual(["process_start", "live\n"]);
+  });
+});
+
+function artifactInvalidationFrame(requestId: string, executionId: string) {
+  const captured = Buffer.from("current").toString("base64");
+  return AgentGuestResultSchema.parse({
+    ...resultFrame(requestId, executionId),
+    execution: {
+      ...resultFrame(requestId, executionId).execution,
+      artifacts: [{ name: "captured.pdf", mediaType: "application/pdf", bytesBase64: captured }],
+    },
+    workspaceDelta: {
+      entries: [
+        {
+          kind: "file",
+          path: "captured.pdf",
+          contentHash: "a".repeat(64),
+          bytesBase64: captured,
+        },
+        {
+          kind: "file",
+          path: "oversized.pdf",
+          contentHash: "b".repeat(64),
+          bytesBase64: "",
+        },
+        { kind: "directory", path: "reports" },
+        {
+          kind: "file",
+          path: "steps/ignored.py",
+          contentHash: "c".repeat(64),
+          bytesBase64: "",
+        },
+      ],
+      removedPaths: ["deleted.pdf"],
+    },
+  });
+}
+
+function artifactInvalidationSession(frame: ReturnType<typeof artifactInvalidationFrame>) {
+  const transport = {
+    exchange: vi.fn(async () => frame),
+    write: vi.fn(),
+  } as unknown as AgentHelperTransport;
+  const store = { applyDelta: vi.fn(async () => undefined) } as unknown as AgentWorkspaceStore;
+  return new FramedAgentSession({
+    sessionId: randomUUID(),
+    limits: {
+      wallTimeMs: 1_000,
+      memoryBytes: 256 * 1024 * 1024,
+      scratchBytes: 128 * 1024 * 1024,
+      outputBytes: 1_000_000,
+    },
+    transport,
+    store,
+    temporaryRoot: "/tmp/unused-artifact-invalidation-test",
+    lifecyclePlatform: "macos",
+  });
+}
+
+describe("agent artifact candidate invalidation", () => {
+  it("invalidates changed files omitted by artifact limits without invalidating captured files", async () => {
+    const executionId = AgentExecutionIdSchema.parse(randomUUID());
+    const session = artifactInvalidationSession(
+      artifactInvalidationFrame(randomUUID(), executionId),
+    );
+    const result = await session.execute(
+      { language: "python", path: "steps/live.py", source: "print('live')" },
+      undefined,
+      { executionId, onUpdate() {} },
+    );
+    expect(result.invalidatedArtifactPaths).toEqual(["deleted.pdf", "oversized.pdf"]);
   });
 });
 

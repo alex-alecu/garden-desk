@@ -1,6 +1,5 @@
 import { randomUUID } from "node:crypto";
 import type {
-  AgentExecutionResult,
   AgentRunPerformance,
   AgentRunSnapshot,
   AgentRunSummary,
@@ -15,6 +14,8 @@ import type { JobStore } from "../jobs/jobs.js";
 import type { InferenceService } from "../runtime/inference.js";
 import type { ArtifactStore } from "../workspace/artifacts.js";
 import type { DatabasePort } from "../workspace/database.js";
+import { prepareDeclaredArtifacts } from "./artifact-declarations.js";
+import { ArtifactMaterializer } from "./artifact-materialization.js";
 import { materializeAndAuditAttachment } from "./attachment-materialization.js";
 import { resolveAgentTask } from "./continuation.js";
 import { historyForSession } from "./history.js";
@@ -31,6 +32,7 @@ import type { AgentStore } from "./store.js";
 export class AgentService {
   private readonly active = new Map<string, ActiveRun>();
   private closed = false;
+  private readonly artifactMaterializer: ArtifactMaterializer;
   private readonly sessions: AgentSessionManager;
   private readonly runCapacity: AgentRunCapacity;
 
@@ -48,6 +50,7 @@ export class AgentService {
     maximumConcurrentRuns = 1,
     private readonly promptLibrary: PromptLibrary = defaultPromptLibrary(),
   ) {
+    this.artifactMaterializer = new ArtifactMaterializer(database, artifacts, audit);
     this.sessions = new AgentSessionManager(
       launcher,
       new AgentInputResolver(database, store),
@@ -83,6 +86,12 @@ export class AgentService {
   }
   async materializeAttachment(sessionId: string, attachmentId: string): Promise<string> {
     return await materializeAndAuditAttachment(this.store, this.audit, sessionId, attachmentId);
+  }
+  async materializeArtifact(sessionId: string, artifactId: string): Promise<string> {
+    return await this.artifactMaterializer.materialize(sessionId, artifactId);
+  }
+  async exportArtifact(sessionId: string, artifactId: string, destination: string): Promise<void> {
+    await this.artifactMaterializer.export(sessionId, artifactId, destination);
   }
   async removeAttachment(sessionId: string, attachmentId: string): Promise<boolean> {
     if ([...this.active.values()].some((run) => run.sessionId === sessionId))
@@ -133,19 +142,6 @@ export class AgentService {
   }
   async trace(runId: string): Promise<AgentTrace> {
     return await this.store.trace.get(runId);
-  }
-  private async persistArtifacts(runId: string, outputs: AgentExecutionResult["artifacts"]) {
-    for (const output of outputs) {
-      const bytes = Buffer.from(output.bytesBase64, "base64");
-      if (bytes.toString("base64") !== output.bytesBase64)
-        throw new Error("agent_artifact_invalid");
-      this.store.addArtifact(runId, {
-        name: output.name,
-        mediaType: output.mediaType,
-        byteLength: bytes.byteLength,
-        contentHash: await this.artifacts.put(bytes),
-      });
-    }
   }
   private async contextTokens(): Promise<number> {
     try {
@@ -212,7 +208,6 @@ export class AgentService {
               },
             });
             this.store.execution.complete(execution.id, result);
-            await this.persistArtifacts(run.id, result.artifacts);
             return result;
           },
         },
@@ -248,8 +243,14 @@ export class AgentService {
       };
       const active = this.active.get(run.jobId);
       if (active !== undefined) active.thinking = null;
+      const deliverables = await prepareDeclaredArtifacts(
+        result.artifacts,
+        result.executions,
+        this.artifacts,
+      );
       this.database.transaction(() => {
         this.conversations.appendMessage(run.sessionId, "assistant", result.response, run.id);
+        for (const deliverable of deliverables) this.store.addArtifact(run.id, deliverable);
         this.store.transitionRun(run.id, {
           state: "succeeded",
           response: result.response,

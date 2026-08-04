@@ -16,6 +16,9 @@ interface ConversationProps {
   timeline: TimelineItem[];
   onSuggestion(text: string): void;
   onOpenAttachment?: ((attachmentId: string) => void) | undefined;
+  onOpenArtifact?: ((artifact: AgentArtifactSummary) => Promise<void>) | undefined;
+  onSaveArtifact?: ((artifact: AgentArtifactSummary) => Promise<boolean>) | undefined;
+  nativeActionMessage?: string | undefined;
   onSelectStep?: ((stepId: string | undefined) => void) | undefined;
   selectedStepId?: string | undefined;
   performance: AgentRunPerformance | null;
@@ -34,21 +37,10 @@ function showsInConversation(item: TimelineItem): boolean {
   );
 }
 
-function conversationEntries(
-  timeline: TimelineItem[],
-  artifacts: AgentArtifactSummary[],
-): OrderedEntry[] {
+function conversationEntries(timeline: TimelineItem[]): OrderedEntry[] {
   const entries: OrderedEntry[] = timeline
     .filter(showsInConversation)
     .map((item, order) => ({ createdAt: item.createdAt, item, kind: "timeline", order }));
-  entries.push(
-    ...artifacts.map((item, index) => ({
-      createdAt: item.createdAt,
-      item,
-      kind: "artifact" as const,
-      order: timeline.length + index,
-    })),
-  );
   return entries.sort(
     (left, right) => left.createdAt.localeCompare(right.createdAt) || left.order - right.order,
   );
@@ -95,6 +87,9 @@ export function Conversation({
   timeline,
   onSuggestion,
   onOpenAttachment = () => undefined,
+  onOpenArtifact = async () => undefined,
+  onSaveArtifact = async () => false,
+  nativeActionMessage,
   onSelectStep = () => undefined,
   selectedStepId,
   performance,
@@ -105,7 +100,7 @@ export function Conversation({
   onContinue,
   onDismissContinuation,
 }: ConversationProps) {
-  const entries = conversationEntries(timeline, artifacts);
+  const entries = conversationEntries(timeline);
   const scrollContainer = useRef<HTMLElement>(null);
   const followsLatest = useRef(true);
   useLayoutEffect(() => {
@@ -133,12 +128,16 @@ export function Conversation({
     >
       <div className="timeline">
         <TimelineEntries
+          artifacts={artifacts}
           attachmentsByMessage={attachmentsByUserMessage(timeline, attachments)}
           entries={entries}
           lastAssistantId={lastAssistantId}
+          nativeActionMessage={nativeActionMessage}
+          onOpenArtifact={onOpenArtifact}
           performance={performance}
           runId={runId}
           onOpenAttachment={onOpenAttachment}
+          onSaveArtifact={onSaveArtifact}
           onSelectStep={onSelectStep}
           selectedStepId={selectedStepId}
         />

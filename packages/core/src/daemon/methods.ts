@@ -12,6 +12,7 @@ import {
   SessionIdSchema,
 } from "@vault/shared";
 import type { VaultCore } from "../facade.js";
+import { dispatchArtifactMethod } from "./artifact-methods.js";
 
 function failure(request: RpcRequest | undefined, code: ErrorCode, message: string): RpcResponse {
   return {
@@ -27,7 +28,8 @@ function executionFailure(request: RpcRequest, error: unknown): RpcResponse {
   if (
     message === "folder_not_found" ||
     message === "session_not_found" ||
-    message === "run_not_found"
+    message === "run_not_found" ||
+    message === "artifact_not_found"
   ) {
     return failure(request, "not_found", "The requested record was not found.");
   }
@@ -236,6 +238,9 @@ async function dispatchMethod(core: VaultCore, request: RpcRequest): Promise<Rpc
       return materializeAttachment(core, request);
     case "attachments.remove":
       return removeAttachment(core, request);
+    case "artifacts.materialize":
+    case "artifacts.export":
+      return success(request, await dispatchArtifactMethod(core, request));
     case "agent.start":
       return startAgent(core, request);
     case "agent.list":

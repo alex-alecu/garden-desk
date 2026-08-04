@@ -68,10 +68,9 @@ describe("AgentLoop attachment instructions", () => {
     });
 
     expect(prompts[0]).toContain('"path":"/run/attachments/01-contract.pdf"');
-    expect(prompts[0]).toContain(
-      "use one short Python source action with from pypdf import PdfReader",
-    );
-    expect(prompts[0]).toContain("Never cat a PDF");
+    expect(prompts[0]).toContain("- pdf-documents (active)");
+    expect(prompts[0]).toContain("Use `pypdf` for reading and structural operations.");
+    expect(prompts[0]).toContain("base answers on text extracted from the real pages");
     expect(schemas[0]).toMatchObject({
       properties: { action: { const: "execute" }, language: { const: "python" } },
     });

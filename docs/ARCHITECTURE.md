@@ -1,6 +1,6 @@
 # Architecture
 
-Updated: 2026-07-22
+Updated: 2026-08-04
 
 Vault Desk V1 is a local desktop application with three isolated layers: a thin Tauri interface, an authoritative Node.js control plane, and session-scoped no-NIC agent microVMs plus a narrow host-native inference worker.
 
@@ -67,7 +67,7 @@ The guest receives:
 
 The guest does not receive credentials, user home, writable host mounts, arbitrary host paths, a host shell, package installation, an external broker, a generic Vault Core API, approval authority, export authority, or a generic model endpoint.
 
-Vault Core may accept declared scratch artifacts as session-owned proposals after type, size, and protocol validation. It never lets the guest commit authoritative state or write the selected host folder.
+Vault Core accepts only unique workspace paths declared by a successful final response as session-owned deliverables after path, size, bytes, hash, and protocol validation. It selects the latest observed bytes for each declaration and leaves undeclared intermediates only in the recoverable session workspace. It never lets the guest commit authoritative state or write the selected host folder.
 
 ## Agent Loop
 
@@ -80,6 +80,7 @@ Vault Core owns the loop; the guest owns execution.
 5. For an execution proposal, Core sends only the source or command and limits to the guest.
 6. The guest returns a structured result and workspace delta, and Core decides whether another model step is allowed.
 7. Core records observable activity, validates and commits the workspace manifest, and retains the guest in a least-recently-used warm pool bounded by total RAM, the inference cap, a host reserve, and the fixed guest limit.
+8. On successful finalization, Core commits the assistant response and only its valid declared deliverables in one logical completion flow. `artifacts.materialize` creates a verified owner-only temporary copy. `artifacts.export` performs an atomic host write chosen through the native dialog; the webview never receives the destination path.
 
 OpenCode informs interaction and loop design but is not a runtime dependency. A dependency may be adopted later only after a separate review proves that it reduces maintained code without weakening these boundaries.
 
@@ -108,7 +109,7 @@ Raw hidden model reasoning is never persisted. Supported typed thought segments 
 - Agent code cannot install dependencies or access credentials.
 - The model proposes; Vault Core authorizes and mediates; the guest executes only within its job.
 - The webview has no direct product authority.
-- Generated artifacts are proposals and cannot silently mutate the host.
+- Generated files are session-owned proposals and cannot silently mutate the host. Only explicit user Open or Save As actions cross the native boundary, and export audit records omit destination paths.
 - Application telemetry, analytics, automatic crash reporting, and background metrics export do not exist.
 
 ## Packaging
@@ -137,3 +138,4 @@ The same control-plane boundaries may later support supported personal computers
 | 2026-07-22 | Added hardware-derived model-plus-context budgets, full Windows GPU VRAM use, automatic context fitting, and the unsupported 8 GB Mac state. |
 | 2026-07-25 | Added RAM-bounded parallel conversation guests and serialized model-turn reuse of one resident Gemma worker. |
 | 2026-08-01 | Capped automatic context at 64K through 32 GB Mac unified memory or 24 GB Windows VRAM and at 128K above those thresholds. |
+| 2026-08-04 | Added declared deliverable persistence plus hash-verified materialization and atomic user-selected export. |

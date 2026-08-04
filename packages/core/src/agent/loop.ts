@@ -1,19 +1,19 @@
-import {
-  type AgentDecision,
-  type AgentEventDetail,
-  type AgentEventType,
-  type AgentExecutionResult,
-  type AgentInferenceOutcome,
-  type AgentRunResult,
-  AgentRunResultSchema,
-  type StructuredGenerationResult,
+import type {
+  AgentDecision,
+  AgentEventDetail,
+  AgentEventType,
+  AgentExecutionResult,
+  AgentRunResult,
+  StructuredGenerationResult,
 } from "@vault/shared";
 import type { AgentSessionExecution } from "@vault/workers";
 import type { InferenceService } from "../runtime/inference.js";
 import { createGenerationRequest } from "../runtime/inference.js";
+import { artifactCandidateNames } from "./artifact-declarations.js";
 import { addPerformance, emptyPerformance } from "./inference-performance.js";
 import { rejectedExecutionReason } from "./loop-decisions.js";
 import { executeAgentDecision, rejectExecution } from "./loop-execution.js";
+import { finishRun, recordOutcome } from "./loop-outcomes.js";
 import { structuredRetryInput } from "./loop-retry.js";
 import { xlsxContinuationResponse } from "./output-contract.js";
 import {
@@ -196,7 +196,7 @@ export class AgentLoop {
         request.identity,
       );
     } catch (error) {
-      this.recordOutcome(input, turnId, input.signal?.aborted ? "cancelled" : "inference_failed");
+      recordOutcome(input, turnId, input.signal?.aborted ? "cancelled" : "inference_failed");
       throw error;
     }
   }
@@ -211,26 +211,9 @@ export class AgentLoop {
       input.signal?.throwIfAborted();
       return { decision, ...(turnId === undefined ? {} : { turnId }) };
     } catch (error) {
-      this.recordOutcome(input, turnId, input.signal?.aborted ? "cancelled" : "invalid_response");
+      recordOutcome(input, turnId, input.signal?.aborted ? "cancelled" : "invalid_response");
       throw error;
     }
-  }
-
-  private recordOutcome(
-    input: AgentRunInput,
-    turnId: string | undefined,
-    outcome: AgentInferenceOutcome,
-    executionSequence?: number,
-  ): void {
-    if (turnId !== undefined) input.trace?.store.recordOutcome(turnId, outcome, executionSequence);
-  }
-
-  private finish(input: AgentRunInput, progress: AgentProgress, response: string): AgentRunResult {
-    input.onEvent?.("assistant.completed", "Response completed.");
-    return AgentRunResultSchema.parse({
-      response: executionBackedResponse(input, progress, response),
-      ...progress,
-    });
   }
 
   private async finishAfterLoop(
@@ -239,17 +222,17 @@ export class AgentLoop {
   ): Promise<AgentRunResult> {
     input.signal?.throwIfAborted();
     const continuation = xlsxContinuationResponse(progress.executions);
-    if (continuation !== undefined) return this.finish(input, progress, continuation);
+    if (continuation !== undefined) return finishRun(input, progress, continuation);
     if (progress.executions.length < MAX_EXECUTIONS) {
       throw new Error("agent_decision_limit_exceeded");
     }
     const traced = await this.decide(input, progress, true);
     if (traced.decision.action !== "respond") {
-      this.recordOutcome(input, traced.turnId, "invalid_response");
+      recordOutcome(input, traced.turnId, "invalid_response");
       throw new Error("agent_execution_limit_exceeded");
     }
-    this.recordOutcome(input, traced.turnId, "accepted_response");
-    return this.finish(input, progress, traced.decision.response);
+    recordOutcome(input, traced.turnId, "accepted_response");
+    return finishRun(input, progress, traced.decision.response, traced.decision.artifacts ?? []);
   }
 
   async run(input: AgentRunInput): Promise<AgentRunResult> {
@@ -268,8 +251,8 @@ export class AgentLoop {
       const traced = await this.decide(input, progress);
       const { decision } = traced;
       if (decision.action === "respond") {
-        this.recordOutcome(input, traced.turnId, "accepted_response");
-        return this.finish(input, progress, decision.response);
+        recordOutcome(input, traced.turnId, "accepted_response");
+        return finishRun(input, progress, decision.response, decision.artifacts ?? []);
       }
       const rejection = rejectedExecutionReason(
         decision,
@@ -287,10 +270,12 @@ export class AgentLoop {
       }
       consecutiveDuplicates = 0;
       progress.lastRejectedProgramReason = undefined;
-      this.recordOutcome(input, traced.turnId, "accepted_execution", progress.executions.length);
+      recordOutcome(input, traced.turnId, "accepted_execution", progress.executions.length);
       await executeAgentDecision(this.executor, input, decision, progress);
       const verifiedResponse = executionBackedResponse(input, progress, "");
-      if (verifiedResponse.length > 0) return this.finish(input, progress, verifiedResponse);
+      if (verifiedResponse.length > 0 && artifactCandidateNames(progress.executions).length === 0) {
+        return finishRun(input, progress, verifiedResponse);
+      }
     }
     return this.finishAfterLoop(input, progress);
   }

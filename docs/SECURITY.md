@@ -102,13 +102,15 @@ Agent-authored code and installed guest commands are the V1 work capability, not
 
 The guest receives no user home, credentials, arbitrary host path, package manager access, host shell, generic Vault Core API, external connection broker, approval capability, or model endpoint. Its shell is guest-local and cannot cross the VM boundary. Vault Core mediates completions through the separately confined native inference worker and sends only validated execution requests to the guest. Code and dependencies cannot be installed.
 
-Vault Core records every message, generated source or command, workspace path, summary, bounded logs, structured result, event, artifact, resource use, and termination reason. Originals remain durable even when prompt compaction replaces older successful logs with references. Results and workspace deltas remain untrusted until schema, path, hash, size, protocol, and policy validation completes. See [ADR 0018](adr/0018-offline-dev-agent-first.md).
+Vault Core records every message, generated source or command, workspace path, summary, bounded logs, structured result, event, declared deliverable, resource use, and termination reason. Workspace intermediates remain recoverable through the session workspace and debug snapshot but do not become artifact rows. Results and workspace deltas remain untrusted until schema, path, hash, size, protocol, and policy validation completes. See [ADR 0018](adr/0018-offline-dev-agent-first.md).
+
+Only a successful structured final response may declare deliverables, and declarations are limited to unique observed current-run workspace paths. Core selects the latest bytes, derives known MIME types from a trusted extension map, verifies the immutable content hash, and commits only valid declarations with the response. Missing, oversized, removed, undeclared, or failed-run files produce no card.
 
 ## Desktop Shell Controls
 
 The Tauri webview has no generic shell, process, environment, network, or unrestricted filesystem capability. React uses a narrow typed command surface. The Rust host may open native dialogs and supervise the exact packaged Vault Core sidecar, but it cannot accept arbitrary executable names, arguments, paths, URLs, or endpoints from the webview.
 
-Tauri capabilities are defense in depth, not the product authorization layer. Vault Core still validates workspace scope, model selection, policy, approval, audit, and export destinations. Sidecar identity, hashes, signatures, endpoint permissions, protocol versions, upgrades, and crash recovery must be verified independently. See [adr/0014-tauri-desktop-shell.md](adr/0014-tauri-desktop-shell.md).
+Tauri capabilities are defense in depth, not the product authorization layer. Vault Core still validates workspace scope, model selection, policy, approval, audit, artifact identity, session ownership, content hashes, and export destinations. Opening creates an owner-only verified temporary copy. Save As keeps the native destination out of the webview, rejects symlink and path-identity races, writes atomically, and audits success or failure without recording the destination. Sidecar identity, hashes, signatures, endpoint permissions, protocol versions, upgrades, and crash recovery must be verified independently. See [adr/0014-tauri-desktop-shell.md](adr/0014-tauri-desktop-shell.md).
 
 ## Filesystem Controls
 
@@ -212,3 +214,4 @@ Remote support must be:
 | 2026-07-13 | Added Tauri webview/sidecar controls and the generated-code microVM threat model, audit, and validation requirements. |
 | 2026-07-17 | Prohibited application telemetry and telemetry exporters; clarified that local customer-owned audit records are transmitted only through explicit, scoped export. |
 | 2026-07-20 | Recorded the completed M2 Seatbelt and Windows AppContainer/Job Object native-inference boundaries. |
+| 2026-08-04 | Added declared-only deliverable persistence and path-redacted, hash-verified Open and atomic Save As controls. |

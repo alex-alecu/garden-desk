@@ -2,3 +2,10 @@ sha256  3f07891af76dc002657e04993ab9b4de81de29f9013b9761d0b7968bff12e946  pypdf-
 sha256  5282c12b107bffeef825f4617dc029afaf41d0ea60823bbb665ef3079dc79de2  openpyxl-3.1.5-py2.py3-none-any.whl
 sha256  7a91720bc756843502c3b7504c77b8fe44217c85c537d85037f0f536151b2caa  et_xmlfile-2.0.0-py3-none-any.whl
 sha256  3fd478f3250fbbbfd3b94fe1e985955737c145627498896a8a6bf81f4baf66c7  python_docx-1.2.0-py3-none-any.whl
+sha256  9d5a3affa84919e1111ede580031266a570e93b1ce388219621347965ff1d93c  reportlab-5.0.0-py3-none-any.whl
+sha256  68e5f26a1ad57ded6d1cfb85331d1c1a195314756471d97758c48498bb4dcdf5  charset_normalizer-3.4.9-py3-none-any.whl
+sha256  ef831761646313921375fc2cb888e8eeaf7da213d0b92852c10c42f3a0b4d138  site/reportlab-5.0.0.dist-info/licenses/LICENSE
+sha256  6d0d41bfe170ac6c7dc248c9a63e254d0fb45a60d50a8257d0af92c6e249b887  site/charset_normalizer-3.4.9.dist-info/licenses/LICENSE
+sha256  3cd1020510efa7f6b3166a5a2740f92bd664a695ea179e0bda442e74cd0ef3a4  site/reportlab/fonts/DarkGarden-copying.txt
+sha256  1b2a567f289f66a143c56353e7b3d4fa5862514a5e3c5cfdf8b02ee5e5aaa953  site/reportlab/fonts/DarkGarden-copying-gpl.txt
+sha256  3361d054759a2fc686a2c058be82deaf9c2e6fe549be9004d7935a6c1736315d  site/reportlab/fonts/bitstream-vera-license.txt

@@ -170,8 +170,9 @@ it("keeps the overview separate from step evidence", () => {
   );
   expect(markup).toContain("Python: 3.14.5");
   expect(markup).toContain("/usr/bin/patch");
-  expect(markup).toContain("text/csv");
-  expect(markup).toContain("42 bytes");
+  expect(markup).not.toContain("text/csv");
+  expect(markup).not.toContain("42 bytes");
+  expect(markup).not.toContain("generated-file metadata");
   expect(markup).not.toContain("Response completed");
   expect(markup).not.toContain("Step 1 · Planning the task.");
   expect(markup).not.toContain("Code the model wrote");

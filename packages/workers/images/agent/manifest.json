@@ -101,6 +101,32 @@
       "license": "MIT",
       "sha256": "3fd478f3250fbbbfd3b94fe1e985955737c145627498896a8a6bf81f4baf66c7",
       "purpose": "DOCX reading and writing"
+    },
+    {
+      "name": "ReportLab",
+      "version": "5.0.0",
+      "license": "BSD-3-Clause",
+      "sha256": "9d5a3affa84919e1111ede580031266a570e93b1ce388219621347965ff1d93c",
+      "purpose": "styled PDF creation"
+    },
+    {
+      "name": "charset-normalizer",
+      "version": "3.4.9",
+      "license": "MIT",
+      "sha256": "68e5f26a1ad57ded6d1cfb85331d1c1a195314756471d97758c48498bb4dcdf5",
+      "purpose": "ReportLab text encoding support"
+    },
+    {
+      "name": "DarkGarden font",
+      "version": "ReportLab 5.0.0 bundle",
+      "license": "GPL-2.0-or-later WITH Font-exception",
+      "purpose": "ReportLab bundled font"
+    },
+    {
+      "name": "Bitstream Vera fonts",
+      "version": "ReportLab 5.0.0 bundle",
+      "license": "Bitstream-Vera",
+      "purpose": "ReportLab bundled fonts"
     }
   ],
   "networkFeaturesForbidden": ["CONFIG_INET", "CONFIG_IPV6", "CONFIG_WLAN", "CONFIG_WIRELESS"],
@@ -110,13 +136,13 @@
       "kernelFile": "Image",
       "kernelSha256": "211d283fafe9e094e614629ef21f8616cdce24c5e4b43b936c4c73a3e447e7bd",
       "initramfsFile": "rootfs.cpio",
-      "initramfsSha256": "882d9d5592a68b3aee4858670bab55d6aff1d1219a669dd46947dd4e7d463c9b"
+      "initramfsSha256": "2eeea44b843349e73e0444d4ec15b1cf5c1f2ae4694bd85043bfebf599f4c826"
     },
     "x86_64": {
       "kernelFile": "bzImage",
       "kernelSha256": "9fabee42a89b8128aa9f16dee4d43289c113f8b2aea398cabc904b6911a41dea",
       "initramfsFile": "rootfs.cpio",
-      "initramfsSha256": "73280bb17665d97ad4b59d8c02e9478b94987a19f218058ec0f5f29b7b47da81"
+      "initramfsSha256": "583cd94fb902131e982dd22850c845241c63818bbd85b77ed3805089ed706949"
     }
   }
 }

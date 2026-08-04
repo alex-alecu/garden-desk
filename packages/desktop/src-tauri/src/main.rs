@@ -9,6 +9,7 @@ use tauri::{AppHandle, Manager, RunEvent};
 use tauri_plugin_shell::ShellExt;
 use tauri_plugin_shell::process::CommandChild;
 
+mod artifact_commands;
 mod attachment_commands;
 mod commands;
 mod diagnostics;
@@ -251,6 +252,8 @@ fn main() {
         .invoke_handler(tauri::generate_handler![
             commands::append_user_message,
             attachment_commands::add_dropped_files,
+            artifact_commands::open_artifact,
+            artifact_commands::save_artifact,
             commands::add_dropped_folders,
             commands::cancel_agent,
             commands::choose_folder,

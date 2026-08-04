@@ -41,10 +41,20 @@ export const AgentDecisionSchema = z.union([
       summary: z.string().min(1).max(500),
     }),
   ]),
-  z.object({
-    action: z.literal("respond"),
-    response: z.string().min(1).max(64_000),
-  }),
+  z
+    .object({
+      action: z.literal("respond"),
+      response: z.string().min(1).max(64_000),
+      artifacts: z.array(AgentWorkspacePathSchema).max(16).optional(),
+    })
+    .superRefine((decision, context) => {
+      if (
+        decision.artifacts !== undefined &&
+        new Set(decision.artifacts).size !== decision.artifacts.length
+      ) {
+        context.addIssue({ code: "custom", message: "duplicate_artifact_path" });
+      }
+    }),
 ]);
 
 const AgentExecutionEvidenceSchema = z.object({
@@ -65,6 +75,7 @@ const AgentExecutionEvidenceSchema = z.object({
     )
     .max(16)
     .default([]),
+  invalidatedArtifactPaths: z.array(AgentWorkspacePathSchema).max(20_000).optional(),
 });
 
 export const AgentExecutionResultSchema = z.discriminatedUnion("language", [
@@ -84,6 +95,7 @@ export const AgentExecutionResultSchema = z.discriminatedUnion("language", [
 
 export const AgentRunResultSchema = z.object({
   response: z.string().min(1),
+  artifacts: z.array(AgentWorkspacePathSchema).max(16).default([]),
   executions: z.array(AgentExecutionResultSchema).max(6),
   inference: InferencePerformanceSchema,
 });

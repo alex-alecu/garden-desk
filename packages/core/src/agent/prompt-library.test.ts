@@ -9,7 +9,8 @@ function library(): PromptLibrary {
 describe("PromptLibrary discovery", () => {
   it("loads Agent Skills-compatible metadata from the root prompt directory", () => {
     expect(library().skills.map(({ name }) => name)).toEqual([
-      "pdf-reading",
+      "docx-documents",
+      "pdf-documents",
       "terminal-commands",
       "xlsx-workbooks",
     ]);
@@ -47,7 +48,7 @@ describe("PromptLibrary skill selection", () => {
         task: "Summarize the attachment.",
         inputNames: ["REPORT.PDF"],
       }),
-    ]).toEqual(["pdf-reading"]);
+    ]).toEqual(["pdf-documents"]);
     expect([
       ...prompts.activeSkillNames({
         task: "Total every salary in the workbooks.",
@@ -106,7 +107,7 @@ describe("PromptLibrary invalid PDF validation", () => {
       workspace_path: "/workspace",
     });
 
-    expect([...prompts.activeSkillNames(input)]).toEqual(["pdf-reading"]);
+    expect([...prompts.activeSkillNames(input)]).toEqual(["pdf-documents"]);
     expect(body).toContain("print that exact marker to stdout");
     expect(body).toContain("exit normally with code 0");
     expect(body).toContain("do not repair the PDF, write an artifact");
@@ -150,6 +151,28 @@ describe("PromptLibrary skill routing precision", () => {
         inputNames: [],
       }),
     ]).toEqual(["terminal-commands"]);
+  });
+
+  it("routes explicit DOCX, XLSX, and PDF output requests without generic lexical matches", () => {
+    const prompts = library();
+    expect([
+      ...prompts.activeSkillNames({ task: "Create proposal.docx.", inputNames: [] }),
+    ]).toEqual(["docx-documents"]);
+    expect([...prompts.activeSkillNames({ task: "Create totals.xlsx.", inputNames: [] })]).toEqual([
+      "xlsx-workbooks",
+    ]);
+    expect([
+      ...prompts.activeSkillNames({ task: "Create a styled PDF report.", inputNames: [] }),
+    ]).toEqual(["pdf-documents"]);
+    expect([
+      ...prompts.activeSkillNames({ task: "Count words in a text document.", inputNames: [] }),
+    ]).not.toContain("docx-documents");
+    expect([
+      ...prompts.activeSkillNames({ task: "Explain portable document formats.", inputNames: [] }),
+    ]).toEqual([]);
+    expect([
+      ...prompts.activeSkillNames({ task: "Explain PDF, DOCX, and XLSX formats.", inputNames: [] }),
+    ]).toEqual([]);
   });
 
   it("does not select terminal guidance for an explicit Node source-execution task", () => {

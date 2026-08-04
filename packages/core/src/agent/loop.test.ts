@@ -267,6 +267,7 @@ describe("AgentLoop observations", () => {
     expect(calls).toEqual([completed.source ?? ""]);
     expect(result).toEqual({
       response: "The answer is 4.",
+      artifacts: [],
       executions: [completed],
       inference: {
         promptTokens: 20,

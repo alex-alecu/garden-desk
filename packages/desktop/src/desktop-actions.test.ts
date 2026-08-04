@@ -6,6 +6,7 @@ import {
 } from "@vault/shared";
 import { describe, expect, it, vi } from "vitest";
 import type { DesktopApi } from "./api.js";
+import { openArtifact, saveArtifact } from "./artifact-actions.js";
 import { addDroppedFolders, attach } from "./desktop-actions.js";
 import type { DesktopAction } from "./state.js";
 
@@ -85,5 +86,72 @@ describe("desktop attachment actions", () => {
       "draft.change",
       "attachments.add",
     ]);
+  });
+});
+
+describe("desktop generated file actions", () => {
+  it("opens and saves only through the typed desktop bridge", async () => {
+    const setError = vi.fn();
+    const api = {
+      openArtifact: vi.fn(async () => undefined),
+      saveArtifact: vi.fn(async () => true),
+    } as unknown as DesktopApi;
+
+    await openArtifact(api, session.id, "artifact-id", setError);
+    await expect(
+      saveArtifact({
+        api,
+        sessionId: session.id,
+        artifactId: "artifact-id",
+        name: "report.pdf",
+        setError,
+      }),
+    ).resolves.toBe(true);
+
+    expect(api.openArtifact).toHaveBeenCalledWith(session.id, "artifact-id");
+    expect(api.saveArtifact).toHaveBeenCalledWith(session.id, "artifact-id", "report.pdf");
+    expect(setError).toHaveBeenLastCalledWith(undefined);
+  });
+
+  it("keeps Save As available after an open failure", async () => {
+    const errors: Array<string | undefined> = [];
+    const api = {
+      openArtifact: vi.fn(async () => {
+        throw new Error("no_default_application");
+      }),
+      saveArtifact: vi.fn(async () => true),
+    } as unknown as DesktopApi;
+
+    await openArtifact(api, session.id, "artifact-id", (message) => errors.push(message));
+    await expect(
+      saveArtifact({
+        api,
+        sessionId: session.id,
+        artifactId: "artifact-id",
+        name: "report.pdf",
+        setError: (message) => errors.push(message),
+      }),
+    ).resolves.toBe(true);
+
+    expect(errors).toContain("This generated file could not be opened. You can still use Save As…");
+    expect(api.saveArtifact).toHaveBeenCalledOnce();
+  });
+});
+
+describe("desktop generated file cancellation", () => {
+  it("returns a cancelled native Save As selection without an error", async () => {
+    const setError = vi.fn();
+    const api = { saveArtifact: vi.fn(async () => false) } as unknown as DesktopApi;
+
+    await expect(
+      saveArtifact({
+        api,
+        sessionId: session.id,
+        artifactId: "artifact-id",
+        name: "report.pdf",
+        setError,
+      }),
+    ).resolves.toBe(false);
+    expect(setError).toHaveBeenCalledExactlyOnceWith(undefined);
   });
 });

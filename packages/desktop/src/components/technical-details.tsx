@@ -129,7 +129,6 @@ function DebugSnapshotControls({
 
 function Overview({
   api,
-  artifacts,
   catalogPath,
   executions,
   model,
@@ -140,7 +139,7 @@ function Overview({
   const limits = timeline.find((item) => item.eventType === "run.started")?.text;
   return (
     <div className="technical-details-scroll" role="tabpanel" id="technical-overview-panel">
-      {limits === undefined && executions.length === 0 && artifacts.length === 0 ? (
+      {limits === undefined && executions.length === 0 ? (
         <p className="technical-details-empty">Technical details will appear after a task runs.</p>
       ) : null}
       {sessionId === undefined ? null : (
@@ -170,22 +169,6 @@ function Overview({
           <pre>{guestCapabilities()}</pre>
         </details>
       </article>
-      {artifacts.map((item) => (
-        <article className="technical-details-item" key={item.id}>
-          <span className="activity-label">Generated file</span>
-          <p>{item.name}</p>
-          <dl className="technical-file-metadata">
-            <div>
-              <dt>Type</dt>
-              <dd>{item.mediaType}</dd>
-            </div>
-            <div>
-              <dt>Size</dt>
-              <dd>{item.byteLength} bytes</dd>
-            </div>
-          </dl>
-        </article>
-      ))}
     </div>
   );
 }
@@ -247,7 +230,7 @@ export function TechnicalDetails(props: TechnicalDetailsProps) {
       <header className="technical-details-header">
         <div>
           <h2>Technical details</h2>
-          <p>Local limits, diagnostics, and generated-file metadata</p>
+          <p>Local limits, diagnostics, and execution evidence</p>
         </div>
         <button aria-label="Close technical details" onClick={props.onClose} type="button">
           <Icon name="close" />

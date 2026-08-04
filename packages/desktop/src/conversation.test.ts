@@ -206,7 +206,7 @@ describe("conversation Markdown presentation", () => {
 });
 
 describe("conversation activity presentation", () => {
-  it("orders restored progress and generated files inline without technical details", () => {
+  it("groups restored generated files after the response and before metrics", () => {
     const markup = renderRestoredActivity();
 
     const orderedText = [
@@ -214,8 +214,9 @@ describe("conversation activity presentation", () => {
       "Loading the local model",
       "Inspecting the selected data",
       "Finished this step",
-      "report.csv",
       "The report is ready",
+      "Generated files",
+      "report.csv",
     ];
     expect(orderedText.map((text) => markup.indexOf(text))).toEqual(
       [...orderedText.map((text) => markup.indexOf(text))].sort((left, right) => left - right),
@@ -224,6 +225,9 @@ describe("conversation activity presentation", () => {
     expect(markup).not.toContain("Response completed");
     expect(markup).not.toContain("secret output");
     expect(markup).not.toContain("print(&#x27;secret&#x27;)");
+    expect(markup).toContain('aria-label="Open report.csv"');
+    expect(markup).toContain('aria-label="Save report.csv as"');
+    expect(markup).toContain("Save As…");
   });
 
   it("keeps the current action and completed execution count visible while working", () => {

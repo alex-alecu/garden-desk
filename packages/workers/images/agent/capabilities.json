@@ -323,6 +323,10 @@
     "defusedxml": "0.7.1",
     "lxml": "6.0.2",
     "typing-extensions": "4.15.0",
-    "python-docx": "1.2.0"
+    "python-docx": "1.2.0",
+    "ReportLab": "5.0.0",
+    "charset-normalizer": "3.4.9",
+    "DarkGarden font": "ReportLab 5.0.0 bundle",
+    "Bitstream Vera fonts": "ReportLab 5.0.0 bundle"
   }
 }
