@@ -1,7 +1,8 @@
 import type { AgentArtifactSummary } from "@vault/shared";
 import { useState } from "react";
+import type { ArtifactSaveResult } from "../artifact-actions.js";
 
-type ActionState = "cancelled" | "idle" | "opening" | "saving" | "saved";
+type ActionState = ArtifactSaveResult | "idle" | "opening" | "saving";
 
 function fileType(item: AgentArtifactSummary): { icon: string; label: string } {
   const extension = item.name.split(".").at(-1)?.toLocaleLowerCase("en-US");
@@ -20,6 +21,14 @@ function fileSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+function saveLabel(state: ActionState): string {
+  if (state === "saving") return "Saving…";
+  if (state === "saved") return "Saved";
+  if (state === "failed") return "Failed";
+  if (state === "cancelled") return "Cancelled";
+  return "Save As…";
+}
+
 function GeneratedFileCard({
   item,
   disabledReason,
@@ -29,7 +38,7 @@ function GeneratedFileCard({
   item: AgentArtifactSummary;
   disabledReason: string | undefined;
   onOpen(item: AgentArtifactSummary): Promise<void>;
-  onSave(item: AgentArtifactSummary): Promise<boolean>;
+  onSave(item: AgentArtifactSummary): Promise<ArtifactSaveResult>;
 }) {
   const [state, setState] = useState<ActionState>("idle");
   const type = fileType(item);
@@ -71,20 +80,12 @@ function GeneratedFileCard({
         disabled={disabled}
         onClick={() => {
           setState("saving");
-          void onSave(item).then((saved) => setState(saved ? "saved" : "cancelled"));
+          void onSave(item).then(setState);
         }}
         title={disabledReason}
         type="button"
       >
-        <span aria-live="polite">
-          {state === "saving"
-            ? "Saving…"
-            : state === "saved"
-              ? "Saved"
-              : state === "cancelled"
-                ? "Cancelled"
-                : "Save As…"}
-        </span>
+        <span aria-live="polite">{saveLabel(state)}</span>
       </button>
     </article>
   );
@@ -99,7 +100,7 @@ export function GeneratedFiles({
   artifacts: AgentArtifactSummary[];
   disabledReason: string | undefined;
   onOpen(item: AgentArtifactSummary): Promise<void>;
-  onSave(item: AgentArtifactSummary): Promise<boolean>;
+  onSave(item: AgentArtifactSummary): Promise<ArtifactSaveResult>;
 }) {
   if (artifacts.length === 0) return null;
   return (

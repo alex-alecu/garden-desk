@@ -106,7 +106,7 @@ describe("desktop generated file actions", () => {
         name: "report.pdf",
         setError,
       }),
-    ).resolves.toBe(true);
+    ).resolves.toBe("saved");
 
     expect(api.openArtifact).toHaveBeenCalledWith(session.id, "artifact-id");
     expect(api.saveArtifact).toHaveBeenCalledWith(session.id, "artifact-id", "report.pdf");
@@ -131,7 +131,7 @@ describe("desktop generated file actions", () => {
         name: "report.pdf",
         setError: (message) => errors.push(message),
       }),
-    ).resolves.toBe(true);
+    ).resolves.toBe("saved");
 
     expect(errors).toContain("This generated file could not be opened. You can still use Save As…");
     expect(api.saveArtifact).toHaveBeenCalledOnce();
@@ -151,7 +151,27 @@ describe("desktop generated file cancellation", () => {
         name: "report.pdf",
         setError,
       }),
-    ).resolves.toBe(false);
+    ).resolves.toBe("cancelled");
     expect(setError).toHaveBeenCalledExactlyOnceWith(undefined);
+  });
+
+  it("returns a distinct failed result for native export errors", async () => {
+    const setError = vi.fn();
+    const api = {
+      saveArtifact: vi.fn(async () => {
+        throw new Error("export_failed");
+      }),
+    } as unknown as DesktopApi;
+
+    await expect(
+      saveArtifact({
+        api,
+        sessionId: session.id,
+        artifactId: "artifact-id",
+        name: "report.pdf",
+        setError,
+      }),
+    ).resolves.toBe("failed");
+    expect(setError).toHaveBeenLastCalledWith("This generated file could not be saved.");
   });
 });

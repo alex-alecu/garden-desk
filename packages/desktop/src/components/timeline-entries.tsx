@@ -1,6 +1,7 @@
 import type { AgentArtifactSummary, AgentRunPerformance, AttachmentSummary } from "@vault/shared";
 import Markdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
+import type { ArtifactSaveResult } from "../artifact-actions.js";
 import type { TimelineItem } from "../state.js";
 import { GeneratedFiles } from "./generated-files.js";
 import { MessageAttachments } from "./message-attachments.js";
@@ -104,7 +105,7 @@ function TimelineMessage({
   nativeActionMessage: string | undefined;
   onOpenArtifact(item: AgentArtifactSummary): Promise<void>;
   onOpenAttachment(attachmentId: string): void;
-  onSaveArtifact(item: AgentArtifactSummary): Promise<boolean>;
+  onSaveArtifact(item: AgentArtifactSummary): Promise<ArtifactSaveResult>;
   performance: AgentRunPerformance | null;
   showMetrics: boolean;
 }) {
@@ -152,7 +153,7 @@ export function TimelineEntries({
   nativeActionMessage: string | undefined;
   onOpenArtifact(item: AgentArtifactSummary): Promise<void>;
   onOpenAttachment(attachmentId: string): void;
-  onSaveArtifact(item: AgentArtifactSummary): Promise<boolean>;
+  onSaveArtifact(item: AgentArtifactSummary): Promise<ArtifactSaveResult>;
   onSelectStep(stepId: string | undefined): void;
   performance: AgentRunPerformance | null;
   runId: string | undefined;

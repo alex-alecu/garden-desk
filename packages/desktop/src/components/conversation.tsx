@@ -1,5 +1,6 @@
 import type { AgentArtifactSummary, AgentRunPerformance, AttachmentSummary } from "@vault/shared";
 import { useLayoutEffect, useRef } from "react";
+import type { ArtifactSaveResult } from "../artifact-actions.js";
 import type { ContinuationQuestion } from "../continuation.js";
 import type { TimelineItem } from "../state.js";
 import { EmptyConversation } from "./empty-conversation.js";
@@ -17,7 +18,7 @@ interface ConversationProps {
   onSuggestion(text: string): void;
   onOpenAttachment?: ((attachmentId: string) => void) | undefined;
   onOpenArtifact?: ((artifact: AgentArtifactSummary) => Promise<void>) | undefined;
-  onSaveArtifact?: ((artifact: AgentArtifactSummary) => Promise<boolean>) | undefined;
+  onSaveArtifact?: ((artifact: AgentArtifactSummary) => Promise<ArtifactSaveResult>) | undefined;
   nativeActionMessage?: string | undefined;
   onSelectStep?: ((stepId: string | undefined) => void) | undefined;
   selectedStepId?: string | undefined;
@@ -88,7 +89,7 @@ export function Conversation({
   onSuggestion,
   onOpenAttachment = () => undefined,
   onOpenArtifact = async () => undefined,
-  onSaveArtifact = async () => false,
+  onSaveArtifact = async () => "failed",
   nativeActionMessage,
   onSelectStep = () => undefined,
   selectedStepId,

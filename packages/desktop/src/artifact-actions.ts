@@ -2,6 +2,7 @@ import type { AgentArtifactSummary } from "@vault/shared";
 import type { DesktopApi } from "./api.js";
 
 type SetError = (message: string | undefined) => void;
+export type ArtifactSaveResult = "cancelled" | "failed" | "saved";
 
 export async function openArtifact(
   api: DesktopApi,
@@ -25,13 +26,15 @@ interface SaveArtifactOptions {
   setError: SetError;
 }
 
-export async function saveArtifact(options: SaveArtifactOptions): Promise<boolean> {
+export async function saveArtifact(options: SaveArtifactOptions): Promise<ArtifactSaveResult> {
   options.setError(undefined);
   try {
-    return await options.api.saveArtifact(options.sessionId, options.artifactId, options.name);
+    return (await options.api.saveArtifact(options.sessionId, options.artifactId, options.name))
+      ? "saved"
+      : "cancelled";
   } catch {
     options.setError("This generated file could not be saved.");
-    return false;
+    return "failed";
   }
 }
 
@@ -45,7 +48,7 @@ export function artifactActions(
       if (sessionId !== undefined) await openArtifact(api, sessionId, artifact.id, setError);
     },
     async onSaveArtifact(artifact: AgentArtifactSummary) {
-      if (sessionId === undefined) return false;
+      if (sessionId === undefined) return "failed";
       return await saveArtifact({
         api,
         artifactId: artifact.id,

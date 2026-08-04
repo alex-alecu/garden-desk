@@ -28,7 +28,7 @@ describe("generated file cards", () => {
         artifacts: [report, workbook],
         disabledReason: "Unavailable in the public demo",
         onOpen: async () => undefined,
-        onSave: async () => false,
+        onSave: async () => "cancelled" as const,
       }),
     );
 
