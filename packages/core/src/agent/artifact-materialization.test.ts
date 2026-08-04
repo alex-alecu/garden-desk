@@ -74,7 +74,6 @@ describe("artifact export", () => {
   it("writes atomically, rejects symlink targets, and redacts the destination from audit", async () => {
     const { root, catalog, artifacts, session, item, bytes } = await fixture();
     const destination = join(root, "saved.pdf");
-    await writeFile(destination, "old");
     const audit = new AuditLog(catalog.database);
     await exportAndAuditArtifact({
       database: catalog.database,
@@ -108,6 +107,26 @@ describe("artifact export", () => {
     expect(events.at(-1)?.event_json).toContain('"outcome":"failed"');
     expect(events.at(-1)?.event_json).not.toContain(destination);
     expect(events.at(-1)?.event_json).not.toContain(link);
+    catalog.close();
+  });
+});
+
+describe("artifact export collisions", () => {
+  it("never replaces an existing destination", async () => {
+    const { root, catalog, artifacts, session, item } = await fixture();
+    const destination = join(root, "existing.pdf");
+    await writeFile(destination, "existing");
+    await expect(
+      exportAndAuditArtifact({
+        database: catalog.database,
+        artifacts,
+        audit: new AuditLog(catalog.database),
+        sessionId: session.id,
+        artifactId: item.id,
+        destination,
+      }),
+    ).rejects.toThrow("artifact_export_exists");
+    expect(await readFile(destination, "utf8")).toBe("existing");
     catalog.close();
   });
 });

@@ -1,5 +1,5 @@
 import { constants } from "node:fs";
-import { chmod, lstat, mkdtemp, open, realpath, rename, rm, unlink } from "node:fs/promises";
+import { chmod, link, lstat, mkdtemp, open, realpath, rm, unlink } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { basename, dirname, isAbsolute, join, resolve } from "node:path";
 import type { AuditLog } from "../audit/log.js";
@@ -68,35 +68,39 @@ export async function materializeArtifact(reference: ArtifactReference): Promise
   }
 }
 
-interface PathIdentity {
-  device: number;
-  inode: number;
-}
-
-async function destinationIdentity(path: string): Promise<PathIdentity | undefined> {
+async function destinationExists(path: string): Promise<boolean> {
   try {
     const state = await lstat(path);
     if (!state.isFile() || state.isSymbolicLink()) throw new Error("artifact_export_unsafe");
-    return { device: state.dev, inode: state.ino };
+    return true;
   } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === "ENOENT") return undefined;
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return false;
     throw error;
   }
 }
 
-function sameIdentity(left: PathIdentity | undefined, right: PathIdentity | undefined): boolean {
-  return left === undefined
-    ? right === undefined
-    : right !== undefined && left.device === right.device && left.inode === right.inode;
+async function linkWithoutClobber(source: string, destination: string): Promise<void> {
+  try {
+    await link(source, destination);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "EEXIST") {
+      throw new Error("artifact_export_changed");
+    }
+    throw error;
+  }
 }
 
-export async function exportArtifact(reference: ArtifactExport): Promise<void> {
-  const { destination } = reference;
+interface ExportTarget {
+  device: number;
+  inode: number;
+  parent: string;
+  target: string;
+}
+
+async function verifiedExportTarget(destination: string): Promise<ExportTarget> {
   if (!isAbsolute(destination) || destination.includes("\0")) {
     throw new Error("artifact_export_unsafe");
   }
-  const item = artifactForSession(reference.database, reference.sessionId, reference.artifactId);
-  if (item === undefined) throw new Error("artifact_not_found");
   const requestedTarget = resolve(destination);
   const requestedParent = resolve(dirname(requestedTarget));
   const parentState = await lstat(requestedParent);
@@ -104,28 +108,51 @@ export async function exportArtifact(reference: ArtifactExport): Promise<void> {
     throw new Error("artifact_export_unsafe");
   }
   const parent = await realpath(requestedParent);
+  const canonicalParentState = await lstat(parent);
+  if (
+    canonicalParentState.dev !== parentState.dev ||
+    canonicalParentState.ino !== parentState.ino
+  ) {
+    throw new Error("artifact_export_changed");
+  }
   const target = join(parent, basename(requestedTarget));
-  const before = await destinationIdentity(target);
+  if (await destinationExists(target)) throw new Error("artifact_export_exists");
+  return {
+    device: canonicalParentState.dev,
+    inode: canonicalParentState.ino,
+    parent,
+    target,
+  };
+}
+
+async function commitExport(destination: ExportTarget, bytes: Uint8Array): Promise<void> {
+  const { device, inode, parent, target } = destination;
   const temporary = join(parent, `.vault-export-${process.pid}-${crypto.randomUUID()}.tmp`);
   try {
-    await writeOwnerOnly(temporary, await reference.artifacts.read(item.contentHash));
+    await writeOwnerOnly(temporary, bytes);
     const parentAfter = await lstat(parent);
     if (
-      parentAfter.dev !== parentState.dev ||
-      parentAfter.ino !== parentState.ino ||
+      parentAfter.dev !== device ||
+      parentAfter.ino !== inode ||
       (await realpath(parent)) !== parent
     ) {
       throw new Error("artifact_export_changed");
     }
-    if (!sameIdentity(before, await destinationIdentity(target))) {
-      throw new Error("artifact_export_changed");
-    }
-    await rename(temporary, target);
+    if (await destinationExists(target)) throw new Error("artifact_export_changed");
+    await linkWithoutClobber(temporary, target);
+    await unlink(temporary);
     await syncDirectory(parent);
   } catch (error) {
     await unlink(temporary).catch(() => undefined);
     throw error;
   }
+}
+
+export async function exportArtifact(reference: ArtifactExport): Promise<void> {
+  const item = artifactForSession(reference.database, reference.sessionId, reference.artifactId);
+  if (item === undefined) throw new Error("artifact_not_found");
+  const destination = await verifiedExportTarget(reference.destination);
+  await commitExport(destination, await reference.artifacts.read(item.contentHash));
 }
 
 async function auditedArtifactAction<T>(options: {
