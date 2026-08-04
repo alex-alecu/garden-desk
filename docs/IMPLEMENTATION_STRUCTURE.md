@@ -131,6 +131,7 @@ src/app.tsx
 src/api.ts                 typed Tauri command adapter
 src/desktop-actions.ts     narrow desktop workflow calls
 src/dev-resource-progress.ts development startup stage labels
+src/package-model-contract.ts canonical and packaged generation-model paths
 src/package-resource-contract.ts packaged migration inventory
 src/state.ts               plain React reducer
 src/styles.css
@@ -142,6 +143,9 @@ src/components/technical-details.tsx
 src/components/composer.tsx
 src/components/confirmation.tsx
 package-resources.ts       verified sidecar, model, guest, helper, and inference assets
+package-output-cleanup.ts  verified package replacement and generated model cleanup
+clean-model-copies.ts      release-preserving manual model cleanup
+clean-development-model.ts successful dev-check model cleanup
 native/windows-hyper-v-setup/ fixed Windows-only one-time group membership helper
 prepare-dev.ts             cached development-resource readiness before Vite starts
 runtime-packages.ts        recursive packaged node-llama-cpp dependency copy

@@ -32,7 +32,10 @@
     "active": true,
     "targets": ["app"],
     "externalBin": ["binaries/vault-core"],
-    "resources": ["resources/core", "../../../assets/fonts/LICENSE.txt"],
+    "resources": {
+      "resources/core/": "resources/core/",
+      "../../../assets/fonts/LICENSE.txt": "assets/fonts/LICENSE.txt"
+    },
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",

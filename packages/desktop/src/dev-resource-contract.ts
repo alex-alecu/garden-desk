@@ -20,6 +20,14 @@ function commonInputs(desktopRoot: string, repositoryRoot: string): string[] {
     join(repositoryRoot, "packages", "workers", "images", "manifest.json"),
     join(repositoryRoot, "packages", "workers", "images", "agent"),
     join(repositoryRoot, "packages", "workers", "images", "buildroot-external"),
+    join(
+      repositoryRoot,
+      "packages",
+      "eval",
+      ".generated",
+      "models",
+      "gemma-4-12b-it-qat-q4_0.gguf",
+    ),
     join(desktopRoot, "package.json"),
     join(desktopRoot, "build-sidecar.ts"),
     join(desktopRoot, "build-signing.ts"),
@@ -28,6 +36,7 @@ function commonInputs(desktopRoot: string, repositoryRoot: string): string[] {
     join(desktopRoot, "runtime-packages.ts"),
     join(desktopRoot, "windows-setup-resource.ts"),
     join(desktopRoot, "src", "dev-resource-progress.ts"),
+    join(desktopRoot, "src", "package-model-contract.ts"),
     join(desktopRoot, "src", "package-resource-contract.ts"),
     join(desktopRoot, "src", "resource-hashes.ts"),
     join(desktopRoot, "src", "runtime-package-contract.ts"),
@@ -38,7 +47,6 @@ function commonInputs(desktopRoot: string, repositoryRoot: string): string[] {
 function commonOutputs(resourcesRoot: string): string[] {
   return [
     join(resourcesRoot, "resource-manifest.json"),
-    join(resourcesRoot, "models", "gemma-4-12b-it-qat-q4_0.gguf"),
     join(resourcesRoot, "models", "installed-models.json"),
     join(resourcesRoot, "inference", "worker.mjs"),
     join(resourcesRoot, "inference", "node_modules", "node-llama-cpp", "package.json"),

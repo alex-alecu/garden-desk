@@ -33,6 +33,7 @@ describe("M3 Windows package contract", () => {
       "vault-core.exe",
       "resource-manifest.json",
       "nativeRuntimePackages()",
+      "canonicalGenerationModelPath",
     ]) {
       expect(staging).toContain(value);
     }
@@ -46,6 +47,35 @@ describe("M3 Windows package contract", () => {
       "cublasLt64_13.dll",
       "NVIDIA-CUDA-LICENSE.txt",
     ]);
+  });
+});
+
+describe("M3 model package input", () => {
+  it("maps the canonical model only for model-bearing desktop commands", async () => {
+    const [baseSource, packageSource, launcher] = await Promise.all([
+      readFile(join(process.cwd(), "packages/desktop/src-tauri/tauri.conf.json"), "utf8"),
+      readFile(
+        join(process.cwd(), "packages/desktop/src-tauri/tauri.package-model.conf.json"),
+        "utf8",
+      ),
+      readFile(join(process.cwd(), "packages/desktop/run-tauri.ts"), "utf8"),
+    ]);
+    const base = JSON.parse(baseSource) as { bundle: { resources: Record<string, string> } };
+    const packageConfiguration = JSON.parse(packageSource) as {
+      bundle: { resources: Record<string, string> };
+    };
+    expect(base.bundle.resources).not.toHaveProperty(
+      "../../eval/.generated/models/gemma-4-12b-it-qat-q4_0.gguf",
+    );
+    expect(packageConfiguration.bundle.resources).toEqual({
+      "resources/core/": "resources/core/",
+      "../../eval/.generated/models/gemma-4-12b-it-qat-q4_0.gguf":
+        "resources/core/models/gemma-4-12b-it-qat-q4_0.gguf",
+      "../../../assets/fonts/LICENSE.txt": "assets/fonts/LICENSE.txt",
+    });
+    expect(launcher).toContain('tauriArguments[0] === "dev"');
+    expect(launcher).toContain('tauriArguments[0] === "build"');
+    expect(launcher).toContain('"tauri.package-model.conf.json"');
   });
 });
 

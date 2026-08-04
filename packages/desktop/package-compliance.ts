@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { createReadStream } from "node:fs";
 import { readdir, readFile, stat, writeFile } from "node:fs/promises";
-import { join, relative } from "node:path";
+import { join, relative, sep } from "node:path";
 
 interface GuestManifest {
   contents: Array<{ name: string; version: string; license: string; purpose: string }>;
@@ -12,6 +12,11 @@ interface NoticePackage {
   version: string;
   license: string;
   purpose: string;
+}
+
+export interface ExternalPackageFile {
+  source: string;
+  path: string;
 }
 
 async function hashFile(path: string): Promise<string> {
@@ -87,6 +92,7 @@ async function runtimePackages(resourcesRoot: string): Promise<NoticePackage[]> 
 export async function writePackageCompliance(
   resourcesRoot: string,
   guestManifestPath: string,
+  externalFiles: ExternalPackageFile[] = [],
 ): Promise<string> {
   const platform = platformIdentity();
   const guest = JSON.parse(await readFile(guestManifestPath, "utf8")) as GuestManifest;
@@ -140,7 +146,7 @@ export async function writePackageCompliance(
       2,
     )}\n`,
   );
-  const entries = [];
+  const entries: Array<{ path: string; byteLength: number; sha256: string }> = [];
   for (const path of (await files(resourcesRoot)).sort()) {
     const metadata = await stat(path);
     entries.push({
@@ -148,6 +154,23 @@ export async function writePackageCompliance(
       byteLength: metadata.size,
       sha256: await hashFile(path),
     });
+  }
+  for (const external of externalFiles) {
+    const metadata = await stat(external.source);
+    entries.push({
+      path: external.path,
+      byteLength: metadata.size,
+      sha256: await hashFile(external.source),
+    });
+  }
+  for (const entry of entries) entry.path = entry.path.split(sep).join("/");
+  entries.sort((left, right) => left.path.localeCompare(right.path));
+  const paths = new Set<string>();
+  for (const entry of entries) {
+    if (paths.has(entry.path)) {
+      throw new Error(`Packaged resource manifest contains duplicate ${entry.path}.`);
+    }
+    paths.add(entry.path);
   }
   const manifest = join(resourcesRoot, "resource-manifest.json");
   await writeFile(manifest, `${JSON.stringify({ schemaVersion: 1, files: entries }, null, 2)}\n`);
