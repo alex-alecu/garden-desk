@@ -157,6 +157,10 @@ describe("AgentLoop XLSX table escape recovery", () => {
     expect(prompts[1]).toContain("invalid escape-sequence warning");
     expect(prompts[1]).toContain("Construct the table separator with `chr(124)`");
     expect(prompts[1]).toContain("with a space instead of a backslash escape");
+    expect(prompts[1]).toContain("Do not call `replace` on backslash characters");
+    expect(prompts[1]).toContain("one dash-based separator row");
+    expect(prompts[1]).toContain("Count printed data rows with an integer variable");
+    expect(prompts[1]).toContain("Print no prose, totals, or blank content outside the table");
     expect(prompts[1]).toContain("include the required XLSX coverage markers");
   });
 });
