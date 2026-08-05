@@ -1,11 +1,8 @@
-import {
-  type AgentExecutionResult,
-  parseXlsxProgress,
-  stripXlsxProgress,
-} from "@vault/shared";
+import { type AgentExecutionResult, parseXlsxProgress, stripXlsxProgress } from "@vault/shared";
 import { executionSucceeded } from "./history.js";
 import {
   completedSuccessfully,
+  validGfmTable,
   type XlsxWorkflowPhase,
   xlsxWorkflowPhase,
 } from "./output-contract.js";
@@ -144,11 +141,15 @@ export function xlsxPhaseInstructions(input: XlsxPhaseInstructionsInput): readon
     xlsxPhase: xlsxWorkflowPhase(executions, input.requiredLabels),
   });
   const latest = executions.at(-1);
-  return latest !== undefined &&
-    /\b(?:table|tabel(?:ul)?)\b/iu.test(input.task) &&
-    /(?:unterminated string literal|invalid escape sequence|'Worksheet' object has no attribute 'reset_dimensions')/iu.test(
+  const needsTableRepair =
+    latest !== undefined &&
+    (/(?:unterminated string literal|invalid escape sequence|'Worksheet' object has no attribute 'reset_dimensions')/iu.test(
       latest.stderr,
-    )
+    ) ||
+      (completedSuccessfully(latest) &&
+        stripXlsxProgress(latest.stdout).startsWith("|") &&
+        !validGfmTable(stripXlsxProgress(latest.stdout))));
+  return latest !== undefined && /\b(?:table|tabel(?:ul)?)\b/iu.test(input.task) && needsTableRepair
     ? [...instructions, input.library.recovery("xlsx-table")]
     : instructions;
 }

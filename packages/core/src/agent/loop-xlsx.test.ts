@@ -1,4 +1,4 @@
-import { type AgentExecutionResult, AgentEventSchema } from "@vault/shared";
+import { AgentEventSchema, type AgentExecutionResult } from "@vault/shared";
 import { describe, expect, it } from "vitest";
 import type { DurableAgentHistory } from "./history.js";
 import { AgentLoop } from "./loop.js";
@@ -120,7 +120,9 @@ describe("AgentLoop XLSX result follow-ups", () => {
     expect(prompts[0]).toContain("xlsx-workbooks (active)");
     expect(schemas[0]).not.toHaveProperty("oneOf");
   });
+});
 
+describe("AgentLoop XLSX table escape recovery", () => {
   it("repairs a table formatter that emitted an invalid pipe escape", async () => {
     const prompts: string[] = [];
     const failedSource = "print('| Result |')";
@@ -157,11 +159,48 @@ describe("AgentLoop XLSX result follow-ups", () => {
     expect(prompts[1]).toContain("with a space instead of a backslash escape");
     expect(prompts[1]).toContain("include the required XLSX coverage markers");
   });
+});
 
+describe("AgentLoop XLSX table column recovery", () => {
+  it("repairs table rows with inconsistent columns", async () => {
+    const prompts: string[] = [];
+    const failedSource = "print('| Source | Row |')";
+    const repairedSource = "separator = chr(124)\nprint(separator + ' Source ' + separator)";
+    const malformed = "| Source | Row |\n| --- | --- |\n| input.xlsx | amount |avans |";
+    const table = "| Source | Row |\n| --- | --- |\n| input.xlsx | amount avans |";
+    const result = await new AgentLoop(
+      inference(
+        [
+          execute(failedSource, "Read the workbook results"),
+          execute(repairedSource, "Repair the table columns"),
+        ],
+        prompts,
+      ),
+      executor(
+        [
+          { ...completed, source: failedSource, stdout: malformed },
+          { ...completed, source: repairedSource, stdout: completeXlsx(table, 36) },
+        ],
+        [],
+      ),
+    ).run({
+      task: "Give me a table direct in chat with all the results",
+      modelId: "test-model",
+      history: historicalXlsx(completeXlsx("Total matches found: 17", 36)),
+    });
+
+    expect(result.response).toBe(table);
+    expect(prompts[1]).toContain("produced inconsistent Markdown columns");
+    expect(prompts[1]).toContain("replace embedded separators in cell text with a space");
+  });
+});
+
+describe("AgentLoop XLSX table dimension recovery", () => {
   it("repairs reset_dimensions use on a normal worksheet", async () => {
     const prompts: string[] = [];
     const failedSource = "load_workbook('/workspace/avans_results.xlsx').active.reset_dimensions()";
-    const repairedSource = "workbook = load_workbook('/workspace/avans_results.xlsx', data_only=True)";
+    const repairedSource =
+      "workbook = load_workbook('/workspace/avans_results.xlsx', data_only=True)";
     const table = "| Result |\n| --- |\n| avans |";
     const result = await new AgentLoop(
       inference(
@@ -196,7 +235,9 @@ describe("AgentLoop XLSX result follow-ups", () => {
       "When reopening the generated `/workspace` workbook normally, do not call `reset_dimensions()`",
     );
   });
+});
 
+describe("AgentLoop XLSX presentation follow-ups", () => {
   it("keeps presentation-only follow-ups response-only when history contains results", async () => {
     const schemas: Array<Record<string, unknown>> = [];
     const result = await new AgentLoop(
