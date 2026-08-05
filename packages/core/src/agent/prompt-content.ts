@@ -1,13 +1,13 @@
 import { type AgentExecutionResult, MAX_GENERATION_TOKENS } from "@vault/shared";
 import capabilities from "../../../workers/images/agent/capabilities.json" with { type: "json" };
 import { artifactCandidateNames } from "./artifact-declarations.js";
+import type { DurableAgentHistory } from "./history.js";
 import { MAX_AGENT_EXECUTIONS } from "./limits.js";
 import { completedSuccessfully, requiredOutputLabels } from "./output-contract.js";
 import { attachmentFiles, selectedInputInstructions } from "./prompt-inputs.js";
 import type { PromptLibrary } from "./prompt-library.js";
 import { observations } from "./prompt-observations.js";
 import { SHELL_COMMAND_CHARACTER_LIMIT } from "./prompt-schema.js";
-import { requiresXlsxWorkflow } from "./prompt-xlsx.js";
 
 const RUNTIME_CAPABILITIES = Object.entries(capabilities.runtimes)
   .map(([name, version]) => `${name} ${version}`)
@@ -20,18 +20,50 @@ export interface PromptContentInput {
   inputNames?: string[];
   modelId: string;
   task: string;
+  history?: DurableAgentHistory;
 }
 
 export interface PromptContentProgress {
   executions: AgentExecutionResult[];
+  lastRejectedProgramReason?: string | undefined;
   rejectedDuplicates: number;
+  requestedSkills?: ReadonlySet<string>;
+}
+
+function declaredNames(declarations: readonly (string | null | undefined)[]): string[] {
+  return declarations.flatMap((declaration) => {
+    const value = declaration ?? "";
+    return Array.from(
+      value.matchAll(/(?:^|[\s"'`(=])([^\s"'`()=]+\.[A-Za-z0-9]{1,16})(?=$|[\s"'`),;])/gu),
+      (match) => match[1] ?? "",
+    ).filter((name) => name.length > 0);
+  });
+}
+
+function declaredEvidenceNames(
+  executions: AgentExecutionResult[],
+  history: DurableAgentHistory | undefined,
+): string[] {
+  return [
+    ...declaredNames(executions.flatMap((execution) => [execution.command, execution.source])),
+    ...declaredNames(
+      history?.runs.flatMap((run) =>
+        run.events.flatMap((event) => [event.command, event.source, event.path]),
+      ) ?? [],
+    ),
+  ];
 }
 
 function skillSelection(input: PromptContentInput, progress: PromptContentProgress) {
+  const sourceDiscoveryRecovery = progress.lastRejectedProgramReason === "source_allowlist";
   return {
     task: input.task,
     inputNames: input.inputNames ?? [],
-    requiredSkillNames: requiresXlsxWorkflow(input, progress.executions) ? ["xlsx-workbooks"] : [],
+    evidenceNames: declaredEvidenceNames(progress.executions, input.history),
+    requestedSkillNames: sourceDiscoveryRecovery
+      ? ["terminal-commands"]
+      : [...(progress.requestedSkills ?? [])],
+    suppressProgressSkills: sourceDiscoveryRecovery,
   };
 }
 

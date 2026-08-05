@@ -81,4 +81,26 @@ describe("M3 stress result evidence", () => {
     expect(result.passed).toBe(false);
     expect(result.missingTokens).toEqual(["XLSX_MATCHES=500"]);
   });
+
+  it("requires every expected deliverable to pass independent verification", () => {
+    const active: ActiveCase = {
+      fixture: {
+        id: "report",
+        source: "/tmp/report",
+        task: "Create a report.",
+        fixtureMs: 1,
+        evidence: { bytes: 1, files: 1, expected: {} },
+        expectedTokens: [],
+        deliverables: [{ name: "report.pdf", facts: ["TOTAL=12"] }],
+      },
+      folderId: "folder",
+      previousSnapshots: [],
+      sessionId: "session",
+      runId: "run",
+      startedAt: performance.now(),
+    };
+
+    expect(stressResultFor(active, snapshot("Done."), []).passed).toBe(false);
+    expect(stressResultFor(active, snapshot("Done."), ["report.pdf"]).passed).toBe(true);
+  });
 });

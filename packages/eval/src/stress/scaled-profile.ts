@@ -7,18 +7,13 @@ import {
   type FixtureProgress,
 } from "./document-fixtures.js";
 import {
-  MIXED_TASK,
-  mixedTokens,
-  PDF_TASK,
+  type DeliverableExpectation,
   type PreparedStressCase,
-  pdfTokens,
   prepareStressCase,
   type StressCaseDefinition,
-  XLSX_TASK,
-  xlsxTokens,
 } from "./document-workloads.js";
 
-export type ScaledCaseId = "pdf" | "workbook" | "xlsx-folder" | "mixed-folder";
+export type ScaledCaseId = "pdf-report" | "excel-report" | "cross-format-report";
 
 interface ScaledXlsxPlan {
   files: number;
@@ -27,14 +22,14 @@ interface ScaledXlsxPlan {
 }
 
 export const SCALED_WORKLOAD_PLAN = {
-  pdf: { files: 1, pagesPerFile: 100 },
-  workbook: { files: 1, sheets: 10, rowsPerFile: 1_000_000 },
-  xlsxFolder: { files: 50, sheets: 10, rowsPerFile: 200_000 },
-  mixedFolder: {
+  pdfReport: { files: 1, pagesPerFile: 100 },
+  excelReport: { files: 50, sheets: 10, rowsPerFile: 200_000 },
+  crossFormatReport: {
     xlsx: { files: 20, sheets: 10, rowsPerFile: 500_000 },
-    docx: { files: 30, pagesPerFile: 100 },
+    docx: { files: 29, pagesPerFile: 100 },
+    pdf: { files: 1, pagesPerFile: 100 },
   },
-  concurrentCases: ["workbook", "xlsx-folder", "mixed-folder"],
+  concurrentCases: ["pdf-report", "excel-report", "cross-format-report"],
 } as const;
 
 function xlsxShape(plan: ScaledXlsxPlan) {
@@ -50,55 +45,87 @@ function logProgress(id: ScaledCaseId) {
   };
 }
 
+function value(evidence: FixtureEvidence, name: string): string {
+  const result = evidence.expected[name];
+  if (result === undefined) throw new Error(`Missing expected fixture value: ${name}`);
+  return String(result);
+}
+
+function facts(evidence: FixtureEvidence): string[] {
+  return [
+    ...(evidence.expected.xlsxMatches === undefined
+      ? []
+      : [
+          `MATCHING_INVOICES=${value(evidence, "xlsxMatches")}`,
+          `INVOICE_TOTAL=${value(evidence, "xlsxTotal")}`,
+        ]),
+    ...(evidence.expected.wordPages === undefined
+      ? []
+      : [`MEETING_NOTES=${value(evidence, "wordPages")}`]),
+    `POLICY_PAGES=${value(evidence, "pdfPages")}`,
+  ];
+}
+
+function deliverables(names: string[]) {
+  return (evidence: FixtureEvidence): DeliverableExpectation[] =>
+    names.map((name) => ({ name, facts: facts(evidence) }));
+}
+
+function task(names: string[]): string {
+  return [
+    "Review the complete selected corpus. Invoice rows needing attention contain Priority review; meeting-note entries start Decision record; policy pages start Policy section.",
+    "Create the requested polished management reports in the private workspace and visibly label MATCHING_INVOICES, INVOICE_TOTAL, MEETING_NOTES, and POLICY_PAGES whenever that source format exists.",
+    `Required deliverables: ${names.join(", ")}.`,
+  ].join(" ");
+}
+
 const CASES: StressCaseDefinition<ScaledCaseId>[] = [
   {
-    id: "pdf",
-    task: PDF_TASK,
+    id: "pdf-report",
+    task: task(["scaled-policy-report.pdf"]),
     create: async (source) =>
-      createPdf(join(source, "long-report.pdf"), SCALED_WORKLOAD_PLAN.pdf.pagesPerFile),
-    expected: pdfTokens,
+      createPdf(join(source, "policy-source.pdf"), SCALED_WORKLOAD_PLAN.pdfReport.pagesPerFile),
+    expected: () => [],
+    deliverables: deliverables(["scaled-policy-report.pdf"]),
   },
   {
-    id: "workbook",
-    task: XLSX_TASK,
-    create: async (source) =>
-      createXlsxCorpus(source, xlsxShape(SCALED_WORKLOAD_PLAN.workbook), logProgress("workbook")),
-    expected: xlsxTokens,
-  },
-  {
-    id: "xlsx-folder",
-    task: XLSX_TASK,
+    id: "excel-report",
+    task: task(["scaled-invoice-report.xlsx"]),
     create: async (source) =>
       createXlsxCorpus(
         source,
-        xlsxShape(SCALED_WORKLOAD_PLAN.xlsxFolder),
-        logProgress("xlsx-folder"),
+        xlsxShape(SCALED_WORKLOAD_PLAN.excelReport),
+        logProgress("excel-report"),
       ),
-    expected: xlsxTokens,
+    expected: () => [],
+    deliverables: deliverables(["scaled-invoice-report.xlsx"]),
   },
   {
-    id: "mixed-folder",
-    task: MIXED_TASK,
-    create: createMixedCorpus,
-    expected: mixedTokens,
+    id: "cross-format-report",
+    task: task(["scaled-report.pdf", "scaled-report.docx", "scaled-report.xlsx"]),
+    create: createCrossFormatCorpus,
+    expected: () => [],
+    deliverables: deliverables(["scaled-report.pdf", "scaled-report.docx", "scaled-report.xlsx"]),
   },
 ];
 
-async function createMixedCorpus(source: string): Promise<FixtureEvidence> {
+async function createCrossFormatCorpus(source: string): Promise<FixtureEvidence> {
+  const plan = SCALED_WORKLOAD_PLAN.crossFormatReport;
   const xlsx = await createXlsxCorpus(
-    join(source, "spreadsheets"),
-    xlsxShape(SCALED_WORKLOAD_PLAN.mixedFolder.xlsx),
-    logProgress("mixed-folder"),
+    join(source, "invoices"),
+    xlsxShape(plan.xlsx),
+    logProgress("cross-format-report"),
   );
   const docx = await createDocxCorpus(
-    join(source, "documents"),
-    { ...SCALED_WORKLOAD_PLAN.mixedFolder.docx },
-    logProgress("mixed-folder"),
+    join(source, "meetings"),
+    plan.docx,
+    logProgress("cross-format-report"),
   );
+  const pdf = await createPdf(join(source, "policy-source.pdf"), plan.pdf.pagesPerFile);
   return {
-    bytes: xlsx.bytes + docx.bytes,
-    files: xlsx.files + docx.files,
-    expected: { ...xlsx.expected, ...docx.expected },
+    bytes: xlsx.bytes + docx.bytes + pdf.bytes,
+    files: xlsx.files + docx.files + pdf.files,
+    expected: { ...xlsx.expected, ...docx.expected, ...pdf.expected },
   };
 }
 
@@ -111,11 +138,5 @@ export async function prepareScaledCase(
   return prepareStressCase(root, definition);
 }
 
-export const SCALED_SEQUENTIAL_CASES: ScaledCaseId[] = [
-  "pdf",
-  "workbook",
-  "xlsx-folder",
-  "mixed-folder",
-];
-
+export const SCALED_SEQUENTIAL_CASES: ScaledCaseId[] = CASES.map(({ id }) => id);
 export const SCALED_CONCURRENT_CASES: ScaledCaseId[] = [...SCALED_WORKLOAD_PLAN.concurrentCases];

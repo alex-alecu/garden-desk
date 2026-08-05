@@ -262,13 +262,13 @@ describe("continuation question presentation", () => {
         performance: null,
         runId,
         thinking: null,
-        continuation: { runId, filesDone: 18, filesTotal: 50 },
+        continuation: { runId, done: 18, total: 50 },
         onContinue: () => undefined,
         onDismissContinuation: () => undefined,
       }),
     );
     expect(markup).toContain("Continue this task?");
-    expect(markup).toContain("Processed 18 of 50 XLSX files");
+    expect(markup).toContain("Processed 18 of 50 items");
     expect(markup).toContain("Continue from saved progress");
     expect(markup).toContain('aria-label="Dismiss continuation question"');
   });

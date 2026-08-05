@@ -7,86 +7,163 @@ import {
   type FixtureEvidence,
 } from "./document-fixtures.js";
 import {
-  MIXED_TASK,
-  mixedTokens,
-  PDF_TASK,
+  type DeliverableExpectation,
   type PreparedStressCase,
-  pdfTokens,
   prepareStressCase,
   type StressCaseDefinition,
-  XLSX_TASK,
-  xlsxTokens,
 } from "./document-workloads.js";
 
-export type SmallCaseId = "pdf" | "workbook" | "xlsx-folder" | "mixed-folder" | "invalid-document";
+export type SmallCaseId =
+  | "pdf-report"
+  | "word-report"
+  | "excel-report"
+  | "cross-format-report"
+  | "large-corpus-continuation"
+  | "invalid-document"
+  | "romanian-task"
+  | "no-skill-direct"
+  | "terminal-discovery";
 
-const INVALID_TASK = [
-  "Use exactly one Python execution with pypdf to validate every PDF under /source.",
-  "A pypdf parse exception is the expected invalid-input result: catch it, print exactly INVALID_DOCUMENT_STOP=1 to stdout, then exit normally with code 0.",
-  "The marker completes the task; do not repair the PDF, write artifacts, print a traceback, or execute again.",
-  "Do not respond before the validation execution.",
-].join(" ");
+function expectedValue(evidence: FixtureEvidence, name: string): string {
+  const value = evidence.expected[name];
+  if (value === undefined) throw new Error(`Missing expected fixture value: ${name}`);
+  return String(value);
+}
+
+function reportFacts(evidence: FixtureEvidence): string[] {
+  return [
+    `MATCHING_INVOICES=${expectedValue(evidence, "xlsxMatches")}`,
+    `INVOICE_TOTAL=${expectedValue(evidence, "xlsxTotal")}`,
+    `MEETING_NOTES=${expectedValue(evidence, "wordPages")}`,
+    `POLICY_PAGES=${expectedValue(evidence, "pdfPages")}`,
+  ];
+}
+
+function deliverables(names: string[]) {
+  return (evidence: FixtureEvidence): DeliverableExpectation[] =>
+    names.map((name) => ({ name, facts: reportFacts(evidence) }));
+}
+
+async function createBusinessCorpus(source: string, workbooks = 4): Promise<FixtureEvidence> {
+  const xlsx = await createXlsxCorpus(join(source, "invoices"), {
+    files: workbooks,
+    sheets: 2,
+    rowsPerSheet: 2_500,
+  });
+  const docx = await createDocxCorpus(join(source, "meetings"), {
+    files: 3,
+    pagesPerFile: 8,
+  });
+  const pdf = await createPdf(join(source, "policy-review.pdf"), 12);
+  await writeFile(
+    join(source, "README.md"),
+    "Quarterly source folder. Ignore filenames as evidence.\n",
+  );
+  await writeFile(join(source, "reference.csv"), "kind,value\nnoise,17\n");
+  await writeFile(join(source, "rules.ts"), "export const surchargeBasisPoints = 275;\n");
+  return {
+    bytes: xlsx.bytes + docx.bytes + pdf.bytes + 120,
+    files: xlsx.files + docx.files + pdf.files + 3,
+    expected: { ...xlsx.expected, ...docx.expected, ...pdf.expected },
+  };
+}
+
+const REPORT_SOURCE = [
+  "Review the complete selected business folder, including invoice workbooks, Word meeting notes, and the policy PDF.",
+  "Find invoice rows whose note contains Priority review and total their amount values; also count Decision record paragraphs in the meeting notes and Policy section pages in the policy PDF.",
+];
+
+function reportTask(format: "PDF" | "Word" | "Excel", name: string): string {
+  return [
+    ...REPORT_SOURCE,
+    `Create a polished ${format} management report named ${name} in the private workspace.`,
+    "The report must visibly label the four results as MATCHING_INVOICES, INVOICE_TOTAL, MEETING_NOTES, and POLICY_PAGES so another local process can verify them.",
+  ].join(" ");
+}
+
+const INVALID_TASK =
+  "This folder may contain a corrupted PDF. Validate it locally and report clearly when it is invalid. Do not repair it or create a replacement.";
 
 const CASES: StressCaseDefinition<SmallCaseId>[] = [
   {
-    id: "pdf",
-    task: PDF_TASK,
-    create: async (source) => createPdf(join(source, "long-report.pdf"), 12),
-    expected: pdfTokens,
+    id: "pdf-report",
+    task: reportTask("PDF", "management-report.pdf"),
+    create: createBusinessCorpus,
+    expected: () => [],
+    deliverables: deliverables(["management-report.pdf"]),
   },
   {
-    id: "workbook",
-    task: XLSX_TASK,
-    create: async (source) =>
-      createXlsxCorpus(source, { files: 1, sheets: 2, rowsPerSheet: 2_500 }),
-    expected: xlsxTokens,
+    id: "word-report",
+    task: reportTask("Word", "management-report.docx"),
+    create: createBusinessCorpus,
+    expected: () => [],
+    deliverables: deliverables(["management-report.docx"]),
   },
   {
-    id: "xlsx-folder",
-    task: XLSX_TASK,
-    create: async (source) =>
-      createXlsxCorpus(source, { files: 3, sheets: 2, rowsPerSheet: 2_500 }),
-    expected: xlsxTokens,
+    id: "excel-report",
+    task: reportTask("Excel", "management-report.xlsx"),
+    create: createBusinessCorpus,
+    expected: () => [],
+    deliverables: deliverables(["management-report.xlsx"]),
   },
   {
-    id: "mixed-folder",
-    task: MIXED_TASK,
-    create: createMixedCorpus,
-    expected: mixedTokens,
+    id: "cross-format-report",
+    task: [
+      ...REPORT_SOURCE,
+      "Create matching management-report.pdf, management-report.docx, and management-report.xlsx deliverables in the private workspace.",
+      "Each report must visibly label the four results as MATCHING_INVOICES, INVOICE_TOTAL, MEETING_NOTES, and POLICY_PAGES.",
+    ].join(" "),
+    create: createBusinessCorpus,
+    expected: () => [],
+    deliverables: deliverables([
+      "management-report.pdf",
+      "management-report.docx",
+      "management-report.xlsx",
+    ]),
+  },
+  {
+    id: "large-corpus-continuation",
+    task: reportTask("Excel", "large-corpus-report.xlsx"),
+    create: async (source) => createBusinessCorpus(source, 24),
+    expected: () => [],
+    deliverables: deliverables(["large-corpus-report.xlsx"]),
   },
   {
     id: "invalid-document",
     task: INVALID_TASK,
-    create: createInvalidCorpus,
-    expected: () => ["INVALID_DOCUMENT_STOP=1"],
+    create: async (source) => {
+      const content = "%PDF-1.7\n1 0 obj\n<< /Type /Catalog";
+      await writeFile(join(source, "truncated.pdf"), content, { mode: 0o600 });
+      return { bytes: Buffer.byteLength(content), files: 1, expected: {} };
+    },
+    expected: () => [],
     maxExecutions: 1,
   },
+  {
+    id: "romanian-task",
+    task: "Analizează toate registrele cu tranzacții și avansuri din folder și raportează totalul valorilor amount pentru rândurile cu nota Priority review ca TOTAL_AVANS=<valoare>.",
+    create: async (source) =>
+      createXlsxCorpus(source, { files: 3, sheets: 2, rowsPerSheet: 2_500 }),
+    expected: (evidence) => [`TOTAL_AVANS=${expectedValue(evidence, "xlsxTotal")}`],
+  },
+  {
+    id: "no-skill-direct",
+    task: "Explain in one concise sentence what offline-first means.",
+    create: async () => ({ bytes: 0, files: 0, expected: {} }),
+    expected: () => [],
+    maxExecutions: 0,
+  },
+  {
+    id: "terminal-discovery",
+    task: "Inspect this source folder and report SURCHARGE_BPS=<value> from the pricing rule.",
+    create: async (source) => {
+      const content = "export const surchargeBasisPoints = 275;\n";
+      await writeFile(join(source, "pricing-rules.ts"), content);
+      return { bytes: Buffer.byteLength(content), files: 1, expected: {} };
+    },
+    expected: () => ["SURCHARGE_BPS=275"],
+  },
 ];
-
-async function createMixedCorpus(source: string): Promise<FixtureEvidence> {
-  const xlsx = await createXlsxCorpus(join(source, "spreadsheets"), {
-    files: 2,
-    sheets: 2,
-    rowsPerSheet: 2_500,
-  });
-  const docx = await createDocxCorpus(join(source, "documents"), {
-    files: 3,
-    pagesPerFile: 12,
-  });
-  return {
-    bytes: xlsx.bytes + docx.bytes,
-    files: xlsx.files + docx.files,
-    expected: { ...xlsx.expected, ...docx.expected },
-  };
-}
-
-async function createInvalidCorpus(source: string): Promise<FixtureEvidence> {
-  const content = "%PDF-1.7\n1 0 obj\n<< /Type /Catalog";
-  await writeFile(join(source, "truncated.pdf"), content, {
-    mode: 0o600,
-  });
-  return { bytes: Buffer.byteLength(content), files: 1, expected: { invalid: 1 } };
-}
 
 export async function prepareSmallCase(
   root: string,
@@ -97,12 +174,5 @@ export async function prepareSmallCase(
   return prepareStressCase(root, definition);
 }
 
-export const SMALL_SEQUENTIAL_CASES: SmallCaseId[] = [
-  "pdf",
-  "workbook",
-  "xlsx-folder",
-  "mixed-folder",
-  "invalid-document",
-];
-
-export const SMALL_CONCURRENT_CASES: SmallCaseId[] = ["pdf", "xlsx-folder", "mixed-folder"];
+export const SMALL_SEQUENTIAL_CASES: SmallCaseId[] = CASES.map(({ id }) => id);
+export const SMALL_CONCURRENT_CASES: SmallCaseId[] = ["pdf-report", "word-report", "excel-report"];

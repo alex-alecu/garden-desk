@@ -1,8 +1,8 @@
 import {
   type AgentDecision,
   type AgentExecutionResult,
-  parseXlsxProgress,
-  xlsxProgressAdvanced,
+  parseWorkProgress,
+  workProgressAdvanced,
 } from "@vault/shared";
 import { SHELL_COMMAND_CHARACTER_LIMIT } from "./prompt-schema.js";
 
@@ -132,14 +132,14 @@ export function rejectedExecutionReason(
     latest.stderr.trim().length > 0
   )
     return "duplicate";
-  const latestProgress = parseXlsxProgress(latest.stdout);
+  const latestProgress = parseWorkProgress(latest.stdout);
   if (latestProgress === undefined || latestProgress.complete) return "duplicate";
   const previousProgress = matching
     .slice(0, -1)
-    .map((execution) => parseXlsxProgress(execution.stdout))
+    .map((execution) => parseWorkProgress(execution.stdout))
     .filter((progress) => progress !== undefined)
     .at(-1);
-  return previousProgress !== undefined && !xlsxProgressAdvanced(previousProgress, latestProgress)
+  return previousProgress !== undefined && !workProgressAdvanced(previousProgress, latestProgress)
     ? "duplicate"
     : undefined;
 }

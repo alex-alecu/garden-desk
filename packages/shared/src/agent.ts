@@ -25,12 +25,20 @@ export const AgentWorkspacePathSchema = z
     "unsafe_workspace_path",
   );
 
+const AgentSkillNameSchema = z
+  .string()
+  .min(1)
+  .max(64)
+  .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/u);
+const AgentRequestedSkillsSchema = z.array(AgentSkillNameSchema).max(8).optional();
+
 export const AgentDecisionSchema = z.union([
   z.discriminatedUnion("language", [
     z.object({
       action: z.literal("execute"),
       language: z.enum(["python", "node"]),
       path: AgentWorkspacePathSchema.optional(),
+      skills: AgentRequestedSkillsSchema,
       source: z.string().min(1).max(128_000),
       summary: z.string().min(1).max(500),
     }),
@@ -38,6 +46,7 @@ export const AgentDecisionSchema = z.union([
       action: z.literal("execute"),
       language: z.literal("shell"),
       command: z.string().min(1).max(128_000),
+      skills: AgentRequestedSkillsSchema,
       summary: z.string().min(1).max(500),
     }),
   ]),
@@ -46,6 +55,7 @@ export const AgentDecisionSchema = z.union([
       action: z.literal("respond"),
       response: z.string().min(1).max(64_000),
       artifacts: z.array(AgentWorkspacePathSchema).max(16).optional(),
+      skills: AgentRequestedSkillsSchema,
     })
     .superRefine((decision, context) => {
       if (

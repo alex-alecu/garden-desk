@@ -1,48 +1,36 @@
 ---
 name: xlsx-workbooks
 description: Guides local XLSX workbook creation, reading, editing, and large-corpus processing. Use when the task or an attachment explicitly identifies XLSX, an Excel workbook, or a spreadsheet deliverable.
+trigger-extensions: .xlsx
+trigger-keywords: xlsx, excel, excel workbook, excel spreadsheet, workbook, workbooks, spreadsheet, spreadsheets, invoice, invoices, salary, salaries, transactions, advances, tranzacții, tranzactii, salarii, avansuri, tabel
+uses-progress-markers: true
+repair-triggers: unterminated string literal=>table;; invalid escape sequence=>table;; Worksheet[^\n]{0,80}reset_dimensions=>table;; Error processing=>analysis-error
 ---
 
 # XLSX Workbooks
 
-## Process
+Use `openpyxl` for local workbook work. Prefer one complete bounded program over many exploratory steps.
 
-For creation or editing, use `openpyxl`; preserve unrequested sheets and formulas and use restrained formatting. Never save a `data_only=True` load because it replaces formulas with cached values. Reopen with `data_only=False` and verify requested values, formulas, styles, dimensions, merges, and freeze panes. Report written formulas as not locally calculated because `openpyxl` does not calculate them.
+## Reading and analysis
 
-For existing-corpus analysis only, follow the rules below; skip them when creating a new workbook.
+1. Discover requested workbooks case-insensitively inside the program. Inspect the complete requested hierarchy rather than guessing paths, extensions beyond the request, worksheet names, or column positions.
+2. Use `load_workbook(path, read_only=True, data_only=True)` for analysis. In read-only mode, call `reset_dimensions()` before iteration when workbook metadata may understate the used range. After resetting dimensions, do not compare `max_row` or `max_column`; either may be `None`. Iterate every requested worksheet with one `iter_rows(values_only=True)` iterator, consume the header from that iterator, then continue the same iterator for data rows.
+3. Match user criteria case-insensitively where appropriate. Parse requested numeric values deliberately; skip or report malformed values instead of silently coercing them. Compute each requested count, total, average, or grouping from the matching records—not from file, worksheet, or row counts.
+4. Close every workbook in a `finally` block. Suppress known library warnings only when they would otherwise put non-error text on stderr; do not hide parsing errors.
+5. For a corpus likely to exceed one execution window, use a sorted corpus list and an atomic checkpoint under `/workspace`. Persist completed relative paths and cumulative result state. On every continuation, rediscover the corpus, reconcile changes, skip completed files, and never double-count restored values.
+6. On every successful corpus-analysis exit, print `VAULT_PROGRESS_DONE=<integer>`, `VAULT_PROGRESS_TOTAL=<integer>`, and `VAULT_PROGRESS_COMPLETE=<0-or-1>`. DONE counts only workbooks read without a handled or unhandled error; TOTAL counts the requested workbook corpus. A caught workbook error must keep COMPLETE at 0 and the program must exit nonzero after recording a concise error on stderr. Set COMPLETE to 1 only after every requested workbook was read successfully. Print final requested labels only when COMPLETE is 1.
 
-1. Discover the complete workbook corpus case-insensitively inside the Python source before loading a checkpoint or processing any workbook. With `os.walk`, use exactly `filename.lower().endswith(".xlsx")`; `filename.endswith(".xlsx")` is invalid because it misses uppercase names. Do not treat a shell-discovered or hard-coded path list as the complete XLSX corpus. Unless the user requested other formats, process only XLSX workbooks.
-2. Before importing `openpyxl`, call `warnings.filterwarnings("ignore")` so library warnings do not make a successful execution unverifiable through stderr.
-3. Use `openpyxl.load_workbook(path, read_only=True, data_only=True)` and call `sheet.reset_dimensions()` before iterating each read-only worksheet; collapsed metadata such as `A1:A1` must not hide data. Do not use `max_row`, `max_column`, or `calculate_dimension()` as coverage evidence. Search text as a case-insensitive substring in every nonempty cell, not as equality or in an assumed column; use discovered headers for named columns.
-4. For every matching row, parse the numeric amount-column value, increment the match count, and immediately add that amount to one cumulative total in the same match branch. Never only collect row amounts without adding them. Never use a workbook count, worksheet count, row count, or match count as the requested amount total.
-5. Use one `rows = sheet.iter_rows(values_only=True)` iterator: read the header with `next(rows, ())`, then continue the same iterator for data rows. Iterate worksheets as for sheet in workbook.worksheets. Process the data rows inside every worksheet; never break or return from the worksheet loop after reading its header. Close each workbook in a finally block before opening another workbook.
-6. With `os.walk`, keep the workbook accumulator distinct from the current filenames variable; never append to the filenames list while iterating it.
-7. Choose the simplest bounded strategy. If the discovered corpus comfortably fits inside the 75-second work window, process it in one pass and do not create or load a checkpoint. Use resumable batching only when the work may not fit comfortably inside that window.
-8. For resumable work, sort relative paths and atomically checkpoint the corpus path list, completed paths, next item, and cumulative results under `/workspace`. Iterate the sorted corpus paths directly and skip paths already in the completed set; do not build fragile `range(...)` expressions from checkpoint dictionary lookups. On every execution, compare the fresh case-insensitive corpus with the checkpointed corpus before trusting COMPLETE; include newly discovered paths and process them before final output. Restore cumulative values at process start and compute FILES_DONE from the complete restored set of completed workbook paths, never only the current batch. Measure the work window from a new monotonic timer on every execution; never persist or reuse an old start time.
-9. For mixed formats, keep every requested branch reachable and checkpoint each format's completed paths and cumulative results so resumed executions never double count it. `python-docx` Document objects have no `close()` method.
-10. Stop starting new workbook work after about 75 seconds. Never mark a workbook complete after a parse error; print the error to stderr and exit nonzero.
-11. At every successful exit, print exactly `VAULT_XLSX_FILES_DONE=<integer>`, `VAULT_XLSX_FILES_TOTAL=<integer>`, and `VAULT_XLSX_COMPLETE=<0-or-1>`, each on its own line. DONE and TOTAL count XLSX workbooks only. DONE counts the complete restored set, and COMPLETE is the integer 0 or 1, never True, False, or a comparison expression. Set it to 1 only when DONE equals TOTAL and every discovered workbook was read.
-12. The checkpoint, requested stdout labels, and any generated artifact must all read the same cumulative amount variable. Never substitute corpus or match counts for an amount total. Print requested final output labels only with `COMPLETE=1`; intermediate cumulative values belong in the checkpoint.
+## Creation and editing
 
-## Red Flags
-
-- Case-sensitive extension discovery.
-- Trusting an incomplete checkpoint corpus without comparing fresh case-insensitive discovery.
-- Treating shell output or a hard-coded path list as the complete workbook corpus.
-- Reading only the first worksheet or stopping after its header.
-- Counting matches without immediately adding each matching amount to the cumulative total.
-- Creating checkpoint machinery for a corpus that fits comfortably in one execution.
-- Reusing an old timer or rescanning completed work.
-- Writing different aggregate values to the checkpoint, stdout, and artifact.
-- Printing final labels without complete XLSX coverage markers.
+1. Preserve sheets, formulas, styles, dimensions, merges, and freeze panes that the user did not ask to change. Never save a workbook loaded with `data_only=True`, because that can replace formulas with cached values.
+2. Use restrained formatting: descriptive title, clear headers, sensible column widths, numeric/date formats, frozen header rows, and filters when they improve usability.
+3. Save requested deliverables beneath `/workspace`; keep scripts, checkpoints, caches, and temporary files separate and undeclared.
+4. Reopen every output with `data_only=False`. Verify requested sheets, labels, values, formulas, styles, merges, and dimensions before declaring the artifact. Explain that newly written formulas are not locally calculated by `openpyxl`.
 
 ## Verification
 
-- [ ] An edited workbook was never saved from a `data_only=True` load.
-- [ ] New or edited sheets, formulas, values, and restrained styles survive reopening with `data_only=False`.
-- [ ] Written formulas are not represented as locally calculated results.
-- [ ] DONE and TOTAL count the exact XLSX corpus and are equal for final output.
-- [ ] COMPLETE is the integer 1 only after every workbook was read.
-- [ ] Every matching numeric amount was added immediately to the one cumulative total.
-- [ ] Checkpoint, stdout, and artifact use the same aggregate, never a corpus or match count.
-- [ ] Requested output labels appear only in verified final output.
+- [ ] Complete requested corpus and worksheet coverage is evidenced.
+- [ ] Aggregates are derived from the requested records and one consistent cumulative state.
+- [ ] Progress, stdout labels, checkpoints, and artifacts agree.
+- [ ] Existing formulas and unrequested workbook content are preserved.
+- [ ] Every generated or edited workbook reopens successfully and contains the requested visible results.

@@ -26,26 +26,12 @@ function discoveredXlsx(command: string): AgentExecutionResult {
 }
 
 function expectXlsxDiscoveryInstructions(prompt: string): void {
-  expect(prompt).toContain('warnings.filterwarnings("ignore")');
   expect(prompt).toContain("load_workbook(path, read_only=True, data_only=True)");
-  expect(prompt).toContain("call `sheet.reset_dimensions()`");
-  expect(prompt).toContain("collapsed metadata such as `A1:A1` must not hide data");
-  expect(prompt).toContain('filename.lower().endswith(".xlsx")');
-  expect(prompt).toContain('filename.endswith(".xlsx")` is invalid');
-  expect(prompt).toContain("keep the workbook accumulator distinct");
-  expect(prompt).toContain("process only XLSX workbooks");
-  expect(prompt).toContain("DONE and TOTAL count XLSX workbooks only");
-  expect(prompt).toContain("complete restored set of completed workbook paths");
-  expect(prompt).toContain("immediately add that amount to one cumulative total");
-  expect(prompt).toContain(
-    "Never use a workbook count, worksheet count, row count, or match count",
-  );
-  expect(prompt).toContain("checkpoint, requested stdout labels, and any generated artifact");
-  expect(prompt).toContain("process it in one pass and do not create or load a checkpoint");
-  expect(prompt).toContain("do not build fragile `range(...)` expressions");
-  expect(prompt).toContain(
-    "compare the fresh case-insensitive corpus with the checkpointed corpus",
-  );
+  expect(prompt).toContain("Discover requested workbooks case-insensitively");
+  expect(prompt).toContain("consume the header from that iterator");
+  expect(prompt).toContain("TOTAL counts the requested workbook corpus");
+  expect(prompt).toContain("one consistent cumulative state");
+  expect(prompt).toContain("rediscover the corpus, reconcile changes");
 }
 
 describe("AgentLoop XLSX progress", () => {
@@ -74,20 +60,18 @@ describe("AgentLoop XLSX progress", () => {
 
     expect(result.response).toBe("XLSX_MATCHES=2\nXLSX_TOTAL=2003");
     expect(calls).toEqual([inspection, calculation]);
-    expect(prompts[0]).toContain("Choose the simplest bounded strategy");
+    expect(prompts[0]).toContain("Prefer one complete bounded program");
     expectXlsxDiscoveryInstructions(prompts[0] ?? "");
-    expect(prompts[0]).toContain("Close each workbook in a finally block");
-    expect(prompts[0]).toContain("for sheet in workbook.worksheets");
-    expect(prompts[0]).toContain("never break or return from the worksheet loop");
-    expect(prompts[0]).toContain("process it in one pass and do not create or load a checkpoint");
-    expect(prompts[0]).toContain("resumed executions never double count it");
-    expect(prompts[0]).toContain("never persist or reuse an old start time");
-    expect(prompts[0]).toContain("never True, False, or a comparison expression");
-    expect(prompts[0]).toContain("VAULT_XLSX_FILES_DONE=<integer>");
+    expect(prompts[0]).toContain("Close every workbook in a `finally` block");
+    expect(prompts[0]).toContain("Iterate every requested worksheet");
+    expect(prompts[0]).toContain("atomic checkpoint under `/workspace`");
+    expect(prompts[0]).toContain("never double-count restored values");
+    expect(prompts[0]).toContain("Set COMPLETE to 1 only after every requested workbook");
+    expect(prompts[0]).toContain("VAULT_PROGRESS_DONE=<integer>");
     expect(prompts[0]).toContain("at most 160 complete source lines");
     expect(prompts[0]).not.toContain("adapt these complete source lines");
     expect(prompts[1]).toContain(
-      "Current required phase: recover from an incomplete XLSX execution",
+      "Current required phase: recover from an incomplete workbook execution",
     );
     expect(schemas).toHaveLength(2);
     expect(schemas.every((schema) => !Object.hasOwn(schema, "oneOf"))).toBe(true);
@@ -100,7 +84,7 @@ describe("AgentLoop whitespace-delimited XLSX progress", () => {
     const source = "print('done')";
     const stdout = [
       "No salary transactions found.",
-      "VAULT_XLSX_FILES_DONE=36 VAULT_XLSX_FILES_TOTAL=36 VAULT_XLSX_COMPLETE=1",
+      "VAULT_PROGRESS_DONE=36 VAULT_PROGRESS_TOTAL=36 VAULT_PROGRESS_COMPLETE=1",
     ].join("\n");
     const result = await new AgentLoop(
       inference([execute(source, "Inspect")], [], []),
@@ -147,10 +131,10 @@ describe("AgentLoop discovered XLSX routing", () => {
     expect(calls).toEqual([discovery, analysis]);
     expect(prompts[0]).toContain("terminal-commands (available)");
     expect(prompts[0]).not.toContain("use -iname instead of -name");
-    expect(prompts[0]).not.toContain("VAULT_XLSX_FILES_DONE");
-    expect(prompts[1]).toContain("VAULT_XLSX_FILES_DONE");
-    expect(prompts[1]).toContain("Current required phase: perform bounded XLSX work.");
-    expect(prompts[1]).not.toContain("recover from an incomplete XLSX execution");
+    expect(prompts[0]).not.toContain("VAULT_PROGRESS_DONE");
+    expect(prompts[1]).toContain("VAULT_PROGRESS_DONE");
+    expect(prompts[1]).toContain("Current required phase: perform bounded workbook work.");
+    expect(prompts[1]).not.toContain("recover from an incomplete workbook execution");
     expect(schemas[0]).toHaveProperty("oneOf");
     expect(schemas[1]).not.toHaveProperty("oneOf");
   });
@@ -195,7 +179,7 @@ describe("AgentLoop XLSX inspection repair", () => {
 
     expect(result.response).toBe("XLSX_MATCHES=2\nXLSX_TOTAL=2003");
     expect(prompts[1]).toContain(
-      "Current required phase: recover from an incomplete XLSX execution",
+      "Current required phase: recover from an incomplete workbook execution",
     );
     expect(prompts[1]).toContain("replace it with a different bounded strategy");
     expect(prompts[1]).toContain("read_only=True");
@@ -236,7 +220,7 @@ describe("AgentLoop XLSX result repair", () => {
 
     expect(result.response).toBe("XLSX_MATCHES=2\nWORD_PAGES=36");
     expect(prompts[2]).toContain(
-      "Current required phase: recover from an incomplete XLSX execution",
+      "Current required phase: recover from an incomplete workbook execution",
     );
   });
 });
@@ -247,7 +231,11 @@ describe("AgentLoop mixed-format result repair", () => {
     const repair = "print('repaired mixed result')";
     const result = await new AgentLoop(
       inference(
-        [execute(first, "Process both formats"), execute(repair, "Repair DOCX processing")],
+        [
+          execute(first, "Process both formats"),
+          execute(repair, "Repair DOCX processing"),
+          { action: "respond", response: "Done." },
+        ],
         [],
       ),
       executor(

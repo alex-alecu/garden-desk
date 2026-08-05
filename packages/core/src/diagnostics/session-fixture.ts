@@ -35,7 +35,7 @@ export interface DebugFixture {
 }
 
 async function applyMigrations(database: DatabaseSync): Promise<void> {
-  for (let version = 1; version <= 9; version += 1) {
+  for (let version = 1; version <= 10; version += 1) {
     const names = [
       "initial",
       "audit-head",
@@ -46,6 +46,7 @@ async function applyMigrations(database: DatabaseSync): Promise<void> {
       "agent-executions",
       "agent-inference-traces",
       "folder-order",
+      "agent-skill-request-traces",
     ];
     const name = `${String(version).padStart(4, "0")}-${names[version - 1]}.sql`;
     database.exec(await readFile(join(migrationRoot, name), "utf8"));

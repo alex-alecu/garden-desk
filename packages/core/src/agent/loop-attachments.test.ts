@@ -72,7 +72,7 @@ describe("AgentLoop attachment instructions", () => {
     expect(prompts[0]).toContain("Use `pypdf` for reading and structural operations.");
     expect(prompts[0]).toContain("base answers on text extracted from the real pages");
     expect(schemas[0]).toMatchObject({
-      properties: { action: { const: "execute" }, language: { const: "python" } },
+      properties: { action: { const: "execute" }, language: { enum: ["python", "node"] } },
     });
   });
 });
@@ -119,7 +119,7 @@ describe("AgentLoop attachment history", () => {
     });
 
     expect(schemas[0]).toMatchObject({
-      properties: { action: { const: "execute" }, language: { const: "python" } },
+      properties: { action: { const: "execute" }, language: { enum: ["python", "node"] } },
     });
   });
 });
@@ -144,7 +144,7 @@ describe("AgentLoop multiple attachment history", () => {
     });
 
     expect(schemas[0]).toMatchObject({
-      properties: { action: { const: "execute" }, language: { const: "python" } },
+      properties: { action: { const: "execute" }, language: { enum: ["python", "node"] } },
     });
   });
 });

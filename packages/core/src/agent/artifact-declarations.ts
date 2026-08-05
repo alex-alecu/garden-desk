@@ -7,6 +7,23 @@ export interface DeclaredArtifactOutput {
   bytesBase64: string;
 }
 
+function applyExecutionArtifacts(
+  current: Map<string, DeclaredArtifactOutput>,
+  execution: AgentExecutionResult,
+): void {
+  for (const path of execution.invalidatedArtifactPaths ?? []) current.delete(path);
+  const produced = new Set(execution.artifacts.map((artifact) => artifact.name));
+  const program = execution.command ?? execution.source ?? "";
+  for (const path of current.keys()) {
+    if (!produced.has(path) && !program.includes(path)) current.delete(path);
+  }
+  for (const artifact of execution.artifacts) {
+    if (!isInternalArtifactPath(artifact.name)) {
+      current.set(artifact.name, { name: artifact.name, bytesBase64: artifact.bytesBase64 });
+    }
+  }
+}
+
 export function isInternalArtifactPath(path: string): boolean {
   return /(?:^|\/)checkpoints?\.json$/iu.test(path);
 }
@@ -15,13 +32,7 @@ export function currentArtifactOutputs(
   executions: readonly AgentExecutionResult[],
 ): ReadonlyMap<string, DeclaredArtifactOutput> {
   const current = new Map<string, DeclaredArtifactOutput>();
-  for (const execution of executions) {
-    for (const path of execution.invalidatedArtifactPaths ?? []) current.delete(path);
-    for (const artifact of execution.artifacts) {
-      if (isInternalArtifactPath(artifact.name)) continue;
-      current.set(artifact.name, { name: artifact.name, bytesBase64: artifact.bytesBase64 });
-    }
-  }
+  for (const execution of executions) applyExecutionArtifacts(current, execution);
   return current;
 }
 

@@ -1,4 +1,4 @@
-import { parseXlsxProgress, xlsxContinuationMessage } from "@vault/shared";
+import { parseWorkProgress, workContinuationMessage } from "@vault/shared";
 import type { DurableAgentHistory } from "./history.js";
 
 export interface ResolvedAgentTask {
@@ -18,10 +18,10 @@ function isContinuationQuestion(
   const run = history.runs.findLast((candidate) => runId(candidate) === message.runId);
   const progress = run?.events
     .filter((event) => event.type === "execution.completed")
-    .map((event) => parseXlsxProgress(event.stdout ?? ""))
+    .map((event) => parseWorkProgress(event.stdout ?? ""))
     .filter((item) => item !== undefined && !item.complete)
     .at(-1);
-  return progress !== undefined && message.content === xlsxContinuationMessage(progress);
+  return progress !== undefined && message.content === workContinuationMessage(progress);
 }
 
 function previousMessageIndex(

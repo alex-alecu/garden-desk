@@ -9,23 +9,21 @@ import type {
 import type { AgentSessionExecution } from "@vault/workers";
 import type { InferenceService } from "../runtime/inference.js";
 import { createGenerationRequest } from "../runtime/inference.js";
-import { artifactCandidateNames } from "./artifact-declarations.js";
-import { addPerformance, emptyPerformance } from "./inference-performance.js";
-import { rejectedExecutionReason } from "./loop-decisions.js";
-import { executeAgentDecision, rejectExecution } from "./loop-execution.js";
+import { addPerformance } from "./inference-performance.js";
 import { finishRun, recordOutcome } from "./loop-outcomes.js";
 import { structuredRetryInput } from "./loop-retry.js";
-import { xlsxContinuationResponse } from "./output-contract.js";
+import { activateRequestedSkills, executeTurn, newProgress } from "./loop-turn.js";
+import { progressContinuationResponse } from "./output-contract.js";
 import {
   type AgentProgress,
   type AgentPromptInput,
-  executionBackedResponse,
   type GenerationRecovery,
   generationInput,
   MAX_EXECUTIONS,
   parseDecision,
-  requiresXlsxWorkflow,
 } from "./prompt.js";
+import { defaultPromptLibrary } from "./prompt-library.js";
+import { progressEnabled } from "./prompt-progress.js";
 import type { AgentTraceStore } from "./trace-store.js";
 
 const MAX_DECISIONS = 12;
@@ -42,7 +40,7 @@ export interface AgentRunInput extends AgentPromptInput {
   trace?: { runId: string; store: AgentTraceStore };
 }
 
-interface TracedDecision {
+export interface TracedDecision {
   decision: AgentDecision;
   turnId?: string;
 }
@@ -221,7 +219,13 @@ export class AgentLoop {
     progress: AgentProgress,
   ): Promise<AgentRunResult> {
     input.signal?.throwIfAborted();
-    const continuation = xlsxContinuationResponse(progress.executions);
+    const continuation = progressEnabled(
+      input,
+      progress,
+      input.promptLibrary ?? defaultPromptLibrary(),
+    )
+      ? progressContinuationResponse(progress.executions)
+      : undefined;
     if (continuation !== undefined) return finishRun(input, progress, continuation);
     if (progress.executions.length < MAX_EXECUTIONS) {
       throw new Error("agent_decision_limit_exceeded");
@@ -236,11 +240,7 @@ export class AgentLoop {
   }
 
   async run(input: AgentRunInput): Promise<AgentRunResult> {
-    const progress: AgentProgress = {
-      executions: [],
-      inference: emptyPerformance(),
-      rejectedDuplicates: 0,
-    };
+    const progress = newProgress();
     let consecutiveDuplicates = 0;
     for (
       let decisionCount = 0;
@@ -249,33 +249,16 @@ export class AgentLoop {
     ) {
       input.signal?.throwIfAborted();
       const traced = await this.decide(input, progress);
-      const { decision } = traced;
-      if (decision.action === "respond") {
-        recordOutcome(input, traced.turnId, "accepted_response");
-        return finishRun(input, progress, decision.response, decision.artifacts ?? []);
-      }
-      const rejection = rejectedExecutionReason(
-        decision,
-        progress.executions,
-        requiresXlsxWorkflow(input, progress.executions),
-        input.task,
-      );
-      if (rejection !== undefined) {
-        consecutiveDuplicates = rejectExecution(input, progress, {
-          consecutive: consecutiveDuplicates,
-          reason: rejection,
-          turnId: traced.turnId,
-        });
-        continue;
-      }
-      consecutiveDuplicates = 0;
-      progress.lastRejectedProgramReason = undefined;
-      recordOutcome(input, traced.turnId, "accepted_execution", progress.executions.length);
-      await executeAgentDecision(this.executor, input, decision, progress);
-      const verifiedResponse = executionBackedResponse(input, progress, "");
-      if (verifiedResponse.length > 0 && artifactCandidateNames(progress.executions).length === 0) {
-        return finishRun(input, progress, verifiedResponse);
-      }
+      if (activateRequestedSkills(input, progress, traced)) continue;
+      const turn = await executeTurn({
+        executor: this.executor,
+        input,
+        progress,
+        traced,
+        consecutiveDuplicates,
+      });
+      if (turn.result !== undefined) return turn.result;
+      consecutiveDuplicates = turn.consecutiveDuplicates;
     }
     return this.finishAfterLoop(input, progress);
   }

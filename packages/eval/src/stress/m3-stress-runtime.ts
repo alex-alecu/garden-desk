@@ -10,12 +10,13 @@ import {
   AgentTraceSchema,
   FolderSummarySchema,
   ModelRuntimeStatusSchema,
-  parseXlsxProgress,
+  parseWorkProgress,
   type RpcResponse,
   SessionSummarySchema,
-  xlsxContinuationMessage,
+  workContinuationMessage,
 } from "@vault/shared";
 import { readCanonicalModelManifest, verifyModelFile } from "../models.js";
+import { verifyDeliverables } from "./deliverable-verification.js";
 import type { PreparedStressCase } from "./document-workloads.js";
 import { createProgressReporter, stressResultFor, terminal } from "./m3-stress-reporting.js";
 
@@ -49,7 +50,10 @@ export interface StressCaseResult {
   executionMs: number;
   expectedTokens: string[];
   missingTokens: string[];
+  producedArtifacts: string[];
   error: string | null;
+  verifiedDeliverables: string[];
+  verificationOutput: string;
 }
 
 export interface StressRunEvidence {
@@ -164,10 +168,10 @@ async function pollRun(endpoint: string, runId: string): Promise<AgentRunSnapsho
 function continuationProgress(snapshot: AgentRunSnapshot) {
   if (snapshot.run.state !== "succeeded" || snapshot.run.response === null) return undefined;
   const progress = snapshot.executions
-    .map((execution) => parseXlsxProgress(execution.stdout))
+    .map((execution) => parseWorkProgress(execution.stdout))
     .filter((item) => item !== undefined && !item.complete)
     .at(-1);
-  return progress !== undefined && snapshot.run.response === xlsxContinuationMessage(progress)
+  return progress !== undefined && snapshot.run.response === workContinuationMessage(progress)
     ? progress
     : undefined;
 }
@@ -185,8 +189,8 @@ async function continueCase(endpoint: string, active: ActiveCase, snapshot: Agen
       id: active.fixture.id,
       previousRunId: active.runId,
       runId: run.id,
-      filesDone: progress.filesDone,
-      filesTotal: progress.filesTotal,
+      done: progress.done,
+      total: progress.total,
     }),
   );
   active.runId = run.id;
@@ -253,7 +257,21 @@ export async function collectEvidence(
       trace: AgentTraceSchema.parse(await rpc(endpoint, "agent.trace", { runId: previous.run.id })),
     })),
   );
-  return { previousRuns, result: stressResultFor(active, snapshot), snapshot, trace };
+  const verification = await verifyDeliverables(
+    (method, params) => rpc(endpoint, method, params),
+    active,
+    snapshot,
+    async (verifying) => {
+      const awaited = await awaitCases(endpoint, [verifying as ActiveCase], 15 * 60_000);
+      return awaited.snapshots.get(verifying.runId);
+    },
+  );
+  return {
+    previousRuns,
+    result: stressResultFor(active, snapshot, verification.verified, verification.output),
+    snapshot,
+    trace,
+  };
 }
 
 export async function cleanupCase(endpoint: string, active: ActiveCase): Promise<void> {

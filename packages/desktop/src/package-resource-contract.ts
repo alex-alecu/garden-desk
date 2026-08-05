@@ -8,4 +8,12 @@ export const packagedMigrationNames = [
   "0007-agent-executions.sql",
   "0008-agent-inference-traces.sql",
   "0009-folder-order.sql",
+  "0010-agent-skill-request-traces.sql",
 ];
+
+export function migrationNamesFromPaths(paths: readonly string[]): string[] {
+  return paths
+    .map((path) => path.split(/[\\/]/u).at(-1) ?? "")
+    .filter((name) => /^\d{4}-.+\.sql$/u.test(name))
+    .sort();
+}

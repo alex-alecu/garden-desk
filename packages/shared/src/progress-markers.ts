@@ -1,13 +1,13 @@
-export interface XlsxProgress {
+export interface WorkProgress {
   complete: boolean;
-  filesDone: number;
-  filesTotal: number;
+  done: number;
+  total: number;
 }
 
 const MARKERS = {
-  complete: "VAULT_XLSX_COMPLETE",
-  filesDone: "VAULT_XLSX_FILES_DONE",
-  filesTotal: "VAULT_XLSX_FILES_TOTAL",
+  complete: "VAULT_PROGRESS_COMPLETE",
+  done: "VAULT_PROGRESS_DONE",
+  total: "VAULT_PROGRESS_TOTAL",
 } as const;
 
 function markerValue(stdout: string, marker: string): number | undefined {
@@ -20,24 +20,24 @@ function markerValue(stdout: string, marker: string): number | undefined {
   return Number.isSafeInteger(parsed) ? parsed : undefined;
 }
 
-export function parseXlsxProgress(stdout: string): XlsxProgress | undefined {
-  const filesDone = markerValue(stdout, MARKERS.filesDone);
-  const filesTotal = markerValue(stdout, MARKERS.filesTotal);
+export function parseWorkProgress(stdout: string): WorkProgress | undefined {
+  const done = markerValue(stdout, MARKERS.done);
+  const total = markerValue(stdout, MARKERS.total);
   const complete = markerValue(stdout, MARKERS.complete);
   if (
-    filesDone === undefined ||
-    filesTotal === undefined ||
+    done === undefined ||
+    total === undefined ||
     complete === undefined ||
-    filesDone > filesTotal ||
+    done > total ||
     (complete !== 0 && complete !== 1) ||
-    (complete === 1) !== (filesDone === filesTotal)
+    (complete === 1) !== (done === total)
   ) {
     return undefined;
   }
-  return { filesDone, filesTotal, complete: complete === 1 };
+  return { done, total, complete: complete === 1 };
 }
 
-export function stripXlsxProgress(stdout: string): string {
+export function stripWorkProgress(stdout: string): string {
   const marker = Object.values(MARKERS).join("|");
   const pattern = new RegExp(`(?:^|\\s)(?:${marker})=[^\\s]+(?=\\s|$)`, "gu");
   return stdout
@@ -48,13 +48,13 @@ export function stripXlsxProgress(stdout: string): string {
     .trim();
 }
 
-export function xlsxProgressAdvanced(previous: XlsxProgress, next: XlsxProgress): boolean {
-  return next.filesTotal === previous.filesTotal && next.filesDone > previous.filesDone;
+export function workProgressAdvanced(previous: WorkProgress, next: WorkProgress): boolean {
+  return next.total === previous.total && next.done > previous.done;
 }
 
-export function xlsxContinuationMessage(progress: XlsxProgress): string {
+export function workContinuationMessage(progress: WorkProgress): string {
   return [
-    `Processed ${progress.filesDone} of ${progress.filesTotal} XLSX files.`,
+    `Processed ${progress.done} of ${progress.total} items.`,
     "The task is stopped at a safe checkpoint and is not finished.",
     "Do you want to continue?",
   ].join("\n\n");

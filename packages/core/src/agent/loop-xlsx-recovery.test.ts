@@ -2,13 +2,13 @@ import type { AgentDecision, AgentExecutionResult } from "@vault/shared";
 import { describe, expect, it } from "vitest";
 import { AgentLoop } from "./loop.js";
 import { completed, completeXlsx, execute, executor, inference } from "./loop-xlsx-test-support.js";
-import { xlsxContinuationResponse } from "./output-contract.js";
+import { progressContinuationResponse } from "./output-contract.js";
 
 describe("AgentLoop XLSX coverage repair", () => {
   it("asks for missing progress markers after otherwise complete output", async () => {
     const prompts: string[] = [];
     const source = "print('XLSX_MATCHES=4')";
-    const repaired = "print('XLSX_MATCHES=4\\nVAULT_XLSX_COMPLETE=1')";
+    const repaired = "print('XLSX_MATCHES=4\\nVAULT_PROGRESS_COMPLETE=1')";
     await new AgentLoop(
       inference([execute(source, "Scan"), execute(repaired, "Add coverage evidence")], prompts),
       executor(
@@ -23,7 +23,7 @@ describe("AgentLoop XLSX coverage repair", () => {
       modelId: "test-model",
     });
 
-    expect(prompts[1]).toContain("did not prove complete XLSX coverage");
+    expect(prompts[1]).toContain("did not prove complete workbook coverage");
     expect(prompts[1]).toContain("Reuse or replace the working calculation");
     expect(prompts[1]).toContain("Do not respond and do not repeat the unchanged source");
   });
@@ -33,7 +33,7 @@ describe("AgentLoop XLSX checkpoint repair", () => {
   it("requires progress markers on a clean partial exit", async () => {
     const prompts: string[] = [];
     const source = "print('Checkpoint saved')";
-    const repaired = "print('XLSX_MATCHES=4\\nVAULT_XLSX_COMPLETE=1')";
+    const repaired = "print('XLSX_MATCHES=4\\nVAULT_PROGRESS_COMPLETE=1')";
     await new AgentLoop(
       inference([execute(source, "Scan"), execute(repaired, "Add progress")], prompts),
       executor(
@@ -103,14 +103,14 @@ describe("AgentLoop XLSX continuation selection", () => {
   it("does not revive partial progress after a later complete scan", () => {
     const partial = {
       ...completed,
-      stdout: "VAULT_XLSX_FILES_DONE=5\nVAULT_XLSX_FILES_TOTAL=10\nVAULT_XLSX_COMPLETE=0\n",
+      stdout: "VAULT_PROGRESS_DONE=5\nVAULT_PROGRESS_TOTAL=10\nVAULT_PROGRESS_COMPLETE=0\n",
     };
     const complete = {
       ...completed,
       stdout: completeXlsx("XLSX_MATCHES=100", 10),
     };
 
-    expect(xlsxContinuationResponse([partial, complete])).toBeUndefined();
+    expect(progressContinuationResponse([partial, complete])).toBeUndefined();
   });
 });
 
@@ -120,7 +120,7 @@ describe("AgentLoop resumable XLSX execution", () => {
     const partial = (done: number) => ({
       ...completed,
       source,
-      stdout: `VAULT_XLSX_FILES_DONE=${done}\nVAULT_XLSX_FILES_TOTAL=3\nVAULT_XLSX_COMPLETE=0\n`,
+      stdout: `VAULT_PROGRESS_DONE=${done}\nVAULT_PROGRESS_TOTAL=3\nVAULT_PROGRESS_COMPLETE=0\n`,
     });
     const final = { ...completed, source, stdout: completeXlsx("XLSX_MATCHES=30", 3) };
     const calls: string[] = [];
@@ -148,7 +148,7 @@ describe("AgentLoop resumable XLSX execution", () => {
       results.push({
         ...completed,
         source,
-        stdout: `VAULT_XLSX_FILES_DONE=${index}\nVAULT_XLSX_FILES_TOTAL=10\nVAULT_XLSX_COMPLETE=0\n`,
+        stdout: `VAULT_PROGRESS_DONE=${index}\nVAULT_PROGRESS_TOTAL=10\nVAULT_PROGRESS_COMPLETE=0\n`,
       });
     }
     const result = await new AgentLoop(inference(decisions, []), executor(results, [])).run({
@@ -156,7 +156,7 @@ describe("AgentLoop resumable XLSX execution", () => {
       modelId: "test-model",
     });
 
-    expect(result.response).toContain("Processed 6 of 10 XLSX files.");
+    expect(result.response).toContain("Processed 6 of 10 items.");
     expect(result.response).toContain("Do you want to continue?");
   });
 });

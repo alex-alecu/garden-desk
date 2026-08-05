@@ -24,7 +24,7 @@ const completed: AgentExecutionResult = {
 };
 
 function completeXlsx(stdout: string, total = 1): string {
-  return `${stdout.trim()}\nVAULT_XLSX_FILES_DONE=${total}\nVAULT_XLSX_FILES_TOTAL=${total}\nVAULT_XLSX_COMPLETE=1\n`;
+  return `${stdout.trim()}\nVAULT_PROGRESS_DONE=${total}\nVAULT_PROGRESS_TOTAL=${total}\nVAULT_PROGRESS_COMPLETE=1\n`;
 }
 
 function inference(decisions: AgentDecision[]): Pick<InferenceService, "generate"> {
@@ -172,9 +172,9 @@ describe("AgentLoop selected-folder XLSX", () => {
     });
 
     expect(result.response).toBe("Match count: 1");
-    expect(prompts[0]).toContain("Current required phase: perform bounded XLSX work.");
+    expect(prompts[0]).toContain("Current required phase: perform bounded workbook work.");
     expect(prompts[1]).toContain(
-      "Current required phase: recover from an incomplete XLSX execution.",
+      "Current required phase: recover from an incomplete workbook execution.",
     );
     expect(schemas[0]).not.toHaveProperty("oneOf");
     expect(schemas[1]).not.toHaveProperty("oneOf");

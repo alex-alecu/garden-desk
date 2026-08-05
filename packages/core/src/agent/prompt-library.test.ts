@@ -72,7 +72,7 @@ describe("PromptLibrary skill selection", () => {
       ...prompts.activeSkillNames({
         task: "Calculate monthly totals.",
         inputNames: [],
-        requiredSkillNames: ["xlsx-workbooks"],
+        requestedSkillNames: ["xlsx-workbooks"],
       }),
     ]).toEqual(["xlsx-workbooks"]);
   });
@@ -126,9 +126,8 @@ describe("PromptLibrary workbook aggregates", () => {
         workspace_path: "/workspace",
       },
     );
-    expect(body).toContain(
-      "For existing-corpus analysis only, follow the rules below; skip them when creating a new workbook.",
-    );
+    expect(body).toContain("## Reading and analysis");
+    expect(body).toContain("## Creation and editing");
   });
 
   it("loads one cumulative amount contract", () => {
@@ -142,20 +141,13 @@ describe("PromptLibrary workbook aggregates", () => {
     });
 
     expect([...prompts.activeSkillNames(input)]).toEqual(["xlsx-workbooks"]);
-    expect(body).toContain('filename.lower().endswith(".xlsx")');
-    expect(body).toContain('filename.endswith(".xlsx")` is invalid');
-    expect(body).toContain("immediately add that amount to one cumulative total");
-    expect(body).toContain(
-      "Never use a workbook count, worksheet count, row count, or match count",
-    );
-    expect(body).toContain("checkpoint, requested stdout labels, and any generated artifact");
-    expect(body).toContain("call `sheet.reset_dimensions()`");
-    expect(body).toContain("Never substitute corpus or match counts for an amount total");
-    expect(body).toContain("process it in one pass and do not create or load a checkpoint");
-    expect(body).toContain("do not build fragile `range(...)` expressions");
-    expect(body).toContain(
-      "compare the fresh case-insensitive corpus with the checkpointed corpus",
-    );
+    expect(body).toContain("Discover requested workbooks case-insensitively");
+    expect(body).toContain("consume the header from that iterator");
+    expect(body).toContain("Compute each requested count, total, average, or grouping");
+    expect(body).toContain("atomic checkpoint under `/workspace`");
+    expect(body).toContain("never double-count restored values");
+    expect(body).toContain("VAULT_PROGRESS_DONE=<integer>");
+    expect(body).toContain("Progress, stdout labels, checkpoints, and artifacts agree");
   });
 });
 

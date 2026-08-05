@@ -1,14 +1,7 @@
-import {
-  type AgentDecision,
-  AgentDecisionSchema,
-  type AgentExecutionResult,
-  type InferencePerformance,
-} from "@vault/shared";
+import { type AgentDecision, AgentDecisionSchema } from "@vault/shared";
 import { effectiveGenerationInput, type GenerationInput } from "../runtime/inference.js";
 import { artifactCandidateNames } from "./artifact-declarations.js";
-import type { DurableAgentHistory } from "./history.js";
 import { MAX_AGENT_EXECUTIONS } from "./limits.js";
-import type { RejectedExecutionReason } from "./loop-decisions.js";
 import {
   completedSuccessfully,
   missingOutputLabels,
@@ -23,40 +16,25 @@ import {
   usablePromptTokens,
 } from "./prompt-budget.js";
 import { activePromptSkillNames, systemPrompt, taskStatePrompt } from "./prompt-content.js";
-import { attachedPdfAlreadyExtracted, continuationInstructions } from "./prompt-inputs.js";
+import { attachmentsAlreadyRead, continuationInstructions } from "./prompt-inputs.js";
 import { defaultPromptLibrary, type PromptLibrary } from "./prompt-library.js";
 import { observationStreamCharacters } from "./prompt-observations.js";
+import {
+  needsProgressExecution,
+  progressEnabled,
+  progressExecutionBackedResponse,
+  progressInstructions,
+} from "./prompt-progress.js";
 import { rejectionInstructions } from "./prompt-rejection.js";
 import {
   agentDecisionJsonSchema,
   GENERATION_LIMIT_RECOVERY_SOURCE_LINES,
 } from "./prompt-schema.js";
-import {
-  needsXlsxExecution,
-  requiresXlsxWorkflow,
-  xlsxExecutionBackedResponse,
-  xlsxPhaseInstructions,
-} from "./prompt-xlsx.js";
-
-export { requiresXlsxWorkflow } from "./prompt-xlsx.js";
+import type { AgentProgress, AgentPromptInput } from "./prompt-types.js";
 
 export const MAX_EXECUTIONS = MAX_AGENT_EXECUTIONS;
 
-export interface AgentPromptInput {
-  task: string;
-  modelId: string;
-  inputNames?: string[];
-  history?: DurableAgentHistory;
-  continuation?: boolean;
-  promptLibrary?: PromptLibrary;
-}
-
-export interface AgentProgress {
-  executions: AgentExecutionResult[];
-  inference: InferencePerformance;
-  lastRejectedProgramReason?: RejectedExecutionReason | undefined;
-  rejectedDuplicates: number;
-}
+export type { AgentProgress, AgentPromptInput } from "./prompt-types.js";
 
 function needsShellSourceRepair(progress: AgentProgress): boolean {
   if (
@@ -123,7 +101,6 @@ function prompt(
 ): string {
   const library = input.promptLibrary ?? defaultPromptLibrary();
   const { executions } = progress;
-  const hasXlsxInput = requiresXlsxWorkflow(input, progress.executions);
   const requiredLabels = requiredOutputLabels(input.task);
   const completed = executions.filter(completedSuccessfully);
   const missingLabels = missingOutputLabels(completed.at(-1)?.stdout ?? "", requiredLabels);
@@ -135,14 +112,13 @@ function prompt(
   const afterTask = [
     ...rejectionInstructions(progress, library),
     ...shellSourceRepairInstructions(progress, library),
-    ...xlsxPhaseInstructions({
+    ...progressInstructions({
       finalResponse,
-      hasXlsxInput,
-      executions,
+      input,
+      progress,
       library,
       requiredLabels,
       missingLabels,
-      task: input.task,
     }),
   ];
   const fixed = joinedPromptSections([
@@ -172,6 +148,11 @@ function recoverySourceLineLimit(
   return {};
 }
 
+function sourceDiscoveryOnly(input: AgentPromptInput, progress: AgentProgress): AgentPromptInput {
+  if (progress.lastRejectedProgramReason !== "source_allowlist") return input;
+  return { ...input, task: "Inspect the selected source tree and locate the requested evidence." };
+}
+
 function generationSchema(
   input: AgentPromptInput,
   progress: AgentProgress,
@@ -179,35 +160,38 @@ function generationSchema(
   recovery: GenerationRecovery,
 ) {
   const library = input.promptLibrary ?? defaultPromptLibrary();
-  const requiredLabels = requiredOutputLabels(input.task);
-  const requiresXlsxExecution = needsXlsxExecution(
-    input,
-    progress.executions,
+  const schemaInput = sourceDiscoveryOnly(input, progress);
+  const requiredLabels = requiredOutputLabels(schemaInput.task);
+  const requiresProgressExecution = needsProgressExecution({
     finalResponse,
+    progress,
     requiredLabels,
-  );
+    library,
+    input: schemaInput,
+  });
   const inputNames = input.inputNames ?? [];
-  const requiresAttachedPdfExecution =
+  const requiresAttachmentExecution =
     !finalResponse &&
     progress.executions.length === 0 &&
-    inputNames.some((name) => name.toLocaleLowerCase("en-US").endsWith(".pdf")) &&
-    !attachedPdfAlreadyExtracted(inputNames, input.history);
+    inputNames.length > 0 &&
+    !attachmentsAlreadyRead(inputNames, input.history);
   const generationLimitRecovery = recovery === "generation_limit" && !finalResponse;
   const sourceDiscoveryRecovery =
     progress.lastRejectedProgramReason === "source_allowlist" && !finalResponse;
   const artifactNames = artifactCandidateNames(progress.executions);
   return agentDecisionJsonSchema({
     artifactNames,
-    task: input.task,
+    skillNames: library.skillNames(),
+    task: schemaInput.task,
     finalResponse,
     requiresSourceExecution:
-      requiresXlsxExecution ||
-      requiresAttachedPdfExecution ||
+      requiresProgressExecution ||
+      requiresAttachmentExecution ||
       needsShellSourceRepair(progress) ||
       needsSourceDiscoveryRepair(input, progress, library) ||
+      sourceDiscoveryRecovery ||
       generationLimitRecovery,
     ...recoverySourceLineLimit(generationLimitRecovery, sourceDiscoveryRecovery),
-    ...(requiresAttachedPdfExecution ? { requiredLanguage: "python" as const } : {}),
   });
 }
 
@@ -265,9 +249,8 @@ export function generationInput(
     requestOverheadTokens += requestTokens - requestBudget;
     result.prompt = build(requestOverheadTokens).prompt;
   }
-  if (Math.ceil(JSON.stringify(result).length / 4) > requestBudget) {
+  if (Math.ceil(JSON.stringify(result).length / 4) > requestBudget)
     throw new Error("agent_context_exhausted");
-  }
   return result;
 }
 
@@ -291,7 +274,8 @@ export function executionBackedResponse(
   progress: AgentProgress,
   fallback: string,
 ): string {
-  if (!requiresXlsxWorkflow(input, progress.executions)) return fallback;
+  const library = input.promptLibrary ?? defaultPromptLibrary();
+  if (!progressEnabled(input, progress, library)) return fallback;
   const requiredLabels = requiredOutputLabels(input.task);
-  return xlsxExecutionBackedResponse(input, progress.executions, requiredLabels) ?? fallback;
+  return progressExecutionBackedResponse(input, progress.executions, requiredLabels) ?? fallback;
 }

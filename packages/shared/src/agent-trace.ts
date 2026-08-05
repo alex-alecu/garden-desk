@@ -12,6 +12,7 @@ export const AgentInferencePhaseSchema = z.enum(["decision", "final_response"]);
 export const AgentInferenceOutcomeSchema = z.enum([
   "accepted_execution",
   "accepted_response",
+  "accepted_skill_request",
   "rejected_duplicate",
   "invalid_response",
   "inference_failed",

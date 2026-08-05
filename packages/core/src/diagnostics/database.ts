@@ -30,7 +30,7 @@ import {
   text,
 } from "./records.js";
 
-const CATALOG_SCHEMA_VERSION = 9;
+const CATALOG_SCHEMA_VERSION = 10;
 
 export interface TraceTurnRecord extends Row {
   prompt_hash: string;

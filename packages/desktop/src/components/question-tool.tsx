@@ -1,25 +1,19 @@
 interface QuestionToolProps {
   disabled: boolean;
-  filesDone: number;
-  filesTotal: number;
+  done: number;
+  total: number;
   onContinue(): void;
   onDismiss(): void;
 }
 
-export function QuestionTool({
-  disabled,
-  filesDone,
-  filesTotal,
-  onContinue,
-  onDismiss,
-}: QuestionToolProps) {
+export function QuestionTool({ disabled, done, total, onContinue, onDismiss }: QuestionToolProps) {
   return (
     <section aria-labelledby="continuation-question-title" className="question-tool">
       <header>
         <div>
           <h2 id="continuation-question-title">Continue this task?</h2>
           <p>
-            Processed {filesDone} of {filesTotal} XLSX files. Progress is saved locally.
+            Processed {done} of {total} items. Progress is saved locally.
           </p>
         </div>
         <button

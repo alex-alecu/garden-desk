@@ -48,6 +48,23 @@ describe("declared deliverable selection", () => {
       ),
     ).toEqual([{ name: "report.docx", bytesBase64: Buffer.from("new").toString("base64") }]);
   });
+});
+
+describe("stale deliverable selection", () => {
+  it("invalidates later work that does not recreate or verify the deliverable", () => {
+    const created = execution([{ name: "report.pdf", content: "stale" }]);
+    const laterCalculation = execution([]);
+    const verification: AgentExecutionResult = {
+      ...execution([]),
+      language: "python",
+      command: null,
+      path: "steps/0001.py",
+      source: "verify('report.pdf')",
+    };
+
+    expect(artifactCandidateNames([created, laterCalculation])).toEqual([]);
+    expect(artifactCandidateNames([created, verification])).toEqual(["report.pdf"]);
+  });
 
   it("requires unique declarations constrained to observed candidate names", () => {
     const completed = execution([{ name: "requested.pdf", content: "pdf" }]);

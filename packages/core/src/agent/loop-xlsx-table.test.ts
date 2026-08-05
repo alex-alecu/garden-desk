@@ -116,7 +116,7 @@ describe("AgentLoop XLSX table escape recovery", () => {
     expect(prompts[1]).toContain("one dash-based separator row");
     expect(prompts[1]).toContain("Count printed data rows with an integer variable");
     expect(prompts[1]).toContain("Print no prose, totals, or blank content outside the table");
-    expect(prompts[1]).toContain("include the required XLSX coverage markers");
+    expect(prompts[1]).toContain("include the required workbook coverage markers");
   });
 });
 
@@ -170,7 +170,7 @@ describe("AgentLoop XLSX plain-result recovery", () => {
     expect(result.response).toBe(table);
     expect(schemas[1]).not.toHaveProperty("oneOf");
     expect(prompts[1]).toContain("did not produce a verified GFM table");
-    expect(prompts[1]).toContain("include the required XLSX coverage markers");
+    expect(prompts[1]).toContain("include the required workbook coverage markers");
   });
 });
 

@@ -17,6 +17,15 @@ import { runConcurrentCases, runSequentialCases } from "./stress-suite.js";
 const CASE_DEADLINE_MS = 30 * 60_000;
 const CONCURRENT_DEADLINE_MS = 45 * 60_000;
 
+function requestedCase(): (typeof SMALL_SEQUENTIAL_CASES)[number] | undefined {
+  const index = process.argv.indexOf("--case");
+  if (index === -1) return undefined;
+  const value = process.argv[index + 1];
+  const id = SMALL_SEQUENTIAL_CASES.find((candidate) => candidate === value);
+  if (id === undefined) throw new Error(`Unknown small stress case: ${value ?? "missing"}`);
+  return id;
+}
+
 async function runPolicyCases(endpoint: string, root: string): Promise<string[]> {
   const regularFile = join(root, "not-a-folder.txt");
   await writeFile(regularFile, "not a folder\n");
@@ -46,22 +55,26 @@ async function runSmallSuite(
   runtime: Awaited<ReturnType<typeof startStressRuntime>>,
   root: string,
 ) {
+  const selected = requestedCase();
   const policyCases = await runPolicyCases(runtime.endpoint, root);
   const modelBefore = await requireRealModel(runtime.endpoint, false);
   const sequential = await runSequentialCases({
     endpoint: runtime.endpoint,
     fixtureRoot: join(root, "fixtures", "sequential"),
-    ids: SMALL_SEQUENTIAL_CASES,
+    ids: selected === undefined ? SMALL_SEQUENTIAL_CASES : [selected],
     prepare: prepareSmallCase,
     deadlineMs: CASE_DEADLINE_MS,
   });
-  const concurrent = await runConcurrentCases({
-    endpoint: runtime.endpoint,
-    fixtureRoot: join(root, "fixtures", "concurrent"),
-    ids: SMALL_CONCURRENT_CASES,
-    prepare: prepareSmallCase,
-    deadlineMs: CONCURRENT_DEADLINE_MS,
-  });
+  const concurrent =
+    selected === undefined
+      ? await runConcurrentCases({
+          endpoint: runtime.endpoint,
+          fixtureRoot: join(root, "fixtures", "concurrent"),
+          ids: SMALL_CONCURRENT_CASES,
+          prepare: prepareSmallCase,
+          deadlineMs: CONCURRENT_DEADLINE_MS,
+        })
+      : { maximumRunning: 0, wallMs: 0, evidence: [] };
   const modelAfter = await requireRealModel(runtime.endpoint);
   return { policyCases, modelBefore, modelAfter, sequential, concurrent };
 }
@@ -83,7 +96,8 @@ async function main(): Promise<void> {
       (item) => item.result,
     );
     const passed =
-      results.every((result) => result.passed) && evidence.concurrent.maximumRunning >= 3;
+      results.every((result) => result.passed) &&
+      (requestedCase() !== undefined || evidence.concurrent.maximumRunning >= 3);
     const report = {
       classification: passed ? "small_stress_passed" : "small_stress_limit_found",
       createdAt: new Date().toISOString(),
