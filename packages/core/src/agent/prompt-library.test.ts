@@ -57,16 +57,6 @@ describe("PromptLibrary skill selection", () => {
     ]).toEqual(["xlsx-workbooks"]);
   });
 
-  it.each([
-    "Analizează registrele cu salarii și avansuri din acest folder.",
-    "Calculează totalul pentru tranzacții din toate registrele.",
-    "Raportează valorile din tabelele cu avansuri.",
-  ])("routes Romanian workbook requests with Unicode word boundaries", (task) => {
-    expect([...library().activeSkillNames({ task, inputNames: [] })]).toEqual([
-      "xlsx-workbooks",
-    ]);
-  });
-
   it("keeps unrelated skill bodies out of direct-answer prompts", () => {
     expect([
       ...library().activeSkillNames({
@@ -100,6 +90,16 @@ describe("PromptLibrary skill selection", () => {
         "---\nname: other-skill\ndescription: Guides a workflow. Use when needed.\n---\n# Skill",
       ),
     ).toThrow("Agent Skills contract");
+  });
+});
+
+describe("PromptLibrary Romanian skill selection", () => {
+  it.each([
+    "Analizează registrele cu salarii și avansuri din acest folder.",
+    "Calculează totalul pentru tranzacții din toate registrele.",
+    "Raportează valorile din tabelele cu avansuri.",
+  ])("routes workbook requests with Unicode word boundaries", (task) => {
+    expect([...library().activeSkillNames({ task, inputNames: [] })]).toEqual(["xlsx-workbooks"]);
   });
 });
 
@@ -207,4 +207,15 @@ describe("PromptLibrary skill routing precision", () => {
       }),
     ]).toEqual([]);
   });
+});
+
+describe("PromptLibrary extension routing precision", () => {
+  it.each(["report.pdfs", "report.pdfx", "report.pdf_backup", "report.docxx", "report.xlsxx"])(
+    "does not route partial document extension %s",
+    (name) => {
+      expect([...library().activeSkillNames({ task: `Review ${name}.`, inputNames: [] })]).toEqual(
+        [],
+      );
+    },
+  );
 });

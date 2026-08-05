@@ -116,20 +116,22 @@ function escapedPattern(value: string): string {
 
 function taskRequestsKeyword(task: string, keyword: string): boolean {
   const value = escapedPattern(keyword);
-  const boundary = "[\\p{L}\\p{N}]";
+  const boundary = "[\\p{L}\\p{N}_]";
   const action = `(?<!${boundary})${FORMAT_ACTION}(?!${boundary})`;
   const term = `(?<!${boundary})${value}(?!${boundary})`;
-  return new RegExp(
-    `(?:${action}[^\\n]{0,120}${term}|${term}[^\\n]{0,120}${action})`,
-    "iu",
-  ).test(task);
+  return new RegExp(`(?:${action}[^\\n]{0,120}${term}|${term}[^\\n]{0,120}${action})`, "iu").test(
+    task,
+  );
+}
+
+function taskNamesExtension(task: string, extension: string): boolean {
+  return new RegExp(`${escapedPattern(extension)}(?![\\p{L}\\p{N}_])`, "iu").test(task);
 }
 
 function declarativeSkillApplies(skill: PromptSkill, input: SkillSelectionInput): boolean {
   const names = [...input.inputNames, ...(input.evidenceNames ?? [])];
   const extensionApplies = skill.triggerExtensions.some(
-    (extension) =>
-      hasExtension(names, extension) || input.task.toLocaleLowerCase("en-US").includes(extension),
+    (extension) => hasExtension(names, extension) || taskNamesExtension(input.task, extension),
   );
   return (
     extensionApplies ||
