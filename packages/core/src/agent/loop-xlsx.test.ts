@@ -1,5 +1,6 @@
-import type { AgentExecutionResult } from "@vault/shared";
+import { type AgentExecutionResult, AgentEventSchema } from "@vault/shared";
 import { describe, expect, it } from "vitest";
+import type { DurableAgentHistory } from "./history.js";
 import { AgentLoop } from "./loop.js";
 import {
   completed,
@@ -22,6 +23,36 @@ function discoveredXlsx(command: string): AgentExecutionResult {
     durationMs: 1,
     termination: "completed",
     artifacts: [],
+  };
+}
+
+function historicalXlsx(stdout: string): DurableAgentHistory {
+  return {
+    messages: [],
+    runs: [
+      {
+        state: "succeeded",
+        events: [
+          AgentEventSchema.parse({
+            id: "93ba988b-9593-48e5-b9b3-f852e8cbc23d",
+            runId: "bba6ce9a-b98c-4ee7-8c0a-5ccad492d280",
+            sequence: 0,
+            type: "execution.completed",
+            summary: "Processed 36 of 36 XLSX files.",
+            language: "python",
+            path: "steps/0001.py",
+            source: "from openpyxl import load_workbook\nload_workbook('/source/input.xlsx')",
+            command: null,
+            exitCode: 0,
+            stdout,
+            stderr: "",
+            durationMs: 1,
+            termination: "completed",
+            createdAt: "2026-08-05T12:21:29.557Z",
+          }),
+        ],
+      },
+    ],
   };
 }
 
@@ -65,6 +96,48 @@ describe("AgentLoop XLSX routing", () => {
 
     expect(result.response).toBe("XLSX_MATCHES=1\nXLSX_TOTAL=25");
     expect(schemas[0]).not.toHaveProperty("oneOf");
+  });
+});
+
+describe("AgentLoop XLSX result follow-ups", () => {
+  it("forces evidence retrieval when history contains coverage but no result rows", async () => {
+    const prompts: string[] = [];
+    const schemas: Array<Record<string, unknown>> = [];
+    const calls: string[] = [];
+    const source = "print('| Result |\\n| --- |\\n| avans |')";
+    const table = "| Result |\n| --- |\n| avans |";
+    const result = await new AgentLoop(
+      inference([execute(source, "Read the workbook results")], prompts, schemas),
+      executor([{ ...completed, source, stdout: completeXlsx(table, 36) }], calls),
+    ).run({
+      task: "Give me a table direct in chat with all the results",
+      modelId: "test-model",
+      history: historicalXlsx(completeXlsx("Total matches found: 17", 36)),
+    });
+
+    expect(result.response).toBe(table);
+    expect(calls).toEqual([source]);
+    expect(prompts[0]).toContain("xlsx-workbooks (active)");
+    expect(schemas[0]).not.toHaveProperty("oneOf");
+  });
+
+  it("keeps presentation-only follow-ups response-only when history contains results", async () => {
+    const schemas: Array<Record<string, unknown>> = [];
+    const result = await new AgentLoop(
+      inference([{ action: "respond", response: "Reformatted table." }], [], schemas),
+      {
+        async execute() {
+          throw new Error("Presentation-only follow-up should not execute.");
+        },
+      },
+    ).run({
+      task: "Give me a table direct in chat with all the results",
+      modelId: "test-model",
+      history: historicalXlsx(completeXlsx("| Result |\n| --- |\n| avans |", 36)),
+    });
+
+    expect(result.response).toBe("Reformatted table.");
+    expect(schemas[0]).toHaveProperty("oneOf");
   });
 });
 

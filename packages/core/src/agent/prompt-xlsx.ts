@@ -1,4 +1,9 @@
-import { type AgentExecutionResult, parseXlsxProgress } from "@vault/shared";
+import {
+  type AgentExecutionResult,
+  parseXlsxProgress,
+  stripXlsxProgress,
+} from "@vault/shared";
+import { executionSucceeded } from "./history.js";
 import {
   completedSuccessfully,
   type XlsxWorkflowPhase,
@@ -19,6 +24,26 @@ function discoveredXlsxForDataTask(
   );
 }
 
+function unresolvedHistoricalXlsxResult(input: AgentPromptInput): boolean {
+  const asksForTable = /\b(?:table|tabel(?:ul)?)\b/iu.test(input.task);
+  if (!asksForTable && !/\b(?:results?|rezultate(?:le)?)\b/iu.test(input.task)) return false;
+  const latest = input.history?.runs
+    .flatMap((run) => run.events)
+    .filter(
+      (event) =>
+        event.type === "execution.completed" &&
+        executionSucceeded(event) &&
+        parseXlsxProgress(event.stdout ?? "") !== undefined,
+    )
+    .at(-1);
+  if (latest === undefined) return false;
+  const stdout = latest.stdout ?? "";
+  if (parseXlsxProgress(stdout)?.complete !== true) return false;
+  const result = stripXlsxProgress(stdout);
+  if (asksForTable) return !/^\|.+\|\r?\n\|(?:\s*:?-+:?\s*\|)+$/mu.test(result);
+  return result.length === 0;
+}
+
 export function requiresXlsxWorkflow(
   input: AgentPromptInput,
   executions: AgentExecutionResult[] = [],
@@ -26,7 +51,8 @@ export function requiresXlsxWorkflow(
   return (
     (input.inputNames ?? []).some((name) => name.toLowerCase().endsWith(".xlsx")) ||
     /\b(?:excel|xlsx)\b|\.xlsx?\b/iu.test(input.task) ||
-    discoveredXlsxForDataTask(input, executions)
+    discoveredXlsxForDataTask(input, executions) ||
+    unresolvedHistoricalXlsxResult(input)
   );
 }
 
