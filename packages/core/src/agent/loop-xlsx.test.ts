@@ -158,6 +158,45 @@ describe("AgentLoop XLSX result follow-ups", () => {
     expect(prompts[1]).toContain("include the required XLSX coverage markers");
   });
 
+  it("repairs reset_dimensions use on a normal worksheet", async () => {
+    const prompts: string[] = [];
+    const failedSource = "load_workbook('/workspace/avans_results.xlsx').active.reset_dimensions()";
+    const repairedSource = "workbook = load_workbook('/workspace/avans_results.xlsx', data_only=True)";
+    const table = "| Result |\n| --- |\n| avans |";
+    const result = await new AgentLoop(
+      inference(
+        [
+          execute(failedSource, "Read the generated workbook"),
+          execute(repairedSource, "Read the generated workbook without dimension recovery"),
+        ],
+        prompts,
+      ),
+      executor(
+        [
+          {
+            ...completed,
+            source: failedSource,
+            exitCode: 1,
+            stderr: "AttributeError: 'Worksheet' object has no attribute 'reset_dimensions'",
+          },
+          { ...completed, source: repairedSource, stdout: completeXlsx(table, 36) },
+        ],
+        [],
+      ),
+    ).run({
+      task: "Give me a table direct in chat with all the results",
+      modelId: "test-model",
+      history: historicalXlsx(completeXlsx("Total matches found: 17", 36)),
+    });
+
+    expect(result.response).toBe(table);
+    expect(prompts[1]).toContain("called `reset_dimensions()` on a normal OpenPyXL `Worksheet`");
+    expect(prompts[1]).toContain("Use `load_workbook(..., read_only=True, data_only=True)`");
+    expect(prompts[1]).toContain(
+      "When reopening the generated `/workspace` workbook normally, do not call `reset_dimensions()`",
+    );
+  });
+
   it("keeps presentation-only follow-ups response-only when history contains results", async () => {
     const schemas: Array<Record<string, unknown>> = [];
     const result = await new AgentLoop(

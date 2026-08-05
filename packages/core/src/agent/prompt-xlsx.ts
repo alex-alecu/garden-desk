@@ -146,7 +146,9 @@ export function xlsxPhaseInstructions(input: XlsxPhaseInstructionsInput): readon
   const latest = executions.at(-1);
   return latest !== undefined &&
     /\b(?:table|tabel(?:ul)?)\b/iu.test(input.task) &&
-    /(?:unterminated string literal|invalid escape sequence)/iu.test(latest.stderr)
+    /(?:unterminated string literal|invalid escape sequence|'Worksheet' object has no attribute 'reset_dimensions')/iu.test(
+      latest.stderr,
+    )
     ? [...instructions, input.library.recovery("xlsx-table")]
     : instructions;
 }
