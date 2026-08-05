@@ -13,6 +13,7 @@ import {
   completedSuccessfully,
   missingOutputLabels,
   requiredOutputLabels,
+  validGfmTable,
   verifiedXlsxOutput,
   xlsxWorkflowPhase,
 } from "./output-contract.js";
@@ -34,6 +35,7 @@ import {
   GENERATION_LIMIT_RECOVERY_SOURCE_LINES,
 } from "./prompt-schema.js";
 import {
+  requestsXlsxResultTable,
   requiresXlsxWorkflow,
   xlsxPhaseInstructions,
   xlsxProcessingExecutions,
@@ -173,6 +175,19 @@ function recoverySourceLineLimit(
   return {};
 }
 
+function needsXlsxExecution(
+  input: AgentPromptInput,
+  progress: AgentProgress,
+  finalResponse: boolean,
+  requiredLabels: string[],
+): boolean {
+  if (finalResponse || !requiresXlsxWorkflow(input, progress.executions)) return false;
+  const executions = xlsxProcessingExecutions(progress.executions);
+  if (xlsxWorkflowPhase(executions, requiredLabels) !== "complete") return true;
+  const verified = verifiedXlsxOutput(executions, requiredLabels) ?? "";
+  return requestsXlsxResultTable(input.task) && !validGfmTable(verified);
+}
+
 function generationSchema(
   input: AgentPromptInput,
   progress: AgentProgress,
@@ -181,10 +196,7 @@ function generationSchema(
 ) {
   const library = input.promptLibrary ?? defaultPromptLibrary();
   const requiredLabels = requiredOutputLabels(input.task);
-  const requiresXlsxExecution =
-    !finalResponse &&
-    requiresXlsxWorkflow(input, progress.executions) &&
-    xlsxWorkflowPhase(xlsxProcessingExecutions(progress.executions), requiredLabels) !== "complete";
+  const requiresXlsxExecution = needsXlsxExecution(input, progress, finalResponse, requiredLabels);
   const inputNames = input.inputNames ?? [];
   const requiresAttachedPdfExecution =
     !finalResponse &&
@@ -292,5 +304,9 @@ export function executionBackedResponse(
 ): string {
   if (!requiresXlsxWorkflow(input, progress.executions)) return fallback;
   const requiredLabels = requiredOutputLabels(input.task);
-  return verifiedXlsxOutput(progress.executions, requiredLabels) ?? fallback;
+  const verified = verifiedXlsxOutput(progress.executions, requiredLabels);
+  if (verified === undefined || (requestsXlsxResultTable(input.task) && !validGfmTable(verified))) {
+    return fallback;
+  }
+  return verified;
 }

@@ -53,6 +53,10 @@ export function requiresXlsxWorkflow(
   );
 }
 
+export function requestsXlsxResultTable(task: string): boolean {
+  return /\b(?:table|tabel(?:ul)?)\b/iu.test(task);
+}
+
 interface PhaseInstructionInput {
   finalResponse: boolean;
   hasCleanUnmarkedOutput: boolean;
@@ -146,10 +150,8 @@ export function xlsxPhaseInstructions(input: XlsxPhaseInstructionsInput): readon
     (/(?:unterminated string literal|invalid escape sequence|'Worksheet' object has no attribute 'reset_dimensions')/iu.test(
       latest.stderr,
     ) ||
-      (completedSuccessfully(latest) &&
-        stripXlsxProgress(latest.stdout).startsWith("|") &&
-        !validGfmTable(stripXlsxProgress(latest.stdout))));
-  return latest !== undefined && /\b(?:table|tabel(?:ul)?)\b/iu.test(input.task) && needsTableRepair
+      (completedSuccessfully(latest) && !validGfmTable(stripXlsxProgress(latest.stdout))));
+  return latest !== undefined && requestsXlsxResultTable(input.task) && needsTableRepair
     ? [...instructions, input.library.recovery("xlsx-table")]
     : instructions;
 }

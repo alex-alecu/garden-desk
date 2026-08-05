@@ -190,8 +190,44 @@ describe("AgentLoop XLSX table column recovery", () => {
     });
 
     expect(result.response).toBe(table);
-    expect(prompts[1]).toContain("produced inconsistent Markdown columns");
+    expect(prompts[1]).toContain("plain text or inconsistent Markdown columns");
     expect(prompts[1]).toContain("replace embedded separators in cell text with a space");
+  });
+});
+
+describe("AgentLoop XLSX plain-result recovery", () => {
+  it("keeps table follow-ups executable until stdout contains a verified table", async () => {
+    const prompts: string[] = [];
+    const schemas: Array<Record<string, unknown>> = [];
+    const plainSource = "print('Saved 17 matches')";
+    const tableSource = "print('| Result |\\n| --- |\\n| avans |')";
+    const table = "| Result |\n| --- |\n| avans |";
+    const result = await new AgentLoop(
+      inference(
+        [
+          execute(plainSource, "Read the workbook results"),
+          execute(tableSource, "Print the workbook results as a table"),
+        ],
+        prompts,
+        schemas,
+      ),
+      executor(
+        [
+          { ...completed, source: plainSource, stdout: completeXlsx("Saved 17 matches", 36) },
+          { ...completed, source: tableSource, stdout: completeXlsx(table, 36) },
+        ],
+        [],
+      ),
+    ).run({
+      task: "Give me a table direct in chat with all the results",
+      modelId: "test-model",
+      history: historicalXlsx(completeXlsx("Total matches found: 17", 36)),
+    });
+
+    expect(result.response).toBe(table);
+    expect(schemas[1]).not.toHaveProperty("oneOf");
+    expect(prompts[1]).toContain("did not produce a verified GFM table");
+    expect(prompts[1]).toContain("include the required XLSX coverage markers");
   });
 });
 

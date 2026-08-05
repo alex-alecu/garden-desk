@@ -1,4 +1,4 @@
-The previous Python table formatter produced inconsistent Markdown columns, split a source line around Markdown pipe characters, emitted an invalid escape-sequence warning, or called `reset_dimensions()` on a normal OpenPyXL `Worksheet`.
+The previous attempt did not produce a verified GFM table with complete XLSX coverage. It may have produced plain text or inconsistent Markdown columns, split a source line around Markdown pipe characters, emitted an invalid escape-sequence warning, or called `reset_dimensions()` on a normal OpenPyXL `Worksheet`.
 
 Replace it with one fresh, complete, small program. Construct the table separator with `chr(124)` and join cells with that variable; replace embedded separators in cell text with a space instead of a backslash escape. Keep every source-array item as one complete Python line, print the requested GFM table, and include the required XLSX coverage markers.
 
