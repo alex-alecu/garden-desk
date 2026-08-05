@@ -11,9 +11,9 @@ import { MAX_AGENT_EXECUTIONS } from "./limits.js";
 import type { RejectedExecutionReason } from "./loop-decisions.js";
 import {
   completedSuccessfully,
+  latestGfmTableOutput,
   missingOutputLabels,
   requiredOutputLabels,
-  validGfmTable,
   verifiedXlsxOutput,
   xlsxWorkflowPhase,
 } from "./output-contract.js";
@@ -35,6 +35,7 @@ import {
   GENERATION_LIMIT_RECOVERY_SOURCE_LINES,
 } from "./prompt-schema.js";
 import {
+  hasCompleteHistoricalXlsxCoverage,
   requestsXlsxResultTable,
   requiresXlsxWorkflow,
   xlsxPhaseInstructions,
@@ -184,8 +185,7 @@ function needsXlsxExecution(
   if (finalResponse || !requiresXlsxWorkflow(input, progress.executions)) return false;
   const executions = xlsxProcessingExecutions(progress.executions);
   if (xlsxWorkflowPhase(executions, requiredLabels) !== "complete") return true;
-  const verified = verifiedXlsxOutput(executions, requiredLabels) ?? "";
-  return requestsXlsxResultTable(input.task) && !validGfmTable(verified);
+  return requestsXlsxResultTable(input.task) && executionBackedResponse(input, progress, "") === "";
 }
 
 function generationSchema(
@@ -305,8 +305,15 @@ export function executionBackedResponse(
   if (!requiresXlsxWorkflow(input, progress.executions)) return fallback;
   const requiredLabels = requiredOutputLabels(input.task);
   const verified = verifiedXlsxOutput(progress.executions, requiredLabels);
-  if (verified === undefined || (requestsXlsxResultTable(input.task) && !validGfmTable(verified))) {
+  if (requestsXlsxResultTable(input.task)) {
+    const table = latestGfmTableOutput(progress.executions);
+    if (
+      table !== undefined &&
+      (verified !== undefined || hasCompleteHistoricalXlsxCoverage(input))
+    ) {
+      return table;
+    }
     return fallback;
   }
-  return verified;
+  return verified ?? fallback;
 }

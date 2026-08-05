@@ -2,6 +2,7 @@ import type { AgentExecutionResult } from "@vault/shared";
 import { describe, expect, it } from "vitest";
 import {
   executionCompletionSummary,
+  normalizeGfmTable,
   validGfmTable,
   verifiedXlsxOutput,
 } from "./output-contract.js";
@@ -51,13 +52,15 @@ it("leaves an artifact-only XLSX response to the final model response", () => {
   expect(verifiedXlsxOutput([execution], [])).toBeUndefined();
 });
 
-it("rejects malformed GFM rows with unescaped table separators", () => {
+it("normalizes unescaped separators into the final GFM cell", () => {
   const table = ["| Source | Row |", "| --- | --- |", "| input.xlsx | amount |avans |"].join("\n");
+  const normalized = "| Source | Row |\n| --- | --- |\n| input.xlsx | amount avans |";
   const execution = {
     ...result("completed", 0),
     stdout: `${table}\nVAULT_XLSX_FILES_DONE=1\nVAULT_XLSX_FILES_TOTAL=1\nVAULT_XLSX_COMPLETE=1\n`,
   };
 
   expect(validGfmTable(table)).toBe(false);
-  expect(verifiedXlsxOutput([execution], [])).toBeUndefined();
+  expect(normalizeGfmTable(table)).toBe(normalized);
+  expect(verifiedXlsxOutput([execution], [])).toBe(normalized);
 });

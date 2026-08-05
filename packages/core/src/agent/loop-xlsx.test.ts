@@ -165,28 +165,14 @@ describe("AgentLoop XLSX table escape recovery", () => {
   });
 });
 
-describe("AgentLoop XLSX table column recovery", () => {
-  it("repairs table rows with inconsistent columns", async () => {
-    const prompts: string[] = [];
+describe("AgentLoop XLSX table column normalization", () => {
+  it("returns rows with overflow separators in the final cell", async () => {
     const failedSource = "print('| Source | Row |')";
-    const repairedSource = "separator = chr(124)\nprint(separator + ' Source ' + separator)";
     const malformed = "| Source | Row |\n| --- | --- |\n| input.xlsx | amount |avans |";
     const table = "| Source | Row |\n| --- | --- |\n| input.xlsx | amount avans |";
     const result = await new AgentLoop(
-      inference(
-        [
-          execute(failedSource, "Read the workbook results"),
-          execute(repairedSource, "Repair the table columns"),
-        ],
-        prompts,
-      ),
-      executor(
-        [
-          { ...completed, source: failedSource, stdout: malformed },
-          { ...completed, source: repairedSource, stdout: completeXlsx(table, 36) },
-        ],
-        [],
-      ),
+      inference([execute(failedSource, "Read the workbook results")], []),
+      executor([{ ...completed, source: failedSource, stdout: malformed }], []),
     ).run({
       task: "Give me a table direct in chat with all the results",
       modelId: "test-model",
@@ -194,8 +180,6 @@ describe("AgentLoop XLSX table column recovery", () => {
     });
 
     expect(result.response).toBe(table);
-    expect(prompts[1]).toContain("plain text or inconsistent Markdown columns");
-    expect(prompts[1]).toContain("replace embedded separators in cell text with a space");
   });
 });
 

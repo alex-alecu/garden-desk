@@ -21,9 +21,7 @@ function discoveredXlsxForDataTask(
   );
 }
 
-function unresolvedHistoricalXlsxResult(input: AgentPromptInput): boolean {
-  const asksForTable = /\b(?:table|tabel(?:ul)?)\b/iu.test(input.task);
-  if (!asksForTable && !/\b(?:results?|rezultate(?:le)?)\b/iu.test(input.task)) return false;
+function latestHistoricalXlsxOutput(input: AgentPromptInput): string | undefined {
   const latest = input.history?.runs
     .flatMap((run) => run.events)
     .filter(
@@ -33,9 +31,19 @@ function unresolvedHistoricalXlsxResult(input: AgentPromptInput): boolean {
         parseXlsxProgress(event.stdout ?? "") !== undefined,
     )
     .at(-1);
-  if (latest === undefined) return false;
-  const stdout = latest.stdout ?? "";
-  if (parseXlsxProgress(stdout)?.complete !== true) return false;
+  return latest?.stdout ?? undefined;
+}
+
+export function hasCompleteHistoricalXlsxCoverage(input: AgentPromptInput): boolean {
+  const stdout = latestHistoricalXlsxOutput(input);
+  return stdout !== undefined && parseXlsxProgress(stdout)?.complete === true;
+}
+
+function unresolvedHistoricalXlsxResult(input: AgentPromptInput): boolean {
+  const asksForTable = /\b(?:table|tabel(?:ul)?)\b/iu.test(input.task);
+  if (!asksForTable && !/\b(?:results?|rezultate(?:le)?)\b/iu.test(input.task)) return false;
+  const stdout = latestHistoricalXlsxOutput(input);
+  if (stdout === undefined || parseXlsxProgress(stdout)?.complete !== true) return false;
   const result = stripXlsxProgress(stdout);
   if (asksForTable) return !/^\|.+\|\r?\n\|(?:\s*:?-+:?\s*\|)+$/mu.test(result);
   return result.length === 0;
