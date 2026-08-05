@@ -136,7 +136,8 @@ const CASES: StressCaseDefinition<SmallCaseId>[] = [
       await writeFile(join(source, "truncated.pdf"), content, { mode: 0o600 });
       return { bytes: Buffer.byteLength(content), files: 1, expected: {} };
     },
-    expected: () => [],
+    expected: () => ["EOF marker not found"],
+    forbidArtifacts: true,
     maxExecutions: 1,
   },
   {

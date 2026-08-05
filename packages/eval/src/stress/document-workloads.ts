@@ -15,6 +15,7 @@ export interface PreparedStressCase<Id extends string = string> {
   evidence: FixtureEvidence;
   expectedTokens: string[];
   deliverables?: DeliverableExpectation[];
+  forbidArtifacts?: boolean;
   maxExecutions?: number;
 }
 
@@ -24,6 +25,7 @@ export interface StressCaseDefinition<Id extends string = string> {
   create(source: string): Promise<FixtureEvidence>;
   expected(evidence: FixtureEvidence): string[];
   deliverables?(evidence: FixtureEvidence): DeliverableExpectation[];
+  forbidArtifacts?: boolean;
   maxExecutions?: number;
 }
 
@@ -97,6 +99,7 @@ export async function prepareStressCase<Id extends string>(
     ...(definition.deliverables === undefined
       ? {}
       : { deliverables: definition.deliverables(evidence) }),
+    ...(definition.forbidArtifacts === true ? { forbidArtifacts: true } : {}),
     ...(definition.maxExecutions === undefined ? {} : { maxExecutions: definition.maxExecutions }),
   };
 }

@@ -20,6 +20,7 @@ export default defineConfig({
             "packages/desktop/src/**/*.test.ts",
             "packages/desktop/src/**/*.test.tsx",
             "packages/eval/src/gates/**/*.test.ts",
+            "packages/eval/src/stress/**/*.test.ts",
             "site/**/*.test.ts",
             "site/**/*.test.tsx",
           ],

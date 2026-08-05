@@ -61,6 +61,19 @@ function measuredRunMs(active: ActiveCase, snapshot: AgentRunSnapshot): number {
   );
 }
 
+function stressError(active: ActiveCase, snapshot: AgentRunSnapshot): string | null {
+  if (
+    active.fixture.maxExecutions !== undefined &&
+    snapshot.executions.length > active.fixture.maxExecutions
+  ) {
+    return `Expected at most ${active.fixture.maxExecutions} executions.`;
+  }
+  if (active.fixture.forbidArtifacts === true && snapshot.artifacts.length > 0) {
+    return "Expected no artifacts.";
+  }
+  return snapshot.run.error;
+}
+
 export function stressResultFor(
   active: ActiveCase,
   snapshot: AgentRunSnapshot,
@@ -71,12 +84,7 @@ export function stressResultFor(
   const missingTokens = active.fixture.expectedTokens.filter(
     (token) => !outputHasToken(output, token),
   );
-  const tooManyExecutions =
-    active.fixture.maxExecutions !== undefined &&
-    snapshot.executions.length > active.fixture.maxExecutions;
-  const error = tooManyExecutions
-    ? `Expected at most ${active.fixture.maxExecutions} executions.`
-    : snapshot.run.error;
+  const error = stressError(active, snapshot);
   return {
     id: active.fixture.id,
     passed:
