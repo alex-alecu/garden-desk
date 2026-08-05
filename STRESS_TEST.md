@@ -40,6 +40,14 @@ The backend, daemon, model, guest isolation, audit, and canonical gate remained 
 
 ## Reliability fix validation
 
+### Generated workbook delivery cycle — 2026-08-05
+
+- A task-specific physical Apple-silicon reproduction used the real pinned Gemma worker, current-user daemon, and no-NIC guest against a 36-workbook source corpus. This is macOS evidence only.
+- Before the fix, the guest processed all 36 workbooks and created the requested XLSX, but final response validation replaced the valid artifact-only completion with an empty response and ended the run with `agent_run_failed`.
+- After the fix, the identical task succeeded in 82.323 seconds with an accepted final response, exactly one 5,369-byte XLSX deliverable, no checkpoint artifact, and a valid audit chain.
+- Focused output-contract, artifact-declaration, and store coverage passed: 16 tests across four files. The checks cover preservation of generated-workbook final responses and exclusion of internal checkpoint files from current and historical user-visible artifact listings.
+- `pnpm verify` passed with 366 unit tests, one skip, two native tests, TypeScript checks, Rust checks, native helpers, sidecar packaging, source limits, and the desktop build.
+
 ### Source discovery recovery cycle — 2026-08-03
 
 - Focused loop and prompt tests passed: 16 tests across `loop-shell-recovery.test.ts` and `prompt-library.test.ts`.
