@@ -157,6 +157,9 @@ describe("PromptLibrary workbook aggregates", () => {
     expect(body).toContain("atomic checkpoint under `/workspace`");
     expect(body).toContain("never double-count restored values");
     expect(body).toContain("VAULT_PROGRESS_DONE=<integer>");
+    expect(body).toContain("each on its own newline-terminated line");
+    expect(body).toContain("Every successful exit must leave stderr completely empty");
+    expect(body).toContain("Any stderr on exit code 0 makes the result unverified");
     expect(body).toContain("Progress, stdout labels, checkpoints, and artifacts agree");
   });
 });
