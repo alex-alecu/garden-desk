@@ -7,6 +7,10 @@ export interface DeclaredArtifactOutput {
   bytesBase64: string;
 }
 
+export function isInternalArtifactPath(path: string): boolean {
+  return /(?:^|\/)checkpoints?\.json$/iu.test(path);
+}
+
 export function currentArtifactOutputs(
   executions: readonly AgentExecutionResult[],
 ): ReadonlyMap<string, DeclaredArtifactOutput> {
@@ -14,6 +18,7 @@ export function currentArtifactOutputs(
   for (const execution of executions) {
     for (const path of execution.invalidatedArtifactPaths ?? []) current.delete(path);
     for (const artifact of execution.artifacts) {
+      if (isInternalArtifactPath(artifact.name)) continue;
       current.set(artifact.name, { name: artifact.name, bytesBase64: artifact.bytesBase64 });
     }
   }

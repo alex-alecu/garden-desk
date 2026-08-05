@@ -32,19 +32,20 @@ describe("declared deliverable selection", () => {
       execution([
         { name: "report.docx", content: "old" },
         { name: "checkpoint.json", content: "internal" },
+        { name: "state/checkpoints.json", content: "internal" },
       ]),
-      execution(
-        [
-          { name: "report.docx", content: "new" },
-          { name: "extra.pdf", content: "extra" },
-        ],
-        ["checkpoint.json"],
-      ),
+      execution([
+        { name: "report.docx", content: "new" },
+        { name: "extra.pdf", content: "extra" },
+      ]),
     ];
 
     expect(artifactCandidateNames(executions)).toEqual(["report.docx", "extra.pdf"]);
     expect(
-      declaredArtifactOutputs(["report.docx", "checkpoint.json", "missing.xlsx"], executions),
+      declaredArtifactOutputs(
+        ["report.docx", "checkpoint.json", "state/checkpoints.json", "missing.xlsx"],
+        executions,
+      ),
     ).toEqual([{ name: "report.docx", bytesBase64: Buffer.from("new").toString("base64") }]);
   });
 
