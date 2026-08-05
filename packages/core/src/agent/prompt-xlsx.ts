@@ -126,11 +126,12 @@ interface XlsxPhaseInstructionsInput {
   library: PromptLibrary;
   requiredLabels: string[];
   missingLabels: string[];
+  task: string;
 }
 
 export function xlsxPhaseInstructions(input: XlsxPhaseInstructionsInput): readonly string[] {
   const executions = xlsxProcessingExecutions(input.executions);
-  return phaseInstructions({
+  const instructions = phaseInstructions({
     finalResponse: input.finalResponse,
     hasCleanUnmarkedOutput: hasCleanUnmarkedOutput(executions, input.requiredLabels),
     hasCleanLabeledOutput: hasCleanLabeledOutput(
@@ -142,4 +143,10 @@ export function xlsxPhaseInstructions(input: XlsxPhaseInstructionsInput): readon
     library: input.library,
     xlsxPhase: xlsxWorkflowPhase(executions, input.requiredLabels),
   });
+  const latest = executions.at(-1);
+  return latest !== undefined &&
+    /\b(?:table|tabel(?:ul)?)\b/iu.test(input.task) &&
+    /(?:unterminated string literal|invalid escape sequence)/iu.test(latest.stderr)
+    ? [...instructions, input.library.recovery("xlsx-table")]
+    : instructions;
 }

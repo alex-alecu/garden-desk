@@ -121,6 +121,43 @@ describe("AgentLoop XLSX result follow-ups", () => {
     expect(schemas[0]).not.toHaveProperty("oneOf");
   });
 
+  it("repairs a table formatter that emitted an invalid pipe escape", async () => {
+    const prompts: string[] = [];
+    const failedSource = "print('| Result |')";
+    const repairedSource = "separator = chr(124)\nprint(separator + ' Result ' + separator)";
+    const table = "| Result |\n| --- |\n| avans |";
+    const result = await new AgentLoop(
+      inference(
+        [
+          execute(failedSource, "Read the workbook results"),
+          execute(repairedSource, "Repair the table formatter"),
+        ],
+        prompts,
+      ),
+      executor(
+        [
+          {
+            ...completed,
+            source: failedSource,
+            stderr: "SyntaxWarning: '\\|' is an invalid escape sequence",
+          },
+          { ...completed, source: repairedSource, stdout: completeXlsx(table, 36) },
+        ],
+        [],
+      ),
+    ).run({
+      task: "Give me a table direct in chat with all the results",
+      modelId: "test-model",
+      history: historicalXlsx(completeXlsx("Total matches found: 17", 36)),
+    });
+
+    expect(result.response).toBe(table);
+    expect(prompts[1]).toContain("invalid escape-sequence warning");
+    expect(prompts[1]).toContain("Construct the table separator with `chr(124)`");
+    expect(prompts[1]).toContain("with a space instead of a backslash escape");
+    expect(prompts[1]).toContain("include the required XLSX coverage markers");
+  });
+
   it("keeps presentation-only follow-ups response-only when history contains results", async () => {
     const schemas: Array<Record<string, unknown>> = [];
     const result = await new AgentLoop(

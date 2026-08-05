@@ -143,6 +143,7 @@ function prompt(
       library,
       requiredLabels,
       missingLabels,
+      task: input.task,
     }),
   ];
   const fixed = joinedPromptSections([
