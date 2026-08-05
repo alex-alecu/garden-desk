@@ -11,11 +11,8 @@ import { MAX_AGENT_EXECUTIONS } from "./limits.js";
 import type { RejectedExecutionReason } from "./loop-decisions.js";
 import {
   completedSuccessfully,
-  latestGfmTableOutput,
   missingOutputLabels,
   requiredOutputLabels,
-  verifiedXlsxOutput,
-  xlsxWorkflowPhase,
 } from "./output-contract.js";
 import {
   generationBudget,
@@ -35,11 +32,10 @@ import {
   GENERATION_LIMIT_RECOVERY_SOURCE_LINES,
 } from "./prompt-schema.js";
 import {
-  hasCompleteHistoricalXlsxCoverage,
-  requestsXlsxResultTable,
+  needsXlsxExecution,
   requiresXlsxWorkflow,
+  xlsxExecutionBackedResponse,
   xlsxPhaseInstructions,
-  xlsxProcessingExecutions,
 } from "./prompt-xlsx.js";
 
 export { requiresXlsxWorkflow } from "./prompt-xlsx.js";
@@ -176,18 +172,6 @@ function recoverySourceLineLimit(
   return {};
 }
 
-function needsXlsxExecution(
-  input: AgentPromptInput,
-  progress: AgentProgress,
-  finalResponse: boolean,
-  requiredLabels: string[],
-): boolean {
-  if (finalResponse || !requiresXlsxWorkflow(input, progress.executions)) return false;
-  const executions = xlsxProcessingExecutions(progress.executions);
-  if (xlsxWorkflowPhase(executions, requiredLabels) !== "complete") return true;
-  return requestsXlsxResultTable(input.task) && executionBackedResponse(input, progress, "") === "";
-}
-
 function generationSchema(
   input: AgentPromptInput,
   progress: AgentProgress,
@@ -196,7 +180,12 @@ function generationSchema(
 ) {
   const library = input.promptLibrary ?? defaultPromptLibrary();
   const requiredLabels = requiredOutputLabels(input.task);
-  const requiresXlsxExecution = needsXlsxExecution(input, progress, finalResponse, requiredLabels);
+  const requiresXlsxExecution = needsXlsxExecution(
+    input,
+    progress.executions,
+    finalResponse,
+    requiredLabels,
+  );
   const inputNames = input.inputNames ?? [];
   const requiresAttachedPdfExecution =
     !finalResponse &&
@@ -304,16 +293,5 @@ export function executionBackedResponse(
 ): string {
   if (!requiresXlsxWorkflow(input, progress.executions)) return fallback;
   const requiredLabels = requiredOutputLabels(input.task);
-  const verified = verifiedXlsxOutput(progress.executions, requiredLabels);
-  if (requestsXlsxResultTable(input.task)) {
-    const table = latestGfmTableOutput(progress.executions);
-    if (
-      table !== undefined &&
-      (verified !== undefined || hasCompleteHistoricalXlsxCoverage(input))
-    ) {
-      return table;
-    }
-    return fallback;
-  }
-  return verified ?? fallback;
+  return xlsxExecutionBackedResponse(input, progress.executions, requiredLabels) ?? fallback;
 }

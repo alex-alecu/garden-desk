@@ -2,7 +2,9 @@ import { type AgentExecutionResult, parseXlsxProgress, stripXlsxProgress } from 
 import { executionSucceeded } from "./history.js";
 import {
   completedSuccessfully,
+  latestGfmTableOutput,
   validGfmTable,
+  verifiedXlsxOutput,
   type XlsxWorkflowPhase,
   xlsxWorkflowPhase,
 } from "./output-contract.js";
@@ -63,6 +65,34 @@ export function requiresXlsxWorkflow(
 
 export function requestsXlsxResultTable(task: string): boolean {
   return /\b(?:table|tabel(?:ul)?)\b/iu.test(task);
+}
+
+export function xlsxExecutionBackedResponse(
+  input: AgentPromptInput,
+  executions: AgentExecutionResult[],
+  requiredLabels: string[],
+): string | undefined {
+  const verified = verifiedXlsxOutput(executions, requiredLabels);
+  if (!requestsXlsxResultTable(input.task)) return verified;
+  const table = latestGfmTableOutput(executions);
+  return table !== undefined && (verified !== undefined || hasCompleteHistoricalXlsxCoverage(input))
+    ? table
+    : undefined;
+}
+
+export function needsXlsxExecution(
+  input: AgentPromptInput,
+  executions: AgentExecutionResult[],
+  finalResponse: boolean,
+  requiredLabels: string[],
+): boolean {
+  if (finalResponse || !requiresXlsxWorkflow(input, executions)) return false;
+  const processing = xlsxProcessingExecutions(executions);
+  if (xlsxWorkflowPhase(processing, requiredLabels) !== "complete") return true;
+  return (
+    requestsXlsxResultTable(input.task) &&
+    xlsxExecutionBackedResponse(input, executions, requiredLabels) === undefined
+  );
 }
 
 interface PhaseInstructionInput {
