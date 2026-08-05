@@ -149,6 +149,7 @@ describe("PromptLibrary workbook aggregates", () => {
       "Never use a workbook count, worksheet count, row count, or match count",
     );
     expect(body).toContain("checkpoint, requested stdout labels, and any generated artifact");
+    expect(body).toContain("call `sheet.reset_dimensions()`");
     expect(body).toContain("Never substitute corpus or match counts for an amount total");
     expect(body).toContain("process it in one pass and do not create or load a checkpoint");
     expect(body).toContain("do not build fragile `range(...)` expressions");

@@ -28,6 +28,8 @@ function discoveredXlsx(command: string): AgentExecutionResult {
 function expectXlsxDiscoveryInstructions(prompt: string): void {
   expect(prompt).toContain('warnings.filterwarnings("ignore")');
   expect(prompt).toContain("load_workbook(path, read_only=True, data_only=True)");
+  expect(prompt).toContain("call `sheet.reset_dimensions()`");
+  expect(prompt).toContain("cannot silently hide later rows and columns");
   expect(prompt).toContain('filename.lower().endswith(".xlsx")');
   expect(prompt).toContain('filename.endswith(".xlsx")` is invalid');
   expect(prompt).toContain("keep the workbook accumulator distinct");
