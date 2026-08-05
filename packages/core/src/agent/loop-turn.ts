@@ -18,9 +18,11 @@ export function activateRequestedSkills(
   const library = input.promptLibrary ?? defaultPromptLibrary();
   if (requested.some((name) => !library.hasSkill(name))) throw new Error("agent_unknown_skill");
   const active = activePromptSkillNames(input, progress, library);
-  const additions = requested.filter((name) => !active.has(name));
+  progress.requestedSkills ??= new Set();
+  const requestedSkills = progress.requestedSkills;
+  const additions = requested.filter((name) => !active.has(name) && !requestedSkills.has(name));
   if (additions.length === 0) return false;
-  for (const name of additions) progress.requestedSkills?.add(name);
+  for (const name of additions) requestedSkills.add(name);
   recordOutcome(input, traced.turnId, "accepted_skill_request");
   return true;
 }

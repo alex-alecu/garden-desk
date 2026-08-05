@@ -2,6 +2,7 @@ import type { AgentDecision, AgentExecutionResult } from "@vault/shared";
 import { describe, expect, it } from "vitest";
 import type { InferenceService } from "../runtime/inference.js";
 import { AgentLoop } from "./loop.js";
+import { activateRequestedSkills, newProgress } from "./loop-turn.js";
 
 const performance = {
   promptTokens: 10,
@@ -34,6 +35,27 @@ function inference(
 }
 
 describe("model-requested skill activation", () => {
+  it("accepts a temporarily suppressed skill request only once", () => {
+    const progress = newProgress();
+    progress.lastRejectedProgramReason = "source_allowlist";
+    const input = { task: "Inspect the selected source tree.", modelId: "test-model" };
+    const traced = {
+      decision: {
+        action: "execute" as const,
+        language: "python" as const,
+        source: "print('done')",
+        summary: "Request workbook guidance",
+        skills: ["xlsx-workbooks"],
+      },
+    };
+
+    expect(activateRequestedSkills(input, progress, traced)).toBe(true);
+    expect(activateRequestedSkills(input, progress, traced)).toBe(false);
+    expect([...(progress.requestedSkills ?? [])]).toEqual(["xlsx-workbooks"]);
+  });
+});
+
+describe("active model-requested skills", () => {
   it("loads a validated catalog skill on a fresh planning turn before executing", async () => {
     const prompts: string[] = [];
     const source = "print('done')";
