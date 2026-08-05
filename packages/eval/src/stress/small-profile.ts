@@ -81,8 +81,11 @@ function reportTask(format: "PDF" | "Word" | "Excel", name: string): string {
   ].join(" ");
 }
 
-const INVALID_TASK =
-  "This folder may contain a corrupted PDF. Validate it locally and report clearly when it is invalid. Do not repair it or create a replacement.";
+const INVALID_TASK = [
+  "Use one Python execution with pypdf to discover and validate every PDF in this folder.",
+  "Report clearly when any PDF is invalid.",
+  "Do not run a separate discovery command, repair a PDF, or create a replacement.",
+].join(" ");
 
 const CASES: StressCaseDefinition<SmallCaseId>[] = [
   {
@@ -142,7 +145,7 @@ const CASES: StressCaseDefinition<SmallCaseId>[] = [
   },
   {
     id: "romanian-task",
-    task: "Analizează toate registrele cu tranzacții și avansuri din folder și raportează totalul valorilor amount pentru rândurile cu nota Priority review ca TOTAL_AVANS=<valoare>.",
+    task: "Analizează toate registrele cu tranzacții și avansuri din folder și raportează totalul valorilor din coloana `amount` pentru rândurile în care coloana `note` conține Priority review ca TOTAL_AVANS=<valoare>.",
     create: async (source) =>
       createXlsxCorpus(source, { files: 3, sheets: 2, rowsPerSheet: 2_500 }),
     expected: (evidence) => [`TOTAL_AVANS=${expectedValue(evidence, "xlsxTotal")}`],
