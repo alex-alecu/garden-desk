@@ -10,7 +10,7 @@ import { parseSkillMetadata, type SkillRepairTrigger } from "./prompt-skill-meta
 const PROMPT_FILE_LIMIT = 128_000;
 const PLACEHOLDER = /\{\{([a-z0-9_]+)\}\}/gu;
 const FORMAT_ACTION =
-  "(?:create|generate|write|make|build|produce|save|convert|read|review|inspect|check|tell|locate|summarize|extract|edit|update|merge|split|rotate|find|total|sum|calculate|analyze|process|validate|raport|citește|citeste|analizează|analizeaza|calculează|calculeaza)";
+  "(?:create|generate|write|make|build|produce|save|convert|read|review|inspect|check|tell|locate|summarize|extract|edit|update|merge|split|rotate|find|total|sum|calculate|analyze|process|validate|raport|raportează|raporteaza|citește|citeste|analizează|analizeaza|calculează|calculeaza)";
 const ROUTING_STOP_WORDS = new Set([
   "agent",
   "and",
@@ -116,8 +116,11 @@ function escapedPattern(value: string): string {
 
 function taskRequestsKeyword(task: string, keyword: string): boolean {
   const value = escapedPattern(keyword);
+  const boundary = "[\\p{L}\\p{N}]";
+  const action = `(?<!${boundary})${FORMAT_ACTION}(?!${boundary})`;
+  const term = `(?<!${boundary})${value}(?!${boundary})`;
   return new RegExp(
-    `(?:\\b${FORMAT_ACTION}\\b[^\\n]{0,120}\\b${value}\\b|\\b${value}\\b[^\\n]{0,120}\\b${FORMAT_ACTION}\\b)`,
+    `(?:${action}[^\\n]{0,120}${term}|${term}[^\\n]{0,120}${action})`,
     "iu",
   ).test(task);
 }

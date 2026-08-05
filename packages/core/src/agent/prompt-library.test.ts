@@ -57,6 +57,16 @@ describe("PromptLibrary skill selection", () => {
     ]).toEqual(["xlsx-workbooks"]);
   });
 
+  it.each([
+    "Analizează registrele cu salarii și avansuri din acest folder.",
+    "Calculează totalul pentru tranzacții din toate registrele.",
+    "Raportează valorile din tabelele cu avansuri.",
+  ])("routes Romanian workbook requests with Unicode word boundaries", (task) => {
+    expect([...library().activeSkillNames({ task, inputNames: [] })]).toEqual([
+      "xlsx-workbooks",
+    ]);
+  });
+
   it("keeps unrelated skill bodies out of direct-answer prompts", () => {
     expect([
       ...library().activeSkillNames({
