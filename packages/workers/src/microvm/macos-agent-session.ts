@@ -8,6 +8,7 @@ import {
   AgentGuestHydrateResultSchema,
   type AgentGuestInput,
   AgentGuestResultSchema,
+  type AgentWorkspaceDelta,
 } from "@vault/shared";
 import type { AgentHelperTransport } from "./agent-transport.js";
 import type {
@@ -29,6 +30,18 @@ interface GuestInitialization {
   transport: AgentHelperTransport;
   store: AgentWorkspaceStore;
   signal: AbortSignal;
+}
+
+function invalidatedArtifactPaths(
+  artifacts: Array<{ name: string }>,
+  delta: AgentWorkspaceDelta,
+): string[] {
+  const captured = new Set(artifacts.map((artifact) => artifact.name));
+  const paths = new Set(delta.removedPaths);
+  for (const entry of delta.entries) {
+    if (entry.kind === "file" && !captured.has(entry.path)) paths.add(entry.path);
+  }
+  return [...paths].filter((path) => !path.startsWith("steps/"));
 }
 
 export async function initializeAgentGuest(options: GuestInitialization): Promise<void> {
@@ -117,7 +130,13 @@ export class FramedAgentSession implements CodeAgentSession {
       if (result.executionId !== executionId) throw new Error("agent_helper_execution_mismatch");
       if (result.nonLoopbackNetworkDeviceCount !== 0) throw new Error("agent_guest_not_certified");
       await this.options.store.applyDelta(this.options.sessionId, result.workspaceDelta);
-      return result.execution;
+      return {
+        ...result.execution,
+        invalidatedArtifactPaths: invalidatedArtifactPaths(
+          result.execution.artifacts,
+          result.workspaceDelta,
+        ),
+      };
     } finally {
       signal?.removeEventListener("abort", abort);
       this.activeRequestId = undefined;

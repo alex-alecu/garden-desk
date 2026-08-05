@@ -157,6 +157,12 @@ export const tauriDesktopApi: DesktopApi = {
   async openAttachment(sessionId, attachmentId) {
     await invoke("open_attachment", { sessionId, attachmentId });
   },
+  async openArtifact(sessionId, artifactId) {
+    await invoke("open_artifact", { sessionId, artifactId });
+  },
+  async saveArtifact(sessionId, artifactId, name) {
+    return record(await invoke("save_artifact", { sessionId, artifactId, name })).saved === true;
+  },
   async removeAttachment(sessionId, attachmentId) {
     return record(await invoke("remove_attachment", { sessionId, attachmentId })).removed === true;
   },

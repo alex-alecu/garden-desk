@@ -1,6 +1,6 @@
 # Desktop Design
 
-Updated: 2026-08-01
+Updated: 2026-08-04
 
 Vault Desk V1 is a calm, conversation-centered desktop agent inspired by the structural clarity of the Codex app without copying its branding or visual assets. The interface exposes work and context, not model infrastructure.
 
@@ -60,7 +60,7 @@ Adding a folder uses a native Tauri dialog or a sidebar drop and creates a scope
 
 Starting a session under that folder gives its agent microVM a live read-only mount of the selected folder at `/source`. The hierarchy is preserved and host changes become visible immediately. The agent cannot write, rename, delete, or create files in the host folder.
 
-Switching sessions restores conversation turns, agent activity summaries, artifacts, warnings, cancellation state, and unsent draft text.
+Switching sessions restores conversation turns, agent activity summaries, generated-file deliverables, warnings, cancellation state, and unsent draft text.
 
 ## Conversation
 
@@ -70,8 +70,8 @@ The conversation timeline supports:
 - All assistant responses render as GitHub Flavored Markdown, including single-line answers, tables, task lists, and strikethrough, while user messages remain literal text. User messages align right, and both user and assistant message containers shrink to their content up to the conversation width. Raw HTML and images are not rendered, and links remain non-navigating text.
 - Streaming assistant text.
 - Concise model-planning, execution-purpose, completion, failure, and cancellation activity inline in chronological order without code or logs. Successful executions say **Finished this step** instead of naming runtimes or exit codes; exact process evidence remains in the separate Steps tab. A persistent **Working locally** card keeps the current action and completed execution count visible while a run is active. Long XLSX work stops at a verified local checkpoint after six executions and shows a dismissible **Continue this task?** question with exact file progress.
-- Generated scratch artifacts inline with the surrounding task activity and response.
-- A top-right **Technical details** control that opens a wider right-side drawer. The drawer uses the application surface and reduces the conversation workspace instead of covering it. Its **Overview** tab contains separate live RAM and VRAM or unified-memory allocations, their total, the runtime memory budget, allocated context, hardware cap and rationale, limits, guest capabilities, and generated-file metadata. Its separate **Steps** tab contains only the ordered step list and its evidence.
+- A compact **Generated files** section after the matching assistant Markdown and before its performance row. Each explicitly requested deliverable shows a recognizable type icon, filename, type, and size. The card opens a verified owner-only temporary copy in the default application, and its visible **Save As…** action uses a native dialog for a durable atomic copy. Opening and saving expose progress, cancellation or success feedback, accessible names, and concise errors. When no default application exists, Save As remains available. Restored conversations retain working cards; the public demo keeps cards visible with native actions disabled and its existing unavailable explanation.
+- A top-right **Technical details** control that opens a wider right-side drawer. The drawer uses the application surface and reduces the conversation workspace instead of covering it. Its **Overview** tab contains separate live RAM and VRAM or unified-memory allocations, their total, the runtime memory budget, allocated context, hardware cap and rationale, limits, and guest capabilities. Its separate **Steps** tab contains the ordered step list, generated scripts or commands, and complete execution evidence. Generated-file metadata does not appear in Technical details.
 - Technical details retains the local session ID and catalog path and identifies the snapshot as a handoff for AI coding agents such as Codex or Claude Code, including the selected session's SQLite-backed records and bounded microVM logs. It provides **Create debug snapshot** plus **Reveal snapshot**. The webview supplies only the session ID; the desktop host derives the catalog and can reveal only the latest snapshot it created for that session. The selectable result path and privacy warning reset when the conversation changes.
 - Every inline activity step in the conversation is a button. Selecting one opens Technical details directly to **Steps** with that step expanded and marks it as the current step; selecting it again collapses it. Opening the drawer from its header control starts on **Overview**, and the step list collapses all entries by default.
 - An expanded step shows its purpose, generated code or command, termination and exit status, and one log stream at a time: Output, Errors, or typed VM diagnostics, with byte counts, explicit state text, and truncation text. Assigned Python and Node source files show their guest filename, language, and locally rendered syntax highlighting. When recorded inference detail is available it also shows the model and allocated context, the exact prompt sent, the requested result shape, and the model's decision. Prompts and decisions are read on demand for the selected step's run, never during run polling, and a task recorded before inference capture reports that its prompts are not recorded.
@@ -150,3 +150,4 @@ Runtime, quantization, context-window, endpoint, and model-file vocabulary stays
 | 2026-07-27 | Added visible active-run progress and a dismissible saved-progress continuation question for long XLSX work. |
 | 2026-07-28 | Added clickable attachment transfer, whole-window file and folder drop routing with an animated affordance, and persistent accessible folder ordering. |
 | 2026-08-01 | Added separate live RAM and VRAM or unified-memory allocations plus the allocated context, hardware cap, and hardware-derived rationale to Technical details. |
+| 2026-08-04 | Grouped declared generated files beneath their assistant response with accessible Open and Save As actions, and removed file metadata from Technical details. |

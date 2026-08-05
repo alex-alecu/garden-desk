@@ -1,7 +1,9 @@
 import { mkdir, open, truncate, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import type { AgentExecutionResult, WorkerLimits } from "@vault/shared";
+import type { WorkerLimits } from "@vault/shared";
 import type { CodeAgentLauncher, CodeAgentSession, MicroVmAgentRequest } from "@vault/workers";
+import { documentLibraryProbe } from "./m3-guest-documents.js";
+import { requireGuestSuccess } from "./m3-guest-execution.js";
 import { requireIsolationProof, runGuestSecurityEvidence } from "./m3-guest-security.js";
 
 const limits: WorkerLimits = {
@@ -13,14 +15,6 @@ const limits: WorkerLimits = {
   outputBytes: 8 * 1024 * 1024,
   cpuCount: 2,
 };
-
-function requireSuccess(result: AgentExecutionResult): void {
-  if (result.exitCode !== 0 || result.termination !== "completed") {
-    throw new Error(
-      `Guest execution failed (${result.language}, ${result.exitCode}, ${result.termination}): ${result.stderr}\n${result.stdout}`,
-    );
-  }
-}
 
 async function withSession<T>(
   launcher: CodeAgentLauncher,
@@ -53,7 +47,7 @@ async function prepareSource(root: string): Promise<string> {
 
 const PYTHON_PROBE = [
   "import json, os, pathlib, shutil, socket",
-  "import PIL, pypdf, openpyxl, docx",
+  "import PIL, pypdf, openpyxl, docx, reportlab, charset_normalizer",
   "root = pathlib.Path(os.environ['VAULT_SOURCE_DIR'])",
   "source = root / 'input.txt'",
   "write_blocked = False",
@@ -115,7 +109,7 @@ const PYTHON_PROBE = [
   "except OSError:",
   "    socketpair_blocked = True",
   "artifact = pathlib.Path(os.environ['VAULT_WORKSPACE_DIR']) / 'python-result.json'",
-  "result = {'input': source.read_text(), 'writeBlocked': write_blocked, 'rootWriteBlocked': root_write_blocked, 'tmpWriteBlocked': tmp_write_blocked, 'outsideWritesBlocked': outside_writes_blocked, 'runtimeWritable': runtime_writable, 'networkBlocked': network_blocked, 'ipv6Blocked': ipv6_blocked, 'dnsBlocked': dns_blocked, 'vsockBlocked': vsock_blocked, 'unixBlocked': unix_blocked, 'socketpairBlocked': socketpair_blocked, 'packageManagersAbsent': all(shutil.which(name) is None for name in ['pip', 'npm', 'corepack', 'apk', 'apt', 'dnf', 'yum']), 'shellAvailable': shutil.which('sh') is not None, 'credentialsAbsent': all(key not in os.environ for key in ['AWS_ACCESS_KEY_ID', 'GITHUB_TOKEN', 'SSH_AUTH_SOCK']), 'hostPathsAbsent': not pathlib.Path('/Users').exists(), 'nestedFiles': len(list((root / 'nested' / 'deep').glob('file-*.txt'))), 'sparseBytes': (root / 'nested' / 'deep' / 'large.sparse').stat().st_size, 'versions': [PIL.__version__, pypdf.__version__, openpyxl.__version__, docx.__version__]}",
+  "result = {'input': source.read_text(), 'writeBlocked': write_blocked, 'rootWriteBlocked': root_write_blocked, 'tmpWriteBlocked': tmp_write_blocked, 'outsideWritesBlocked': outside_writes_blocked, 'runtimeWritable': runtime_writable, 'networkBlocked': network_blocked, 'ipv6Blocked': ipv6_blocked, 'dnsBlocked': dns_blocked, 'vsockBlocked': vsock_blocked, 'unixBlocked': unix_blocked, 'socketpairBlocked': socketpair_blocked, 'packageManagersAbsent': all(shutil.which(name) is None for name in ['pip', 'npm', 'corepack', 'apk', 'apt', 'dnf', 'yum']), 'shellAvailable': shutil.which('sh') is not None, 'credentialsAbsent': all(key not in os.environ for key in ['AWS_ACCESS_KEY_ID', 'GITHUB_TOKEN', 'SSH_AUTH_SOCK']), 'hostPathsAbsent': not pathlib.Path('/Users').exists(), 'nestedFiles': len(list((root / 'nested' / 'deep').glob('file-*.txt'))), 'sparseBytes': (root / 'nested' / 'deep' / 'large.sparse').stat().st_size, 'versions': [PIL.__version__, pypdf.__version__, openpyxl.__version__, docx.__version__, reportlab.Version, charset_normalizer.__version__]}",
   "artifact.write_text(json.dumps(result))",
   "print(json.dumps(result))",
 ].join("\n");
@@ -183,7 +177,7 @@ async function isolationProbe(session: CodeAgentSession) {
     path: "steps/probe.py",
     source: PYTHON_PROBE,
   });
-  requireSuccess(python);
+  requireGuestSuccess(python);
   const proof = JSON.parse(python.stdout) as Record<string, unknown>;
   requireIsolationProof(proof, python);
   return { proof, artifacts: python.artifacts.length };
@@ -201,7 +195,7 @@ async function languageAndRepairProbes(session: CodeAgentSession, source: string
     path: "steps/repair.py",
     source: "print('repaired')",
   });
-  requireSuccess(repaired);
+  requireGuestSuccess(repaired);
   const node = await session.execute({
     language: "node",
     path: "steps/probe.mjs",
@@ -213,7 +207,7 @@ async function languageAndRepairProbes(session: CodeAgentSession, source: string
       "console.log(JSON.stringify({major, npmAbsent}));",
     ].join("\n"),
   });
-  requireSuccess(node);
+  requireGuestSuccess(node);
   const nodeProof = JSON.parse(node.stdout) as { major: number; npmAbsent: boolean };
   if (nodeProof.major !== 24 || !nodeProof.npmAbsent) throw new Error("Node runtime proof failed.");
   await writeFile(join(source, "input.txt"), "live edit evidence");
@@ -221,7 +215,7 @@ async function languageAndRepairProbes(session: CodeAgentSession, source: string
     language: "shell",
     command: "grep 'live edit' /source/input.txt | grep evidence && test -f python-result.json",
   });
-  requireSuccess(shell);
+  requireGuestSuccess(shell);
   return { repaired: repaired.stdout.trim(), nodeProof, shell: shell.stdout.trim() };
 }
 
@@ -232,7 +226,7 @@ async function persistentFileProbe(session: CodeAgentSession): Promise<void> {
     source:
       "with open('large.bin', 'wb') as output:\n    output.truncate(9 * 1024 * 1024)\nprint('large file written')",
   });
-  requireSuccess(result);
+  requireGuestSuccess(result);
 }
 
 async function rehydrationProbe(
@@ -250,7 +244,7 @@ async function rehydrationProbe(
           "test -f steps/probe.py && test -f steps/repair.py && test -f large.bin && /usr/bin/python3 steps/repair.py",
       }),
   );
-  requireSuccess(result);
+  requireGuestSuccess(result);
   return result.stdout.trim();
 }
 
@@ -268,9 +262,10 @@ export async function runGuestEvidence(
     { sessionId, sourceFolder: source, readonlyInputs: [], limits },
     async (session) => {
       const isolation = await isolationProbe(session);
+      const documents = await documentLibraryProbe(session);
       const language = await languageAndRepairProbes(session, source);
       await persistentFileProbe(session);
-      return { isolation, language };
+      return { documents, isolation, language };
     },
   );
   console.error("m3_guest_stage:rehydration");
@@ -287,6 +282,7 @@ export async function runGuestEvidence(
   const security = await runGuestSecurityEvidence(launcher, source);
   return {
     python: primary.isolation.proof,
+    documents: primary.documents,
     node: primary.language.nodeProof,
     shell: primary.language.shell,
     repair: primary.language.repaired,

@@ -5,6 +5,7 @@ import {
   type InferencePerformance,
 } from "@vault/shared";
 import { effectiveGenerationInput, type GenerationInput } from "../runtime/inference.js";
+import { artifactCandidateNames } from "./artifact-declarations.js";
 import type { DurableAgentHistory } from "./history.js";
 import { MAX_AGENT_EXECUTIONS } from "./limits.js";
 import type { RejectedExecutionReason } from "./loop-decisions.js";
@@ -12,8 +13,6 @@ import {
   completedSuccessfully,
   missingOutputLabels,
   requiredOutputLabels,
-  verifiedXlsxOutput,
-  xlsxWorkflowPhase,
 } from "./output-contract.js";
 import {
   generationBudget,
@@ -33,9 +32,10 @@ import {
   GENERATION_LIMIT_RECOVERY_SOURCE_LINES,
 } from "./prompt-schema.js";
 import {
+  needsXlsxExecution,
   requiresXlsxWorkflow,
+  xlsxExecutionBackedResponse,
   xlsxPhaseInstructions,
-  xlsxProcessingExecutions,
 } from "./prompt-xlsx.js";
 
 export { requiresXlsxWorkflow } from "./prompt-xlsx.js";
@@ -142,6 +142,7 @@ function prompt(
       library,
       requiredLabels,
       missingLabels,
+      task: input.task,
     }),
   ];
   const fixed = joinedPromptSections([
@@ -179,10 +180,12 @@ function generationSchema(
 ) {
   const library = input.promptLibrary ?? defaultPromptLibrary();
   const requiredLabels = requiredOutputLabels(input.task);
-  const requiresXlsxExecution =
-    !finalResponse &&
-    requiresXlsxWorkflow(input, progress.executions) &&
-    xlsxWorkflowPhase(xlsxProcessingExecutions(progress.executions), requiredLabels) !== "complete";
+  const requiresXlsxExecution = needsXlsxExecution(
+    input,
+    progress.executions,
+    finalResponse,
+    requiredLabels,
+  );
   const inputNames = input.inputNames ?? [];
   const requiresAttachedPdfExecution =
     !finalResponse &&
@@ -192,7 +195,9 @@ function generationSchema(
   const generationLimitRecovery = recovery === "generation_limit" && !finalResponse;
   const sourceDiscoveryRecovery =
     progress.lastRejectedProgramReason === "source_allowlist" && !finalResponse;
+  const artifactNames = artifactCandidateNames(progress.executions);
   return agentDecisionJsonSchema({
+    artifactNames,
     task: input.task,
     finalResponse,
     requiresSourceExecution:
@@ -288,5 +293,5 @@ export function executionBackedResponse(
 ): string {
   if (!requiresXlsxWorkflow(input, progress.executions)) return fallback;
   const requiredLabels = requiredOutputLabels(input.task);
-  return verifiedXlsxOutput(progress.executions, requiredLabels) ?? fallback;
+  return xlsxExecutionBackedResponse(input, progress.executions, requiredLabels) ?? fallback;
 }

@@ -40,6 +40,78 @@ export function hasUsefulResult(result: AgentExecutionResult): boolean {
   );
 }
 
+function gfmCells(line: string): string[] | undefined {
+  const trimmed = line.trim();
+  if (!trimmed.startsWith("|") || !trimmed.endsWith("|")) return undefined;
+  const cells: string[] = [];
+  let cell = "";
+  let backslashes = 0;
+  for (const character of trimmed.slice(1, -1)) {
+    if (character === "|" && backslashes % 2 === 0) {
+      cells.push(cell.trim());
+      cell = "";
+    } else {
+      cell += character;
+    }
+    backslashes = character === "\\" ? backslashes + 1 : 0;
+  }
+  cells.push(cell.trim());
+  return cells;
+}
+
+export function validGfmTable(stdout: string): boolean {
+  const lines = stdout
+    .trim()
+    .split(/\r?\n/u)
+    .filter((line) => line.trim().length > 0);
+  if (lines.length < 3) return false;
+  const rows = lines.map(gfmCells);
+  const header = rows[0];
+  const separator = rows[1];
+  if (header === undefined || separator === undefined || header.length === 0) return false;
+  return (
+    separator.length === header.length &&
+    separator.every((cell) => /^:?-{3,}:?$/u.test(cell)) &&
+    rows.slice(2).every((row) => row !== undefined && row.length === header.length)
+  );
+}
+
+export function normalizeGfmTable(stdout: string): string | undefined {
+  const lines = stdout
+    .trim()
+    .split(/\r?\n/u)
+    .filter((line) => line.trim().length > 0);
+  if (lines.length < 3) return undefined;
+  const rows = lines.map(gfmCells);
+  const header = rows[0];
+  const separator = rows[1];
+  if (
+    header === undefined ||
+    separator === undefined ||
+    header.length === 0 ||
+    separator.length !== header.length ||
+    !separator.every((cell) => /^:?-{3,}:?$/u.test(cell))
+  ) {
+    return undefined;
+  }
+  const normalized = rows.slice(2).map((row) => {
+    if (row === undefined || row.length < header.length) return undefined;
+    if (row.length === header.length) return row;
+    return [...row.slice(0, header.length - 1), row.slice(header.length - 1).join(" ")];
+  });
+  if (normalized.some((row) => row === undefined)) return undefined;
+  return [header, separator, ...(normalized as string[][])]
+    .map((row) => `| ${row.join(" | ")} |`)
+    .join("\n");
+}
+
+export function latestGfmTableOutput(executions: AgentExecutionResult[]): string | undefined {
+  const last = executions.filter(completedXlsxSuccessfully).at(-1);
+  if (last === undefined || !hasUsefulResult(last)) return undefined;
+  const stdout = stripXlsxProgress(last.stdout);
+  return stdout.length <= 64_000 ? normalizeGfmTable(stdout) : undefined;
+}
+
 export function xlsxWorkflowPhase(
   executions: AgentExecutionResult[],
   requiredLabels: string[],
@@ -86,8 +158,15 @@ export function verifiedXlsxOutput(
   if (last === undefined || !hasUsefulResult(last)) return undefined;
   const progress = parseXlsxProgress(last.stdout);
   if (progress?.complete !== true) return undefined;
-  const stdout = stripXlsxProgress(last.stdout);
-  return missingOutputLabels(stdout, requiredLabels).length === 0 && stdout.length <= 64_000
+  let stdout = stripXlsxProgress(last.stdout);
+  if (stdout.startsWith("|")) {
+    const normalized = normalizeGfmTable(stdout);
+    if (normalized === undefined) return undefined;
+    stdout = normalized;
+  }
+  return stdout.length > 0 &&
+    missingOutputLabels(stdout, requiredLabels).length === 0 &&
+    stdout.length <= 64_000
     ? stdout
     : undefined;
 }

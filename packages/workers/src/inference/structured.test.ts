@@ -102,6 +102,78 @@ describe("structuredValue plain responses", () => {
   });
 });
 
+describe("structuredValue empty artifact declarations", () => {
+  it("adds the required empty declaration when no deliverable candidates exist", async () => {
+    const session = {
+      async promptWithMeta() {
+        return {
+          response: [],
+          responseText: "Done.",
+          stopReason: "eogToken",
+          remainingGenerationAfterStop: undefined,
+        };
+      },
+    } as unknown as LlamaChatSession;
+    const emptyArtifactsRequest = {
+      ...request,
+      jsonSchema: {
+        type: "object",
+        properties: {
+          action: { const: "respond" },
+          response: { type: "array", items: { type: "string" } },
+          artifacts: { type: "array", maxItems: 0 },
+        },
+        required: ["action", "response", "artifacts"],
+      },
+    } satisfies StructuredGenerationRequest;
+
+    await expect(
+      structuredValue(emptyArtifactsRequest, {} as never, session, {
+        onResponseChunk: () => undefined,
+        onToken: () => undefined,
+      }),
+    ).resolves.toEqual({ action: "respond", response: ["Done."], artifacts: [] });
+  });
+});
+
+describe("structuredValue deliverable declaration boundary", () => {
+  it("requires a function call when deliverable candidates must be declared", async () => {
+    const session = {
+      async promptWithMeta() {
+        return {
+          response: [],
+          responseText: "report.pdf is ready.",
+          stopReason: "eogToken",
+          remainingGenerationAfterStop: undefined,
+        };
+      },
+    } as unknown as LlamaChatSession;
+    const deliverableRequest = {
+      ...request,
+      jsonSchema: {
+        type: "object",
+        properties: {
+          action: { const: "respond" },
+          response: { type: "array", items: { type: "string" } },
+          artifacts: {
+            type: "array",
+            items: { type: "string", enum: ["report.pdf"] },
+            maxItems: 1,
+          },
+        },
+        required: ["action", "response", "artifacts"],
+      },
+    } satisfies StructuredGenerationRequest;
+
+    await expect(
+      structuredValue(deliverableRequest, {} as never, session, {
+        onResponseChunk: () => undefined,
+        onToken: () => undefined,
+      }),
+    ).rejects.toThrow("structured_tool_call_required");
+  });
+});
+
 describe("structuredValue plain response boundary", () => {
   it("never converts plain text into an execution action", async () => {
     const executeRequest = {

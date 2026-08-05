@@ -71,6 +71,8 @@ export interface DesktopApi {
   addFiles(sessionId: string, paths: string[]): Promise<AttachmentSummary[]>;
   listAttachments(sessionId: string): Promise<AttachmentSummary[]>;
   openAttachment(sessionId: string, attachmentId: string): Promise<void>;
+  openArtifact(sessionId: string, artifactId: string): Promise<void>;
+  saveArtifact(sessionId: string, artifactId: string, name: string): Promise<boolean>;
   removeAttachment(sessionId: string, attachmentId: string): Promise<boolean>;
   saveDraft(sessionId: string, content: string): Promise<SessionDraft>;
   loadDraft(sessionId: string): Promise<SessionDraft | undefined>;

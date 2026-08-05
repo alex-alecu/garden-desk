@@ -1,6 +1,6 @@
 # M3 Agent Guest Dependency Review
 
-Updated: 2026-07-27
+Updated: 2026-08-04
 
 Decision: approved for the macOS arm64 and Windows x86_64 M3 guest images. Both architectures use the smallest fixed offline set that covers the named V1 tasks: Python and Node execution, JSON/CSV/SQLite from the standard library, and common PDF, DOCX, XLSX, and image inspection. They contain no pip, npm, Corepack, package-install configuration, or runtime network path.
 
@@ -17,8 +17,11 @@ Decision: approved for the macOS arm64 and Windows x86_64 M3 guest images. Both 
 | defusedxml | 0.7.1 | Python-2.0 | Defensive XML parsing for spreadsheet inputs | Buildroot 2026.05 package resolution |
 | python-docx | 1.2.0 | MIT | DOCX reading and writing | Official wheel SHA-256 `3fd478f3250fbbbfd3b94fe1e985955737c145627498896a8a6bf81f4baf66c7` |
 | lxml and typing-extensions | Buildroot 2026.05 pins | BSD-3-Clause and PSF-2.0 | Required python-docx runtime dependencies | Buildroot package resolution |
+| ReportLab | 5.0.0 | BSD-3-Clause | Styled PDF creation with Platypus | Official pure-Python wheel SHA-256 `9d5a3affa84919e1111ede580031266a570e93b1ce388219621347965ff1d93c` |
+| charset-normalizer | 3.4.9 | MIT | ReportLab text encoding support | Official pure-Python wheel SHA-256 `68e5f26a1ad57ded6d1cfb85331d1c1a195314756471d97758c48498bb4dcdf5` |
+| ReportLab bundled fonts | ReportLab 5.0.0 bundle | Bitstream Vera and GPL-2.0-or-later with font exception | Embedded PDF font resources | License texts retained inside the extracted wheel and package legal-info output |
 
-Primary package records are the official [Node.js release archive](https://nodejs.org/download/release/v24.18.0/), [pypdf project](https://pypi.org/project/pypdf/6.14.2/), [openpyxl project](https://pypi.org/project/openpyxl/3.1.5/), and [python-docx project](https://pypi.org/project/python-docx/1.2.0/). Exact downloaded filenames and hashes are enforced by the Buildroot package hash files; the complete shipped set is recorded in `packages/workers/images/agent/manifest.json`.
+Primary package records are the official [Node.js release archive](https://nodejs.org/download/release/v24.18.0/), [pypdf project](https://pypi.org/project/pypdf/6.14.2/), [openpyxl project](https://pypi.org/project/openpyxl/3.1.5/), [python-docx project](https://pypi.org/project/python-docx/1.2.0/), [ReportLab project](https://pypi.org/project/reportlab/5.0.0/), and [charset-normalizer project](https://pypi.org/project/charset-normalizer/3.4.9/). Exact downloaded wheel filenames and hashes are enforced by the Buildroot package hash file; the pure-Python wheels are extracted directly and never execute source-build or runtime installation behavior. The complete shipped set and bundled-font notices are recorded in `packages/workers/images/agent/manifest.json`.
 
 ## Boundary and maintenance decision
 

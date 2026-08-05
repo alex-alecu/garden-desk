@@ -28,6 +28,8 @@ function discoveredXlsx(command: string): AgentExecutionResult {
 function expectXlsxDiscoveryInstructions(prompt: string): void {
   expect(prompt).toContain('warnings.filterwarnings("ignore")');
   expect(prompt).toContain("load_workbook(path, read_only=True, data_only=True)");
+  expect(prompt).toContain("call `sheet.reset_dimensions()`");
+  expect(prompt).toContain("collapsed metadata such as `A1:A1` must not hide data");
   expect(prompt).toContain('filename.lower().endswith(".xlsx")');
   expect(prompt).toContain('filename.endswith(".xlsx")` is invalid');
   expect(prompt).toContain("keep the workbook accumulator distinct");
@@ -45,26 +47,6 @@ function expectXlsxDiscoveryInstructions(prompt: string): void {
     "compare the fresh case-insensitive corpus with the checkpointed corpus",
   );
 }
-
-describe("AgentLoop XLSX routing", () => {
-  it("routes bare XLSX wording to source-only work on the first turn", async () => {
-    const schemas: Array<Record<string, unknown>> = [];
-    const source = "print('XLSX_MATCHES=1\\nXLSX_TOTAL=25')";
-    const result = await new AgentLoop(
-      inference([execute(source, "Analyze every workbook")], [], schemas),
-      executor(
-        [{ ...completed, source, stdout: completeXlsx("XLSX_MATCHES=1\nXLSX_TOTAL=25") }],
-        [],
-      ),
-    ).run({
-      task: "Analyze every XLSX workbook and print XLSX_MATCHES=<count> and XLSX_TOTAL=<sum>.",
-      modelId: "test-model",
-    });
-
-    expect(result.response).toBe("XLSX_MATCHES=1\nXLSX_TOTAL=25");
-    expect(schemas[0]).not.toHaveProperty("oneOf");
-  });
-});
 
 describe("AgentLoop XLSX progress", () => {
   it("advances after an empty inspection and returns verified calculation stdout", async () => {

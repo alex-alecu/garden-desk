@@ -1,17 +1,29 @@
-const FINAL_RESPONSE_SCHEMA = {
-  type: "object",
-  properties: {
-    action: { const: "respond" },
-    response: {
-      type: "array",
-      items: { type: "string", maxLength: 512 },
-      minItems: 1,
-      maxItems: 100,
+function finalResponseSchema(artifactNames: readonly string[]) {
+  const artifacts =
+    artifactNames.length === 0
+      ? { type: "array", maxItems: 0 }
+      : {
+          type: "array",
+          items: { type: "string", enum: artifactNames },
+          maxItems: Math.min(16, artifactNames.length),
+          uniqueItems: true,
+        };
+  return {
+    type: "object",
+    properties: {
+      action: { const: "respond" },
+      response: {
+        type: "array",
+        items: { type: "string", maxLength: 512 },
+        minItems: 1,
+        maxItems: 100,
+      },
+      artifacts,
     },
-  },
-  required: ["action", "response"],
-  additionalProperties: false,
-} as const;
+    required: ["action", "response", "artifacts"],
+    additionalProperties: false,
+  } as const;
+}
 
 export const SHELL_COMMAND_CHARACTER_LIMIT = 4_096;
 
@@ -50,10 +62,6 @@ const SHELL_EXECUTION_SCHEMA = {
   additionalProperties: false,
 } as const;
 
-const DECISION_SCHEMA = {
-  oneOf: [FINAL_RESPONSE_SCHEMA, SOURCE_EXECUTION_SCHEMA, SHELL_EXECUTION_SCHEMA],
-} as const;
-
 export const GENERATION_LIMIT_RECOVERY_SOURCE_LINES = 64;
 
 function namedSourceLanguage(task: string): "python" | "node" | undefined {
@@ -78,6 +86,7 @@ function sourceExecutionSchema(language: "python" | "node" | undefined, boundedS
 }
 
 interface AgentDecisionSchemaOptions {
+  artifactNames: readonly string[];
   finalResponse: boolean;
   requiredLanguage?: "python" | "node";
   requiresSourceExecution: boolean;
@@ -86,9 +95,16 @@ interface AgentDecisionSchemaOptions {
 }
 
 export function agentDecisionJsonSchema(options: AgentDecisionSchemaOptions) {
-  const { finalResponse, requiredLanguage, requiresSourceExecution, sourceLineLimit, task } =
-    options;
-  if (finalResponse) return FINAL_RESPONSE_SCHEMA;
+  const {
+    artifactNames,
+    finalResponse,
+    requiredLanguage,
+    requiresSourceExecution,
+    sourceLineLimit,
+    task,
+  } = options;
+  const response = finalResponseSchema(artifactNames);
+  if (finalResponse) return response;
   const language = requiredLanguage ?? namedSourceLanguage(task);
   const source = sourceExecutionSchema(language, requiresSourceExecution);
   const boundedSource =
@@ -102,5 +118,7 @@ export function agentDecisionJsonSchema(options: AgentDecisionSchemaOptions) {
           },
         };
   if (requiresSourceExecution) return boundedSource;
-  return language === undefined ? DECISION_SCHEMA : { oneOf: [FINAL_RESPONSE_SCHEMA, source] };
+  return language === undefined
+    ? { oneOf: [response, SOURCE_EXECUTION_SCHEMA, SHELL_EXECUTION_SCHEMA] }
+    : { oneOf: [response, source] };
 }

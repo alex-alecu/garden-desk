@@ -78,6 +78,8 @@
         "packages/core/src/prompt-files.ts",
         "packages/core/src/conversations/store.test.ts",
         "packages/core/src/agent/attachment-materialization.ts",
+        "packages/core/src/agent/artifact-materialization.ts",
+        "packages/core/src/agent/artifact-materialization.test.ts",
         "packages/core/src/agent/inputs.ts",
         "packages/core/src/agent/records.ts",
         "packages/core/src/agent/store.ts",

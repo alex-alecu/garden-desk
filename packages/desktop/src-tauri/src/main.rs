@@ -9,6 +9,7 @@ use tauri::{AppHandle, Manager, RunEvent};
 use tauri_plugin_shell::ShellExt;
 use tauri_plugin_shell::process::CommandChild;
 
+mod artifact_commands;
 mod attachment_commands;
 mod commands;
 mod diagnostics;
@@ -194,12 +195,7 @@ fn connect(endpoint: &str) -> std::io::Result<std::os::unix::net::UnixStream> {
 
 #[cfg(windows)]
 fn transient_pipe_open_error(error: &std::io::Error) -> bool {
-    const ERROR_FILE_NOT_FOUND: i32 = 2;
-    const ERROR_PIPE_BUSY: i32 = 231;
-    matches!(
-        error.raw_os_error(),
-        Some(ERROR_FILE_NOT_FOUND | ERROR_PIPE_BUSY)
-    )
+    matches!(error.raw_os_error(), Some(2 | 231))
 }
 
 #[cfg(windows)]
@@ -258,6 +254,8 @@ fn main() {
         .invoke_handler(tauri::generate_handler![
             commands::append_user_message,
             attachment_commands::add_dropped_files,
+            artifact_commands::open_artifact,
+            artifact_commands::save_artifact,
             commands::add_dropped_folders,
             commands::cancel_agent,
             commands::choose_folder,

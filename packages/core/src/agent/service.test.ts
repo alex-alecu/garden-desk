@@ -85,14 +85,14 @@ describe("M3 persisted agent lifecycle", () => {
     const store = new AgentStore(catalog.database, artifacts);
     const decisions: AgentDecision[] = [
       { action: "execute", language: "python", source: "print('ok')", summary: "Run Python" },
-      { action: "respond", response: "Finished safely." },
+      { action: "respond", response: "Finished safely.", artifacts: ["result.txt"] },
     ];
     let runId = "";
     let generation = 0;
     const inference: Pick<InferenceService, "generate"> = {
       async generate() {
         generation += 1;
-        if (generation === 2) expect(store.snapshot(runId).artifacts).toHaveLength(1);
+        if (generation === 2) expect(store.snapshot(runId).artifacts).toHaveLength(0);
         const value = decisions.shift();
         if (value === undefined) throw new Error("missing_decision");
         return {

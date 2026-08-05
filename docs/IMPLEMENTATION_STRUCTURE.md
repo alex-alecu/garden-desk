@@ -202,14 +202,14 @@ The existing workspace catalog remains the one authoritative database. M3 adds n
 - Agent runs, terminal state, observable events, and bounded numeric response-performance evidence.
 - Normalized execution attempts with identity, ordering, source or command, terminal evidence, 1 MB stdout, 1 MB stderr, 256 KiB allowlisted VM diagnostics, truncation flags, and recovery timestamps. Catalog migration v7 backfills historical execution events. Those durable 1 MB stream caps are independent of the smaller middle-elided excerpt each stream contributes to the next decision prompt.
 - Versioned inference turns linked to runs, with prompt, schema, and pre-parse structured-result content hashes; worker request metadata; decision outcomes; execution links; and recovery timestamps. Catalog migration v8 leaves historical runs explicitly unrecorded.
-- Generated artifact metadata and immutable bytes accepted from guest scratch.
+- Declared generated-file metadata and immutable bytes accepted only at successful finalization; undeclared workspace intermediates remain recoverable without artifact rows.
 - Session-scoped content-addressed workspace manifests stored under the private `.vault` state root.
 
 The newest-five sidebar query is ordered by last activity plus stable ID. Expansion uses an opaque stable cursor. Removing a grant does not delete session history or host files.
 
 ## Guest Library Manifest
 
-One machine-readable manifest records each guest runtime/library name, exact version, source, license, notice obligation, hash, and reason. The first set should be limited to the smallest reviewed combination that covers text, JSON, CSV, SQLite, PDF, DOCX, XLSX, and common image inspection.
+One machine-readable manifest records each guest runtime/library name, exact version, source, license, notice obligation, hash, and reason. The set stays limited to the smallest reviewed combination that covers text, JSON, CSV, SQLite, PDF, DOCX, XLSX, and common image work; ReportLab uses its pinned pure-Python wheel for styled PDF creation.
 
 The library manifest, generated executable capabilities manifest, guest build recipe, compliance inventory, package resources, and Technical details language change together. Libraries are not added because they might be useful.
 
@@ -244,3 +244,4 @@ The existing source-limit gate remains authoritative. Prefer files below 300 lin
 | 2026-07-23 | Added the session-scoped guest lifecycle, live read-only source share, and persistent workspace boundary. |
 | 2026-07-24 | Moved the debug snapshot adapter into Core and limited installed-app creation and reveal to fixed Tauri commands. |
 | 2026-07-27 | Added the verified Windows CUDA/Vulkan resource package and signed copy-installed application directory. |
+| 2026-08-04 | Added final-response deliverable declarations, Core materialization/export adapters, and pinned DOCX/XLSX/PDF skill assets. |

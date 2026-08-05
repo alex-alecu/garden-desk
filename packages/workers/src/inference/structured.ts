@@ -73,9 +73,15 @@ function plainResponse(schema: Record<string, unknown>, text: string): unknown |
     .map((alternative) => record(alternative))
     .find((alternative) => record(record(alternative?.properties)?.action)?.const === "respond");
   const response = record(record(responseSchema?.properties)?.response);
+  const artifacts = record(record(responseSchema?.properties)?.artifacts);
   const items = record(response?.items);
   const value = text.trim();
-  if (response?.type !== "array" || items?.type !== "string" || value.length === 0) {
+  if (
+    response?.type !== "array" ||
+    items?.type !== "string" ||
+    value.length === 0 ||
+    (artifacts !== undefined && (artifacts.type !== "array" || artifacts.maxItems !== 0))
+  ) {
     return undefined;
   }
   const lines = value.split(/\r?\n/u);
@@ -84,7 +90,11 @@ function plainResponse(schema: Record<string, unknown>, text: string): unknown |
   const maxLength =
     typeof items.maxLength === "number" ? items.maxLength : Number.POSITIVE_INFINITY;
   if (lines.length > maxItems || lines.some((line) => line.length > maxLength)) return undefined;
-  return { action: "respond", response: lines };
+  return {
+    action: "respond",
+    response: lines,
+    ...(artifacts === undefined ? {} : { artifacts: [] }),
+  };
 }
 
 async function gemmaStructuredValue(

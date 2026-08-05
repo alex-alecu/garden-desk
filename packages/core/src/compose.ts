@@ -159,6 +159,17 @@ function assembleVaultCore(services: CoreServices): VaultCore {
     async materializeAttachment(sessionId, attachmentId) {
       return (await agent?.materializeAttachment(sessionId, attachmentId)) ?? unavailableAgent();
     },
+    async materializeArtifact(sessionId, artifactId) {
+      return (await agent?.materializeArtifact(sessionId, artifactId)) ?? unavailableAgent();
+    },
+    async recordArtifactOpen(sessionId, artifactId, outcome) {
+      const activeAgent = agent ?? unavailableAgent();
+      await activeAgent.recordArtifactOpen(sessionId, artifactId, outcome);
+    },
+    async exportArtifact(sessionId, artifactId, destination) {
+      const activeAgent = agent ?? unavailableAgent();
+      await activeAgent.exportArtifact(sessionId, artifactId, destination);
+    },
     async removeAttachment(sessionId, attachmentId) {
       return agent?.removeAttachment(sessionId, attachmentId) ?? unavailableAgent();
     },

@@ -113,8 +113,53 @@ function routingTerms(value: string): Set<string> {
   );
 }
 
+function hasInputExtension(input: SkillSelectionInput, extension: string): boolean {
+  return input.inputNames.some((name) => name.toLocaleLowerCase("en-US").endsWith(extension));
+}
+
+const FORMAT_ACTION =
+  "(?:create|generate|write|make|build|produce|save|convert|read|review|inspect|summarize|extract|edit|update|merge|split|rotate|find|total|sum|calculate|analyze|process|validate)";
+
+function taskRequestsFormat(task: string, format: string): boolean {
+  return new RegExp(
+    `(?:\\b${FORMAT_ACTION}\\b[^\\n]{0,100}\\b(?:${format})\\b|\\b(?:${format})\\b[^\\n]{0,100}\\b${FORMAT_ACTION}\\b)`,
+    "iu",
+  ).test(task);
+}
+
+function formatSkillApplies(skill: PromptSkill, input: SkillSelectionInput): boolean | undefined {
+  const task = input.task;
+  if (skill.name === "docx-documents") {
+    return (
+      hasInputExtension(input, ".docx") ||
+      /\.docx\b/iu.test(task) ||
+      taskRequestsFormat(task, "docx|(?:microsoft\\s+)?word\\s+(?:document|file)")
+    );
+  }
+  if (skill.name === "xlsx-workbooks") {
+    return (
+      hasInputExtension(input, ".xlsx") ||
+      /\.xlsx\b/iu.test(task) ||
+      taskRequestsFormat(
+        task,
+        "xlsx|excel\\s+(?:file|spreadsheet|workbook)|workbooks?|spreadsheets?",
+      )
+    );
+  }
+  if (skill.name === "pdf-documents") {
+    return (
+      hasInputExtension(input, ".pdf") ||
+      /\.pdf\b/iu.test(task) ||
+      taskRequestsFormat(task, "pdfs?|pdf\\s+(?:file|document|report|deliverable|attachment)")
+    );
+  }
+  return undefined;
+}
+
 function skillApplies(skill: PromptSkill, input: SkillSelectionInput): boolean {
   if (input.requiredSkillNames?.includes(skill.name) === true) return true;
+  const formatApplies = formatSkillApplies(skill, input);
+  if (formatApplies !== undefined) return formatApplies;
   const evidence = [input.task, ...input.inputNames].join("\n");
   const evidenceTerms = routingTerms(evidence);
   const triggerText = skill.description.split(/\buse when\b/iu).at(-1) ?? skill.description;

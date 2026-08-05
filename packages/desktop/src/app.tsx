@@ -1,6 +1,7 @@
 import { useEffect, useReducer, useRef, useState } from "react";
 import type { DesktopApi } from "./api.js";
 import { useAppearance } from "./appearance.js";
+import { artifactActions } from "./artifact-actions.js";
 import type { DesktopCapabilities } from "./capabilities.js";
 import { AppSidebar } from "./components/app-sidebar.js";
 import { ChatHeader } from "./components/chat-header.js";
@@ -61,6 +62,7 @@ export function App({ api, capabilities }: { api: DesktopApi; capabilities: Desk
   const nativeUnavailable = capabilities.nativeActions
     ? undefined
     : (capabilities.unavailableReason ?? "Unavailable in the public demo");
+  const generatedFileActions = artifactActions(api, state.activeSessionId, setDesktopError);
   const folderName = state.folders.find(
     (folder) =>
       folder.id === state.newSessionFolderId ||
@@ -178,6 +180,7 @@ export function App({ api, capabilities }: { api: DesktopApi; capabilities: Desk
           attachments={state.attachments}
           folderName={folderName}
           key={state.activeSessionId ?? `new:${state.newSessionFolderId ?? "global"}`}
+          nativeActionMessage={nativeUnavailable}
           ready={state.loaded}
           onOpenAttachment={(attachmentId) => {
             if (state.activeSessionId !== undefined) {
@@ -188,6 +191,7 @@ export function App({ api, capabilities }: { api: DesktopApi; capabilities: Desk
             dispatch({ type: "draft.change", draft });
             draftPersistence.schedule(state.activeSessionId, draft);
           }}
+          {...generatedFileActions}
           onSelectStep={onSelectStep}
           selectedStepId={state.selectedStepId}
           timeline={state.timeline}

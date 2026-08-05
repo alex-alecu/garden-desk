@@ -1,6 +1,10 @@
-import { type AgentExecutionResult, parseXlsxProgress } from "@vault/shared";
+import { type AgentExecutionResult, parseXlsxProgress, stripXlsxProgress } from "@vault/shared";
+import { executionSucceeded } from "./history.js";
 import {
   completedSuccessfully,
+  latestGfmTableOutput,
+  validGfmTable,
+  verifiedXlsxOutput,
   type XlsxWorkflowPhase,
   xlsxWorkflowPhase,
 } from "./output-contract.js";
@@ -19,6 +23,34 @@ function discoveredXlsxForDataTask(
   );
 }
 
+function latestHistoricalXlsxOutput(input: AgentPromptInput): string | undefined {
+  const latest = input.history?.runs
+    .flatMap((run) => run.events)
+    .filter(
+      (event) =>
+        event.type === "execution.completed" &&
+        executionSucceeded(event) &&
+        parseXlsxProgress(event.stdout ?? "") !== undefined,
+    )
+    .at(-1);
+  return latest?.stdout ?? undefined;
+}
+
+export function hasCompleteHistoricalXlsxCoverage(input: AgentPromptInput): boolean {
+  const stdout = latestHistoricalXlsxOutput(input);
+  return stdout !== undefined && parseXlsxProgress(stdout)?.complete === true;
+}
+
+function unresolvedHistoricalXlsxResult(input: AgentPromptInput): boolean {
+  const asksForTable = /\b(?:table|tabel(?:ul)?)\b/iu.test(input.task);
+  if (!asksForTable && !/\b(?:results?|rezultate(?:le)?)\b/iu.test(input.task)) return false;
+  const stdout = latestHistoricalXlsxOutput(input);
+  if (stdout === undefined || parseXlsxProgress(stdout)?.complete !== true) return false;
+  const result = stripXlsxProgress(stdout);
+  if (asksForTable) return !/^\|.+\|\r?\n\|(?:\s*:?-+:?\s*\|)+$/mu.test(result);
+  return result.length === 0;
+}
+
 export function requiresXlsxWorkflow(
   input: AgentPromptInput,
   executions: AgentExecutionResult[] = [],
@@ -26,7 +58,40 @@ export function requiresXlsxWorkflow(
   return (
     (input.inputNames ?? []).some((name) => name.toLowerCase().endsWith(".xlsx")) ||
     /\b(?:excel|xlsx)\b|\.xlsx?\b/iu.test(input.task) ||
-    discoveredXlsxForDataTask(input, executions)
+    discoveredXlsxForDataTask(input, executions) ||
+    unresolvedHistoricalXlsxResult(input)
+  );
+}
+
+export function requestsXlsxResultTable(task: string): boolean {
+  return /\b(?:table|tabel(?:ul)?)\b/iu.test(task);
+}
+
+export function xlsxExecutionBackedResponse(
+  input: AgentPromptInput,
+  executions: AgentExecutionResult[],
+  requiredLabels: string[],
+): string | undefined {
+  const verified = verifiedXlsxOutput(executions, requiredLabels);
+  if (!requestsXlsxResultTable(input.task)) return verified;
+  const table = latestGfmTableOutput(executions);
+  return table !== undefined && (verified !== undefined || hasCompleteHistoricalXlsxCoverage(input))
+    ? table
+    : undefined;
+}
+
+export function needsXlsxExecution(
+  input: AgentPromptInput,
+  executions: AgentExecutionResult[],
+  finalResponse: boolean,
+  requiredLabels: string[],
+): boolean {
+  if (finalResponse || !requiresXlsxWorkflow(input, executions)) return false;
+  const processing = xlsxProcessingExecutions(executions);
+  if (xlsxWorkflowPhase(processing, requiredLabels) !== "complete") return true;
+  return (
+    requestsXlsxResultTable(input.task) &&
+    xlsxExecutionBackedResponse(input, executions, requiredLabels) === undefined
   );
 }
 
@@ -100,11 +165,12 @@ interface XlsxPhaseInstructionsInput {
   library: PromptLibrary;
   requiredLabels: string[];
   missingLabels: string[];
+  task: string;
 }
 
 export function xlsxPhaseInstructions(input: XlsxPhaseInstructionsInput): readonly string[] {
   const executions = xlsxProcessingExecutions(input.executions);
-  return phaseInstructions({
+  const instructions = phaseInstructions({
     finalResponse: input.finalResponse,
     hasCleanUnmarkedOutput: hasCleanUnmarkedOutput(executions, input.requiredLabels),
     hasCleanLabeledOutput: hasCleanLabeledOutput(
@@ -116,4 +182,14 @@ export function xlsxPhaseInstructions(input: XlsxPhaseInstructionsInput): readon
     library: input.library,
     xlsxPhase: xlsxWorkflowPhase(executions, input.requiredLabels),
   });
+  const latest = executions.at(-1);
+  const needsTableRepair =
+    latest !== undefined &&
+    (/(?:unterminated string literal|invalid escape sequence|'Worksheet' object has no attribute 'reset_dimensions')/iu.test(
+      latest.stderr,
+    ) ||
+      (completedSuccessfully(latest) && !validGfmTable(stripXlsxProgress(latest.stdout))));
+  return latest !== undefined && requestsXlsxResultTable(input.task) && needsTableRepair
+    ? [...instructions, input.library.recovery("xlsx-table")]
+    : instructions;
 }

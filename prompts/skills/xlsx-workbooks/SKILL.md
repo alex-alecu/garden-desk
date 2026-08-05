@@ -1,19 +1,19 @@
 ---
 name: xlsx-workbooks
-description: Guides verified local processing of XLSX Excel workbooks, including streaming, batching, checkpoints, coverage markers, and repair. Use when the task or observations mention Excel, XLSX, workbooks, spreadsheets, transactions, salaries, or advances.
+description: Guides local XLSX workbook creation, reading, editing, and large-corpus processing. Use when the task or an attachment explicitly identifies XLSX, an Excel workbook, or a spreadsheet deliverable.
 ---
 
 # XLSX Workbooks
 
-## Overview
-
-Process the complete requested XLSX corpus with bounded Python source and explicit coverage evidence.
-
 ## Process
+
+For creation or editing, use `openpyxl`; preserve unrequested sheets and formulas and use restrained formatting. Never save a `data_only=True` load because it replaces formulas with cached values. Reopen with `data_only=False` and verify requested values, formulas, styles, dimensions, merges, and freeze panes. Report written formulas as not locally calculated because `openpyxl` does not calculate them.
+
+For existing-corpus analysis only, follow the rules below; skip them when creating a new workbook.
 
 1. Discover the complete workbook corpus case-insensitively inside the Python source before loading a checkpoint or processing any workbook. With `os.walk`, use exactly `filename.lower().endswith(".xlsx")`; `filename.endswith(".xlsx")` is invalid because it misses uppercase names. Do not treat a shell-discovered or hard-coded path list as the complete XLSX corpus. Unless the user requested other formats, process only XLSX workbooks.
 2. Before importing `openpyxl`, call `warnings.filterwarnings("ignore")` so library warnings do not make a successful execution unverifiable through stderr.
-3. Use `openpyxl.load_workbook(path, read_only=True, data_only=True)`. Search text as a case-insensitive substring in every nonempty cell, not as equality or in an assumed column; use discovered headers for named columns.
+3. Use `openpyxl.load_workbook(path, read_only=True, data_only=True)` and call `sheet.reset_dimensions()` before iterating each read-only worksheet; collapsed metadata such as `A1:A1` must not hide data. Do not use `max_row`, `max_column`, or `calculate_dimension()` as coverage evidence. Search text as a case-insensitive substring in every nonempty cell, not as equality or in an assumed column; use discovered headers for named columns.
 4. For every matching row, parse the numeric amount-column value, increment the match count, and immediately add that amount to one cumulative total in the same match branch. Never only collect row amounts without adding them. Never use a workbook count, worksheet count, row count, or match count as the requested amount total.
 5. Use one `rows = sheet.iter_rows(values_only=True)` iterator: read the header with `next(rows, ())`, then continue the same iterator for data rows. Iterate worksheets as for sheet in workbook.worksheets. Process the data rows inside every worksheet; never break or return from the worksheet loop after reading its header. Close each workbook in a finally block before opening another workbook.
 6. With `os.walk`, keep the workbook accumulator distinct from the current filenames variable; never append to the filenames list while iterating it.
@@ -38,6 +38,9 @@ Process the complete requested XLSX corpus with bounded Python source and explic
 
 ## Verification
 
+- [ ] An edited workbook was never saved from a `data_only=True` load.
+- [ ] New or edited sheets, formulas, values, and restrained styles survive reopening with `data_only=False`.
+- [ ] Written formulas are not represented as locally calculated results.
 - [ ] DONE and TOTAL count the exact XLSX corpus and are equal for final output.
 - [ ] COMPLETE is the integer 1 only after every workbook was read.
 - [ ] Every matching numeric amount was added immediately to the one cumulative total.

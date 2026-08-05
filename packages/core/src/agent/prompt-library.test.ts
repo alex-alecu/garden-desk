@@ -9,7 +9,8 @@ function library(): PromptLibrary {
 describe("PromptLibrary discovery", () => {
   it("loads Agent Skills-compatible metadata from the root prompt directory", () => {
     expect(library().skills.map(({ name }) => name)).toEqual([
-      "pdf-reading",
+      "docx-documents",
+      "pdf-documents",
       "terminal-commands",
       "xlsx-workbooks",
     ]);
@@ -47,7 +48,7 @@ describe("PromptLibrary skill selection", () => {
         task: "Summarize the attachment.",
         inputNames: ["REPORT.PDF"],
       }),
-    ]).toEqual(["pdf-reading"]);
+    ]).toEqual(["pdf-documents"]);
     expect([
       ...prompts.activeSkillNames({
         task: "Total every salary in the workbooks.",
@@ -106,7 +107,7 @@ describe("PromptLibrary invalid PDF validation", () => {
       workspace_path: "/workspace",
     });
 
-    expect([...prompts.activeSkillNames(input)]).toEqual(["pdf-reading"]);
+    expect([...prompts.activeSkillNames(input)]).toEqual(["pdf-documents"]);
     expect(body).toContain("print that exact marker to stdout");
     expect(body).toContain("exit normally with code 0");
     expect(body).toContain("do not repair the PDF, write an artifact");
@@ -115,6 +116,21 @@ describe("PromptLibrary invalid PDF validation", () => {
 });
 
 describe("PromptLibrary workbook aggregates", () => {
+  it("separates new workbook creation from corpus analysis rules", () => {
+    const body = library().activeSkills(
+      { task: "Create a spreadsheet with these totals.", inputNames: [] },
+      {
+        shell_command_character_limit: "4,096",
+        shell_path: "/bin/sh",
+        tool_capabilities: "find, grep",
+        workspace_path: "/workspace",
+      },
+    );
+    expect(body).toContain(
+      "For existing-corpus analysis only, follow the rules below; skip them when creating a new workbook.",
+    );
+  });
+
   it("loads one cumulative amount contract", () => {
     const prompts = library();
     const input = { task: "Total matching amounts in every XLSX workbook.", inputNames: [] };
@@ -133,6 +149,7 @@ describe("PromptLibrary workbook aggregates", () => {
       "Never use a workbook count, worksheet count, row count, or match count",
     );
     expect(body).toContain("checkpoint, requested stdout labels, and any generated artifact");
+    expect(body).toContain("call `sheet.reset_dimensions()`");
     expect(body).toContain("Never substitute corpus or match counts for an amount total");
     expect(body).toContain("process it in one pass and do not create or load a checkpoint");
     expect(body).toContain("do not build fragile `range(...)` expressions");
@@ -150,6 +167,34 @@ describe("PromptLibrary skill routing precision", () => {
         inputNames: [],
       }),
     ]).toEqual(["terminal-commands"]);
+  });
+
+  it("routes explicit DOCX, XLSX, and PDF output requests without generic lexical matches", () => {
+    const prompts = library();
+    expect([
+      ...prompts.activeSkillNames({ task: "Create proposal.docx.", inputNames: [] }),
+    ]).toEqual(["docx-documents"]);
+    expect([...prompts.activeSkillNames({ task: "Create totals.xlsx.", inputNames: [] })]).toEqual([
+      "xlsx-workbooks",
+    ]);
+    expect([
+      ...prompts.activeSkillNames({
+        task: "Create a spreadsheet with these totals.",
+        inputNames: [],
+      }),
+    ]).toEqual(["xlsx-workbooks"]);
+    expect([
+      ...prompts.activeSkillNames({ task: "Create a styled PDF report.", inputNames: [] }),
+    ]).toEqual(["pdf-documents"]);
+    expect([
+      ...prompts.activeSkillNames({ task: "Count words in a text document.", inputNames: [] }),
+    ]).not.toContain("docx-documents");
+    expect([
+      ...prompts.activeSkillNames({ task: "Explain portable document formats.", inputNames: [] }),
+    ]).toEqual([]);
+    expect([
+      ...prompts.activeSkillNames({ task: "Explain PDF, DOCX, and XLSX formats.", inputNames: [] }),
+    ]).toEqual([]);
   });
 
   it("does not select terminal guidance for an explicit Node source-execution task", () => {

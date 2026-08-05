@@ -1,7 +1,9 @@
 import type { AgentArtifactSummary, AgentRunPerformance, AttachmentSummary } from "@vault/shared";
 import Markdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
+import type { ArtifactSaveResult } from "../artifact-actions.js";
 import type { TimelineItem } from "../state.js";
+import { GeneratedFiles } from "./generated-files.js";
 import { MessageAttachments } from "./message-attachments.js";
 
 function formatDuration(milliseconds: number): string {
@@ -55,9 +57,12 @@ function AssistantResponse({ children }: { children: string }) {
   );
 }
 
-export type OrderedEntry =
-  | { createdAt: string; item: AgentArtifactSummary; kind: "artifact"; order: number }
-  | { createdAt: string; item: TimelineItem; kind: "timeline"; order: number };
+export type OrderedEntry = {
+  createdAt: string;
+  item: TimelineItem;
+  kind: "timeline";
+  order: number;
+};
 
 function ActivityStep({
   item,
@@ -86,20 +91,36 @@ function ActivityStep({
 function TimelineMessage({
   attachments,
   item,
+  artifacts,
+  nativeActionMessage,
+  onOpenArtifact,
   onOpenAttachment,
+  onSaveArtifact,
   showMetrics,
   performance,
 }: {
   attachments: AttachmentSummary[];
+  artifacts: AgentArtifactSummary[];
   item: TimelineItem;
+  nativeActionMessage: string | undefined;
+  onOpenArtifact(item: AgentArtifactSummary): Promise<void>;
   onOpenAttachment(attachmentId: string): void;
+  onSaveArtifact(item: AgentArtifactSummary): Promise<ArtifactSaveResult>;
   performance: AgentRunPerformance | null;
   showMetrics: boolean;
 }) {
   return (
     <article className={`timeline-item timeline-${item.kind}`}>
       {item.kind === "assistant" ? (
-        <AssistantResponse>{item.text}</AssistantResponse>
+        <>
+          <AssistantResponse>{item.text}</AssistantResponse>
+          <GeneratedFiles
+            artifacts={artifacts}
+            disabledReason={nativeActionMessage}
+            onOpen={onOpenArtifact}
+            onSave={onSaveArtifact}
+          />
+        </>
       ) : (
         <>
           <p>{item.text}</p>
@@ -112,33 +133,33 @@ function TimelineMessage({
 }
 
 export function TimelineEntries({
+  artifacts,
   attachmentsByMessage,
   entries,
   lastAssistantId,
+  nativeActionMessage,
+  onOpenArtifact,
   onOpenAttachment,
+  onSaveArtifact,
   onSelectStep,
   performance,
   runId,
   selectedStepId,
 }: {
+  artifacts: AgentArtifactSummary[];
   attachmentsByMessage: Map<string, AttachmentSummary[]>;
   entries: OrderedEntry[];
   lastAssistantId: string | undefined;
+  nativeActionMessage: string | undefined;
+  onOpenArtifact(item: AgentArtifactSummary): Promise<void>;
   onOpenAttachment(attachmentId: string): void;
+  onSaveArtifact(item: AgentArtifactSummary): Promise<ArtifactSaveResult>;
   onSelectStep(stepId: string | undefined): void;
   performance: AgentRunPerformance | null;
   runId: string | undefined;
   selectedStepId: string | undefined;
 }) {
   return entries.map((entry) => {
-    if (entry.kind === "artifact") {
-      return (
-        <article className="timeline-item timeline-artifact" key={entry.item.id}>
-          <span className="activity-label">Generated file</span>
-          <p>{entry.item.name}</p>
-        </article>
-      );
-    }
     const item = entry.item;
     if (item.kind === "activity") {
       return (
@@ -155,9 +176,17 @@ export function TimelineEntries({
     return (
       <TimelineMessage
         attachments={messageAttachments}
+        artifacts={
+          item.kind === "assistant" && item.runId !== null && item.runId !== undefined
+            ? artifacts.filter((artifact) => artifact.runId === item.runId)
+            : []
+        }
         item={item}
         key={item.id}
+        nativeActionMessage={nativeActionMessage}
+        onOpenArtifact={onOpenArtifact}
         onOpenAttachment={onOpenAttachment}
+        onSaveArtifact={onSaveArtifact}
         performance={performance}
         showMetrics={showMetrics}
       />
