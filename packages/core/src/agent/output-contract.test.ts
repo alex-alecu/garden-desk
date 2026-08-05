@@ -1,6 +1,6 @@
 import type { AgentExecutionResult } from "@vault/shared";
 import { describe, expect, it } from "vitest";
-import { executionCompletionSummary } from "./output-contract.js";
+import { executionCompletionSummary, verifiedXlsxOutput } from "./output-contract.js";
 
 function result(
   termination: AgentExecutionResult["termination"],
@@ -34,4 +34,15 @@ describe("execution completion summary", () => {
       "This step could not be completed.",
     );
   });
+});
+
+it("leaves an artifact-only XLSX response to the final model response", () => {
+  const execution = {
+    ...result("completed", 0),
+    stdout: "VAULT_XLSX_FILES_DONE=36\nVAULT_XLSX_FILES_TOTAL=36\nVAULT_XLSX_COMPLETE=1\n",
+    artifacts: [
+      { name: "result.xlsx", mediaType: "application/octet-stream", bytesBase64: "eA==" },
+    ],
+  };
+  expect(verifiedXlsxOutput([execution], [])).toBeUndefined();
 });

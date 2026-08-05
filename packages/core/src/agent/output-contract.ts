@@ -87,7 +87,9 @@ export function verifiedXlsxOutput(
   const progress = parseXlsxProgress(last.stdout);
   if (progress?.complete !== true) return undefined;
   const stdout = stripXlsxProgress(last.stdout);
-  return missingOutputLabels(stdout, requiredLabels).length === 0 && stdout.length <= 64_000
+  return stdout.length > 0 &&
+    missingOutputLabels(stdout, requiredLabels).length === 0 &&
+    stdout.length <= 64_000
     ? stdout
     : undefined;
 }
