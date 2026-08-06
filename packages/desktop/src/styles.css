@@ -1447,6 +1447,7 @@ textarea:focus-visible {
 .composer textarea {
   width: 100%;
   min-height: 48px;
+  max-height: 25vh;
   padding: 4px 5px;
   resize: none;
   border: 0;
