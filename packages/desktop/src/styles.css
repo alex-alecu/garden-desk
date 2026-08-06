@@ -89,6 +89,7 @@
   --surface-shadow: 0 10px 30px rgb(7 31 37 / 10%);
   --chat-content-width: 1040px;
   --chat-content-gutter: 64px;
+  --chat-header-height: 56px;
   color: var(--ink);
   font-family:
     "IBM Plex Sans", ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -694,10 +695,11 @@ textarea:focus-visible {
   position: relative;
   z-index: 2;
   display: flex;
+  height: var(--chat-header-height);
   min-width: 0;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 20px 8px 22px;
+  padding: 0 20px 0 22px;
   color: var(--ink);
   border-bottom: 1px solid var(--reading-border);
   background: rgb(250 250 250 / 92%);
@@ -1565,10 +1567,12 @@ textarea:focus-visible {
 }
 
 .technical-details-drawer {
+  position: relative;
   display: flex;
-  width: clamp(360px, 31vw, 440px);
+  width: var(--technical-details-width, clamp(360px, 31vw, 440px));
   min-width: 0;
-  flex: 0 0 clamp(360px, 31vw, 440px);
+  max-width: 720px;
+  flex: 0 0 auto;
   flex-direction: column;
   color: var(--ink);
   border-left: 1px solid var(--reading-border);
@@ -1576,11 +1580,44 @@ textarea:focus-visible {
   box-shadow: -10px 0 26px rgb(7 31 37 / 7%);
 }
 
+.technical-details-resize-handle {
+  position: absolute;
+  z-index: 3;
+  top: 0;
+  bottom: 0;
+  left: -1px;
+  width: 10px;
+  height: auto;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: col-resize;
+  touch-action: none;
+}
+
+.technical-details-resize-handle::after {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 1px;
+  background: transparent;
+  content: "";
+  transition: background 140ms ease;
+}
+
+.technical-details-resize-handle:hover::after,
+.technical-details-resize-handle:focus-visible::after {
+  background: var(--accent);
+}
+
 .technical-details-header {
   display: flex;
-  align-items: flex-start;
+  height: var(--chat-header-height);
+  align-items: center;
   justify-content: space-between;
-  padding: 22px 18px 16px;
+  padding: 0 14px 0 18px;
   border-bottom: 1px solid var(--reading-border);
 }
 
@@ -2375,10 +2412,15 @@ textarea:focus-visible {
   .technical-details-drawer {
     width: 100%;
     min-height: 280px;
+    max-width: none;
     flex: 1 1 45%;
     border-left: 0;
     border-top: 1px solid var(--reading-border);
     box-shadow: 0 -10px 26px rgb(7 31 37 / 7%);
+  }
+
+  .technical-details-resize-handle {
+    display: none;
   }
 
   .app-shell:has(.technical-details-drawer) .sidebar {

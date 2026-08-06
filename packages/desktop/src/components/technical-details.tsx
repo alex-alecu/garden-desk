@@ -3,7 +3,7 @@ import type {
   AgentExecutionSnapshot,
   ModelRuntimeStatus,
 } from "@vault/shared";
-import { useEffect, useReducer, useState } from "react";
+import { type CSSProperties, useEffect, useReducer, useState } from "react";
 import capabilities from "../../../workers/images/agent/capabilities.json" with { type: "json" };
 import type { DesktopApi } from "../api.js";
 import {
@@ -13,6 +13,7 @@ import {
 } from "../debug-snapshot.js";
 import type { TimelineItem } from "../state.js";
 import type { AgentStep } from "../steps.js";
+import { DrawerResizeHandle, useDrawerResize } from "./drawer-resize.js";
 import { Icon } from "./icons.js";
 import { StepList } from "./step-list.js";
 import { selectAdjacentTab } from "./tab-keyboard.js";
@@ -221,12 +222,22 @@ export function TechnicalDetails(props: TechnicalDetailsProps) {
   const [tab, setTab] = useState<DrawerTab>(
     props.selectedStepId === undefined ? "overview" : "steps",
   );
+  const resize = useDrawerResize();
   useEffect(() => {
     if (props.selectedStepId !== undefined) setTab("steps");
   }, [props.selectedStepId]);
   if (!props.open) return null;
   return (
-    <aside aria-label="Technical details" className="technical-details-drawer">
+    <aside
+      aria-label="Technical details"
+      className="technical-details-drawer"
+      style={
+        resize.width === undefined
+          ? undefined
+          : ({ "--technical-details-width": `${resize.width}px` } as CSSProperties)
+      }
+    >
+      <DrawerResizeHandle resize={resize} />
       <header className="technical-details-header">
         <div>
           <h2>Technical details</h2>
