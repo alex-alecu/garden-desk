@@ -1570,14 +1570,19 @@ textarea:focus-visible {
   position: relative;
   display: flex;
   width: var(--technical-details-width, clamp(360px, 31vw, 440px));
-  min-width: 0;
+  min-width: 320px;
   max-width: 720px;
-  flex: 0 0 auto;
+  flex: 0 1 auto;
   flex-direction: column;
   color: var(--ink);
   border-left: 1px solid var(--reading-border);
   background: var(--reading-raised);
   box-shadow: -10px 0 26px rgb(7 31 37 / 7%);
+}
+
+.app-shell:has(.technical-details-drawer) .workspace {
+  min-width: 440px;
+  flex-basis: 440px;
 }
 
 .technical-details-resize-handle {
@@ -2329,7 +2334,7 @@ textarea:focus-visible {
   }
 }
 
-@media (max-width: 720px) {
+@media (max-width: 1120px) {
   .app-shell {
     flex-direction: column;
   }
@@ -2429,6 +2434,7 @@ textarea:focus-visible {
   }
 
   .app-shell:has(.technical-details-drawer) .workspace {
+    min-width: 0;
     min-height: 280px;
     flex: 1 1 55%;
   }

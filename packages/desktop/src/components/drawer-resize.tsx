@@ -3,9 +3,23 @@ import { type KeyboardEvent, type PointerEvent, useRef, useState } from "react";
 export const DRAWER_MIN_WIDTH = 320;
 export const DRAWER_MAX_WIDTH = 720;
 export const DRAWER_DEFAULT_WIDTH = 440;
+export const CHAT_MIN_WIDTH = 440;
 
-function clampDrawerWidth(width: number): number {
-  return Math.min(DRAWER_MAX_WIDTH, Math.max(DRAWER_MIN_WIDTH, width));
+export function maximumDrawerWidth(availableWidth: number): number {
+  return Math.max(DRAWER_MIN_WIDTH, Math.min(DRAWER_MAX_WIDTH, availableWidth - CHAT_MIN_WIDTH));
+}
+
+function availableDrawerSpace(handle: HTMLHRElement): number | undefined {
+  const drawer = handle.parentElement;
+  const workspace = drawer?.previousElementSibling;
+  if (!(workspace instanceof HTMLElement) || drawer === null) return undefined;
+  return workspace.getBoundingClientRect().width + drawer.getBoundingClientRect().width;
+}
+
+function clampDrawerWidth(width: number, availableWidth?: number): number {
+  const maximum =
+    availableWidth === undefined ? DRAWER_MAX_WIDTH : maximumDrawerWidth(availableWidth);
+  return Math.min(maximum, Math.max(DRAWER_MIN_WIDTH, width));
 }
 
 export interface DrawerResize {
@@ -18,22 +32,29 @@ export interface DrawerResize {
 
 export function useDrawerResize(): DrawerResize {
   const [width, setWidth] = useState<number | undefined>(undefined);
-  const drag = useRef<{ pointerId: number; startWidth: number; startX: number } | undefined>(
-    undefined,
-  );
+  const drag = useRef<
+    | { availableWidth: number | undefined; pointerId: number; startWidth: number; startX: number }
+    | undefined
+  >(undefined);
   const begin = (event: PointerEvent<HTMLHRElement>) => {
     event.preventDefault();
     const measured = event.currentTarget.parentElement?.getBoundingClientRect().width;
     drag.current = {
+      availableWidth: availableDrawerSpace(event.currentTarget),
       pointerId: event.pointerId,
-      startWidth: width ?? measured ?? DRAWER_DEFAULT_WIDTH,
+      startWidth: measured ?? width ?? DRAWER_DEFAULT_WIDTH,
       startX: event.clientX,
     };
     event.currentTarget.setPointerCapture(event.pointerId);
   };
   const move = (event: PointerEvent<HTMLHRElement>) => {
     if (drag.current?.pointerId !== event.pointerId) return;
-    setWidth(clampDrawerWidth(drag.current.startWidth + drag.current.startX - event.clientX));
+    setWidth(
+      clampDrawerWidth(
+        drag.current.startWidth + drag.current.startX - event.clientX,
+        drag.current.availableWidth,
+      ),
+    );
   };
   const end = (event: PointerEvent<HTMLHRElement>) => {
     if (drag.current?.pointerId !== event.pointerId) return;
@@ -45,8 +66,13 @@ export function useDrawerResize(): DrawerResize {
   const keyDown = (event: KeyboardEvent<HTMLHRElement>) => {
     if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
     event.preventDefault();
+    const availableWidth = availableDrawerSpace(event.currentTarget);
+    const measured = event.currentTarget.parentElement?.getBoundingClientRect().width;
     setWidth((current) =>
-      clampDrawerWidth((current ?? DRAWER_DEFAULT_WIDTH) + (event.key === "ArrowLeft" ? 16 : -16)),
+      clampDrawerWidth(
+        (measured ?? current ?? DRAWER_DEFAULT_WIDTH) + (event.key === "ArrowLeft" ? 16 : -16),
+        availableWidth,
+      ),
     );
   };
   return { begin, end, keyDown, move, width };
