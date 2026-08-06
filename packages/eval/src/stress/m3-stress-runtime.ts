@@ -54,6 +54,7 @@ export interface StressCaseResult {
   error: string | null;
   verifiedDeliverables: string[];
   verificationOutput: string;
+  contextCompactions: number;
 }
 
 export interface StressRunEvidence {
@@ -268,7 +269,11 @@ export async function collectEvidence(
   );
   return {
     previousRuns,
-    result: stressResultFor(active, snapshot, verification.verified, verification.output),
+    result: stressResultFor(active, snapshot, {
+      verified: verification.verified,
+      output: verification.output,
+      trace,
+    }),
     snapshot,
     trace,
   };

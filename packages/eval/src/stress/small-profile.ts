@@ -1,6 +1,11 @@
 import { writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import {
+  createCompactionCorpus,
+  createOversizedRevenueCorpus,
+  OVERSIZED_TABLE_PLAN,
+} from "./context-compaction-fixture.js";
+import {
   createDocxCorpus,
   createPdf,
   createXlsxCorpus,
@@ -24,7 +29,9 @@ export type SmallCaseId =
   | "invalid-document"
   | "romanian-task"
   | "no-skill-direct"
-  | "terminal-discovery";
+  | "terminal-discovery"
+  | "context-compaction"
+  | "oversized-table-result";
 
 function expectedValue(evidence: FixtureEvidence, name: string): string {
   const value = evidence.expected[name];
@@ -185,6 +192,37 @@ const CASES: StressCaseDefinition<SmallCaseId>[] = [
       return { bytes: Buffer.byteLength(content), files: 1, expected: {} };
     },
     expected: () => ["SURCHARGE_BPS=275"],
+  },
+  {
+    id: "context-compaction",
+    task: [
+      "Use exactly one Python execution to recursively read every CSV record under /source and print one normalized line for every record, preserving its record ID, amount, and status.",
+      "After that large observation fills the live evidence context, compact it automatically and finish without rerunning the program, rereading the source, or asking the user.",
+      "Return COMPACTION_TOTAL=<the amount from the record whose status is COMPACTION_TARGET>.",
+    ].join(" "),
+    create: createCompactionCorpus,
+    expected: (evidence) => [`COMPACTION_TOTAL=${expectedValue(evidence, "compactionTarget")}`],
+    maxExecutions: 1,
+    requiresContextCompaction: true,
+  },
+  {
+    id: "oversized-table-result",
+    task: [
+      "Search every Excel workbook in the selected folder for rows describing revenue received and return all matching rows in a nice table.",
+      "Return the complete result even when it is too large for the chat response.",
+      "Do not omit rows, abbreviate cells, use placeholders, or ask which output format to use.",
+    ].join(" "),
+    create: createOversizedRevenueCorpus,
+    expected: () => [],
+    deliverables: (evidence) => [
+      {
+        deterministic: true,
+        extension: ".xlsx",
+        facts: Array.from({ length: OVERSIZED_TABLE_PLAN.rows }, (_, index) =>
+          expectedValue(evidence, `revenueRow${index + 1}`),
+        ),
+      },
+    ],
   },
 ];
 
