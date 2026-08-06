@@ -1619,6 +1619,7 @@ textarea:focus-visible {
 
 .technical-details-header {
   display: flex;
+  height: var(--chat-header-height);
   align-items: flex-start;
   justify-content: space-between;
   padding: 22px 18px 16px;
