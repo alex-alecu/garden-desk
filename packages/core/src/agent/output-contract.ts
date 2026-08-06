@@ -1,11 +1,11 @@
 import {
   type AgentExecutionResult,
-  parseXlsxProgress,
-  stripXlsxProgress,
-  xlsxContinuationMessage,
+  parseWorkProgress,
+  stripWorkProgress,
+  workContinuationMessage,
 } from "@vault/shared";
 
-export type XlsxWorkflowPhase = "work" | "repair" | "continue" | "complete";
+export type ProgressWorkflowPhase = "work" | "repair" | "continue" | "complete";
 
 export function requiredOutputLabels(task: string): string[] {
   return [
@@ -29,7 +29,7 @@ export function completedSuccessfully(result: AgentExecutionResult): boolean {
   return result.exitCode === 0 && result.termination === "completed";
 }
 
-function completedXlsxSuccessfully(result: AgentExecutionResult): boolean {
+function completedCleanly(result: AgentExecutionResult): boolean {
   return completedSuccessfully(result) && result.stderr.trim().length === 0;
 }
 
@@ -106,43 +106,45 @@ export function normalizeGfmTable(stdout: string): string | undefined {
 }
 
 export function latestGfmTableOutput(executions: AgentExecutionResult[]): string | undefined {
-  const last = executions.filter(completedXlsxSuccessfully).at(-1);
+  const last = executions.filter(completedCleanly).at(-1);
   if (last === undefined || !hasUsefulResult(last)) return undefined;
-  const stdout = stripXlsxProgress(last.stdout);
+  const stdout = stripWorkProgress(last.stdout);
   return stdout.length <= 64_000 ? normalizeGfmTable(stdout) : undefined;
 }
 
-export function xlsxWorkflowPhase(
+export function progressWorkflowPhase(
   executions: AgentExecutionResult[],
   requiredLabels: string[],
-): XlsxWorkflowPhase {
+): ProgressWorkflowPhase {
   const last = executions.at(-1);
   if (last === undefined) return "work";
-  if (!completedXlsxSuccessfully(last)) return "repair";
-  const progress = parseXlsxProgress(last.stdout);
+  if (!completedCleanly(last)) return "repair";
+  const progress = parseWorkProgress(last.stdout);
   if (progress === undefined) return "repair";
   if (!progress.complete) return "continue";
-  return missingOutputLabels(stripXlsxProgress(last.stdout), requiredLabels).length === 0
+  return missingOutputLabels(stripWorkProgress(last.stdout), requiredLabels).length === 0
     ? "complete"
     : "repair";
 }
 
-export function latestIncompleteXlsxProgress(executions: AgentExecutionResult[]) {
-  const latestSuccessful = executions.filter(completedXlsxSuccessfully).at(-1);
+export function latestIncompleteProgress(executions: AgentExecutionResult[]) {
+  const latestSuccessful = executions.filter(completedCleanly).at(-1);
   if (latestSuccessful === undefined) return undefined;
-  const progress = parseXlsxProgress(latestSuccessful.stdout);
+  const progress = parseWorkProgress(latestSuccessful.stdout);
   return progress !== undefined && !progress.complete ? progress : undefined;
 }
 
-export function xlsxContinuationResponse(executions: AgentExecutionResult[]): string | undefined {
-  const progress = latestIncompleteXlsxProgress(executions);
-  return progress === undefined ? undefined : xlsxContinuationMessage(progress);
+export function progressContinuationResponse(
+  executions: AgentExecutionResult[],
+): string | undefined {
+  const progress = latestIncompleteProgress(executions);
+  return progress === undefined ? undefined : workContinuationMessage(progress);
 }
 
 export function executionCompletionSummary(result: AgentExecutionResult): string {
-  const progress = completedXlsxSuccessfully(result) ? parseXlsxProgress(result.stdout) : undefined;
+  const progress = completedCleanly(result) ? parseWorkProgress(result.stdout) : undefined;
   if (progress !== undefined) {
-    return `Processed ${progress.filesDone} of ${progress.filesTotal} XLSX files.`;
+    return `Processed ${progress.done} of ${progress.total} items.`;
   }
   if (completedSuccessfully(result)) return "Finished this step.";
   if (result.termination === "timeout") return "This step took too long and stopped.";
@@ -150,15 +152,15 @@ export function executionCompletionSummary(result: AgentExecutionResult): string
   return "This step could not be completed.";
 }
 
-export function verifiedXlsxOutput(
+export function verifiedProgressOutput(
   executions: AgentExecutionResult[],
   requiredLabels: string[],
 ): string | undefined {
-  const last = executions.filter(completedXlsxSuccessfully).at(-1);
+  const last = executions.filter(completedCleanly).at(-1);
   if (last === undefined || !hasUsefulResult(last)) return undefined;
-  const progress = parseXlsxProgress(last.stdout);
+  const progress = parseWorkProgress(last.stdout);
   if (progress?.complete !== true) return undefined;
-  let stdout = stripXlsxProgress(last.stdout);
+  let stdout = stripWorkProgress(last.stdout);
   if (stdout.startsWith("|")) {
     const normalized = normalizeGfmTable(stdout);
     if (normalized === undefined) return undefined;

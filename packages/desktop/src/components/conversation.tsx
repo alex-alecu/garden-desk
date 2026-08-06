@@ -71,8 +71,8 @@ function ContinuationPrompt({
   return (
     <QuestionTool
       disabled={!ready}
-      filesDone={continuation.filesDone}
-      filesTotal={continuation.filesTotal}
+      done={continuation.done}
+      total={continuation.total}
       onContinue={onContinue}
       onDismiss={onDismissContinuation}
     />

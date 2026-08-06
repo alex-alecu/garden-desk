@@ -2,9 +2,9 @@ import { mkdir, open, stat } from "node:fs/promises";
 import { join } from "node:path";
 import { writeStreamingZip, type ZipEntry } from "./streaming-zip.js";
 
-export const XLSX_TARGET = "VAULT_STRESS_TARGET";
-export const WORD_PAGE_TARGET = "VAULT_WORD_PAGE";
-export const PDF_PAGE_TARGET = "VAULT_PDF_PAGE";
+export const XLSX_TARGET = "Priority review";
+export const WORD_PAGE_TARGET = "Decision record";
+export const PDF_PAGE_TARGET = "Policy section";
 
 export interface XlsxFixtureShape {
   files: number;

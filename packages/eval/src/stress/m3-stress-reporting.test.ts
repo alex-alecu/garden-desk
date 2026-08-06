@@ -1,4 +1,5 @@
 import {
+  AgentArtifactSummarySchema,
   type AgentExecutionSnapshot,
   AgentExecutionSnapshotSchema,
   type AgentRunSnapshot,
@@ -38,7 +39,23 @@ function execution(stdout: string): AgentExecutionSnapshot {
   });
 }
 
-function snapshot(response: string, stdout = ""): AgentRunSnapshot {
+function artifact() {
+  return AgentArtifactSummarySchema.parse({
+    id: "33333333-3333-4333-8333-333333333333",
+    runId: "77ff5b22-555d-4ef2-9170-fdd7118738f1",
+    name: "replacement.pdf",
+    mediaType: "application/pdf",
+    byteLength: 3,
+    contentHash: `sha256:${"0".repeat(64)}`,
+    createdAt: timestamp,
+  });
+}
+
+function snapshot(
+  response: string,
+  stdout = "",
+  artifacts: AgentRunSnapshot["artifacts"] = [],
+): AgentRunSnapshot {
   return AgentRunSnapshotSchema.parse({
     run: {
       id: "77ff5b22-555d-4ef2-9170-fdd7118738f1",
@@ -53,7 +70,7 @@ function snapshot(response: string, stdout = ""): AgentRunSnapshot {
     },
     events: [],
     executions: stdout.length === 0 ? [] : [execution(stdout)],
-    artifacts: [],
+    artifacts,
     thinking: null,
   });
 }
@@ -80,5 +97,60 @@ describe("M3 stress result evidence", () => {
 
     expect(result.passed).toBe(false);
     expect(result.missingTokens).toEqual(["XLSX_MATCHES=500"]);
+  });
+
+  it("requires every expected deliverable to pass independent verification", () => {
+    const active: ActiveCase = {
+      fixture: {
+        id: "report",
+        source: "/tmp/report",
+        task: "Create a report.",
+        fixtureMs: 1,
+        evidence: { bytes: 1, files: 1, expected: {} },
+        expectedTokens: [],
+        deliverables: [{ name: "report.pdf", facts: ["TOTAL=12"] }],
+      },
+      folderId: "folder",
+      previousSnapshots: [],
+      sessionId: "session",
+      runId: "run",
+      startedAt: performance.now(),
+    };
+
+    expect(stressResultFor(active, snapshot("Done."), []).passed).toBe(false);
+    expect(stressResultFor(active, snapshot("Done."), ["report.pdf"]).passed).toBe(true);
+  });
+});
+
+describe("invalid-input stress evidence", () => {
+  it("requires invalid-input evidence without a produced artifact", () => {
+    const active: ActiveCase = {
+      fixture: {
+        id: "invalid-document",
+        source: "/tmp/invalid-document",
+        task: "Validate the corrupt PDF.",
+        fixtureMs: 1,
+        evidence: { bytes: 1, files: 1, expected: {} },
+        expectedTokens: ["EOF marker not found"],
+        forbidArtifacts: true,
+        maxExecutions: 1,
+      },
+      folderId: "folder",
+      previousSnapshots: [],
+      sessionId: "session",
+      runId: "run",
+      startedAt: performance.now(),
+    };
+
+    expect(stressResultFor(active, snapshot("The PDF is invalid.")).passed).toBe(false);
+    expect(
+      stressResultFor(active, snapshot("The PDF is invalid.", "EOF marker not found"), []).passed,
+    ).toBe(true);
+    expect(
+      stressResultFor(
+        active,
+        snapshot("The PDF is invalid.", "EOF marker not found", [artifact()]),
+      ),
+    ).toMatchObject({ passed: false, error: "Expected no artifacts." });
   });
 });

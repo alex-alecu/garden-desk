@@ -17,7 +17,7 @@ export const completed: Exclude<AgentExecutionResult, { language: "shell" }> = {
 };
 
 export function completeXlsx(stdout: string, total = 1): string {
-  return `${stdout.trim()}\nVAULT_XLSX_FILES_DONE=${total}\nVAULT_XLSX_FILES_TOTAL=${total}\nVAULT_XLSX_COMPLETE=1\n`;
+  return `${stdout.trim()}\nVAULT_PROGRESS_DONE=${total}\nVAULT_PROGRESS_TOTAL=${total}\nVAULT_PROGRESS_COMPLETE=1\n`;
 }
 
 export function inference(

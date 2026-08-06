@@ -61,20 +61,37 @@ function measuredRunMs(active: ActiveCase, snapshot: AgentRunSnapshot): number {
   );
 }
 
-export function stressResultFor(active: ActiveCase, snapshot: AgentRunSnapshot): StressCaseResult {
+function stressError(active: ActiveCase, snapshot: AgentRunSnapshot): string | null {
+  if (
+    active.fixture.maxExecutions !== undefined &&
+    snapshot.executions.length > active.fixture.maxExecutions
+  ) {
+    return `Expected at most ${active.fixture.maxExecutions} executions.`;
+  }
+  if (active.fixture.forbidArtifacts === true && snapshot.artifacts.length > 0) {
+    return "Expected no artifacts.";
+  }
+  return snapshot.run.error;
+}
+
+export function stressResultFor(
+  active: ActiveCase,
+  snapshot: AgentRunSnapshot,
+  verifiedDeliverables: string[] = [],
+  verificationOutput = "",
+): StressCaseResult {
   const output = snapshotOutput(snapshot);
   const missingTokens = active.fixture.expectedTokens.filter(
     (token) => !outputHasToken(output, token),
   );
-  const tooManyExecutions =
-    active.fixture.maxExecutions !== undefined &&
-    snapshot.executions.length > active.fixture.maxExecutions;
-  const error = tooManyExecutions
-    ? `Expected at most ${active.fixture.maxExecutions} executions.`
-    : snapshot.run.error;
+  const error = stressError(active, snapshot);
   return {
     id: active.fixture.id,
-    passed: snapshot.run.state === "succeeded" && missingTokens.length === 0 && error === null,
+    passed:
+      snapshot.run.state === "succeeded" &&
+      missingTokens.length === 0 &&
+      verifiedDeliverables.length === (active.fixture.deliverables?.length ?? 0) &&
+      error === null,
     fixtureMs: active.fixture.fixtureMs,
     fixtureBytes: active.fixture.evidence.bytes,
     fixtureFiles: active.fixture.evidence.files,
@@ -92,6 +109,9 @@ export function stressResultFor(active: ActiveCase, snapshot: AgentRunSnapshot):
     ),
     expectedTokens: active.fixture.expectedTokens,
     missingTokens,
+    producedArtifacts: snapshot.artifacts.map((artifact) => artifact.name),
     error,
+    verifiedDeliverables,
+    verificationOutput,
   };
 }

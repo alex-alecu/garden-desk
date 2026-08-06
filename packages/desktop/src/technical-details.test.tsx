@@ -152,6 +152,8 @@ it("keeps the overview separate from step evidence", () => {
   const markup = renderTechnicalDetails();
 
   expect(markup).toContain("Technical details");
+  expect(markup).toContain('<hr aria-label="Resize technical details"');
+  expect(markup).toContain('class="technical-details-resize-handle"');
   expect(markup).toContain("Local session ID: da911f87-ff26-46d8-9a58-bad222a584ab");
   expect(markup).toContain("Catalog path:");
   expect(markup).toContain("Create debug snapshot");

@@ -1,14 +1,14 @@
 import {
   AgentExecutionSnapshotSchema,
   AgentRunSummarySchema,
-  xlsxContinuationMessage,
+  workContinuationMessage,
 } from "@vault/shared";
 import { describe, expect, it } from "vitest";
 import { continuationQuestion } from "./continuation.js";
 
 const runId = "77ff5b22-555d-4ef2-9170-fdd7118738f1";
 const timestamp = "2026-07-27T08:00:00.000Z";
-const progress = { filesDone: 4, filesTotal: 12, complete: false };
+const progress = { done: 4, total: 12, complete: false };
 
 describe("desktop continuation question", () => {
   it("derives a question only from matching verified progress", () => {
@@ -17,7 +17,7 @@ describe("desktop continuation question", () => {
       sessionId: "da911f87-ff26-46d8-9a58-bad222a584ab",
       jobId: "ea31a359-3b01-4d54-9950-e3d46e807381",
       state: "succeeded",
-      response: xlsxContinuationMessage(progress),
+      response: workContinuationMessage(progress),
       error: null,
       createdAt: timestamp,
       updatedAt: timestamp,
@@ -34,7 +34,7 @@ describe("desktop continuation question", () => {
       exitCode: 0,
       durationMs: 1,
       termination: "completed",
-      stdout: "VAULT_XLSX_FILES_DONE=4\nVAULT_XLSX_FILES_TOTAL=12\nVAULT_XLSX_COMPLETE=0\n",
+      stdout: "VAULT_PROGRESS_DONE=4\nVAULT_PROGRESS_TOTAL=12\nVAULT_PROGRESS_COMPLETE=0\n",
       stderr: "",
       vmDiagnostics: [],
       stdoutBytes: 88,
@@ -49,8 +49,8 @@ describe("desktop continuation question", () => {
     });
     expect(continuationQuestion(run, [execution])).toEqual({
       runId,
-      filesDone: 4,
-      filesTotal: 12,
+      done: 4,
+      total: 12,
     });
     expect(continuationQuestion({ ...run, response: "Not matching" }, [execution])).toBeUndefined();
   });

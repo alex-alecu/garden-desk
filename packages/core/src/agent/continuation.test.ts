@@ -1,7 +1,7 @@
 import {
   AgentEventSchema,
   ConversationMessageSchema,
-  xlsxContinuationMessage,
+  workContinuationMessage,
 } from "@vault/shared";
 import { describe, expect, it } from "vitest";
 import { resolveAgentTask } from "./continuation.js";
@@ -10,9 +10,9 @@ import type { DurableAgentHistory } from "./history.js";
 const sessionId = "da911f87-ff26-46d8-9a58-bad222a584ab";
 const runId = "77ff5b22-555d-4ef2-9170-fdd7118738f1";
 const createdAt = "2026-07-27T08:00:00.000Z";
-const progress = { filesDone: 3, filesTotal: 10, complete: false };
+const progress = { done: 3, total: 10, complete: false };
 
-function history(response = xlsxContinuationMessage(progress)): DurableAgentHistory {
+function history(response = workContinuationMessage(progress)): DurableAgentHistory {
   return {
     messages: [
       ConversationMessageSchema.parse({
@@ -47,7 +47,7 @@ function history(response = xlsxContinuationMessage(progress)): DurableAgentHist
             source: "print('progress')",
             command: null,
             exitCode: 0,
-            stdout: "VAULT_XLSX_FILES_DONE=3\nVAULT_XLSX_FILES_TOTAL=10\nVAULT_XLSX_COMPLETE=0\n",
+            stdout: "VAULT_PROGRESS_DONE=3\nVAULT_PROGRESS_TOTAL=10\nVAULT_PROGRESS_COMPLETE=0\n",
             stderr: "",
             durationMs: 1,
             termination: "completed",
@@ -90,7 +90,7 @@ describe("agent continuation resolution", () => {
         id: "7399bd71-5b73-43d7-87e6-563eadce7633",
         sessionId,
         role: "assistant",
-        content: xlsxContinuationMessage(progress),
+        content: workContinuationMessage(progress),
         runId: secondRunId,
         createdAt,
       }),

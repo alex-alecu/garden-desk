@@ -2,6 +2,14 @@ import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import type { FixtureEvidence } from "./document-fixtures.js";
 
+export interface DeliverableExpectation {
+  deterministic?: boolean;
+  extension?: string;
+  facts: string[];
+  forbiddenFacts?: string[];
+  name?: string;
+}
+
 export interface PreparedStressCase<Id extends string = string> {
   id: Id;
   source: string;
@@ -9,6 +17,8 @@ export interface PreparedStressCase<Id extends string = string> {
   fixtureMs: number;
   evidence: FixtureEvidence;
   expectedTokens: string[];
+  deliverables?: DeliverableExpectation[];
+  forbidArtifacts?: boolean;
   maxExecutions?: number;
 }
 
@@ -17,6 +27,8 @@ export interface StressCaseDefinition<Id extends string = string> {
   task: string;
   create(source: string): Promise<FixtureEvidence>;
   expected(evidence: FixtureEvidence): string[];
+  deliverables?(evidence: FixtureEvidence): DeliverableExpectation[];
+  forbidArtifacts?: boolean;
   maxExecutions?: number;
 }
 
@@ -87,6 +99,10 @@ export async function prepareStressCase<Id extends string>(
     fixtureMs: Math.round(performance.now() - startedAt),
     evidence,
     expectedTokens: definition.expected(evidence),
+    ...(definition.deliverables === undefined
+      ? {}
+      : { deliverables: definition.deliverables(evidence) }),
+    ...(definition.forbidArtifacts === true ? { forbidArtifacts: true } : {}),
     ...(definition.maxExecutions === undefined ? {} : { maxExecutions: definition.maxExecutions }),
   };
 }

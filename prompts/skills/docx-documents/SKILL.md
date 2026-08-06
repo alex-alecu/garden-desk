@@ -1,6 +1,8 @@
 ---
 name: docx-documents
 description: Guides local DOCX document creation, reading, and editing. Use when the task or an attachment explicitly identifies a DOCX file or Microsoft Word document.
+trigger-extensions: .docx
+trigger-keywords: docx, microsoft word document, word document, word documents, word meeting notes, meeting notes
 ---
 
 # DOCX Documents

@@ -4,7 +4,7 @@ import {
   executionCompletionSummary,
   normalizeGfmTable,
   validGfmTable,
-  verifiedXlsxOutput,
+  verifiedProgressOutput,
 } from "./output-contract.js";
 
 function result(
@@ -44,12 +44,12 @@ describe("execution completion summary", () => {
 it("leaves an artifact-only XLSX response to the final model response", () => {
   const execution = {
     ...result("completed", 0),
-    stdout: "VAULT_XLSX_FILES_DONE=36\nVAULT_XLSX_FILES_TOTAL=36\nVAULT_XLSX_COMPLETE=1\n",
+    stdout: "VAULT_PROGRESS_DONE=36\nVAULT_PROGRESS_TOTAL=36\nVAULT_PROGRESS_COMPLETE=1\n",
     artifacts: [
       { name: "result.xlsx", mediaType: "application/octet-stream", bytesBase64: "eA==" },
     ],
   };
-  expect(verifiedXlsxOutput([execution], [])).toBeUndefined();
+  expect(verifiedProgressOutput([execution], [])).toBeUndefined();
 });
 
 it("normalizes unescaped separators into the final GFM cell", () => {
@@ -57,10 +57,11 @@ it("normalizes unescaped separators into the final GFM cell", () => {
   const normalized = "| Source | Row |\n| --- | --- |\n| input.xlsx | amount avans |";
   const execution = {
     ...result("completed", 0),
-    stdout: `${table}\nVAULT_XLSX_FILES_DONE=1\nVAULT_XLSX_FILES_TOTAL=1\nVAULT_XLSX_COMPLETE=1\n`,
+    stdout: `${table}\nVAULT_PROGRESS_DONE=1\nVAULT_PROGRESS_TOTAL=1\nVAULT_PROGRESS_COMPLETE=1\n`,
   };
 
   expect(validGfmTable(table)).toBe(false);
   expect(normalizeGfmTable(table)).toBe(normalized);
-  expect(verifiedXlsxOutput([execution], [])).toBe(normalized);
+  expect(verifiedProgressOutput([execution], [])).toBe(normalized);
+  expect(verifiedProgressOutput([execution], ["MISSING"])).toBeUndefined();
 });

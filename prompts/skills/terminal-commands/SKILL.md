@@ -1,6 +1,7 @@
 ---
 name: terminal-commands
 description: Guides complete terminal commands for source-code inspection, folder discovery, text search, and command-line pipelines. Use when the task requires locating files or text, inspecting a codebase, or running shell tools in the selected folder.
+trigger-keywords: system prompt, source code, codebase, source tree, source folder, terminal command, shell command, pricing rule
 ---
 
 # Terminal Commands
@@ -13,6 +14,7 @@ Produce direct evidence with the smallest complete command. Prefer Python or Nod
 
 - Locating files or text, inspecting source code, or running a short command or pipeline.
 - Not for embedded Python or Node source, package installation, networks, or writes outside `/workspace`.
+- Not for enumerating a document corpus when active document skills can recursively discover and process the requested formats in the same source action.
 
 ## Process
 

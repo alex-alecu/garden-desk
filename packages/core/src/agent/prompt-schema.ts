@@ -1,4 +1,13 @@
-function finalResponseSchema(artifactNames: readonly string[]) {
+function skillRequestSchema(skillNames: readonly string[]) {
+  return {
+    type: "array",
+    items: { type: "string", enum: skillNames },
+    maxItems: Math.min(8, skillNames.length),
+    uniqueItems: true,
+  } as const;
+}
+
+function finalResponseSchema(artifactNames: readonly string[], skillNames: readonly string[]) {
   const artifacts =
     artifactNames.length === 0
       ? { type: "array", maxItems: 0 }
@@ -19,48 +28,55 @@ function finalResponseSchema(artifactNames: readonly string[]) {
         maxItems: 100,
       },
       artifacts,
+      skills: skillRequestSchema(skillNames),
     },
-    required: ["action", "response", "artifacts"],
+    required: ["action", "response", "artifacts", "skills"],
     additionalProperties: false,
   } as const;
 }
 
 export const SHELL_COMMAND_CHARACTER_LIMIT = 4_096;
 
-const SOURCE_EXECUTION_SCHEMA = {
-  type: "object",
-  properties: {
-    action: { const: "execute" },
-    language: { enum: ["python", "node"] },
-    summary: { type: "string", minLength: 1, maxLength: 500 },
-    path: { type: "string", minLength: 1, maxLength: 1_000 },
-    source: {
-      type: "array",
-      items: { type: "string", maxLength: 512 },
-      minItems: 1,
-      maxItems: 250,
+function sourceExecutionSchemaBase(skillNames: readonly string[]) {
+  return {
+    type: "object",
+    properties: {
+      action: { const: "execute" },
+      language: { enum: ["python", "node"] },
+      summary: { type: "string", minLength: 1, maxLength: 500 },
+      skills: skillRequestSchema(skillNames),
+      path: { type: "string", minLength: 1, maxLength: 1_000 },
+      source: {
+        type: "array",
+        items: { type: "string", maxLength: 512 },
+        minItems: 1,
+        maxItems: 250,
+      },
     },
-  },
-  required: ["action", "language", "source", "summary"],
-  additionalProperties: false,
-} as const;
+    required: ["action", "language", "source", "summary", "skills"],
+    additionalProperties: false,
+  } as const;
+}
 
-const SHELL_EXECUTION_SCHEMA = {
-  type: "object",
-  properties: {
-    action: { const: "execute" },
-    language: { const: "shell" },
-    command: {
-      type: "array",
-      items: { type: "string", minLength: 1 },
-      minItems: 1,
-      maxItems: 1,
+function shellExecutionSchema(skillNames: readonly string[]) {
+  return {
+    type: "object",
+    properties: {
+      action: { const: "execute" },
+      language: { const: "shell" },
+      command: {
+        type: "array",
+        items: { type: "string", minLength: 1 },
+        minItems: 1,
+        maxItems: 1,
+      },
+      summary: { type: "string", minLength: 1, maxLength: 500 },
+      skills: skillRequestSchema(skillNames),
     },
-    summary: { type: "string", minLength: 1, maxLength: 500 },
-  },
-  required: ["action", "language", "command", "summary"],
-  additionalProperties: false,
-} as const;
+    required: ["action", "language", "command", "summary", "skills"],
+    additionalProperties: false,
+  } as const;
+}
 
 export const GENERATION_LIMIT_RECOVERY_SOURCE_LINES = 64;
 
@@ -71,15 +87,20 @@ function namedSourceLanguage(task: string): "python" | "node" | undefined {
   return python ? "python" : "node";
 }
 
-function sourceExecutionSchema(language: "python" | "node" | undefined, boundedSource: boolean) {
+function sourceExecutionSchema(
+  language: "python" | "node" | undefined,
+  boundedSource: boolean,
+  skillNames: readonly string[],
+) {
+  const base = sourceExecutionSchemaBase(skillNames);
   return {
-    ...SOURCE_EXECUTION_SCHEMA,
+    ...base,
     properties: {
-      ...SOURCE_EXECUTION_SCHEMA.properties,
+      ...base.properties,
       ...(language === undefined ? {} : { language: { const: language } }),
       source: {
-        ...SOURCE_EXECUTION_SCHEMA.properties.source,
-        maxItems: boundedSource ? 160 : SOURCE_EXECUTION_SCHEMA.properties.source.maxItems,
+        ...base.properties.source,
+        maxItems: boundedSource ? 160 : base.properties.source.maxItems,
       },
     },
   } as const;
@@ -90,6 +111,7 @@ interface AgentDecisionSchemaOptions {
   finalResponse: boolean;
   requiredLanguage?: "python" | "node";
   requiresSourceExecution: boolean;
+  skillNames: readonly string[];
   sourceLineLimit?: number;
   task: string;
 }
@@ -100,13 +122,14 @@ export function agentDecisionJsonSchema(options: AgentDecisionSchemaOptions) {
     finalResponse,
     requiredLanguage,
     requiresSourceExecution,
+    skillNames,
     sourceLineLimit,
     task,
   } = options;
-  const response = finalResponseSchema(artifactNames);
+  const response = finalResponseSchema(artifactNames, skillNames);
   if (finalResponse) return response;
   const language = requiredLanguage ?? namedSourceLanguage(task);
-  const source = sourceExecutionSchema(language, requiresSourceExecution);
+  const source = sourceExecutionSchema(language, requiresSourceExecution, skillNames);
   const boundedSource =
     sourceLineLimit === undefined
       ? source
@@ -119,6 +142,8 @@ export function agentDecisionJsonSchema(options: AgentDecisionSchemaOptions) {
         };
   if (requiresSourceExecution) return boundedSource;
   return language === undefined
-    ? { oneOf: [response, SOURCE_EXECUTION_SCHEMA, SHELL_EXECUTION_SCHEMA] }
+    ? {
+        oneOf: [response, sourceExecutionSchemaBase(skillNames), shellExecutionSchema(skillNames)],
+      }
     : { oneOf: [response, source] };
 }

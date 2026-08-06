@@ -1,14 +1,14 @@
 import {
   type AgentExecutionSnapshot,
   type AgentRunSummary,
-  parseXlsxProgress,
-  xlsxContinuationMessage,
+  parseWorkProgress,
+  workContinuationMessage,
 } from "@vault/shared";
 import { useState } from "react";
 
 export interface ContinuationQuestion {
-  filesDone: number;
-  filesTotal: number;
+  done: number;
+  total: number;
   runId: string;
 }
 
@@ -20,12 +20,12 @@ export function continuationQuestion(
   const progress = executions
     .filter((execution) => execution.runId === run.id && execution.state === "completed")
     .sort((left, right) => left.sequence - right.sequence)
-    .map((execution) => parseXlsxProgress(execution.stdout))
+    .map((execution) => parseWorkProgress(execution.stdout))
     .filter((item) => item !== undefined && !item.complete)
     .at(-1);
-  if (progress === undefined || run.response !== xlsxContinuationMessage(progress))
+  if (progress === undefined || run.response !== workContinuationMessage(progress))
     return undefined;
-  return { runId: run.id, filesDone: progress.filesDone, filesTotal: progress.filesTotal };
+  return { runId: run.id, done: progress.done, total: progress.total };
 }
 
 export function useContinuationQuestion(

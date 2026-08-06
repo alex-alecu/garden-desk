@@ -8,23 +8,17 @@ export function attachmentFiles(inputNames: string[]) {
   }));
 }
 
-function attachedPdfPaths(inputNames: string[]): string[] {
-  return attachmentFiles(inputNames)
-    .filter((file) => file.name.toLocaleLowerCase("en-US").endsWith(".pdf"))
-    .map((file) => file.path);
-}
-
 /**
- * True when earlier runs in this session already read every attached PDF, so the
+ * True when earlier runs in this session already read every attachment, so the
  * next turn is free to answer from durable history instead of extracting the file again.
  */
-export function attachedPdfAlreadyExtracted(
+export function attachmentsAlreadyRead(
   inputNames: string[],
   history: DurableAgentHistory | undefined,
 ): boolean {
-  const pdfPaths = attachedPdfPaths(inputNames);
-  if (pdfPaths.length === 0 || history === undefined) return false;
-  return pdfPaths.every((path) =>
+  const paths = attachmentFiles(inputNames).map((file) => file.path);
+  if (paths.length === 0 || history === undefined) return false;
+  return paths.every((path) =>
     history.runs.some((run) =>
       run.events.some(
         (event) =>

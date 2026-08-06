@@ -1,10 +1,10 @@
 import { type AgentExecutionResult, MAX_GENERATION_TOKENS } from "@vault/shared";
 import { assembleHistory, type DurableAgentHistory } from "./history.js";
-import { requiredOutputLabels, xlsxWorkflowPhase } from "./output-contract.js";
+import { progressWorkflowPhase, requiredOutputLabels } from "./output-contract.js";
 import type { AgentProgress, AgentPromptInput, GenerationRecovery } from "./prompt.js";
-import type { PromptLibrary } from "./prompt-library.js";
+import { defaultPromptLibrary, type PromptLibrary } from "./prompt-library.js";
+import { progressEnabled, progressExecutions } from "./prompt-progress.js";
 import { GENERATION_LIMIT_RECOVERY_SOURCE_LINES } from "./prompt-schema.js";
-import { requiresXlsxWorkflow, xlsxProcessingExecutions } from "./prompt-xlsx.js";
 
 const MINIMUM_GENERATION_RESERVE_TOKENS = 4_096;
 const GENERATION_LIMIT_RECOVERY_TOKENS = 8_192;
@@ -52,9 +52,10 @@ export function generationBudget(
   recovery: GenerationRecovery,
 ): number {
   if (finalResponse) return MINIMUM_GENERATION_RESERVE_TOKENS;
-  const xlsxPhase = requiresXlsxWorkflow(input, progress.executions)
-    ? xlsxWorkflowPhase(
-        xlsxProcessingExecutions(progress.executions),
+  const library = input.promptLibrary ?? defaultPromptLibrary();
+  const progressPhase = progressEnabled(input, progress, library)
+    ? progressWorkflowPhase(
+        progressExecutions(progress.executions),
         requiredOutputLabels(input.task),
       )
     : undefined;
@@ -62,8 +63,8 @@ export function generationBudget(
     recovery === "generation_limit" ||
     progress.lastRejectedProgramReason !== undefined ||
     failedLatestExecution(progress.executions) ||
-    xlsxPhase === "repair" ||
-    xlsxPhase === "continue"
+    progressPhase === "repair" ||
+    progressPhase === "continue"
   )
     return GENERATION_LIMIT_RECOVERY_TOKENS;
   return MAX_GENERATION_TOKENS;

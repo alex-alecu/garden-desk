@@ -1,9 +1,16 @@
 import { basename, join, resolve } from "node:path";
-import { promptMarkdownFiles, promptSkillDirectories, readPromptFile } from "../prompt-files.js";
+import {
+  promptDirectoryExists,
+  promptMarkdownFiles,
+  promptSkillDirectories,
+  readPromptFile,
+} from "../prompt-files.js";
+import { parseSkillMetadata, type SkillRepairTrigger } from "./prompt-skill-metadata.js";
 
 const PROMPT_FILE_LIMIT = 128_000;
-const SKILL_NAME = /^[a-z0-9]+(?:-[a-z0-9]+)*$/u;
 const PLACEHOLDER = /\{\{([a-z0-9_]+)\}\}/gu;
+const FORMAT_ACTION =
+  "(?:create|generate|write|make|build|produce|save|convert|read|review|inspect|check|tell|locate|summarize|extract|edit|update|merge|split|rotate|find|total|sum|calculate|analyze|process|validate|raport|raportează|raporteaza|citește|citeste|analizează|analizeaza|calculează|calculeaza)";
 const ROUTING_STOP_WORDS = new Set([
   "agent",
   "and",
@@ -36,11 +43,20 @@ export interface PromptSkill {
   body: string;
   description: string;
   name: string;
+  repairTriggers: readonly SkillRepairTrigger[];
+  triggerExtensions: readonly string[];
+  triggerKeywords: readonly string[];
+  usesProgressMarkers: boolean;
+  recoveryPrompts: ReadonlyMap<string, string>;
+  statePrompts: ReadonlyMap<string, string>;
 }
 
 export interface SkillSelectionInput {
+  evidenceNames?: readonly string[];
   inputNames: string[];
-  requiredSkillNames?: readonly string[];
+  requestedSkillNames?: readonly string[];
+  suppressedSkillNames?: readonly string[];
+  suppressProgressSkills?: boolean;
   task: string;
 }
 
@@ -56,51 +72,28 @@ function readPrompt(path: string): string {
 
 function promptFiles(directory: string): Map<string, string> {
   const prompts = new Map<string, string>();
+  if (!promptDirectoryExists(directory)) return prompts;
   for (const entry of promptMarkdownFiles(directory)) {
-    const name = basename(entry.name, ".md");
-    prompts.set(name, readPrompt(entry.path));
+    prompts.set(basename(entry.name, ".md"), readPrompt(entry.path));
   }
   return prompts;
 }
 
-function frontmatterValue(lines: string[], key: string): string | undefined {
-  const prefix = `${key}:`;
-  const values = lines
-    .filter((line) => line.startsWith(prefix))
-    .map((line) => line.slice(prefix.length).trim());
-  if (values.length !== 1 || values[0]?.length === 0) return undefined;
-  const value = values[0] as string;
-  return value.startsWith('"') && value.endsWith('"') ? value.slice(1, -1) : value;
-}
-
 export function parsePromptSkill(directoryName: string, content: string): PromptSkill {
-  const match = /^---\r?\n([\s\S]*?)\r?\n---\r?\n([\s\S]+)$/u.exec(content.trim());
-  if (match === null) throw new Error(`Skill ${directoryName} has invalid frontmatter.`);
-  const frontmatter = match[1]?.split(/\r?\n/u) ?? [];
-  const name = frontmatterValue(frontmatter, "name");
-  const description = frontmatterValue(frontmatter, "description");
-  const body = match[2]?.trim() ?? "";
-  if (
-    name === undefined ||
-    description === undefined ||
-    name !== directoryName ||
-    !SKILL_NAME.test(name) ||
-    name.length > 64 ||
-    description.length > 1_024 ||
-    !/\buse when\b/iu.test(description) ||
-    body.length === 0
-  ) {
-    throw new Error(`Skill ${directoryName} does not satisfy the Agent Skills contract.`);
-  }
-  return { body, description, name };
+  return {
+    ...parseSkillMetadata(directoryName, content),
+    recoveryPrompts: new Map(),
+    statePrompts: new Map(),
+  };
 }
 
 function loadSkills(directory: string): PromptSkill[] {
   return promptSkillDirectories(directory)
-    .map((entry) => {
-      const content = readPrompt(join(directory, entry.name, "SKILL.md"));
-      return parsePromptSkill(entry.name, content);
-    })
+    .map((entry) => ({
+      ...parseSkillMetadata(entry.name, readPrompt(join(entry.path, "SKILL.md"))),
+      recoveryPrompts: promptFiles(join(entry.path, "recovery")),
+      statePrompts: promptFiles(join(entry.path, "states")),
+    }))
     .sort((left, right) => left.name.localeCompare(right.name, "en-US"));
 }
 
@@ -108,71 +101,62 @@ function routingTerms(value: string): Set<string> {
   return new Set(
     value
       .toLocaleLowerCase("en-US")
-      .split(/[^a-z0-9]+/u)
+      .split(/[^\p{L}\p{N}]+/u)
       .filter((term) => term.length >= 3 && !ROUTING_STOP_WORDS.has(term)),
   );
 }
 
-function hasInputExtension(input: SkillSelectionInput, extension: string): boolean {
-  return input.inputNames.some((name) => name.toLocaleLowerCase("en-US").endsWith(extension));
+function hasExtension(values: readonly string[], extension: string): boolean {
+  return values.some((name) => name.toLocaleLowerCase("en-US").endsWith(extension));
 }
 
-const FORMAT_ACTION =
-  "(?:create|generate|write|make|build|produce|save|convert|read|review|inspect|summarize|extract|edit|update|merge|split|rotate|find|total|sum|calculate|analyze|process|validate)";
-
-function taskRequestsFormat(task: string, format: string): boolean {
-  return new RegExp(
-    `(?:\\b${FORMAT_ACTION}\\b[^\\n]{0,100}\\b(?:${format})\\b|\\b(?:${format})\\b[^\\n]{0,100}\\b${FORMAT_ACTION}\\b)`,
-    "iu",
-  ).test(task);
+function escapedPattern(value: string): string {
+  return value.replaceAll(/[.*+?^${}()|[\]\\]/gu, "\\$&").replaceAll(/\s+/gu, "\\s+");
 }
 
-function formatSkillApplies(skill: PromptSkill, input: SkillSelectionInput): boolean | undefined {
-  const task = input.task;
-  if (skill.name === "docx-documents") {
-    return (
-      hasInputExtension(input, ".docx") ||
-      /\.docx\b/iu.test(task) ||
-      taskRequestsFormat(task, "docx|(?:microsoft\\s+)?word\\s+(?:document|file)")
-    );
-  }
-  if (skill.name === "xlsx-workbooks") {
-    return (
-      hasInputExtension(input, ".xlsx") ||
-      /\.xlsx\b/iu.test(task) ||
-      taskRequestsFormat(
-        task,
-        "xlsx|excel\\s+(?:file|spreadsheet|workbook)|workbooks?|spreadsheets?",
-      )
-    );
-  }
-  if (skill.name === "pdf-documents") {
-    return (
-      hasInputExtension(input, ".pdf") ||
-      /\.pdf\b/iu.test(task) ||
-      taskRequestsFormat(task, "pdfs?|pdf\\s+(?:file|document|report|deliverable|attachment)")
-    );
-  }
-  return undefined;
+function taskRequestsKeyword(task: string, keyword: string): boolean {
+  const value = escapedPattern(keyword);
+  const boundary = "[\\p{L}\\p{N}_]";
+  const action = `(?<!${boundary})${FORMAT_ACTION}(?!${boundary})`;
+  const term = `(?<!${boundary})${value}(?!${boundary})`;
+  return new RegExp(`(?:${action}[^\\n]{0,120}${term}|${term}[^\\n]{0,120}${action})`, "iu").test(
+    task,
+  );
+}
+
+function taskNamesExtension(task: string, extension: string): boolean {
+  return new RegExp(`${escapedPattern(extension)}(?![\\p{L}\\p{N}_])`, "iu").test(task);
+}
+
+function declarativeSkillApplies(skill: PromptSkill, input: SkillSelectionInput): boolean {
+  const names = [...input.inputNames, ...(input.evidenceNames ?? [])];
+  const extensionApplies = skill.triggerExtensions.some(
+    (extension) => hasExtension(names, extension) || taskNamesExtension(input.task, extension),
+  );
+  return (
+    extensionApplies ||
+    skill.triggerKeywords.some((keyword) => taskRequestsKeyword(input.task, keyword))
+  );
 }
 
 function skillApplies(skill: PromptSkill, input: SkillSelectionInput): boolean {
-  if (input.requiredSkillNames?.includes(skill.name) === true) return true;
-  const formatApplies = formatSkillApplies(skill, input);
-  if (formatApplies !== undefined) return formatApplies;
-  const evidence = [input.task, ...input.inputNames].join("\n");
-  const evidenceTerms = routingTerms(evidence);
+  if (input.suppressedSkillNames?.includes(skill.name) === true) return false;
+  if (input.suppressProgressSkills === true && skill.usesProgressMarkers) return false;
+  if (input.requestedSkillNames?.includes(skill.name) === true) return true;
+  if (declarativeSkillApplies(skill, input)) return true;
+  if (skill.triggerExtensions.length > 0 || skill.triggerKeywords.length > 0) return false;
+  const names = [...input.inputNames, ...(input.evidenceNames ?? [])];
+  const evidenceTerms = routingTerms([input.task, ...names].join("\n"));
   const triggerText = skill.description.split(/\buse when\b/iu).at(-1) ?? skill.description;
   return [...routingTerms(triggerText)].some((term) => evidenceTerms.has(term));
 }
 
 function render(content: string, values: PromptValues): string {
-  const rendered = content.replace(PLACEHOLDER, (_placeholder, name: string) => {
+  return content.replace(PLACEHOLDER, (_placeholder, name: string) => {
     const value = values[name];
     if (value === undefined) throw new Error(`Missing prompt value: ${name}`);
     return String(value);
   });
-  return rendered;
 }
 
 export class PromptLibrary {
@@ -196,8 +180,24 @@ export class PromptLibrary {
     return render(this.required(this.statePrompts, "state", name), values);
   }
 
+  skillState(skillName: string, name: string, values: PromptValues = {}): string {
+    const skill = this.skill(skillName);
+    return render(
+      skill.statePrompts.get(name) ?? this.required(this.statePrompts, "state", name),
+      values,
+    );
+  }
+
   recovery(name: string, values: PromptValues = {}): string {
     return render(this.required(this.recoveryPrompts, "recovery", name), values);
+  }
+
+  skillRecovery(skillName: string, name: string, values: PromptValues = {}): string {
+    const skill = this.skill(skillName);
+    return render(
+      skill.recoveryPrompts.get(name) ?? this.required(this.recoveryPrompts, "recovery", name),
+      values,
+    );
   }
 
   skillCatalog(activeNames: ReadonlySet<string>): string {
@@ -219,8 +219,36 @@ export class PromptLibrary {
     return new Set(this.selectedSkills(input).map((skill) => skill.name));
   }
 
+  progressSkill(activeNames: ReadonlySet<string>): PromptSkill | undefined {
+    return this.skills.find((skill) => activeNames.has(skill.name) && skill.usesProgressMarkers);
+  }
+
+  repairPrompts(activeNames: ReadonlySet<string>, output: string): string[] {
+    return this.skills
+      .filter((skill) => activeNames.has(skill.name))
+      .flatMap((skill) =>
+        skill.repairTriggers
+          .filter((trigger) => trigger.pattern.test(output))
+          .map((trigger) => this.skillRecovery(skill.name, trigger.prompt)),
+      );
+  }
+
+  hasSkill(name: string): boolean {
+    return this.skills.some((skill) => skill.name === name);
+  }
+
+  skillNames(): string[] {
+    return this.skills.map((skill) => skill.name);
+  }
+
   private selectedSkills(input: SkillSelectionInput): PromptSkill[] {
     return this.skills.filter((skill) => skillApplies(skill, input));
+  }
+
+  private skill(name: string): PromptSkill {
+    const skill = this.skills.find((candidate) => candidate.name === name);
+    if (skill === undefined) throw new Error(`Unknown skill: ${name}`);
+    return skill;
   }
 
   private required(prompts: Map<string, string>, kind: string, name: string): string {
