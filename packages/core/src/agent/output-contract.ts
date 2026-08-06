@@ -119,12 +119,18 @@ export function progressWorkflowPhase(
   const last = executions.at(-1);
   if (last === undefined) return "work";
   if (!completedCleanly(last)) return "repair";
-  const progress = parseWorkProgress(last.stdout);
+  const progress = executions
+    .filter(completedCleanly)
+    .map((execution) => parseWorkProgress(execution.stdout))
+    .filter((item) => item !== undefined)
+    .at(-1);
   if (progress === undefined) return "repair";
   if (!progress.complete) return "continue";
-  return missingOutputLabels(stripWorkProgress(last.stdout), requiredLabels).length === 0
-    ? "complete"
-    : "repair";
+  const cleanOutput = executions
+    .filter(completedCleanly)
+    .map((execution) => stripWorkProgress(execution.stdout))
+    .join("\n");
+  return missingOutputLabels(cleanOutput, requiredLabels).length === 0 ? "complete" : "repair";
 }
 
 export function latestIncompleteProgress(executions: AgentExecutionResult[]) {

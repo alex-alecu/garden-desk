@@ -138,6 +138,44 @@ describe("AgentLoop XLSX table column normalization", () => {
   });
 });
 
+describe("AgentLoop oversized table artifact", () => {
+  it("allows final declaration without printing the complete table again", async () => {
+    const source = "print('complete')";
+    const artifact = {
+      name: "results.xlsx",
+      mediaType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      bytesBase64: Buffer.from("xlsx").toString("base64"),
+    };
+    const result = await new AgentLoop(
+      inference(
+        [
+          execute(source, "Create the complete workbook"),
+          {
+            action: "respond",
+            response: "The complete table is attached.",
+            artifacts: [artifact.name],
+          },
+        ],
+        [],
+      ),
+      executor(
+        [
+          {
+            ...completed,
+            source,
+            stdout: completeXlsx("ROWS=2000"),
+            artifacts: [artifact],
+          },
+        ],
+        [],
+      ),
+    ).run({ task: "Return all results in a nice table.", modelId: "test-model" });
+
+    expect(result.executions).toHaveLength(1);
+    expect(result.artifacts).toEqual([artifact.name]);
+  });
+});
+
 describe("AgentLoop XLSX plain-result recovery", () => {
   it("keeps table follow-ups executable until stdout contains a verified table", async () => {
     const prompts: string[] = [];

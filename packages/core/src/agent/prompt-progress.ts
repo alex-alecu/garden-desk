@@ -1,4 +1,5 @@
 import { type AgentExecutionResult, parseWorkProgress, stripWorkProgress } from "@vault/shared";
+import { artifactCandidateNames, requestedArtifactNames } from "./artifact-declarations.js";
 import { executionSucceeded } from "./history.js";
 import {
   completedSuccessfully,
@@ -60,6 +61,7 @@ export function progressExecutionBackedResponse(
 ): string | undefined {
   const verified = verifiedProgressOutput(executions, requiredLabels);
   if (!requestsTable(input.task)) return verified;
+  if (verified !== undefined && artifactCandidateNames(executions).length > 0) return verified;
   const table = latestGfmTableOutput(executions);
   return table !== undefined && (verified !== undefined || hasCompleteHistoricalProgress(input))
     ? table
@@ -78,8 +80,11 @@ export function needsProgressExecution(options: ProgressExecutionInput): boolean
   const { finalResponse, input, library, progress, requiredLabels } = options;
   if (finalResponse || !progressEnabled(input, progress, library)) return false;
   if (progress.executions.length === 0 && historicalResultSatisfies(input)) return false;
-  if (progressWorkflowPhase(progressExecutions(progress.executions), requiredLabels) !== "complete")
-    return true;
+  const phase = progressWorkflowPhase(progressExecutions(progress.executions), requiredLabels);
+  if (phase !== "complete") return true;
+  if (requestsTable(input.task) && artifactCandidateNames(progress.executions).length > 0) {
+    return false;
+  }
   return (
     requestsTable(input.task) &&
     progressExecutionBackedResponse(input, progress.executions, requiredLabels) === undefined
@@ -167,11 +172,19 @@ export function progressInstructions(input: ProgressInstructionsInput): readonly
   const latest = executions.at(-1);
   if (latest === undefined) return instructions;
   const repairs = input.library.repairPrompts(activeNames, `${latest.stderr}\n${latest.stdout}`);
+  const candidates = artifactCandidateNames(input.progress.executions);
+  const missingArtifact = requestedArtifactNames(input.input.task).some(
+    (name) => !candidates.includes(name),
+  );
+  const deliverableStates =
+    missingArtifact && input.progress.executions.length > 0
+      ? input.library.activeSkillStates(activeNames, "deliverable-create")
+      : [];
   const invalidTable =
     requestsTable(input.input.task) &&
     completedSuccessfully(latest) &&
     !validGfmTable(stripWorkProgress(latest.stdout));
   return invalidTable
-    ? [...instructions, input.library.skillRecovery(skill.name, "table")]
-    : [...instructions, ...repairs];
+    ? [...instructions, ...deliverableStates, input.library.skillRecovery(skill.name, "table")]
+    : [...instructions, ...deliverableStates, ...repairs];
 }

@@ -124,6 +124,9 @@ describe("oversized stdout in the decision prompt", () => {
     expect(prompts[1]).toContain("CONTRACT PAGE 1");
     expect(prompts[1]).toContain("SIGNED PAGE 25");
     expect(prompts[1]).toContain("characters omitted from the middle of this stream");
+    expect(prompts[1]).toContain("# Compacted task state");
+    expect(prompts[1]).toContain("Task ledger:");
+    expect(prompts[1]).toContain("Evidence ledger:");
     expect(prompts[1]?.length).toBeLessThan(stdout.length);
     expect(result.executions[0]?.stdout).toBe(stdout);
   });

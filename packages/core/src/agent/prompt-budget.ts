@@ -1,7 +1,9 @@
 import { type AgentExecutionResult, MAX_GENERATION_TOKENS } from "@vault/shared";
+import { requestedArtifactNames } from "./artifact-declarations.js";
 import { assembleHistory, type DurableAgentHistory } from "./history.js";
 import { progressWorkflowPhase, requiredOutputLabels } from "./output-contract.js";
 import type { AgentProgress, AgentPromptInput, GenerationRecovery } from "./prompt.js";
+import { currentRunNeedsCompaction } from "./prompt-compaction.js";
 import { defaultPromptLibrary, type PromptLibrary } from "./prompt-library.js";
 import { progressEnabled, progressExecutions } from "./prompt-progress.js";
 import { GENERATION_LIMIT_RECOVERY_SOURCE_LINES } from "./prompt-schema.js";
@@ -59,6 +61,10 @@ export function generationBudget(
         requiredOutputLabels(input.task),
       )
     : undefined;
+  if (requestedArtifactNames(input.task).length > 0 && progress.executions.length > 0) {
+    return MINIMUM_GENERATION_RESERVE_TOKENS;
+  }
+  if (currentRunNeedsCompaction(progress.executions)) return MINIMUM_GENERATION_RESERVE_TOKENS;
   if (
     recovery === "generation_limit" ||
     progress.lastRejectedProgramReason !== undefined ||

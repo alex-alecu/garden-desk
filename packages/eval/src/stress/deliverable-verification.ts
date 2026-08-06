@@ -1,6 +1,6 @@
 import { execFile } from "node:child_process";
 import { rm } from "node:fs/promises";
-import { dirname } from "node:path";
+import { dirname, extname, join } from "node:path";
 import { promisify } from "node:util";
 import { type AgentRunSnapshot, AgentRunSummarySchema, SessionSummarySchema } from "@vault/shared";
 import type { PreparedStressCase } from "./document-workloads.js";
@@ -15,6 +15,74 @@ interface VerificationCase {
 
 type Rpc = (method: string, params: Record<string, unknown>) => Promise<unknown>;
 const execFileAsync = promisify(execFile);
+const wheelRoot = join(
+  process.cwd(),
+  "packages/workers/images/.generated/downloads/vault-python-libraries",
+);
+const typingExtensionsSource = join(
+  process.cwd(),
+  "packages/workers/images/.generated/downloads/python-typing-extensions/typing_extensions-4.15.0.tar.gz",
+);
+
+async function extractedWorkbookText(path: string): Promise<string> {
+  const script = [
+    "from openpyxl import load_workbook",
+    "import sys",
+    "workbook = load_workbook(sys.argv[1], read_only=True, data_only=True)",
+    "print('\\n'.join('='.join(str(value) for value in row if value is not None) for sheet in workbook.worksheets for row in sheet.iter_rows(values_only=True)))",
+  ].join("\n");
+  return (
+    await execFileAsync("/usr/bin/python3", ["-c", script, path], {
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        PYTHONPATH: [
+          join(wheelRoot, "openpyxl-3.1.5-py2.py3-none-any.whl"),
+          join(wheelRoot, "et_xmlfile-2.0.0-py3-none-any.whl"),
+        ].join(":"),
+      },
+      maxBuffer: 64 * 1024 * 1024,
+    })
+  ).stdout;
+}
+
+async function extractedArtifactText(path: string): Promise<string> {
+  const extension = extname(path).toLowerCase();
+  if (extension === ".xlsx") return extractedWorkbookText(path);
+  if (extension === ".pdf") {
+    const script = [
+      "from pathlib import Path",
+      "from types import ModuleType",
+      "import sys, tarfile",
+      "archive = tarfile.open(sys.argv[2])",
+      "member = next(item for item in archive.getmembers() if item.name.endswith('/src/typing_extensions.py'))",
+      "module = ModuleType('typing_extensions')",
+      "exec(compile(archive.extractfile(member).read(), member.name, 'exec'), module.__dict__)",
+      "sys.modules['typing_extensions'] = module",
+      "from pypdf import PdfReader",
+      "print('\\n'.join((page.extract_text() or '') for page in PdfReader(Path(sys.argv[1])).pages))",
+    ].join("\n");
+    const extracted = await execFileAsync(
+      "/usr/bin/python3",
+      ["-c", script, path, typingExtensionsSource],
+      {
+        encoding: "utf8",
+        env: {
+          ...process.env,
+          PYTHONPATH: join(wheelRoot, "pypdf-6.14.2-py3-none-any.whl"),
+        },
+        maxBuffer: 64 * 1024 * 1024,
+      },
+    );
+    return extracted.stdout;
+  }
+  return (
+    await execFileAsync("/usr/bin/unzip", ["-p", path], {
+      encoding: "utf8",
+      maxBuffer: 64 * 1024 * 1024,
+    })
+  ).stdout;
+}
 
 function expectationLabel(item: NonNullable<PreparedStressCase["deliverables"]>[number]): string {
   return item.name ?? `one ${item.extension ?? "deliverable"} artifact`;
@@ -69,29 +137,39 @@ async function materialize(
   return paths;
 }
 
+async function verifyOneDeterministically(
+  item: NonNullable<PreparedStressCase["deliverables"]>[number],
+  artifact: { name: string; path: string },
+  index: number,
+): Promise<{ output: string; verified?: string }> {
+  try {
+    const extracted = await extractedArtifactText(artifact.path);
+    const missing = item.facts.filter((fact) => !extracted.includes(fact));
+    const forbidden = (item.forbiddenFacts ?? []).filter((fact) => extracted.includes(fact));
+    return missing.length === 0 && forbidden.length === 0
+      ? { output: `VERIFIED_${index + 1}=${artifact.name}`, verified: artifact.name }
+      : {
+          output: `INVALID_${index + 1}=missing:${missing.join(",")};forbidden:${forbidden.join(",")}`,
+        };
+  } catch (error) {
+    return { output: `INVALID_${index + 1}=extraction:${String(error)}` };
+  }
+}
+
 async function verifyDeterministically(
   expectations: NonNullable<PreparedStressCase["deliverables"]>,
   paths: Array<{ name: string; path: string }>,
 ): Promise<DeliverableVerification> {
-  const output: string[] = [];
-  const verified: string[] = [];
-  for (const [index, item] of expectations.entries()) {
-    const artifact = paths[index];
-    if (artifact === undefined) continue;
-    const extracted = await execFileAsync("/usr/bin/unzip", ["-p", artifact.path], {
-      encoding: "utf8",
-      maxBuffer: 64 * 1024 * 1024,
-    });
-    const missing = item.facts.filter((fact) => !extracted.stdout.includes(fact));
-    const forbidden = (item.forbiddenFacts ?? []).filter((fact) => extracted.stdout.includes(fact));
-    output.push(
-      missing.length === 0 && forbidden.length === 0
-        ? `VERIFIED_${index + 1}=${artifact.name}`
-        : `INVALID_${index + 1}=missing:${missing.join(",")};forbidden:${forbidden.join(",")}`,
-    );
-    if (missing.length === 0 && forbidden.length === 0) verified.push(artifact.name);
-  }
-  return { output: output.join("\n"), verified };
+  const results = await Promise.all(
+    expectations.map(async (item, index) => {
+      const artifact = paths[index];
+      return artifact === undefined ? undefined : verifyOneDeterministically(item, artifact, index);
+    }),
+  );
+  return {
+    output: results.flatMap((result) => result?.output ?? []).join("\n"),
+    verified: results.flatMap((result) => result?.verified ?? []),
+  };
 }
 
 export async function verifyDeliverables(

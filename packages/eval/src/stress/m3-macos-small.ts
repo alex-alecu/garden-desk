@@ -10,6 +10,7 @@ import {
 import {
   prepareSmallCase,
   SMALL_CONCURRENT_CASES,
+  SMALL_FOCUSED_REPORT_CASES,
   SMALL_SEQUENTIAL_CASES,
 } from "./small-profile.js";
 import { runConcurrentCases, runSequentialCases } from "./stress-suite.js";
@@ -21,7 +22,9 @@ function requestedCase(): (typeof SMALL_SEQUENTIAL_CASES)[number] | undefined {
   const index = process.argv.indexOf("--case");
   if (index === -1) return undefined;
   const value = process.argv[index + 1];
-  const id = SMALL_SEQUENTIAL_CASES.find((candidate) => candidate === value);
+  const id = [...SMALL_SEQUENTIAL_CASES, ...SMALL_FOCUSED_REPORT_CASES].find(
+    (candidate) => candidate === value,
+  );
   if (id === undefined) throw new Error(`Unknown small stress case: ${value ?? "missing"}`);
   return id;
 }

@@ -4,7 +4,7 @@ description: Guides local XLSX workbook creation, reading, editing, and large-co
 trigger-extensions: .xlsx
 trigger-keywords: xlsx, excel, excel workbook, excel spreadsheet, workbook, workbooks, spreadsheet, spreadsheets, invoice, invoices, salary, salaries, transactions, advances, tranzacții, tranzactii, salarii, avansuri, tabel
 uses-progress-markers: true
-repair-triggers: SyntaxError: invalid syntax=>python-syntax;; unterminated string literal=>table;; invalid escape sequence=>table;; Worksheet[^\n]{0,80}reset_dimensions=>table;; Cannot convert[^\n]{0,240}to Excel=>row-serialization;; Error processing=>analysis-error
+repair-triggers: SyntaxError: invalid syntax=>python-syntax;; SyntaxError:[^\n]{0,80}was never closed=>python-syntax;; unterminated string literal=>table;; invalid escape sequence=>table;; Worksheet[^\n]{0,80}reset_dimensions=>table;; Cannot convert[^\n]{0,240}to Excel=>row-serialization;; Error processing=>analysis-error
 produces-deliverables: true
 ---
 
@@ -29,6 +29,13 @@ Use `openpyxl` for local workbook work. Prefer one complete bounded program over
 4. Reopen every output with `data_only=False`. Verify requested sheets, labels, values, formulas, styles, merges, and dimensions before declaring the artifact. Explain that newly written formulas are not locally calculated by `openpyxl`.
 5. Pass only a flat sequence of scalar cell values to `Worksheet.append()`. Never pass a source row tuple or a converted list as one nested cell; spread copied values into the output row or join them into one scalar string.
 6. If later work changes facts that a created deliverable must contain, recreate and reopen that deliverable before responding.
+
+## Oversized tabular results
+
+1. The chat response can contain at most 100 lines and 64,000 characters. Before printing a complete requested table, estimate whether every row can fit.
+2. When a complete tabular result cannot fit, create one verified XLSX workbook in `/workspace` instead of printing, abbreviating, or silently omitting rows. This overflow workbook is a required result deliverable even when the user did not name a filename or file type.
+3. Choose a concise descriptive `.xlsx` filename, preserve every requested row and column as scalar cells, reopen the workbook, and verify the exact result count before completion.
+4. Print only a concise result count plus the normal progress markers, then declare the verified workbook in the final `artifacts` field. Never claim that an undeclared workspace file was delivered.
 
 ## Verification
 

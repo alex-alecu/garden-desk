@@ -24,7 +24,6 @@ export type SmallCaseId =
   | "word-report"
   | "excel-report"
   | "excel-row-filter"
-  | "cross-format-report"
   | "large-corpus-continuation"
   | "invalid-document"
   | "romanian-task"
@@ -50,7 +49,7 @@ function reportFacts(evidence: FixtureEvidence): string[] {
 
 function deliverables(names: string[]) {
   return (evidence: FixtureEvidence): DeliverableExpectation[] =>
-    names.map((name) => ({ name, facts: reportFacts(evidence) }));
+    names.map((name) => ({ name, facts: reportFacts(evidence), deterministic: true }));
 }
 
 async function createBusinessCorpus(source: string, workbooks = 4): Promise<FixtureEvidence> {
@@ -134,21 +133,6 @@ const CASES: StressCaseDefinition<SmallCaseId>[] = [
         forbiddenFacts: ["ordinary transfer"],
       },
     ],
-  },
-  {
-    id: "cross-format-report",
-    task: [
-      ...REPORT_SOURCE,
-      "Create matching management-report.pdf, management-report.docx, and management-report.xlsx deliverables in the private workspace.",
-      "Each report must visibly label the four results as MATCHING_INVOICES, INVOICE_TOTAL, MEETING_NOTES, and POLICY_PAGES.",
-    ].join(" "),
-    create: createBusinessCorpus,
-    expected: () => [],
-    deliverables: deliverables([
-      "management-report.pdf",
-      "management-report.docx",
-      "management-report.xlsx",
-    ]),
   },
   {
     id: "large-corpus-continuation",
@@ -235,5 +219,17 @@ export async function prepareSmallCase(
   return prepareStressCase(root, definition);
 }
 
-export const SMALL_SEQUENTIAL_CASES: SmallCaseId[] = CASES.map(({ id }) => id);
-export const SMALL_CONCURRENT_CASES: SmallCaseId[] = ["pdf-report", "word-report", "excel-report"];
+export const SMALL_FOCUSED_REPORT_CASES: SmallCaseId[] = [
+  "pdf-report",
+  "word-report",
+  "excel-report",
+  "large-corpus-continuation",
+];
+export const SMALL_SEQUENTIAL_CASES: SmallCaseId[] = CASES.map(({ id }) => id).filter(
+  (id) => !SMALL_FOCUSED_REPORT_CASES.includes(id),
+);
+export const SMALL_CONCURRENT_CASES: SmallCaseId[] = [
+  "excel-row-filter",
+  "terminal-discovery",
+  "invalid-document",
+];

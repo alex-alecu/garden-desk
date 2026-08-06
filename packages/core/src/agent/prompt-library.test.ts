@@ -161,6 +161,24 @@ describe("PromptLibrary workbook aggregates", () => {
     expect(body).toContain("Every successful exit must leave stderr completely empty");
     expect(body).toContain("Any stderr on exit code 0 makes the result unverified");
     expect(body).toContain("Progress, stdout labels, checkpoints, and artifacts agree");
+    expect(body).toContain("When a complete tabular result cannot fit");
+    expect(body).toContain("create one verified XLSX workbook in `/workspace`");
+    expect(body).toContain("Never claim that an undeclared workspace file was delivered");
+    expect(
+      prompts.repairPrompts(new Set(["xlsx-workbooks"]), "SyntaxError: '(' was never closed"),
+    ).toEqual(expect.arrayContaining([expect.stringContaining("fresh, complete, small program")]));
+  });
+});
+
+describe("PromptLibrary active deliverable states", () => {
+  it("loads format creation details only for active skills", () => {
+    const prompts = library();
+    expect(prompts.activeSkillStates(new Set(["pdf-documents"]), "deliverable-create")).toEqual([
+      expect.stringContaining("never `reportlab.lib.pages`"),
+    ]);
+    expect(prompts.activeSkillStates(new Set(["terminal-commands"]), "deliverable-create")).toEqual(
+      [],
+    );
   });
 });
 

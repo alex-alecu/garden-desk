@@ -1,4 +1,4 @@
-import type { AgentArtifactSummary, AgentExecutionResult } from "@vault/shared";
+import type { AgentArtifactSummary, AgentDecision, AgentExecutionResult } from "@vault/shared";
 import type { ArtifactStore } from "../workspace/artifacts.js";
 import { attachmentMediaType } from "./records.js";
 
@@ -33,6 +33,42 @@ export function currentArtifactOutputs(
 
 export function artifactCandidateNames(executions: readonly AgentExecutionResult[]): string[] {
   return [...currentArtifactOutputs(executions).keys()];
+}
+
+export function requestedArtifactNames(task: string): string[] {
+  const requested =
+    /\b(?:create|generate|make|produce|save|write)\b[^\n]{0,160}/giu.exec(task)?.[0] ?? "";
+  return [
+    ...new Set(
+      Array.from(
+        requested.matchAll(/(?:^|[\s"'`(])([^\s"'`()]+\.[A-Za-z0-9]{1,16})(?=$|[\s"'`),;])/gu),
+        (match) => match[1] ?? "",
+      ).filter((name) => name.length > 0),
+    ),
+  ];
+}
+
+export function requestedFactLabels(task: string): string[] {
+  return [
+    ...new Set(Array.from(task.matchAll(/\b[A-Z][A-Z0-9]*_[A-Z0-9_]+\b/gu), (match) => match[0])),
+  ];
+}
+
+export function normalizeDeliverableFactRendering(
+  decision: AgentDecision,
+  task: string,
+): AgentDecision {
+  if (
+    decision.action !== "execute" ||
+    decision.language === "shell" ||
+    requestedArtifactNames(task).length === 0
+  ) {
+    return decision;
+  }
+  const labels = requestedFactLabels(task);
+  let source = decision.source.replaceAll(/\{label\}\s*:\s*\{value\}/gu, "{label}={value}");
+  for (const label of labels) source = source.replaceAll(`${label}:`, `${label}=`);
+  return { ...decision, source };
 }
 
 export function declaredArtifactOutputs(

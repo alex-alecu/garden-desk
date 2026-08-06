@@ -62,27 +62,33 @@ function facts(evidence: FixtureEvidence): string[] {
     ...(evidence.expected.wordPages === undefined
       ? []
       : [`MEETING_NOTES=${value(evidence, "wordPages")}`]),
-    `POLICY_PAGES=${value(evidence, "pdfPages")}`,
+    ...(evidence.expected.pdfPages === undefined
+      ? []
+      : [`POLICY_PAGES=${value(evidence, "pdfPages")}`]),
   ];
 }
 
 function deliverables(names: string[]) {
   return (evidence: FixtureEvidence): DeliverableExpectation[] =>
-    names.map((name) => ({ name, facts: facts(evidence) }));
+    names.map((name) => ({ name, facts: facts(evidence), deterministic: true }));
 }
 
-function task(names: string[]): string {
+function task(names: string[], sources: string, labels: string): string {
   return [
-    "Review the complete selected corpus. Invoice rows needing attention contain Priority review; meeting-note entries start Decision record; policy pages start Policy section.",
-    "Create the requested polished management reports in the private workspace and visibly label MATCHING_INVOICES, INVOICE_TOTAL, MEETING_NOTES, and POLICY_PAGES whenever that source format exists.",
+    `Review the complete selected corpus containing ${sources}.`,
+    `Create the requested polished management reports in the private workspace and visibly label ${labels}.`,
     `Required deliverables: ${names.join(", ")}.`,
   ].join(" ");
 }
 
-const CASES: StressCaseDefinition<ScaledCaseId>[] = [
+export const SCALED_CASES: StressCaseDefinition<ScaledCaseId>[] = [
   {
     id: "pdf-report",
-    task: task(["scaled-policy-report.pdf"]),
+    task: task(
+      ["scaled-policy-report.pdf"],
+      "one PDF whose policy pages start with Policy section",
+      "POLICY_PAGES",
+    ),
     create: async (source) =>
       createPdf(join(source, "policy-source.pdf"), SCALED_WORKLOAD_PLAN.pdfReport.pagesPerFile),
     expected: () => [],
@@ -90,7 +96,11 @@ const CASES: StressCaseDefinition<ScaledCaseId>[] = [
   },
   {
     id: "excel-report",
-    task: task(["scaled-invoice-report.xlsx"]),
+    task: task(
+      ["scaled-invoice-report.xlsx"],
+      "XLSX invoice workbooks whose attention rows contain Priority review",
+      "MATCHING_INVOICES and INVOICE_TOTAL",
+    ),
     create: async (source) =>
       createXlsxCorpus(
         source,
@@ -102,7 +112,11 @@ const CASES: StressCaseDefinition<ScaledCaseId>[] = [
   },
   {
     id: "cross-format-report",
-    task: task(["scaled-report.pdf", "scaled-report.docx", "scaled-report.xlsx"]),
+    task: task(
+      ["scaled-report.pdf", "scaled-report.docx", "scaled-report.xlsx"],
+      "XLSX invoices, DOCX meeting notes, and one policy PDF; attention rows contain Priority review, meeting-note entries start Decision record, and policy pages start Policy section",
+      "MATCHING_INVOICES, INVOICE_TOTAL, MEETING_NOTES, and POLICY_PAGES",
+    ),
     create: createCrossFormatCorpus,
     expected: () => [],
     deliverables: deliverables(["scaled-report.pdf", "scaled-report.docx", "scaled-report.xlsx"]),
@@ -133,10 +147,10 @@ export async function prepareScaledCase(
   root: string,
   id: ScaledCaseId,
 ): Promise<PreparedStressCase<ScaledCaseId>> {
-  const definition = CASES.find((candidate) => candidate.id === id);
+  const definition = SCALED_CASES.find((candidate) => candidate.id === id);
   if (definition === undefined) throw new Error(`Unknown scaled stress case: ${id}`);
   return prepareStressCase(root, definition);
 }
 
-export const SCALED_SEQUENTIAL_CASES: ScaledCaseId[] = CASES.map(({ id }) => id);
+export const SCALED_SEQUENTIAL_CASES: ScaledCaseId[] = SCALED_CASES.map(({ id }) => id);
 export const SCALED_CONCURRENT_CASES: ScaledCaseId[] = [...SCALED_WORKLOAD_PLAN.concurrentCases];
