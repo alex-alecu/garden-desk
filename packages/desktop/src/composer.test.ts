@@ -1,6 +1,10 @@
 import type { KeyboardEvent } from "react";
 import { describe, expect, it, vi } from "vitest";
-import { handleComposerKeyDown } from "./components/composer.js";
+import {
+  COMPOSER_MAX_ROWS,
+  composerHeightLimit,
+  handleComposerKeyDown,
+} from "./components/composer.js";
 
 function keyboardEvent({
   composing = false,
@@ -45,5 +49,15 @@ describe("composer keyboard shortcuts", () => {
 
     expect(preventDefault).not.toHaveBeenCalled();
     expect(requestSubmit).not.toHaveBeenCalled();
+  });
+});
+
+describe("composer auto-growth", () => {
+  it("caps at ten rows on a tall window", () => {
+    expect(composerHeightLimit(24, 8, 2_000)).toBe(COMPOSER_MAX_ROWS * 24 + 8);
+  });
+
+  it("caps at one quarter of a short window", () => {
+    expect(composerHeightLimit(24, 8, 600)).toBe(150);
   });
 });

@@ -1,5 +1,5 @@
 import type { AttachmentSummary } from "@vault/shared";
-import type { FormEvent, KeyboardEvent } from "react";
+import { type FormEvent, type KeyboardEvent, useEffect, useLayoutEffect, useRef } from "react";
 import { AttachmentChip } from "./attachment-chip.js";
 import { Icon } from "./icons.js";
 
@@ -17,6 +17,31 @@ interface ComposerProps {
   onOpenAttachment(attachmentId: string): void;
   onRemoveAttachment(attachmentId: string): void;
   onSend(text: string): void;
+}
+
+export const COMPOSER_MAX_ROWS = 10;
+
+export function composerHeightLimit(
+  lineHeight: number,
+  verticalPadding: number,
+  viewportHeight: number,
+): number {
+  return Math.min(COMPOSER_MAX_ROWS * lineHeight + verticalPadding, viewportHeight * 0.25);
+}
+
+export function resizeComposerTextarea(
+  textarea: HTMLTextAreaElement,
+  viewportHeight = window.innerHeight,
+): void {
+  textarea.style.height = "auto";
+  const style = getComputedStyle(textarea);
+  const lineHeight = Number.parseFloat(style.lineHeight);
+  const verticalPadding =
+    Number.parseFloat(style.paddingTop) + Number.parseFloat(style.paddingBottom);
+  const maximum = composerHeightLimit(lineHeight, verticalPadding, viewportHeight);
+  const height = Math.min(textarea.scrollHeight, maximum);
+  textarea.style.height = `${height}px`;
+  textarea.style.overflowY = textarea.scrollHeight > maximum ? "auto" : "hidden";
 }
 
 export function handleComposerKeyDown(event: KeyboardEvent<HTMLTextAreaElement>, canSend: boolean) {
@@ -73,6 +98,18 @@ export function Composer({
   onRemoveAttachment,
   onSend,
 }: ComposerProps) {
+  const textarea = useRef<HTMLTextAreaElement>(null);
+  useLayoutEffect(() => {
+    if (textarea.current !== null) resizeComposerTextarea(textarea.current);
+  });
+  useEffect(() => {
+    const resize = () => {
+      if (textarea.current !== null) resizeComposerTextarea(textarea.current);
+    };
+    window.addEventListener("resize", resize);
+    return () => window.removeEventListener("resize", resize);
+  }, []);
+
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const text = draft.trim();
@@ -101,6 +138,7 @@ export function Composer({
         onChange={(event) => onChange(event.target.value)}
         onKeyDown={(event) => handleComposerKeyDown(event, canSend)}
         placeholder="Ask Vault Desk to do anything"
+        ref={textarea}
         rows={2}
         value={draft}
       />

@@ -4,7 +4,7 @@ import remarkGfm from "remark-gfm";
 import type { ArtifactSaveResult } from "../artifact-actions.js";
 import type { TimelineItem } from "../state.js";
 import { GeneratedFiles } from "./generated-files.js";
-import { MessageAttachments } from "./message-attachments.js";
+import { UserMessage } from "./user-message.js";
 
 function formatDuration(milliseconds: number): string {
   if (milliseconds < 1_000) return `${milliseconds}ms`;
@@ -109,24 +109,20 @@ function TimelineMessage({
   performance: AgentRunPerformance | null;
   showMetrics: boolean;
 }) {
+  if (item.kind === "user") {
+    return (
+      <UserMessage attachments={attachments} item={item} onOpenAttachment={onOpenAttachment} />
+    );
+  }
   return (
     <article className={`timeline-item timeline-${item.kind}`}>
-      {item.kind === "assistant" ? (
-        <>
-          <AssistantResponse>{item.text}</AssistantResponse>
-          <GeneratedFiles
-            artifacts={artifacts}
-            disabledReason={nativeActionMessage}
-            onOpen={onOpenArtifact}
-            onSave={onSaveArtifact}
-          />
-        </>
-      ) : (
-        <>
-          <p>{item.text}</p>
-          <MessageAttachments attachments={attachments} onOpenAttachment={onOpenAttachment} />
-        </>
-      )}
+      <AssistantResponse>{item.text}</AssistantResponse>
+      <GeneratedFiles
+        artifacts={artifacts}
+        disabledReason={nativeActionMessage}
+        onOpen={onOpenArtifact}
+        onSave={onSaveArtifact}
+      />
       {showMetrics && performance !== null ? <ResponseMetrics performance={performance} /> : null}
     </article>
   );

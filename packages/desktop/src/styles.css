@@ -908,6 +908,59 @@ textarea:focus-visible {
   white-space: pre-wrap;
 }
 
+.user-message {
+  width: fit-content;
+  max-width: 72%;
+  margin: 0 0 18px auto;
+}
+
+.user-message .timeline-user {
+  max-width: 100%;
+  margin-bottom: 0;
+}
+
+.user-message-actions {
+  display: flex;
+  min-height: 27px;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 5px 3px 0;
+  color: var(--ink-soft);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  opacity: 0;
+  transition: opacity 140ms ease;
+}
+
+.user-message:hover .user-message-actions,
+.user-message:focus-within .user-message-actions {
+  opacity: 1;
+}
+
+.user-message-actions button {
+  display: flex;
+  min-width: 24px;
+  min-height: 22px;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 0 4px;
+  border-radius: 6px;
+  color: var(--ink-soft);
+  background: transparent;
+  cursor: pointer;
+}
+
+.user-message-actions button:hover {
+  color: var(--accent-strong);
+  background: var(--navigation-hover);
+}
+
+.user-message-actions button span:empty {
+  display: none;
+}
+
 .timeline-assistant {
   width: fit-content;
   max-width: 100%;
@@ -1394,6 +1447,7 @@ textarea:focus-visible {
 .composer textarea {
   width: 100%;
   min-height: 48px;
+  max-height: 25vh;
   padding: 4px 5px;
   resize: none;
   border: 0;
@@ -2410,6 +2464,10 @@ textarea:focus-visible {
     max-width: 92%;
   }
 
+  .user-message {
+    max-width: 92%;
+  }
+
   .question-tool {
     width: 100%;
     padding: 16px;
@@ -2485,6 +2543,12 @@ textarea:focus-visible {
 
   .question-tool-action:hover:not(:disabled) {
     transform: none;
+  }
+}
+
+@media (hover: none), (pointer: coarse) {
+  .user-message-actions {
+    opacity: 1;
   }
 }
 
