@@ -12,11 +12,13 @@ import {
   prepareStressCase,
   type StressCaseDefinition,
 } from "./document-workloads.js";
+import { createFilteredRowsXlsxCorpus } from "./xlsx-row-filter-fixture.js";
 
 export type SmallCaseId =
   | "pdf-report"
   | "word-report"
   | "excel-report"
+  | "excel-row-filter"
   | "cross-format-report"
   | "large-corpus-continuation"
   | "invalid-document"
@@ -108,6 +110,23 @@ const CASES: StressCaseDefinition<SmallCaseId>[] = [
     create: createBusinessCorpus,
     expected: () => [],
     deliverables: deliverables(["management-report.xlsx"]),
+  },
+  {
+    id: "excel-row-filter",
+    task: "Generate an excel with all rows in excel files containing “avans”",
+    create: createFilteredRowsXlsxCorpus,
+    expected: () => [],
+    maxExecutions: 5,
+    deliverables: (evidence) => [
+      {
+        deterministic: true,
+        extension: ".xlsx",
+        facts: Array.from({ length: 10 }, (_, index) =>
+          expectedValue(evidence, `filterRow${index + 1}`),
+        ),
+        forbiddenFacts: ["ordinary transfer"],
+      },
+    ],
   },
   {
     id: "cross-format-report",

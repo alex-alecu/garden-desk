@@ -1,5 +1,7 @@
+import { execFile } from "node:child_process";
 import { rm } from "node:fs/promises";
 import { dirname } from "node:path";
+import { promisify } from "node:util";
 import { type AgentRunSnapshot, AgentRunSummarySchema, SessionSummarySchema } from "@vault/shared";
 import type { PreparedStressCase } from "./document-workloads.js";
 
@@ -12,9 +14,16 @@ interface VerificationCase {
 }
 
 type Rpc = (method: string, params: Record<string, unknown>) => Promise<unknown>;
+const execFileAsync = promisify(execFile);
+
+function expectationLabel(item: NonNullable<PreparedStressCase["deliverables"]>[number]): string {
+  return item.name ?? `one ${item.extension ?? "deliverable"} artifact`;
+}
 
 function verificationTask(expectations: NonNullable<PreparedStressCase["deliverables"]>): string {
-  const requested = expectations.map((item, index) => `${index + 1}. ${item.name}`).join(" ");
+  const requested = expectations
+    .map((item, index) => `${index + 1}. ${expectationLabel(item)}`)
+    .join(" ");
   return [
     "Independently reopen every attached deliverable with the appropriate local document library.",
     "Extract visible text and cell values from the real artifact bytes, never from filenames.",
@@ -36,21 +45,53 @@ async function materialize(
   rpc: Rpc,
   active: VerificationCase,
   snapshot: AgentRunSnapshot,
-): Promise<string[]> {
-  const paths: string[] = [];
+): Promise<Array<{ name: string; path: string }>> {
+  const paths: Array<{ name: string; path: string }> = [];
   for (const expected of active.fixture.deliverables ?? []) {
-    const artifact = snapshot.artifacts.find((candidate) => candidate.name === expected.name);
+    const matches = snapshot.artifacts.filter(
+      (candidate) =>
+        (expected.name !== undefined && candidate.name === expected.name) ||
+        (expected.extension !== undefined &&
+          candidate.name.toLowerCase().endsWith(expected.extension)),
+    );
+    const artifact = matches.length === 1 ? matches[0] : undefined;
     if (artifact === undefined) continue;
-    paths.push(
-      String(
+    paths.push({
+      name: artifact.name,
+      path: String(
         await rpc("artifacts.materialize", {
           sessionId: active.sessionId,
           artifactId: artifact.id,
         }),
       ),
-    );
+    });
   }
   return paths;
+}
+
+async function verifyDeterministically(
+  expectations: NonNullable<PreparedStressCase["deliverables"]>,
+  paths: Array<{ name: string; path: string }>,
+): Promise<DeliverableVerification> {
+  const output: string[] = [];
+  const verified: string[] = [];
+  for (const [index, item] of expectations.entries()) {
+    const artifact = paths[index];
+    if (artifact === undefined) continue;
+    const extracted = await execFileAsync("/usr/bin/unzip", ["-p", artifact.path], {
+      encoding: "utf8",
+      maxBuffer: 64 * 1024 * 1024,
+    });
+    const missing = item.facts.filter((fact) => !extracted.stdout.includes(fact));
+    const forbidden = (item.forbiddenFacts ?? []).filter((fact) => extracted.stdout.includes(fact));
+    output.push(
+      missing.length === 0 && forbidden.length === 0
+        ? `VERIFIED_${index + 1}=${artifact.name}`
+        : `INVALID_${index + 1}=missing:${missing.join(",")};forbidden:${forbidden.join(",")}`,
+    );
+    if (missing.length === 0 && forbidden.length === 0) verified.push(artifact.name);
+  }
+  return { output: output.join("\n"), verified };
 }
 
 export async function verifyDeliverables(
@@ -63,9 +104,19 @@ export async function verifyDeliverables(
   if (expectations.length === 0) return { output: "", verified: [] };
   const paths = await materialize(rpc, active, snapshot);
   if (paths.length !== expectations.length) return { output: "", verified: [] };
+  if (expectations.every((item) => item.deterministic === true)) {
+    try {
+      return await verifyDeterministically(expectations, paths);
+    } finally {
+      await Promise.all(
+        paths.map(async (item) => rm(dirname(item.path), { recursive: true, force: true })),
+      );
+    }
+  }
   const session = SessionSummarySchema.parse(await rpc("sessions.create", { folderId: null }));
   try {
-    for (const path of paths) await rpc("attachments.add", { sessionId: session.id, path });
+    for (const item of paths)
+      await rpc("attachments.add", { sessionId: session.id, path: item.path });
     const run = AgentRunSummarySchema.parse(
       await rpc("agent.start", { sessionId: session.id, task: verificationTask(expectations) }),
     );
@@ -86,12 +137,13 @@ export async function verifyDeliverables(
         const line = verifiedFactLine(output, index);
         return line !== undefined && item.facts.every((fact) => line.includes(fact));
       })
-      .map((item) => item.name);
+      .map((item, index) => item.name ?? paths[index]?.name)
+      .filter((name): name is string => name !== undefined);
     return { output, verified };
   } finally {
     await rpc("sessions.delete", { sessionId: session.id });
     await Promise.all(
-      paths.map(async (path) => rm(dirname(path), { recursive: true, force: true })),
+      paths.map(async (item) => rm(dirname(item.path), { recursive: true, force: true })),
     );
   }
 }

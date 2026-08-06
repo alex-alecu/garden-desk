@@ -1,0 +1,3 @@
+The previous workbook program had invalid Python syntax. Discard it instead of patching the malformed block or repeating a cosmetically changed version.
+
+Submit one fresh, complete, small program. Use a straightforward per-workbook loop with one valid `try` statement whose `except` and optional `finally` clauses are at the same indentation; never put an `except` after a completed `finally`. Load each workbook read-only, iterate each worksheet, close the workbook, and append only flat scalar output rows as required by the active XLSX skill. Preserve accurate progress and exit nonzero after any caught workbook error.

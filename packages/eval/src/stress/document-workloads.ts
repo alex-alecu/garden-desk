@@ -3,8 +3,11 @@ import { join } from "node:path";
 import type { FixtureEvidence } from "./document-fixtures.js";
 
 export interface DeliverableExpectation {
+  deterministic?: boolean;
+  extension?: string;
   facts: string[];
-  name: string;
+  forbiddenFacts?: string[];
+  name?: string;
 }
 
 export interface PreparedStressCase<Id extends string = string> {

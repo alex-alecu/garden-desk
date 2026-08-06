@@ -1,0 +1,3 @@
+The previous workbook program passed a list or tuple as one output cell, so OpenPyXL reported `Cannot convert ... to Excel`.
+
+Repair the recorded program with one complete bounded source action. `Worksheet.append()` must receive one flat sequence of scalar cell values such as strings, numbers, dates, booleans, or `None`. When adding source metadata before copied values, use `output.append([source_path, sheet_name, *row_values])`; do not use `output.append([source_path, sheet_name, row_values])`. Alternatively, join the copied values into one scalar string. Convert any genuinely non-scalar cell value with `str(...)`, preserve accurate progress, and reopen the completed output before declaring it.

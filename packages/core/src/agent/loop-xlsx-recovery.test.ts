@@ -53,6 +53,68 @@ describe("AgentLoop XLSX checkpoint repair", () => {
   });
 });
 
+describe("AgentLoop XLSX row serialization repair", () => {
+  it("explains that appended workbook rows must be flat scalar sequences", async () => {
+    const prompts: string[] = [];
+    const broken = "output.append([source_path, sheet_name, row_values])";
+    const repaired = "output.append([source_path, sheet_name, *row_values])";
+    await new AgentLoop(
+      inference(
+        [execute(broken, "Collect filtered rows"), execute(repaired, "Flatten copied values")],
+        prompts,
+      ),
+      executor(
+        [
+          {
+            ...completed,
+            source: broken,
+            stderr: "Cannot convert ['2026-08-01', 1000, 'avans'] to Excel",
+          },
+          { ...completed, source: repaired, stdout: completeXlsx("Saved filtered workbook") },
+        ],
+        [],
+      ),
+    ).run({
+      task: "Generate an excel with all rows in excel files containing avans",
+      modelId: "test-model",
+    });
+
+    expect(prompts[1]).toContain("passed a list or tuple as one output cell");
+    expect(prompts[1]).toContain("output.append([source_path, sheet_name, *row_values])");
+    expect(prompts[1]).toContain(
+      "do not use `output.append([source_path, sheet_name, row_values])`",
+    );
+  });
+});
+
+describe("AgentLoop XLSX Python syntax repair", () => {
+  it("requires a fresh valid program after malformed exception handling", async () => {
+    const prompts: string[] = [];
+    const broken = "try:\n    pass\nfinally:\n    pass\nexcept Exception:\n    pass";
+    const repaired = "try:\n    print('done')\nexcept Exception:\n    raise";
+    await new AgentLoop(
+      inference(
+        [execute(broken, "Collect filtered rows"), execute(repaired, "Rebuild valid program")],
+        prompts,
+      ),
+      executor(
+        [
+          { ...completed, source: broken, stderr: "SyntaxError: invalid syntax" },
+          { ...completed, source: repaired, stdout: completeXlsx("Saved filtered workbook") },
+        ],
+        [],
+      ),
+    ).run({
+      task: "Generate an excel with all rows in excel files containing avans",
+      modelId: "test-model",
+    });
+
+    expect(prompts[1]).toContain("Discard it instead of patching the malformed block");
+    expect(prompts[1]).toContain("never put an `except` after a completed `finally`");
+    expect(prompts[1]).toContain("append only flat scalar output rows");
+  });
+});
+
 describe("AgentLoop duplicate stall", () => {
   it("fails after the model repeats the same program twice", async () => {
     const prompts: string[] = [];
