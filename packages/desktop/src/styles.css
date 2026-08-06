@@ -89,7 +89,7 @@
   --surface-shadow: 0 10px 30px rgb(7 31 37 / 10%);
   --chat-content-width: 1040px;
   --chat-content-gutter: 64px;
-  --chat-header-height: 56px;
+  --chat-header-height: 80px;
   color: var(--ink);
   font-family:
     "IBM Plex Sans", ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -699,7 +699,7 @@ textarea:focus-visible {
   min-width: 0;
   align-items: center;
   justify-content: space-between;
-  padding: 0 20px 0 22px;
+  padding: 10px 20px 8px 22px;
   color: var(--ink);
   border-bottom: 1px solid var(--reading-border);
   background: rgb(250 250 250 / 92%);
@@ -1614,10 +1614,9 @@ textarea:focus-visible {
 
 .technical-details-header {
   display: flex;
-  height: var(--chat-header-height);
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  padding: 0 14px 0 18px;
+  padding: 22px 18px 16px;
   border-bottom: 1px solid var(--reading-border);
 }
 
