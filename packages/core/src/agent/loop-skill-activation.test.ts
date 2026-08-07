@@ -100,3 +100,55 @@ describe("active model-requested skills", () => {
     expect(prompts[1]).toContain("## Active skill: docx-documents");
   });
 });
+
+describe("skill activation progress messages", () => {
+  it("does not repeat the initial planning message after activating a skill", async () => {
+    const prompts: string[] = [];
+    const source = "print('done')";
+    const summaries: string[] = [];
+    await new AgentLoop(
+      inference(
+        [
+          {
+            action: "execute",
+            language: "python",
+            source,
+            summary: "Request guidance",
+            skills: ["docx-documents"],
+          },
+          { action: "execute", language: "python", source, summary: "Create output", skills: [] },
+          { action: "respond", response: "Done.", skills: [] },
+        ],
+        prompts,
+      ),
+      {
+        async execute(): Promise<AgentExecutionResult> {
+          return {
+            language: "python",
+            path: "steps/0001.py",
+            source,
+            command: null,
+            exitCode: 0,
+            stdout: "done\n",
+            stderr: "",
+            durationMs: 1,
+            termination: "completed",
+            artifacts: [],
+          };
+        },
+      },
+    ).run({
+      task: "Prepare the requested deliverable.",
+      modelId: "test-model",
+      onEvent: (type, summary) => {
+        if (type === "inference.started") summaries.push(summary);
+      },
+    });
+
+    const planning = summaries.filter(
+      (summary) => summary === "Loading the local model and planning the task.",
+    );
+    expect(planning).toHaveLength(1);
+    expect(summaries[1]).toBe("Applying the requested guidance and planning the task.");
+  });
+});

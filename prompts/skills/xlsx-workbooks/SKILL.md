@@ -5,6 +5,7 @@ trigger-extensions: .xlsx
 trigger-keywords: xlsx, excel, excel workbook, excel spreadsheet, workbook, workbooks, spreadsheet, spreadsheets, invoice, invoices, salary, salaries, transactions, advances, tranzacții, tranzactii, salarii, avansuri, tabel
 uses-progress-markers: true
 repair-triggers: SyntaxError: invalid syntax=>python-syntax;; unterminated string literal=>table;; invalid escape sequence=>table;; Worksheet[^\n]{0,80}reset_dimensions=>table;; Cannot convert[^\n]{0,240}to Excel=>row-serialization;; Error processing=>analysis-error
+produces-deliverables: true
 ---
 
 # XLSX Workbooks

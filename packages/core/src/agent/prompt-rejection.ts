@@ -5,6 +5,9 @@ export function rejectionInstructions(
   progress: AgentProgress,
   library: PromptLibrary,
 ): readonly string[] {
+  if (progress.deliverableExecutionRequired === true) {
+    return [library.recovery("unbacked-response")];
+  }
   if (progress.lastRejectedProgramReason === "shell_limit") {
     return [library.recovery("shell-limit", { shell_command_character_limit: "4,096" })];
   }

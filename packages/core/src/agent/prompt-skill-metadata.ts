@@ -15,6 +15,7 @@ export interface ParsedSkillMetadata {
   triggerExtensions: string[];
   triggerKeywords: string[];
   usesProgressMarkers: boolean;
+  producesDeliverables: boolean;
 }
 
 function frontmatterValue(lines: string[], key: string): string | undefined {
@@ -75,6 +76,7 @@ export function parseSkillMetadata(directoryName: string, content: string): Pars
   const triggerExtensions = listValue(frontmatter, "trigger-extensions");
   const triggerKeywords = listValue(frontmatter, "trigger-keywords");
   const progressValue = frontmatterValue(frontmatter, "uses-progress-markers");
+  const deliverableValue = frontmatterValue(frontmatter, "produces-deliverables");
   if (
     name === undefined ||
     description === undefined ||
@@ -86,7 +88,8 @@ export function parseSkillMetadata(directoryName: string, content: string): Pars
     body.length === 0 ||
     triggerExtensions.some((extension) => !/^\.[a-z0-9]{1,16}$/u.test(extension)) ||
     triggerKeywords.some((keyword) => keyword.length > 80) ||
-    (progressValue !== undefined && progressValue !== "true" && progressValue !== "false")
+    (progressValue !== undefined && progressValue !== "true" && progressValue !== "false") ||
+    (deliverableValue !== undefined && deliverableValue !== "true" && deliverableValue !== "false")
   ) {
     throw new Error(`Skill ${directoryName} does not satisfy the Agent Skills contract.`);
   }
@@ -98,5 +101,6 @@ export function parseSkillMetadata(directoryName: string, content: string): Pars
     triggerExtensions,
     triggerKeywords,
     usesProgressMarkers: progressValue === "true",
+    producesDeliverables: deliverableValue === "true",
   };
 }

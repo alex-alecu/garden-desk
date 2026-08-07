@@ -9,6 +9,7 @@ export const packagedMigrationNames = [
   "0008-agent-inference-traces.sql",
   "0009-folder-order.sql",
   "0010-agent-skill-request-traces.sql",
+  "0011-agent-unbacked-response-traces.sql",
 ];
 
 export function migrationNamesFromPaths(paths: readonly string[]): string[] {
