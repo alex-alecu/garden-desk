@@ -1,8 +1,7 @@
-import { execFile } from "node:child_process";
 import { rm } from "node:fs/promises";
-import { dirname, extname, join } from "node:path";
-import { promisify } from "node:util";
+import { dirname } from "node:path";
 import { type AgentRunSnapshot, AgentRunSummarySchema, SessionSummarySchema } from "@vault/shared";
+import { extractedArtifactText } from "./artifact-text.js";
 import type { PreparedStressCase } from "./document-workloads.js";
 
 interface VerificationCase {
@@ -14,75 +13,6 @@ interface VerificationCase {
 }
 
 type Rpc = (method: string, params: Record<string, unknown>) => Promise<unknown>;
-const execFileAsync = promisify(execFile);
-const wheelRoot = join(
-  process.cwd(),
-  "packages/workers/images/.generated/downloads/vault-python-libraries",
-);
-const typingExtensionsSource = join(
-  process.cwd(),
-  "packages/workers/images/.generated/downloads/python-typing-extensions/typing_extensions-4.15.0.tar.gz",
-);
-
-async function extractedWorkbookText(path: string): Promise<string> {
-  const script = [
-    "from openpyxl import load_workbook",
-    "import sys",
-    "workbook = load_workbook(sys.argv[1], read_only=True, data_only=True)",
-    "print('\\n'.join('='.join(str(value) for value in row if value is not None) for sheet in workbook.worksheets for row in sheet.iter_rows(values_only=True)))",
-  ].join("\n");
-  return (
-    await execFileAsync("/usr/bin/python3", ["-c", script, path], {
-      encoding: "utf8",
-      env: {
-        ...process.env,
-        PYTHONPATH: [
-          join(wheelRoot, "openpyxl-3.1.5-py2.py3-none-any.whl"),
-          join(wheelRoot, "et_xmlfile-2.0.0-py3-none-any.whl"),
-        ].join(":"),
-      },
-      maxBuffer: 64 * 1024 * 1024,
-    })
-  ).stdout;
-}
-
-async function extractedArtifactText(path: string): Promise<string> {
-  const extension = extname(path).toLowerCase();
-  if (extension === ".xlsx") return extractedWorkbookText(path);
-  if (extension === ".pdf") {
-    const script = [
-      "from pathlib import Path",
-      "from types import ModuleType",
-      "import sys, tarfile",
-      "archive = tarfile.open(sys.argv[2])",
-      "member = next(item for item in archive.getmembers() if item.name.endswith('/src/typing_extensions.py'))",
-      "module = ModuleType('typing_extensions')",
-      "exec(compile(archive.extractfile(member).read(), member.name, 'exec'), module.__dict__)",
-      "sys.modules['typing_extensions'] = module",
-      "from pypdf import PdfReader",
-      "print('\\n'.join((page.extract_text() or '') for page in PdfReader(Path(sys.argv[1])).pages))",
-    ].join("\n");
-    const extracted = await execFileAsync(
-      "/usr/bin/python3",
-      ["-c", script, path, typingExtensionsSource],
-      {
-        encoding: "utf8",
-        env: {
-          ...process.env,
-          PYTHONPATH: join(wheelRoot, "pypdf-6.14.2-py3-none-any.whl"),
-        },
-        maxBuffer: 64 * 1024 * 1024,
-      },
-    );
-    return extracted.stdout;
-  }
-  return (
-    await execFileAsync("/usr/bin/unzip", ["-p", path], {
-      encoding: "utf8",
-      maxBuffer: 64 * 1024 * 1024,
-    })
-  ).stdout;
-}
 
 function expectationLabel(item: NonNullable<PreparedStressCase["deliverables"]>[number]): string {
   return item.name ?? `one ${item.extension ?? "deliverable"} artifact`;
