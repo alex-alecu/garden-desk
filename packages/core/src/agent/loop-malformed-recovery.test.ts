@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { normalizeDeliverableFactRendering } from "./artifact-declarations.js";
 import { AgentLoop } from "./loop.js";
 import { parseDecision } from "./prompt.js";
+import { hasUnbalancedSourceDelimiters } from "./source-delimiters.js";
 
 const performance = {
   promptTokens: 1,
@@ -127,6 +128,15 @@ describe("source delimiter validation", () => {
       },
     ).run({ task: "Inspect files.", modelId: "test-model" });
     expect(executed).toEqual([source]);
+  });
+
+  it("rejects an ordinary string broken by a line break but keeps multi-line forms", () => {
+    expect(hasUnbalancedSourceDelimiters("process.stdout.write('node-start\n');\n")).toBe(true);
+    expect(hasUnbalancedSourceDelimiters("print('oops\n")).toBe(true);
+    expect(hasUnbalancedSourceDelimiters("const t = `line one\nline two`;\n")).toBe(false);
+    expect(hasUnbalancedSourceDelimiters('text = """first\nsecond"""\n')).toBe(false);
+    expect(hasUnbalancedSourceDelimiters("text = '''first\nsecond'''\n")).toBe(false);
+    expect(hasUnbalancedSourceDelimiters("process.stdout.write('node-start\\n');\n")).toBe(false);
   });
 });
 
