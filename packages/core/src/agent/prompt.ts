@@ -37,6 +37,7 @@ export const MAX_EXECUTIONS = MAX_AGENT_EXECUTIONS;
 export type { AgentProgress, AgentPromptInput } from "./prompt-types.js";
 
 function needsShellSourceRepair(progress: AgentProgress): boolean {
+  if (progress.sourceExecutionRequired === true) return true;
   if (
     progress.lastRejectedProgramReason === "shell_limit" ||
     progress.lastRejectedProgramReason === "shell_source"

@@ -83,6 +83,14 @@ export async function executeTurn(turn: ExecuteTurnInput): Promise<ExecuteTurnRe
   progress.lastRejectedProgramReason = undefined;
   recordOutcome(input, traced.turnId, "accepted_execution", progress.executions.length);
   await executeAgentDecision(executor, input, traced.decision, progress);
+  const latest = progress.executions.at(-1);
+  if (
+    traced.decision.language !== "shell" &&
+    latest?.exitCode === 0 &&
+    latest.termination === "completed"
+  ) {
+    progress.sourceExecutionRequired = false;
+  }
   const active = activePromptSkillNames(input, progress, library);
   const verified = executionBackedResponse(input, progress, "");
   const result =

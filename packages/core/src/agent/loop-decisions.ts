@@ -80,6 +80,15 @@ function embedsSourceProgram(decision: Extract<AgentDecision, { action: "execute
   );
 }
 
+function startsInteractiveInterpreter(
+  decision: Extract<AgentDecision, { action: "execute" }>,
+): boolean {
+  if (decision.language !== "shell") return false;
+  const command = decision.command.trim();
+  if (/(?:^|\s)(?:--help|--version|-h|-V)(?:\s|$)/u.test(command)) return false;
+  return /^(?:env\s+)?(?:\S*\/)?(?:python(?:\d+(?:\.\d+)*)?|node)(?:\s+-\S*)*$/iu.test(command);
+}
+
 function usesGuessedSourceExtensionAllowlist(
   decision: Extract<AgentDecision, { action: "execute" }>,
   task: string,
@@ -108,7 +117,8 @@ function policyRejectionReason(
   task: string,
 ): RejectedExecutionReason | undefined {
   if (reachedShellCommandLimit(decision)) return "shell_limit";
-  if (embedsSourceProgram(decision)) return "shell_source";
+  if (embedsSourceProgram(decision) || startsInteractiveInterpreter(decision))
+    return "shell_source";
   if (rejectIncompleteSource && usesGuessedSourceExtensionAllowlist(decision, task))
     return "source_allowlist";
   if (isInvalidProgram(decision, rejectIncompleteSource)) return "invalid";

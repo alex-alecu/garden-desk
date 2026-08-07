@@ -61,6 +61,9 @@ export function rejectExecution(
   }
   progress.rejectedDuplicates += 1;
   progress.lastRejectedProgramReason = rejection.reason;
+  if (rejection.reason === "shell_limit" || rejection.reason === "shell_source") {
+    progress.sourceExecutionRequired = true;
+  }
   const next = rejection.consecutive + 1;
   const limit =
     rejection.reason === "duplicate"

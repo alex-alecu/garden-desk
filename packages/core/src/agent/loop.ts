@@ -144,15 +144,18 @@ export class AgentLoop {
     input: AgentRunInput,
     progress: AgentProgress,
     finalResponse = false,
+    revising = false,
   ): Promise<TracedDecision> {
     const { executions, inference } = progress;
     input.onEvent?.(
       "inference.started",
       finalResponse
         ? "Preparing the final response."
-        : executions.length === 0
-          ? "Loading the local model and planning the task."
-          : `Planning step ${executions.length + 1}.`,
+        : revising
+          ? `Revising the plan for step ${executions.length + 1}.`
+          : executions.length === 0
+            ? "Loading the local model and planning the task."
+            : `Planning step ${executions.length + 1}.`,
     );
     input.onThinking?.(null);
     const request = createGenerationRequest(
@@ -242,14 +245,17 @@ export class AgentLoop {
   async run(input: AgentRunInput): Promise<AgentRunResult> {
     const progress = newProgress();
     let consecutiveDuplicates = 0;
+    let revisePlanning = false;
     for (
       let decisionCount = 0;
       decisionCount < MAX_DECISIONS && progress.executions.length < MAX_EXECUTIONS;
       decisionCount += 1
     ) {
       input.signal?.throwIfAborted();
-      const traced = await this.decide(input, progress);
+      const traced = await this.decide(input, progress, false, revisePlanning);
+      revisePlanning = false;
       if (activateRequestedSkills(input, progress, traced)) continue;
+      const rejectedBefore = progress.rejectedDuplicates;
       const turn = await executeTurn({
         executor: this.executor,
         input,
@@ -258,6 +264,7 @@ export class AgentLoop {
         consecutiveDuplicates,
       });
       if (turn.result !== undefined) return turn.result;
+      revisePlanning = progress.rejectedDuplicates > rejectedBefore;
       consecutiveDuplicates = turn.consecutiveDuplicates;
     }
     return this.finishAfterLoop(input, progress);
