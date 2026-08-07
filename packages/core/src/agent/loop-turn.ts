@@ -1,5 +1,6 @@
 import type { AgentRunResult } from "@vault/shared";
 import { artifactCandidateNames } from "./artifact-declarations.js";
+import { rejectsUnbackedResponse } from "./deliverable-completion.js";
 import type { AgentExecutor, AgentRunInput, TracedDecision } from "./loop.js";
 import { rejectedExecutionReason } from "./loop-decisions.js";
 import { executeAgentDecision, rejectExecution } from "./loop-execution.js";
@@ -23,6 +24,7 @@ export function activateRequestedSkills(
   const additions = requested.filter((name) => !active.has(name) && !requestedSkills.has(name));
   if (additions.length === 0) return false;
   for (const name of additions) requestedSkills.add(name);
+  progress.skillsActivated = true;
   recordOutcome(input, traced.turnId, "accepted_skill_request");
   return true;
 }
@@ -55,14 +57,39 @@ export interface ExecuteTurnResult {
   result?: AgentRunResult;
 }
 
+function respondTurn(
+  input: AgentRunInput,
+  progress: AgentProgress,
+  traced: TracedDecision & { decision: { action: "respond" } },
+  consecutiveDuplicates: number,
+): ExecuteTurnResult {
+  const library = input.promptLibrary ?? defaultPromptLibrary();
+  const deliverableSkillActive =
+    library.deliverableSkill(activePromptSkillNames(input, progress, library)) !== undefined;
+  if (
+    rejectsUnbackedResponse({
+      decision: traced.decision,
+      deliverableSkillActive,
+      executions: progress.executions,
+      task: input.task,
+    })
+  ) {
+    recordOutcome(input, traced.turnId, "rejected_unbacked_response");
+    progress.deliverableExecutionRequired = true;
+    return { consecutiveDuplicates };
+  }
+  recordOutcome(input, traced.turnId, "accepted_response");
+  return {
+    consecutiveDuplicates,
+    result: finishRun(input, progress, traced.decision.response, traced.decision.artifacts ?? []),
+  };
+}
+
 export async function executeTurn(turn: ExecuteTurnInput): Promise<ExecuteTurnResult> {
   const { consecutiveDuplicates, executor, input, progress, traced } = turn;
   if (traced.decision.action === "respond") {
-    recordOutcome(input, traced.turnId, "accepted_response");
-    return {
-      consecutiveDuplicates,
-      result: finishRun(input, progress, traced.decision.response, traced.decision.artifacts ?? []),
-    };
+    const decision = traced.decision;
+    return respondTurn(input, progress, { ...traced, decision }, consecutiveDuplicates);
   }
   const library = input.promptLibrary ?? defaultPromptLibrary();
   const rejection = rejectedExecutionReason(
@@ -90,6 +117,7 @@ export async function executeTurn(turn: ExecuteTurnInput): Promise<ExecuteTurnRe
     latest.termination === "completed"
   ) {
     progress.sourceExecutionRequired = false;
+    progress.deliverableExecutionRequired = false;
   }
   const active = activePromptSkillNames(input, progress, library);
   const verified = executionBackedResponse(input, progress, "");

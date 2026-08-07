@@ -3,6 +3,7 @@ name: pdf-documents
 description: Guides local PDF reading, creation, and page operations. Use when the task or an attachment explicitly identifies a PDF file or PDF deliverable.
 trigger-extensions: .pdf
 trigger-keywords: pdf, portable document
+produces-deliverables: true
 ---
 
 # PDF Documents

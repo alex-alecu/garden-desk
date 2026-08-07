@@ -59,6 +59,23 @@ function generationRecovery(error: unknown): GenerationRecovery | "structured_ca
   return error.message === GENERATION_LIMIT_ERROR ? "generation_limit" : undefined;
 }
 
+function planningSummary(
+  progress: AgentProgress,
+  finalResponse: boolean,
+  revising: boolean,
+): string {
+  const step = progress.executions.length + 1;
+  if (finalResponse) return "Preparing the final response.";
+  if (revising) return `Revising the plan for step ${step}.`;
+  if (progress.executions.length > 0) return `Planning step ${step}.`;
+  if (progress.deliverableExecutionRequired === true) {
+    return "Preparing the requested files.";
+  }
+  return progress.skillsActivated === true
+    ? "Applying the requested guidance and planning the task."
+    : "Loading the local model and planning the task.";
+}
+
 export class AgentLoop {
   private contextTokens: number;
   constructor(
@@ -146,17 +163,8 @@ export class AgentLoop {
     finalResponse = false,
     revising = false,
   ): Promise<TracedDecision> {
-    const { executions, inference } = progress;
-    input.onEvent?.(
-      "inference.started",
-      finalResponse
-        ? "Preparing the final response."
-        : revising
-          ? `Revising the plan for step ${executions.length + 1}.`
-          : executions.length === 0
-            ? "Loading the local model and planning the task."
-            : `Planning step ${executions.length + 1}.`,
-    );
+    const { inference } = progress;
+    input.onEvent?.("inference.started", planningSummary(progress, finalResponse, revising));
     input.onThinking?.(null);
     const request = createGenerationRequest(
       generationInput(input, progress, finalResponse, { contextTokens: this.contextTokens }),

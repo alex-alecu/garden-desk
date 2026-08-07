@@ -14,6 +14,7 @@ export const AgentInferenceOutcomeSchema = z.enum([
   "accepted_response",
   "accepted_skill_request",
   "rejected_duplicate",
+  "rejected_unbacked_response",
   "invalid_response",
   "inference_failed",
   "cancelled",

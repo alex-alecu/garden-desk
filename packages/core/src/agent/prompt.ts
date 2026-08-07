@@ -179,6 +179,7 @@ function generationSchema(
   const generationLimitRecovery = recovery === "generation_limit" && !finalResponse;
   const sourceDiscoveryRecovery =
     progress.lastRejectedProgramReason === "source_allowlist" && !finalResponse;
+  const deliverableRecovery = progress.deliverableExecutionRequired === true && !finalResponse;
   const artifactNames = artifactCandidateNames(progress.executions);
   return agentDecisionJsonSchema({
     artifactNames,
@@ -191,6 +192,7 @@ function generationSchema(
       needsShellSourceRepair(progress) ||
       needsSourceDiscoveryRepair(input, progress, library) ||
       sourceDiscoveryRecovery ||
+      deliverableRecovery ||
       generationLimitRecovery,
     ...recoverySourceLineLimit(generationLimitRecovery, sourceDiscoveryRecovery),
   });

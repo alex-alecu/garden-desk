@@ -19,4 +19,6 @@ export interface AgentProgress {
   rejectedDuplicates: number;
   requestedSkills?: Set<string>;
   sourceExecutionRequired?: boolean;
+  deliverableExecutionRequired?: boolean;
+  skillsActivated?: boolean;
 }

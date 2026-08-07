@@ -47,6 +47,7 @@ export interface PromptSkill {
   triggerExtensions: readonly string[];
   triggerKeywords: readonly string[];
   usesProgressMarkers: boolean;
+  producesDeliverables: boolean;
   recoveryPrompts: ReadonlyMap<string, string>;
   statePrompts: ReadonlyMap<string, string>;
 }
@@ -221,6 +222,10 @@ export class PromptLibrary {
 
   progressSkill(activeNames: ReadonlySet<string>): PromptSkill | undefined {
     return this.skills.find((skill) => activeNames.has(skill.name) && skill.usesProgressMarkers);
+  }
+
+  deliverableSkill(activeNames: ReadonlySet<string>): PromptSkill | undefined {
+    return this.skills.find((skill) => activeNames.has(skill.name) && skill.producesDeliverables);
   }
 
   repairPrompts(activeNames: ReadonlySet<string>, output: string): string[] {
