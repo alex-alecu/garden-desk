@@ -18,4 +18,5 @@ export interface AgentProgress {
   lastRejectedProgramReason?: RejectedExecutionReason | undefined;
   rejectedDuplicates: number;
   requestedSkills?: Set<string>;
+  sourceExecutionRequired?: boolean;
 }

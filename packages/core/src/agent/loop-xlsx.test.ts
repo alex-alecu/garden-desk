@@ -28,6 +28,8 @@ function discoveredXlsx(command: string): AgentExecutionResult {
 function expectXlsxDiscoveryInstructions(prompt: string): void {
   expect(prompt).toContain("load_workbook(path, read_only=True, data_only=True)");
   expect(prompt).toContain("Discover requested workbooks case-insensitively");
+  expect(prompt).toContain("locate requested columns case-insensitively");
+  expect(prompt).toContain("A missing required column is an error");
   expect(prompt).toContain("consume the header from that iterator");
   expect(prompt).toContain("TOTAL counts the requested workbook corpus");
   expect(prompt).toContain("one consistent cumulative state");

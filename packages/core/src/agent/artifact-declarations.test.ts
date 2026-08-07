@@ -50,22 +50,39 @@ describe("declared deliverable selection", () => {
   });
 });
 
-describe("stale deliverable selection", () => {
-  it("invalidates later work that does not recreate or verify the deliverable", () => {
-    const created = execution([{ name: "report.pdf", content: "stale" }]);
-    const laterCalculation = execution([]);
-    const verification: AgentExecutionResult = {
+describe("deliverable freshness", () => {
+  it("keeps captured deliverables across unrelated output and later deliverables", () => {
+    const docx = execution([{ name: "story.docx", content: "docx" }]);
+    const noOp: AgentExecutionResult = {
       ...execution([]),
-      language: "python",
-      command: null,
-      path: "steps/0001.py",
-      source: "verify('report.pdf')",
+      language: "shell",
+      path: null,
+      source: null,
+      command: "true",
+      stdout: "calculation complete\n",
+      stderr: "diagnostic output\n",
     };
+    const pdf = execution([{ name: "story.pdf", content: "pdf" }]);
 
-    expect(artifactCandidateNames([created, laterCalculation])).toEqual([]);
-    expect(artifactCandidateNames([created, verification])).toEqual(["report.pdf"]);
+    expect(artifactCandidateNames([docx, noOp, pdf])).toEqual(["story.docx", "story.pdf"]);
   });
 
+  it("uses workspace invalidation and recapture as the freshness authority", () => {
+    const created = execution([
+      { name: "changed.pdf", content: "old" },
+      { name: "removed.docx", content: "removed" },
+    ]);
+    const changed = execution([], ["changed.pdf", "removed.docx"]);
+    const recaptured = execution([{ name: "changed.pdf", content: "new" }], ["changed.pdf"]);
+
+    expect(artifactCandidateNames([created, changed])).toEqual([]);
+    expect(declaredArtifactOutputs(["changed.pdf"], [created, recaptured])).toEqual([
+      { name: "changed.pdf", bytesBase64: Buffer.from("new").toString("base64") },
+    ]);
+  });
+});
+
+describe("deliverable response contract", () => {
   it("requires unique declarations constrained to observed candidate names", () => {
     const completed = execution([{ name: "requested.pdf", content: "pdf" }]);
     const schema = generationInput(
@@ -90,6 +107,34 @@ describe("stale deliverable selection", () => {
         artifacts: ["requested.pdf", "requested.pdf"],
       }).success,
     ).toBe(false);
+  });
+
+  it("keeps the task prompt and response schema aligned with all current deliverables", () => {
+    const executions = [
+      execution([{ name: "story.docx", content: "docx" }]),
+      { ...execution([]), stdout: "unrelated output\n" },
+      execution([{ name: "story.pdf", content: "pdf" }]),
+    ];
+    const generated = generationInput(
+      { task: "Write a short story for children in a Word and PDF document.", modelId: "test" },
+      {
+        executions,
+        inference: {
+          promptTokens: 0,
+          outputTokens: 0,
+          promptDurationMs: 0,
+          generationDurationMs: 0,
+          totalDurationMs: 0,
+        },
+        rejectedDuplicates: 0,
+      },
+    );
+    const schema = generated.jsonSchema as {
+      oneOf: Array<{ properties: { artifacts?: { items: { enum: string[] } } } }>;
+    };
+
+    expect(generated.prompt).toContain('Produced artifact names: ["story.docx","story.pdf"]');
+    expect(schema.oneOf[0]?.properties.artifacts?.items.enum).toEqual(["story.docx", "story.pdf"]);
   });
 });
 
