@@ -4,14 +4,11 @@ import { basename, join } from "node:path";
 import { createVaultCore } from "@vault/core";
 import { resolveMaximumGenerationContext } from "@vault/workers";
 import { readCanonicalModelManifest, verifyModelFile } from "../models.js";
+import { windowsInferencePaths } from "./windows-inference.js";
 
 const modelId = "gemma-4-12b-it-qat-q4_0";
 const modelRoot = join(process.cwd(), "packages/eval/.generated/models");
 const modelPath = join(modelRoot, `${modelId}.gguf`);
-const packagedInference = join(
-  process.cwd(),
-  "packages/desktop/src-tauri/target/release/bundle/windows/Vault Desk/resources/core/inference",
-);
 const GiB = 1024 * 1024 * 1024;
 
 async function prepareModelStore(): Promise<void> {
@@ -42,13 +39,12 @@ async function prepareModelStore(): Promise<void> {
 }
 
 async function generate(workspaceDir: string) {
+  const inference = await windowsInferencePaths();
   const core = await createVaultCore({
     workspaceDir,
     modelStoreDir: modelRoot,
     profile: "auto",
-    workerEntryPath: join(packagedInference, "worker.mjs"),
-    inferenceHelperPath: join(packagedInference, "vault-appcontainer-launcher.exe"),
-    inferenceRuntimePath: join(packagedInference, "node.exe"),
+    ...inference,
   });
   try {
     return await core.generate({

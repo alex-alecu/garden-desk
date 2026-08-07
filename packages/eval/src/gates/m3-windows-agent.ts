@@ -7,6 +7,7 @@ import type { AgentRunSnapshot } from "@vault/shared";
 import { WindowsMicroVmLauncher } from "@vault/workers";
 import { readCanonicalModelManifest, verifyModelFile } from "../models.js";
 import { runGuestEvidence } from "./m3-guest.js";
+import { windowsInferencePaths } from "./windows-inference.js";
 
 const repositoryRoot = process.cwd();
 const helper = join(
@@ -17,10 +18,6 @@ const images = join(repositoryRoot, "packages/workers/images");
 const modelRoot = join(repositoryRoot, "packages/eval/.generated/models");
 const modelId = "gemma-4-12b-it-qat-q4_0";
 const modelPath = join(modelRoot, `${modelId}.gguf`);
-const packagedInference = join(
-  repositoryRoot,
-  "packages/desktop/src-tauri/target/release/bundle/windows/Vault Desk/resources/core/inference",
-);
 
 interface WindowsArtifacts {
   kernel: string;
@@ -141,15 +138,14 @@ async function runAgentEvidence(input: AgentEvidenceInput) {
   const source = join(input.root, `${input.name}-source`);
   const workspace = join(input.root, `${input.name}-workspace`);
   await Promise.all([mkdir(source), mkdir(workspace)]);
+  const inference = await windowsInferencePaths();
   const core = await createVaultCore({
     workspaceDir: workspace,
     modelStoreDir: modelRoot,
     profile: "auto",
     agentHelperPath: helper,
     agentImageRoot: images,
-    workerEntryPath: join(packagedInference, "worker.mjs"),
-    inferenceHelperPath: join(packagedInference, "vault-appcontainer-launcher.exe"),
-    inferenceRuntimePath: join(packagedInference, "node.exe"),
+    ...inference,
   });
   try {
     const folder = await core.addFolder(source);
