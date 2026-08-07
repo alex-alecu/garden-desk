@@ -16,8 +16,7 @@ Use `python-docx` for requested DOCX work inside the no-network guest.
 2. For a new document, use A4 sections with sensible margins, built-in heading styles, readable body text, and restrained spacing. Add tables only when they improve the requested structure.
 3. Save the requested deliverable beneath `/workspace`. Keep helper scripts, extracted text, checkpoints, and temporary files separate from the requested output.
 4. Reopen every saved deliverable with `Document(output_path)`. Verify the expected paragraphs, tables, styles, section dimensions, and exact requested facts before declaring it.
-5. If later work changes facts that a created deliverable must contain, recreate and reopen that deliverable before responding.
-6. `Document` objects have no `close()` method.
+5. `Document` objects have no `close()` method.
 
 ## Verification
 

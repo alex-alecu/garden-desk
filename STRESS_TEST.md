@@ -10,6 +10,13 @@ Task-specific evaluations use an ignored TypeScript runner under `packages/eval/
 
 ## Latest results
 
+### Three-skill prompt budget after merging generated-file freshness - 2026-08-07
+
+- Merging the generated-file freshness work into this branch made a three-format request exceed the 8K prompt floor. `Create report.pdf, report.docx, and report.xlsx.` activates the DOCX, PDF, and XLSX skills together, and the merged request serialized to 4,104 tokens against the fixed 4,096-token request budget, so `generationInput` returned `agent_context_exhausted` before any inference ran. The same request fit at 14,940 prompt characters before the merge.
+- Both branches were individually correct. The freshness change added the same deliverable-recreation sentence to all three document skills, and this branch added compacted task state and deliverable-fact instructions, so only the combination crossed the limit.
+- The duplicated sentence is generic rather than format-specific, so it now appears once in the always-loaded system prompt instead of three times in skill bodies. Behavior is preserved for every deliverable format, including formats without a document skill, and the three-skill request fits again. No context, execution, time, VM, workspace, or isolation limit changed.
+
+
 The 2026-08-06 context-turnover regression cycle split the small profile's stochastic management-report requests into directly runnable focused PDF, DOCX, XLSX, and large-corpus cases. The redundant monolithic request repeatedly kept Gemma in one constrained generation until the fixed worker timeout, while each format-specific case exercised the same hidden four-fact corpus and passed direct artifact-byte verification. The default sequential and concurrent sweeps use generic deterministic cases so a worker-generation timeout cannot prevent agent regressions from running. The scaled profile retains cross-format and large-corpus continuation workflows; no product context, inference, execution, VM, workspace, time, or isolation limit changed.
 
 ### Unbacked promise-only response recovery — 2026-08-07

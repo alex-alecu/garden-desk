@@ -13,6 +13,7 @@ import type { AgentProgress, AgentPromptInput } from "./prompt-types.js";
 export type GenerationRecovery = "generation_limit" | undefined;
 
 export function needsShellSourceRepair(progress: AgentProgress): boolean {
+  if (progress.sourceExecutionRequired === true) return true;
   if (
     progress.lastRejectedProgramReason === "shell_limit" ||
     progress.lastRejectedProgramReason === "shell_source"

@@ -28,7 +28,6 @@ Use `openpyxl` for local workbook work. Prefer one complete bounded program over
 3. Save requested deliverables beneath `/workspace`; keep scripts, checkpoints, caches, and temporary files separate and undeclared.
 4. Reopen every output with `data_only=False`. Verify requested sheets, labels, values, formulas, styles, merges, and dimensions before declaring the artifact. Explain that newly written formulas are not locally calculated by `openpyxl`.
 5. Pass only a flat sequence of scalar cell values to `Worksheet.append()`. Never pass a source row tuple or a converted list as one nested cell; spread copied values into the output row or join them into one scalar string.
-6. If later work changes facts that a created deliverable must contain, recreate and reopen that deliverable before responding.
 
 ## Oversized tabular results
 
