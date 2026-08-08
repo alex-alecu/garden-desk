@@ -2,7 +2,10 @@ import type { AgentDecision, AgentExecutionResult } from "@vault/shared";
 import { describe, expect, it } from "vitest";
 import { normalizeDeliverableFactRendering } from "./artifact-declarations.js";
 import { AgentLoop } from "./loop.js";
+import { rejectedExecutionReason } from "./loop-decisions.js";
 import { parseDecision } from "./prompt.js";
+import { defaultPromptLibrary } from "./prompt-library.js";
+import { rejectionInstructions } from "./prompt-rejection.js";
 import { hasUnbalancedSourceDelimiters } from "./source-delimiters.js";
 
 const performance = {
@@ -98,6 +101,19 @@ describe("source response normalization", () => {
 });
 
 describe("source path normalization", () => {
+  it("keeps string escapes inside a source item that already spans lines", () => {
+    const source =
+      "process.stdout.write('node-start\\n');\nsetTimeout(() => {\n  process.stdout.write('node-finish\\n');\n}, 3000);";
+    const decision = parseDecision({
+      action: "execute",
+      language: "node",
+      source: [source],
+      summary: "Print markers",
+    });
+    expect(decision).toMatchObject({ action: "execute", source });
+    expect(rejectedExecutionReason(decision as never, [])).toBeUndefined();
+  });
+
   it("omits an unsafe optional source path so Core can assign one", () => {
     const decision = parseDecision({
       action: "execute",
@@ -137,6 +153,32 @@ describe("source delimiter validation", () => {
     expect(hasUnbalancedSourceDelimiters('text = """first\nsecond"""\n')).toBe(false);
     expect(hasUnbalancedSourceDelimiters("text = '''first\nsecond'''\n")).toBe(false);
     expect(hasUnbalancedSourceDelimiters("process.stdout.write('node-start\\n');\n")).toBe(false);
+  });
+
+  it("names the unterminated string so recovery can explain the exact repair", () => {
+    const decision = {
+      action: "execute",
+      language: "node",
+      source: "process.stdout.write('node-start\n');\n",
+      summary: "Print markers",
+    } as const;
+    expect(rejectedExecutionReason(decision, [])).toBe("unterminated_source_string");
+    expect(
+      rejectionInstructions(
+        { executions: [], inference: performance, rejectedDuplicates: 0 },
+        defaultPromptLibrary(),
+      ),
+    ).toEqual([]);
+    const guidance = rejectionInstructions(
+      {
+        executions: [],
+        inference: performance,
+        lastRejectedProgramReason: "unterminated_source_string",
+        rejectedDuplicates: 0,
+      },
+      defaultPromptLibrary(),
+    );
+    expect(guidance.join("\n")).toContain("left open at a line break");
   });
 });
 

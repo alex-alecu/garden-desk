@@ -17,6 +17,9 @@ export function rejectionInstructions(
   if (progress.lastRejectedProgramReason === "source_allowlist") {
     return [library.recovery("source-allowlist")];
   }
+  if (progress.lastRejectedProgramReason === "unterminated_source_string") {
+    return [library.recovery("unterminated-source-string")];
+  }
   if (progress.lastRejectedProgramReason === "invalid") {
     return [library.recovery("invalid-program")];
   }

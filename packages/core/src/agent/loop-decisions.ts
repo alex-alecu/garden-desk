@@ -11,6 +11,7 @@ import { hasUnbalancedSourceDelimiters } from "./source-delimiters.js";
 export type RejectedExecutionReason =
   | "duplicate"
   | "invalid"
+  | "unterminated_source_string"
   | "shell_limit"
   | "shell_source"
   | "source_allowlist";
@@ -128,10 +129,15 @@ function isInvalidProgram(
     containsProtocolFragment(decision) ||
     containsMalformedCallSuffix(decision) ||
     containsBareIdentifierStatement(decision) ||
-    (decision.language !== "shell" && hasUnbalancedSourceDelimiters(decision.source)) ||
     isPathologicallyRepetitive(decision) ||
     (rejectIncompleteSource && isImportOnlySource(decision))
   );
+}
+
+function hasUnterminatedSourceString(
+  decision: Extract<AgentDecision, { action: "execute" }>,
+): boolean {
+  return decision.language !== "shell" && hasUnbalancedSourceDelimiters(decision.source);
 }
 
 function rendersRequestedFactWithColon(
@@ -158,6 +164,7 @@ function policyRejectionReason(
     return "source_allowlist";
   if (rendersRequestedFactWithColon(decision, task)) return "invalid";
   if (isInvalidProgram(decision, rejectIncompleteSource)) return "invalid";
+  if (hasUnterminatedSourceString(decision)) return "unterminated_source_string";
   return undefined;
 }
 

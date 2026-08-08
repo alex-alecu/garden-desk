@@ -4,6 +4,10 @@ export function normalizeSourceItems(items: unknown[]): unknown[] {
   const lines = items
     .flatMap((line) => {
       if (typeof line !== "string") return [line];
+      // An item that already spans lines is a complete block, so its remaining
+      // `\n` escapes belong inside string literals. Expanding them would break
+      // those strings across lines and make valid source unparseable.
+      if (/\r?\n/u.test(line)) return line.split(/\r?\n/u);
       const escapedSeparators = line.match(/\\n/gu)?.length ?? 0;
       const blockShaped =
         line === "\\n" || line.startsWith("\\n") || line.endsWith("\\n") || escapedSeparators >= 2;
