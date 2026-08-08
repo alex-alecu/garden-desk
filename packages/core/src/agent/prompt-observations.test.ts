@@ -44,9 +44,10 @@ describe("bounded observation streams", () => {
   it("states that the excerpt is incomplete and names the workspace remedy", () => {
     const bounded = boundedObservationStream("y".repeat(120_000));
 
-    expect(bounded).toContain("characters omitted from the middle of this stream");
-    expect(bounded).toContain("This observation is an excerpt, not the complete output.");
-    expect(bounded).toContain("Write the complete text to a /workspace file");
+    expect(bounded).toContain("characters omitted from the middle of this execution field");
+    expect(bounded).toContain("This field is an excerpt, not the complete value.");
+    expect(bounded).toContain("Successful source remains at its assigned /workspace path.");
+    expect(bounded).toContain("write it to a /workspace file");
   });
 
   it("shrinks the excerpt for a small prompt budget and never exceeds the ceiling", () => {
@@ -123,7 +124,7 @@ describe("oversized stdout in the decision prompt", () => {
     expect(result.response).toBe("The contract runs to page 25.");
     expect(prompts[1]).toContain("CONTRACT PAGE 1");
     expect(prompts[1]).toContain("SIGNED PAGE 25");
-    expect(prompts[1]).toContain("characters omitted from the middle of this stream");
+    expect(prompts[1]).toContain("characters omitted from the middle of this execution field");
     expect(prompts[1]).toContain("# Compacted task state");
     expect(prompts[1]).toContain("Task ledger:");
     expect(prompts[1]).toContain("Evidence ledger:");

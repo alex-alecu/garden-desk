@@ -2,7 +2,11 @@ import type { ConversationMessage } from "@vault/shared";
 import { describe, expect, it } from "vitest";
 import { assembleHistory } from "./history.js";
 import { defaultPromptLibrary } from "./prompt-library.js";
-import { summarizableMessages, summarizeSession } from "./session-summary.js";
+import {
+  fittedSummaryMessages,
+  summarizableMessages,
+  summarizeSession,
+} from "./session-summary.js";
 
 function message(id: string, role: "user" | "assistant", content: string): ConversationMessage {
   return {
@@ -129,6 +133,74 @@ describe("anchored session summary guardrails", () => {
         coveredMessageId: "m2",
       } as never),
     ).toHaveLength(2);
+  });
+});
+
+describe("anchored session summary backlog", () => {
+  it("advances through an oversized backlog in allocation-bounded prefixes", async () => {
+    const messages = Array.from({ length: 120 }, (_, index) =>
+      message(
+        `backlog-${index}`,
+        index % 2 === 0 ? "user" : "assistant",
+        `turn-${index}-${"x".repeat(3_000)}`,
+      ),
+    );
+    const input = {
+      messages,
+      modelId: "gemma-4-12b-it-qat-q4_0",
+      contextTokens: 16_384,
+      library: defaultPromptLibrary(),
+    };
+    const selected = fittedSummaryMessages(input, messages);
+    expect(selected.length).toBeGreaterThanOrEqual(4);
+    expect(selected.length).toBeLessThan(messages.length);
+
+    const calls: string[] = [];
+    const result = await summarizeSession(
+      inference({ summary: ["## Work State", "- Backlog advanced."] }, calls),
+      input,
+    );
+    expect(result?.coveredMessageCount).toBe(selected.length);
+    expect(result?.coveredMessageId).toBe(selected.at(-1)?.id);
+    expect(calls[0]).not.toContain("turn-119-");
+
+    const remaining = summarizableMessages(messages, {
+      coveredMessageId: result?.coveredMessageId,
+    } as never);
+    expect(remaining[0]?.id).toBe(`backlog-${selected.length}`);
+  });
+});
+
+describe("anchored session summary recovery", () => {
+  it("retries one missing structured call with a fresh request", async () => {
+    const prompts: string[] = [];
+    const identities: string[] = [];
+    const successful = inference({ summary: ["## Objective", "- Continue offline."] });
+    let attempts = 0;
+    const recovering = {
+      async generate(
+        input: { prompt: string },
+        _signal?: AbortSignal,
+        _thinking?: unknown,
+        identity?: unknown,
+      ) {
+        prompts.push(input.prompt);
+        identities.push(JSON.stringify(identity));
+        attempts += 1;
+        if (attempts === 1) throw new Error("structured_tool_call_required");
+        return await successful.generate(input);
+      },
+    };
+    const result = await summarizeSession(recovering, {
+      messages: conversation,
+      modelId: "gemma-4-12b-it-qat-q4_0",
+      contextTokens: 65_536,
+      library: defaultPromptLibrary(),
+    });
+    expect(result?.text).toContain("Continue offline.");
+    expect(prompts).toHaveLength(2);
+    expect(new Set(identities).size).toBe(2);
+    expect(prompts[1]).toContain("returned prose instead of the required structured summary call");
   });
 });
 

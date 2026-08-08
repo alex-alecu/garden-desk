@@ -4,6 +4,8 @@ Created: 2026-07-26
 
 This evaluation measures the M3 generic offline development agent with the real Gemma 4 12B QAT worker, current-user daemon, and no-NIC microVM. It does not add a product document parser. The small suite first exposed an XLSX agent-loop limitation and then verified the focused Core-owned repair described below.
 
+The current cross-platform small profile also contains one single-turn and one three-turn context-compaction workload. The separate `pnpm test:stress:m3:context-session` command sizes synthetic conversation pressure from the worker's reported allocation, requires three distinct anchored-summary versions in later traced prompts, and verifies final recall of pre-compaction decisions. These runners record the actual allocation and must be executed independently on each physical tier; passing one tier is never evidence for another.
+
 ## Two-commit delivery
 
 The work is intentionally split into two commits in one pull request:

@@ -116,6 +116,13 @@ function compactMessages(messages: ConversationMessage[], excerptTokens: number)
   return { lines, tokens: tokens(lines.join("\n")) };
 }
 
+function verbatimMessages(messages: ConversationMessage[]) {
+  const lines = messages.map(
+    (message) => `message ${message.id} ${message.role}: ${message.content}`,
+  );
+  return { lines, tokens: tokens(lines.join("\n")) };
+}
+
 function anchoredSummary(summary: string | undefined, budgetTokens: number) {
   if (summary === undefined || summary.trim().length === 0) return undefined;
   const lines = [summary.trim()];
@@ -128,12 +135,14 @@ function olderConversation(
   budgetTokens: number,
   summary?: string,
 ) {
+  const verbatim = verbatimMessages(messages);
+  if (verbatim.tokens <= budgetTokens) return { ...verbatim, anchored: false };
+  const anchored = anchoredSummary(summary, budgetTokens);
+  if (anchored !== undefined) return anchored;
   for (const excerptTokens of [128, 64, 32, 16, 8]) {
     const compacted = compactMessages(messages, excerptTokens);
     if (compacted.tokens <= budgetTokens) return { ...compacted, anchored: false };
   }
-  const anchored = anchoredSummary(summary, budgetTokens);
-  if (anchored !== undefined) return anchored;
   const marker = `${messages.length} older messages remain in durable conversation history.`;
   return tokens(marker) <= budgetTokens
     ? { lines: [marker], tokens: tokens(marker), anchored: false }

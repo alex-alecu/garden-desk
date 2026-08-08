@@ -21,6 +21,7 @@ export interface PreparedStressCase<Id extends string = string> {
   forbidArtifacts?: boolean;
   maxExecutions?: number;
   requiresContextCompaction?: boolean;
+  minimumContextCompactions?: number;
 }
 
 export interface StressCaseDefinition<Id extends string = string> {
@@ -32,6 +33,7 @@ export interface StressCaseDefinition<Id extends string = string> {
   forbidArtifacts?: boolean;
   maxExecutions?: number;
   requiresContextCompaction?: boolean;
+  minimumContextCompactions?: number;
 }
 
 function value(evidence: FixtureEvidence, name: string): number | string {
@@ -107,5 +109,8 @@ export async function prepareStressCase<Id extends string>(
     ...(definition.forbidArtifacts === true ? { forbidArtifacts: true } : {}),
     ...(definition.maxExecutions === undefined ? {} : { maxExecutions: definition.maxExecutions }),
     ...(definition.requiresContextCompaction === true ? { requiresContextCompaction: true } : {}),
+    ...(definition.minimumContextCompactions === undefined
+      ? {}
+      : { minimumContextCompactions: definition.minimumContextCompactions }),
   };
 }

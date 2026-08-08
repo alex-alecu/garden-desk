@@ -40,4 +40,31 @@ describe("empty source inspection recovery", () => {
     expect(request.jsonSchema).not.toHaveProperty("oneOf");
     expect(JSON.stringify(request.jsonSchema)).toContain('"maxItems":40');
   });
+
+  it("allows finalization when an output limit retained useful discovery evidence", () => {
+    const request = generationInput(
+      { task: "Print a bounded source inspection.", modelId: "test" },
+      {
+        executions: [
+          {
+            ...emptyExecution,
+            stdout: "limit-start\n",
+            termination: "resource_limit",
+          },
+        ],
+        inference: {
+          promptTokens: 0,
+          outputTokens: 0,
+          promptDurationMs: 0,
+          generationDurationMs: 0,
+          totalDurationMs: 0,
+        },
+        rejectedDuplicates: 0,
+        requestedSkills: new Set(["terminal-commands"]),
+      },
+    );
+
+    expect(request.jsonSchema).toHaveProperty("oneOf");
+    expect(JSON.stringify(request.jsonSchema)).toContain('"const":"respond"');
+  });
 });

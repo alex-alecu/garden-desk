@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   CONTEXT_COMPACTION_PLAN,
   OVERSIZED_TABLE_PLAN,
+  REPEATED_COMPACTION_PLAN,
 } from "../stress/context-compaction-fixture.js";
 import { SCALED_CASES, SCALED_WORKLOAD_PLAN } from "../stress/scaled-profile.js";
 import {
@@ -45,6 +46,7 @@ describe("M3 XLSX row-filter regression workload", () => {
 describe("M3 context turnover regressions", () => {
   it("keeps enough records to exceed the bounded observation stream", () => {
     expect(CONTEXT_COMPACTION_PLAN).toEqual({ records: 6_000, shards: 3 });
+    expect(REPEATED_COMPACTION_PLAN).toEqual({ stages: 3, recordsPerStage: 2_000 });
   });
 
   it("keeps the complete table too large for the response contract", () => {
@@ -63,6 +65,7 @@ describe("M3 small stress sweep", () => {
     expect(SMALL_SEQUENTIAL_CASES).toEqual(
       expect.arrayContaining([
         "context-compaction",
+        "repeated-context-compaction",
         "oversized-table-result",
         "excel-row-filter",
         "terminal-discovery",

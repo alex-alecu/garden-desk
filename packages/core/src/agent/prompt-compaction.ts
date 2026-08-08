@@ -1,5 +1,6 @@
 import type { AgentExecutionResult } from "@vault/shared";
 import { artifactCandidateNames } from "./artifact-declarations.js";
+import { MAX_AGENT_EXECUTIONS } from "./limits.js";
 import {
   type AnchoredLedger,
   anchorIsCurrent,
@@ -7,8 +8,10 @@ import {
   mergeAnchoredLedger,
 } from "./prompt-anchor.js";
 import type { PromptLibrary } from "./prompt-library.js";
+import { executionContextCharacters } from "./prompt-observations.js";
 
 const MAX_EVIDENCE_LINES = 24;
+const MAX_EVIDENCE_LINES_PER_EXECUTION = Math.floor(MAX_EVIDENCE_LINES / MAX_AGENT_EXECUTIONS);
 const MAX_EVIDENCE_LINE_CHARACTERS = 512;
 const DEFAULT_LIVE_OBSERVATION_CHARACTERS = 32_000;
 const MAX_ANCHORED_WARNINGS = 8;
@@ -59,12 +62,7 @@ function warningLedger(executions: AgentExecutionResult[], from: number) {
 }
 
 export function currentRunNeedsCompaction(executions: AgentExecutionResult[]): boolean {
-  return (
-    executions.reduce(
-      (total, execution) => total + execution.stdout.length + execution.stderr.length,
-      0,
-    ) > DEFAULT_LIVE_OBSERVATION_CHARACTERS
-  );
+  return executionContextCharacters(executions) > DEFAULT_LIVE_OBSERVATION_CHARACTERS;
 }
 
 function normalizedTerms(task: string): Set<string> {
@@ -79,22 +77,24 @@ function normalizedTerms(task: string): Set<string> {
 function salience(line: string, terms: ReadonlySet<string>): number {
   const normalized = line.toLocaleLowerCase("en-US");
   const matchingTerms = [...terms].filter((term) => normalized.includes(term)).length;
-  return matchingTerms + (/\b[A-Z][A-Z0-9_]{2,}=/u.test(line) ? 100 : 0);
+  const explicitIdentifier = /\b[A-Z][A-Z0-9_]{2,}\b/u.test(line) ? 100 : 0;
+  const exactLabel = /\b[A-Z][A-Z0-9_]{2,}=/u.test(line) ? 100 : 0;
+  return matchingTerms + explicitIdentifier + exactLabel;
 }
 
 function evidenceLines(task: string, executions: AgentExecutionResult[]): string[] {
   const terms = normalizedTerms(task);
-  const lines = executions.flatMap((execution) =>
-    `${execution.stdout}\n${execution.stderr}`.split(/\r?\n/u),
-  );
-  const candidates = lines
-    .map((line, order) => ({ line: line.trim(), order }))
-    .map((item) => ({ ...item, score: salience(item.line, terms) }))
-    .filter((item) => item.line.length > 0 && item.score > 0)
-    .sort((left, right) => right.score - left.score || left.order - right.order);
-  return [
-    ...new Set(candidates.map((item) => item.line.slice(0, MAX_EVIDENCE_LINE_CHARACTERS))),
-  ].slice(0, MAX_EVIDENCE_LINES);
+  return executions.flatMap((execution) => {
+    const lines = `${execution.stdout}\n${execution.stderr}`.split(/\r?\n/u);
+    const candidates = lines
+      .map((line, order) => ({ line: line.trim(), order }))
+      .map((item) => ({ ...item, score: salience(item.line, terms) }))
+      .filter((item) => item.line.length > 0 && item.score > 0)
+      .sort((left, right) => right.score - left.score || left.order - right.order);
+    return [
+      ...new Set(candidates.map((item) => item.line.slice(0, MAX_EVIDENCE_LINE_CHARACTERS))),
+    ].slice(0, MAX_EVIDENCE_LINES_PER_EXECUTION);
+  });
 }
 
 function executionLedger(executions: AgentExecutionResult[]) {
@@ -104,6 +104,8 @@ function executionLedger(executions: AgentExecutionResult[]) {
     path: execution.path,
     exitCode: execution.exitCode,
     termination: execution.termination,
+    sourceCharacters: execution.source?.length ?? 0,
+    commandCharacters: execution.command?.length ?? 0,
     stdoutCharacters: execution.stdout.length,
     stderrCharacters: execution.stderr.length,
     artifacts: execution.artifacts.map((artifact) => artifact.name),
@@ -120,10 +122,7 @@ export interface CompactedTaskStateInput {
 
 export function compactedTaskState(input: CompactedTaskStateInput): string {
   const { task, executions, observationCharacters, library } = input;
-  const streamCharacters = executions.reduce(
-    (total, execution) => total + execution.stdout.length + execution.stderr.length,
-    0,
-  );
+  const streamCharacters = executionContextCharacters(executions);
   if (streamCharacters <= observationCharacters) return "";
   const ledger = (input.anchor ?? new LedgerAnchor()).advance(task, executions);
   return library.state("context-compaction", {

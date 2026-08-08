@@ -73,7 +73,9 @@ describe("anchored session summary lifecycle", () => {
     const inference: Pick<InferenceService, "generate"> & Pick<InferenceService, "modelStatus"> = {
       async generate(input) {
         prompts.push(input.prompt);
-        const summarizing = input.prompt.includes("anchored summary");
+        const summarizing = input.prompt.startsWith(
+          "You are summarizing an offline knowledge-work session",
+        );
         return {
           protocolVersion: 1,
           requestId: "summary-lifecycle",
@@ -121,11 +123,12 @@ describe("anchored session summary lifecycle", () => {
     const session = conversations.createSession(null);
     // Five turns: the first anchors, and later turns accumulate enough new messages
     // to merge into that anchor instead of re-deriving it.
+    const filler = " background-note".repeat(4_000);
     const tasks = [
-      "Review the invoices.",
-      "Now filter them.",
-      "Then total them.",
-      "Export the workbook.",
+      `Review the invoices.${filler}`,
+      `Now filter them.${filler}`,
+      `Then total them.${filler}`,
+      `Export the workbook.${filler}`,
       "Confirm the totals.",
     ];
     for (const task of tasks) {
@@ -142,6 +145,9 @@ describe("anchored session summary lifecycle", () => {
     expect(anchored?.count).toBeGreaterThan(0);
     // A later turn merges into the stored anchor rather than re-deriving it.
     expect(prompts.some((prompt) => prompt.includes("<previous-summary>"))).toBe(true);
+    expect(prompts.some((prompt) => prompt.includes("Anchored summary of earlier turns"))).toBe(
+      true,
+    );
 
     await service.close();
     catalog.close();

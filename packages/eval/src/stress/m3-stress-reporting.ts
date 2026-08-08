@@ -80,8 +80,11 @@ function stressError(
   if (active.fixture.forbidArtifacts === true && snapshot.artifacts.length > 0) {
     return "Expected no artifacts.";
   }
-  if (active.fixture.requiresContextCompaction === true && compactions === 0) {
-    return "Expected automatic context compaction evidence.";
+  const requiredCompactions =
+    active.fixture.minimumContextCompactions ??
+    (active.fixture.requiresContextCompaction === true ? 1 : 0);
+  if (compactions < requiredCompactions) {
+    return `Expected at least ${requiredCompactions} automatic context compaction event${requiredCompactions === 1 ? "" : "s"}.`;
   }
   return snapshot.run.error;
 }

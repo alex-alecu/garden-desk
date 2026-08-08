@@ -177,36 +177,37 @@ function compactionCase(): ActiveCase {
   };
 }
 
-function traceWithPrompt(prompt: string) {
+function traceWithPrompts(...prompts: string[]) {
   return AgentTraceSchema.parse({
     runId: "77ff5b22-555d-4ef2-9170-fdd7118738f1",
     captureVersion: 1,
     status: "recorded",
-    turns: [
-      {
-        id: "11111111-1111-4111-8111-111111111111",
-        runId: "77ff5b22-555d-4ef2-9170-fdd7118738f1",
-        sequence: 0,
-        phase: "decision",
-        requestId: "22222222-2222-4222-8222-222222222222",
-        jobId: "ea31a359-3b01-4d54-9950-e3d46e807381",
-        modelId: "test",
-        contextSize: 131_072,
-        maxTokens: 8_192,
-        allocatedContextTokens: 131_072,
-        promptHash: `sha256:${"0".repeat(64)}`,
-        schemaHash: `sha256:${"1".repeat(64)}`,
-        responseHash: null,
-        prompt,
-        jsonSchema: {},
-        structuredResponse: null,
-        outcome: "accepted_response",
-        executionSequence: null,
-        createdAt: timestamp,
-        responseCapturedAt: timestamp,
-        completedAt: timestamp,
-      },
-    ],
+    turns: prompts.map(
+      (prompt, index) =>
+        ({
+          id: `11111111-1111-4111-8111-${String(index + 1).padStart(12, "0")}`,
+          runId: "77ff5b22-555d-4ef2-9170-fdd7118738f1",
+          sequence: index,
+          phase: "decision",
+          requestId: "22222222-2222-4222-8222-222222222222",
+          jobId: "ea31a359-3b01-4d54-9950-e3d46e807381",
+          modelId: "test",
+          contextSize: 131_072,
+          maxTokens: 8_192,
+          allocatedContextTokens: 131_072,
+          promptHash: `sha256:${"0".repeat(64)}`,
+          schemaHash: `sha256:${"1".repeat(64)}`,
+          responseHash: null,
+          prompt,
+          jsonSchema: {},
+          structuredResponse: null,
+          outcome: "accepted_response",
+          executionSequence: null,
+          createdAt: timestamp,
+          responseCapturedAt: timestamp,
+          completedAt: timestamp,
+        }) as const,
+    ),
   });
 }
 
@@ -216,15 +217,36 @@ describe("context compaction stress evidence", () => {
     const result = snapshot("Done.", "COMPACTION_TOTAL=38687\n");
 
     expect(
-      stressResultFor(active, result, { trace: traceWithPrompt("No compaction.") }),
+      stressResultFor(active, result, { trace: traceWithPrompts("No compaction.") }),
     ).toMatchObject({
       passed: false,
-      error: "Expected automatic context compaction evidence.",
+      error: "Expected at least 1 automatic context compaction event.",
     });
     expect(
       stressResultFor(active, result, {
-        trace: traceWithPrompt("# Compacted task state\nComplete."),
+        trace: traceWithPrompts("# Compacted task state\nComplete."),
       }),
     ).toMatchObject({ passed: true, contextCompactions: 1 });
+  });
+
+  it("can require repeated turnover instead of one compacted prompt", () => {
+    const active = compactionCase();
+    active.fixture.minimumContextCompactions = 3;
+    active.fixture.requiresContextCompaction = false;
+    const result = snapshot("Done.", "COMPACTION_TOTAL=38687\n");
+    const compacted = "# Compacted task state\nComplete.";
+
+    expect(
+      stressResultFor(active, result, { trace: traceWithPrompts(compacted, compacted) }),
+    ).toMatchObject({
+      passed: false,
+      contextCompactions: 2,
+      error: "Expected at least 3 automatic context compaction events.",
+    });
+    expect(
+      stressResultFor(active, result, {
+        trace: traceWithPrompts(compacted, compacted, compacted),
+      }),
+    ).toMatchObject({ passed: true, contextCompactions: 3 });
   });
 });

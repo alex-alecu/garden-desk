@@ -110,3 +110,40 @@ describe("anchored compaction equivalence", () => {
     expect(unchanged).toBe(first);
   });
 });
+
+describe("multi-execution anchored evidence", () => {
+  it("retains explicit target evidence from every compacted execution", () => {
+    const executions = [1, 2, 3].map((stage) =>
+      execution(
+        [
+          `ID: target-${stage}, Amount: ${stage * 10}, Status: STAGE_${stage}_TARGET`,
+          ...Array.from(
+            { length: 50 },
+            (_, index) =>
+              `ID: ordinary-${stage}-${index}, Amount: ${index}, Status: ordinary-record`,
+          ),
+        ].join("\n"),
+      ),
+    );
+    const anchor = new LedgerAnchor();
+    const library = defaultPromptLibrary();
+    const task = "Return STAGE_1_TARGET, STAGE_2_TARGET, and STAGE_3_TARGET amounts.";
+    for (let count = 1; count <= executions.length; count += 1) {
+      compactedTaskState({
+        task,
+        executions: executions.slice(0, count),
+        observationCharacters: 100,
+        library,
+        anchor,
+      });
+    }
+    const compacted = compactedTaskState({
+      task,
+      executions,
+      observationCharacters: 100,
+      library,
+      anchor,
+    });
+    for (const stage of [1, 2, 3]) expect(compacted).toContain(`STAGE_${stage}_TARGET`);
+  });
+});

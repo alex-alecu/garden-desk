@@ -46,6 +46,32 @@ function anchorInstruction(previous: string | undefined): string {
     : `Update the anchored summary below using the conversation history. Preserve still-true details, remove stale details, and merge in new facts.\n\n<previous-summary>\n${previous}\n</previous-summary>`;
 }
 
+function summaryPrompt(input: SessionSummaryInput, messages: readonly ConversationMessage[]) {
+  return input.library.system("session-summary", {
+    anchor_instruction: anchorInstruction(input.previous?.text),
+    conversation: conversationText(messages),
+  });
+}
+
+function summaryRetryPrompt(input: SessionSummaryInput, prompt: string): string {
+  return `${prompt}\n\n${input.library.recovery("session-summary-call")}`;
+}
+
+function summaryRequestTokens(
+  input: SessionSummaryInput,
+  messages: readonly ConversationMessage[],
+) {
+  return Math.ceil(
+    JSON.stringify({
+      modelId: input.modelId,
+      prompt: summaryRetryPrompt(input, summaryPrompt(input, messages)),
+      jsonSchema: SUMMARY_SCHEMA,
+      contextSize: "auto",
+      maxTokens: SUMMARY_OUTPUT_TOKENS,
+    }).length / 4,
+  );
+}
+
 function summaryFromValue(value: unknown): string | undefined {
   if (typeof value !== "object" || value === null || !("summary" in value)) return undefined;
   const lines = (value as { summary: unknown }).summary;
@@ -142,6 +168,27 @@ export function summarizableMessages(
   return messages.slice(anchored + 1);
 }
 
+/** Selects the largest pending prefix that fits the machine's current allocation. */
+export function fittedSummaryMessages(
+  input: SessionSummaryInput,
+  pending: readonly ConversationMessage[],
+): readonly ConversationMessage[] {
+  const requestBudget = input.contextTokens - SUMMARY_OUTPUT_TOKENS;
+  let low = MINIMUM_SUMMARIZED_MESSAGES;
+  let high = pending.length;
+  let selected = 0;
+  while (low <= high) {
+    const candidate = Math.floor((low + high) / 2);
+    if (summaryRequestTokens(input, pending.slice(0, candidate)) <= requestBudget) {
+      selected = candidate;
+      low = candidate + 1;
+    } else {
+      high = candidate - 1;
+    }
+  }
+  return pending.slice(0, selected);
+}
+
 /**
  * Produces one anchored conversation summary. The summary is untrusted continuity
  * prose: it never carries authoritative values and never decides completion. Any
@@ -154,29 +201,36 @@ export async function summarizeSession(
   if (input.contextTokens < MINIMUM_CONTEXT_TOKENS) return undefined;
   const pending = summarizableMessages(input.messages, input.previous);
   if (pending.length < MINIMUM_SUMMARIZED_MESSAGES) return undefined;
-  const last = input.messages.at(-1);
+  const selected = fittedSummaryMessages(input, pending);
+  if (selected.length < MINIMUM_SUMMARIZED_MESSAGES) return undefined;
+  const last = selected.at(-1);
   if (last === undefined) return undefined;
-  const prompt = input.library.system("session-summary", {
-    anchor_instruction: anchorInstruction(input.previous?.text),
-    conversation: conversationText(pending),
-  });
+  const prompt = summaryPrompt(input, selected);
   try {
-    const request = createGenerationRequest({
-      modelId: input.modelId,
-      prompt,
-      jsonSchema: SUMMARY_SCHEMA as unknown as Record<string, unknown>,
-      contextSize: "auto",
-      maxTokens: SUMMARY_OUTPUT_TOKENS,
-    });
-    const generated = await inference.generate(
-      request.input,
-      input.signal,
-      undefined,
-      request.identity,
-    );
+    const generate = async (effectivePrompt: string) => {
+      const request = createGenerationRequest({
+        modelId: input.modelId,
+        prompt: effectivePrompt,
+        jsonSchema: SUMMARY_SCHEMA as unknown as Record<string, unknown>,
+        contextSize: "auto",
+        maxTokens: SUMMARY_OUTPUT_TOKENS,
+      });
+      return await inference.generate(request.input, input.signal, undefined, request.identity);
+    };
+    let generated: Awaited<ReturnType<InferenceService["generate"]>>;
+    try {
+      generated = await generate(prompt);
+    } catch (error) {
+      if (!String(error).includes("structured_tool_call_required")) throw error;
+      generated = await generate(summaryRetryPrompt(input, prompt));
+    }
     const text = summaryFromValue(generated.value);
     if (text === undefined) return undefined;
-    return { text, coveredMessageId: last.id, coveredMessageCount: input.messages.length };
+    return {
+      text,
+      coveredMessageId: last.id,
+      coveredMessageCount: input.messages.findIndex((message) => message.id === last.id) + 1,
+    };
   } catch {
     // A failed summary is never fatal: history falls back to its deterministic excerpts.
     return undefined;

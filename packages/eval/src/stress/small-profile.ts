@@ -3,6 +3,7 @@ import { join } from "node:path";
 import {
   createCompactionCorpus,
   createOversizedRevenueCorpus,
+  createRepeatedCompactionCorpus,
   OVERSIZED_TABLE_PLAN,
 } from "./context-compaction-fixture.js";
 import {
@@ -30,6 +31,7 @@ export type SmallCaseId =
   | "no-skill-direct"
   | "terminal-discovery"
   | "context-compaction"
+  | "repeated-context-compaction"
   | "oversized-table-result";
 
 function expectedValue(evidence: FixtureEvidence, name: string): string {
@@ -188,6 +190,26 @@ const CASES: StressCaseDefinition<SmallCaseId>[] = [
     expected: (evidence) => [`COMPACTION_TOTAL=${expectedValue(evidence, "compactionTarget")}`],
     maxExecutions: 1,
     requiresContextCompaction: true,
+  },
+  {
+    id: "repeated-context-compaction",
+    task: [
+      "Use exactly three Python executions in this order, with one source file per execution and no combined reader.",
+      "Execution 1 must read only /source/stage-1.csv, execution 2 only /source/stage-2.csv, and execution 3 only /source/stage-3.csv.",
+      "Every file has the exact case-sensitive CSV header ID,Amount,Status; use those exact DictReader keys.",
+      "In each execution print one normalized line for every record in that file, preserving record ID, amount, and status.",
+      "Execution 1 must also print STAGE_1_TOTAL=<Amount from the row whose Status equals STAGE_1_TARGET>, execution 2 STAGE_2_TOTAL=<Amount from the row whose Status equals STAGE_2_TARGET>, and execution 3 STAGE_3_TOTAL=<Amount from the row whose Status equals STAGE_3_TARGET>.",
+      "Capture each target Amount during the same loop that prints the rows; a CSV reader cannot be iterated a second time.",
+      "After each large observation, continue from Vault Core's compacted task and evidence ledgers without rerunning any earlier execution.",
+      "After all three executions return those three exact labels from the compacted evidence ledger. No additional skill is needed; keep the skills field empty on every turn.",
+    ].join(" "),
+    create: createRepeatedCompactionCorpus,
+    expected: (evidence) =>
+      [1, 2, 3].map(
+        (stage) => `STAGE_${stage}_TOTAL=${expectedValue(evidence, `stage${stage}Total`)}`,
+      ),
+    maxExecutions: 3,
+    minimumContextCompactions: 3,
   },
   {
     id: "oversized-table-result",

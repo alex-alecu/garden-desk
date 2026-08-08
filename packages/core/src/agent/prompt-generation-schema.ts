@@ -37,7 +37,7 @@ export function needsSourceDiscoveryRepair(
   return (
     latest !== undefined &&
     (latest.exitCode !== 0 ||
-      latest.termination !== "completed" ||
+      (latest.termination !== "completed" && latest.termination !== "resource_limit") ||
       latest.stderr.trim().length > 0 ||
       latest.stdout.trim().length === 0)
   );
