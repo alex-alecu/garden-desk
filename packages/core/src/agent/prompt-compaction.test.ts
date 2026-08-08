@@ -47,6 +47,19 @@ describe("current-run context compaction", () => {
     ).toBe("");
   });
 
+  it("treats an empty evidence ledger as completed work rather than missing evidence", () => {
+    const compacted = compactedTaskState(
+      "Print 1100000 letter x characters.",
+      [execution("x".repeat(80_000))],
+      32_000,
+      defaultPromptLibrary(),
+    );
+
+    expect(compacted).toContain("Evidence ledger: []");
+    expect(compacted).toContain("An empty evidence ledger means");
+    expect(compacted).toContain("respond now");
+  });
+
   it("detects when current-run streams exceed the live evidence budget", () => {
     expect(currentRunNeedsCompaction([execution("x".repeat(40_000))])).toBe(true);
     expect(currentRunNeedsCompaction([execution("small")])).toBe(false);
