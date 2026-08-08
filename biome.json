@@ -86,6 +86,7 @@
         "packages/core/src/agent/store.test.ts",
         "packages/core/src/agent/trace-store.test.ts",
         "packages/core/src/agent/service.test.ts",
+        "packages/core/src/agent/service-session-summary.test.ts",
         "packages/core/native/windows-pipe-guard/build.ts",
         "packages/cli/src/client.ts",
         "packages/core/src/diagnostics/**/*.ts",

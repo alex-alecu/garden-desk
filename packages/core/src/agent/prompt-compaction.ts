@@ -1,10 +1,62 @@
 import type { AgentExecutionResult } from "@vault/shared";
 import { artifactCandidateNames } from "./artifact-declarations.js";
+import {
+  type AnchoredLedger,
+  anchorIsCurrent,
+  EMPTY_ANCHORED_LEDGER,
+  mergeAnchoredLedger,
+} from "./prompt-anchor.js";
 import type { PromptLibrary } from "./prompt-library.js";
 
 const MAX_EVIDENCE_LINES = 24;
 const MAX_EVIDENCE_LINE_CHARACTERS = 512;
 const DEFAULT_LIVE_OBSERVATION_CHARACTERS = 32_000;
+const MAX_ANCHORED_WARNINGS = 8;
+
+/**
+ * Anchors one run's compacted ledger. Each prompt build merges only the executions the
+ * anchor has not covered yet, so repeated builds stop rescanning the complete raw
+ * stream set. The merge is deterministic, so an anchored ledger and a from-scratch
+ * ledger describe the same executions.
+ */
+export class LedgerAnchor {
+  private anchor: AnchoredLedger = EMPTY_ANCHORED_LEDGER;
+
+  current(): AnchoredLedger {
+    return this.anchor;
+  }
+
+  advance(task: string, executions: AgentExecutionResult[]): AnchoredLedger {
+    if (anchorIsCurrent(this.anchor, executions)) return this.anchor;
+    const pending = executions.slice(this.anchor.coveredExecutions);
+    this.anchor = mergeAnchoredLedger(
+      this.anchor,
+      {
+        evidence: evidenceLines(task, pending),
+        artifacts: artifactCandidateNames(executions),
+        warnings: warningLedger(executions, this.anchor.coveredExecutions),
+      },
+      executions.length,
+      { evidence: MAX_EVIDENCE_LINES, warnings: MAX_ANCHORED_WARNINGS },
+    );
+    return this.anchor;
+  }
+}
+
+function warningLedger(executions: AgentExecutionResult[], from: number) {
+  return executions.slice(from).flatMap((execution, offset) => {
+    const step = from + offset + 1;
+    if (execution.exitCode === 0 && execution.termination === "completed") return [];
+    return [
+      {
+        step,
+        exitCode: execution.exitCode,
+        termination: execution.termination,
+        stderr: execution.stderr.slice(0, MAX_EVIDENCE_LINE_CHARACTERS),
+      },
+    ];
+  });
+}
 
 export function currentRunNeedsCompaction(executions: AgentExecutionResult[]): boolean {
   return (
@@ -58,35 +110,29 @@ function executionLedger(executions: AgentExecutionResult[]) {
   }));
 }
 
-export function compactedTaskState(
-  task: string,
-  executions: AgentExecutionResult[],
-  observationCharacters: number,
-  library: PromptLibrary,
-): string {
+export interface CompactedTaskStateInput {
+  task: string;
+  executions: AgentExecutionResult[];
+  observationCharacters: number;
+  library: PromptLibrary;
+  anchor?: LedgerAnchor | undefined;
+}
+
+export function compactedTaskState(input: CompactedTaskStateInput): string {
+  const { task, executions, observationCharacters, library } = input;
   const streamCharacters = executions.reduce(
     (total, execution) => total + execution.stdout.length + execution.stderr.length,
     0,
   );
   if (streamCharacters <= observationCharacters) return "";
-  const failed = executions.filter(
-    (execution) => execution.exitCode !== 0 || execution.termination !== "completed",
-  );
+  const ledger = (input.anchor ?? new LedgerAnchor()).advance(task, executions);
   return library.state("context-compaction", {
-    artifact_ledger: JSON.stringify(artifactCandidateNames(executions)),
-    evidence_ledger: JSON.stringify(evidenceLines(task, executions)),
+    artifact_ledger: JSON.stringify(ledger.artifacts),
+    evidence_ledger: JSON.stringify(ledger.evidence),
     execution_ledger: JSON.stringify(executionLedger(executions)),
     omitted_characters: Math.max(0, streamCharacters - observationCharacters).toLocaleString(
       "en-US",
     ),
-    warning_ledger: JSON.stringify(
-      failed.map((execution, index) => ({
-        step: executions.indexOf(execution) + 1,
-        exitCode: execution.exitCode,
-        termination: execution.termination,
-        stderr: execution.stderr.slice(0, MAX_EVIDENCE_LINE_CHARACTERS),
-        failure: index + 1,
-      })),
-    ),
+    warning_ledger: JSON.stringify(ledger.warnings),
   });
 }

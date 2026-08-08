@@ -1,5 +1,26 @@
+import type { AgentRunPerformance, AgentRunResult } from "@vault/shared";
+
 export function tokenRate(tokens: number, milliseconds: number): number {
   return milliseconds <= 0 ? 0 : tokens / (milliseconds / 1_000);
+}
+
+export function runPerformance(
+  result: Pick<AgentRunResult, "inference">,
+  createdAt: string,
+): AgentRunPerformance {
+  return {
+    promptTokens: result.inference.promptTokens,
+    outputTokens: result.inference.outputTokens,
+    tokensPerSecond: tokenRate(
+      result.inference.outputTokens,
+      result.inference.generationDurationMs,
+    ),
+    promptTokensPerSecond: tokenRate(
+      result.inference.promptTokens,
+      result.inference.promptDurationMs,
+    ),
+    totalDurationMs: Math.max(0, Date.now() - Date.parse(createdAt)),
+  };
 }
 
 export function agentFailureText(error: unknown): string {

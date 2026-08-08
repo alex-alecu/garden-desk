@@ -27,12 +27,12 @@ describe("current-run context compaction", () => {
       "x".repeat(80_000),
     ].join("\n");
 
-    const compacted = compactedTaskState(
-      "Find COMPACTION_TARGET and return COMPACTION_TOTAL.",
-      [execution(stdout)],
-      32_000,
-      defaultPromptLibrary(),
-    );
+    const compacted = compactedTaskState({
+      task: "Find COMPACTION_TARGET and return COMPACTION_TOTAL.",
+      executions: [execution(stdout)],
+      observationCharacters: 32_000,
+      library: defaultPromptLibrary(),
+    });
 
     expect(compacted).toContain("# Compacted task state");
     expect(compacted).toContain("record-03517,38687,COMPACTION_TARGET");
@@ -43,17 +43,22 @@ describe("current-run context compaction", () => {
 
   it("does not claim compaction while observations fit", () => {
     expect(
-      compactedTaskState("Summarize.", [execution("small")], 32_000, defaultPromptLibrary()),
+      compactedTaskState({
+        task: "Summarize.",
+        executions: [execution("small")],
+        observationCharacters: 32_000,
+        library: defaultPromptLibrary(),
+      }),
     ).toBe("");
   });
 
   it("treats an empty evidence ledger as completed work rather than missing evidence", () => {
-    const compacted = compactedTaskState(
-      "Print 1100000 letter x characters.",
-      [execution("x".repeat(80_000))],
-      32_000,
-      defaultPromptLibrary(),
-    );
+    const compacted = compactedTaskState({
+      task: "Print 1100000 letter x characters.",
+      executions: [execution("x".repeat(80_000))],
+      observationCharacters: 32_000,
+      library: defaultPromptLibrary(),
+    });
 
     expect(compacted).toContain("Evidence ledger: []");
     expect(compacted).toContain("An empty evidence ledger means");

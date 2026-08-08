@@ -196,11 +196,11 @@ describe("M1 workspace migration", () => {
     await first.close();
     const database = new Database(join(root, ".vault", "catalog.sqlite"));
     database.exec(
-      "DROP TABLE agent_inference_turns; DROP TABLE agent_executions; DROP TABLE agent_artifacts; DROP TABLE agent_events; DROP TABLE agent_runs; DROP TABLE session_attachments; DROP TABLE session_drafts; DROP TABLE conversation_messages; DROP TABLE sessions; DROP TABLE folder_grants; DROP TRIGGER audit_head_no_delete; DROP TABLE audit_head; PRAGMA user_version = 1",
+      "DROP TABLE agent_session_summaries; DROP TABLE agent_inference_turns; DROP TABLE agent_executions; DROP TABLE agent_artifacts; DROP TABLE agent_events; DROP TABLE agent_runs; DROP TABLE session_attachments; DROP TABLE session_drafts; DROP TABLE conversation_messages; DROP TABLE sessions; DROP TABLE folder_grants; DROP TRIGGER audit_head_no_delete; DROP TABLE audit_head; PRAGMA user_version = 1",
     );
     database.close();
     const migrated = await createTestCore(root);
-    expect((await migrated.status()).catalogSchemaVersion).toBe(11);
+    expect((await migrated.status()).catalogSchemaVersion).toBe(12);
     expect(await migrated.verifyAudit()).toBe(true);
     await migrated.close();
   });
@@ -215,7 +215,7 @@ describe("M1 workspace migration", () => {
     legacy.prepare("INSERT INTO legacy_marker VALUES (?)").run("before-migration");
     legacy.close();
     const core = await createTestCore(root);
-    expect((await core.status()).catalogSchemaVersion).toBe(11);
+    expect((await core.status()).catalogSchemaVersion).toBe(12);
     await core.close();
     const backupName = (await readdir(internalRoot)).find((name) =>
       name.startsWith("catalog.sqlite.pre-migration-v0-"),

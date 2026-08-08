@@ -10,6 +10,17 @@ Task-specific evaluations use an ignored TypeScript runner under `packages/eval/
 
 ## Latest results
 
+### Anchored context continuity - 2026-08-08
+
+- Two OpenCode-derived improvements landed after comparing its `session/compaction.ts` with ours. OpenCode runs a deterministic `prune()` over old tool output plus a model-written anchored summary that merges into `<previous-summary>`; we previously had only the deterministic half, and no continuity record once a session outgrew its verbatim history budget.
+- Deterministic ledger anchoring merges each run's compacted ledger forward instead of recomputing it from every raw stream on every prompt build. Evidence and artifacts are ordered sets and warnings are keyed by execution step, so the merge is exact and adds no drift. A focused test asserts an anchored build and a from-scratch build produce identical ledgers.
+- The anchored conversation summary replaces the former `N older messages remain in durable conversation history.` marker, which carried no intent, decisions, or blockers. It is untrusted continuity prose: it never carries `LABEL=value` facts, never gates completion, runs only at or above a 16,384-token context, and falls back to the deterministic marker whenever the model fails, returns nothing usable, or the session is still short.
+- Catalog schema v12 stores exactly one replaceable anchor per session, removed with its session by cascade, so a long session keeps one evolving document rather than an unbounded chain.
+- Focused coverage passed: anchored merge and compaction equivalence, summary guardrails, history fallback in both directions, catalog migration, and a five-turn service lifecycle proving the anchor is persisted and then merged through `<previous-summary>` on a later turn.
+- `pnpm verify` passed after the change: 101 unit files and one declared skip, 476 tests passed with two declared skips, native tests, TypeScript, lint, source limits, Rust and native helper checks, sidecar and resource verification, and the desktop production build.
+- Physical Windows re-evidence on the final code: focused context compaction passed in one execution with exact `COMPACTION_TOTAL=38687` and one compaction (`small-2026-08-08T15-17-54.959Z.json`); the complete small sweep passed all seven sequential and three concurrent results with `maximumRunning=3`, including independently verified `revenue_received_report.xlsx` and `avans_rows.xlsx` (`small-2026-08-08T15-19-09.777Z.json`); and `pnpm test:m3:windows` returned `certified_headless` with the refreshed guest document probe intact.
+- No context, execution, time, VM, workspace, memory, or isolation limit changed. Exact values still come from durable execution records, never from summary prose.
+
 ### Windows certification cycle - 2026-08-08
 
 - The canonical physical `pnpm test:m3:windows` gate returned `certified_headless` with the real pinned Gemma worker and x86_64 no-NIC guest. Python, Node, cancellation, timeout, 1,000,000-byte output truncation, malformed-frame teardown, live read-only source, guest workspace persistence, process and memory limits, document-library probes, and host-path and network confinement passed.

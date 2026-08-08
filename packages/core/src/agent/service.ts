@@ -1,6 +1,5 @@
 import { randomUUID } from "node:crypto";
 import type {
-  AgentRunPerformance,
   AgentRunSnapshot,
   AgentRunSummary,
   AgentTrace,
@@ -25,8 +24,11 @@ import { AgentLoop } from "./loop.js";
 import { defaultPromptLibrary, type PromptLibrary } from "./prompt-library.js";
 import { AgentRunCapacity } from "./run-capacity.js";
 import type { ActiveRun } from "./service-active.js";
-import { agentFailureEvent, agentFailureText, tokenRate } from "./service-results.js";
+import { createRunExecutor } from "./service-executor.js";
+import { agentFailureEvent, agentFailureText, runPerformance } from "./service-results.js";
 import { AgentSessionManager } from "./session-manager.js";
+import { refreshSessionSummary } from "./session-summary.js";
+import { SessionSummaryStore } from "./session-summary-store.js";
 import type { AgentStore } from "./store.js";
 
 export class AgentService {
@@ -35,6 +37,7 @@ export class AgentService {
   private readonly artifactMaterializer: ArtifactMaterializer;
   private readonly sessions: AgentSessionManager;
   private readonly runCapacity: AgentRunCapacity;
+  private readonly summaries: SessionSummaryStore;
 
   // biome-ignore lint/complexity/useMaxParams: explicit ports keep security authorities visible at construction.
   constructor(
@@ -51,6 +54,7 @@ export class AgentService {
     private readonly promptLibrary: PromptLibrary = defaultPromptLibrary(),
   ) {
     this.artifactMaterializer = new ArtifactMaterializer(database, artifacts, audit);
+    this.summaries = new SessionSummaryStore(database);
     this.sessions = new AgentSessionManager(
       launcher,
       new AgentInputResolver(database, store),
@@ -189,31 +193,22 @@ export class AgentService {
         );
       })();
       const messages = this.conversations.listMessages(run.sessionId);
+      const anchored = this.summaries.load(run.sessionId);
       const history = {
         messages: messages.slice(0, -1),
         runs: historyForSession(this.database, run.sessionId, run.id),
+        summary: anchored?.text,
       };
       const resolvedTask = resolveAgentTask(task, history);
       const contextTokens = await this.contextTokens();
       const loop = new AgentLoop(
         this.inference,
-        {
-          execute: async (input, executionSignal) => {
-            const execution = this.store.execution.create(run.id, input);
-            const result = await this.sessions.execute(run.sessionId, input, executionSignal, {
-              executionId: execution.id,
-              onUpdate: (update) => {
-                if (update.kind === "stream") {
-                  this.store.execution.appendStream(execution.id, update.stream, update.bytes);
-                  return;
-                }
-                this.store.execution.appendDiagnostic(execution.id, update);
-              },
-            });
-            this.store.execution.complete(execution.id, result);
-            return result;
-          },
-        },
+        createRunExecutor({
+          runId: run.id,
+          sessionId: run.sessionId,
+          store: this.store,
+          sessions: this.sessions,
+        }),
         contextTokens,
       );
       const result = await loop.run({
@@ -231,19 +226,7 @@ export class AgentService {
         trace: { runId: run.id, store: this.store.trace },
         onEvent: (type, summary, detail) => this.store.appendEvent(run.id, type, summary, detail),
       });
-      const performance: AgentRunPerformance = {
-        promptTokens: result.inference.promptTokens,
-        outputTokens: result.inference.outputTokens,
-        tokensPerSecond: tokenRate(
-          result.inference.outputTokens,
-          result.inference.generationDurationMs,
-        ),
-        promptTokensPerSecond: tokenRate(
-          result.inference.promptTokens,
-          result.inference.promptDurationMs,
-        ),
-        totalDurationMs: Math.max(0, Date.now() - Date.parse(run.createdAt)),
-      };
+      const performance = runPerformance(result, run.createdAt);
       const active = this.active.get(run.jobId);
       if (active !== undefined) active.thinking = null;
       const deliverables = await prepareDeclaredArtifacts(
@@ -265,6 +248,16 @@ export class AgentService {
         type: "agent.completed",
         outcome: "succeeded",
         metadata: { runId: run.id, jobId: run.jobId, executions: result.executions.length },
+      });
+      await refreshSessionSummary(this.inference, {
+        sessionId: run.sessionId,
+        runId: run.id,
+        contextTokens,
+        loadMessages: () => this.conversations.listMessages(run.sessionId),
+        modelId: AGENT_MODEL_ID,
+        library: this.promptLibrary,
+        store: this.summaries,
+        signal,
       });
     } catch (error) {
       const cancelled = signal.aborted || this.jobs.isCancellationRequested(run.jobId);

@@ -6,6 +6,7 @@ import { rejectedExecutionReason } from "./loop-decisions.js";
 import { executeAgentDecision, rejectExecution } from "./loop-execution.js";
 import { finishRun, recordOutcome } from "./loop-outcomes.js";
 import { type AgentProgress, executionBackedResponse } from "./prompt.js";
+import { LedgerAnchor } from "./prompt-compaction.js";
 import { activePromptSkillNames } from "./prompt-content.js";
 import { defaultPromptLibrary } from "./prompt-library.js";
 import { progressEnabled } from "./prompt-progress.js";
@@ -39,6 +40,7 @@ export function newProgress(): AgentProgress {
       generationDurationMs: 0,
       totalDurationMs: 0,
     },
+    ledgerAnchor: new LedgerAnchor(),
     rejectedDuplicates: 0,
     requestedSkills: new Set(),
   };

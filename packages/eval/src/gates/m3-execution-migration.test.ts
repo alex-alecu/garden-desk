@@ -73,7 +73,7 @@ function insertHistoricalRows(database: Database.Database): void {
 
 function downgradeToVersionSeven(database: Database.Database): void {
   database.exec(
-    "DROP INDEX folder_grants_active_order; ALTER TABLE folder_grants DROP COLUMN sort_order; DROP TABLE agent_inference_turns; ALTER TABLE agent_runs DROP COLUMN trace_version; PRAGMA user_version = 7",
+    "DROP TABLE agent_session_summaries; DROP INDEX folder_grants_active_order; ALTER TABLE folder_grants DROP COLUMN sort_order; DROP TABLE agent_inference_turns; ALTER TABLE agent_runs DROP COLUMN trace_version; PRAGMA user_version = 7",
   );
 }
 
@@ -84,7 +84,7 @@ async function seedVersionSixCatalog(root: string): Promise<string> {
   const database = new Database(databasePath);
   try {
     database.exec(
-      "DROP INDEX folder_grants_active_order; ALTER TABLE folder_grants DROP COLUMN sort_order; DROP TABLE agent_inference_turns; ALTER TABLE agent_runs DROP COLUMN trace_version; DROP TABLE agent_executions",
+      "DROP TABLE agent_session_summaries; DROP INDEX folder_grants_active_order; ALTER TABLE folder_grants DROP COLUMN sort_order; DROP TABLE agent_inference_turns; ALTER TABLE agent_runs DROP COLUMN trace_version; DROP TABLE agent_executions",
     );
     insertHistoricalRows(database);
   } finally {
