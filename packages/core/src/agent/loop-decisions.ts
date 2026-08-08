@@ -8,6 +8,8 @@ import { requestedArtifactNames, requestedFactLabels } from "./artifact-declarat
 import { SHELL_COMMAND_CHARACTER_LIMIT } from "./prompt-schema.js";
 import { hasUnbalancedSourceDelimiters } from "./source-delimiters.js";
 
+const MAX_COMPLETE_SOURCE_LINE_CHARACTERS = 500;
+
 export type RejectedExecutionReason =
   | "duplicate"
   | "invalid"
@@ -29,12 +31,14 @@ function isPathologicallyRepetitive(
   decision: Extract<AgentDecision, { action: "execute" }>,
 ): boolean {
   if (decision.language === "shell") return false;
-  const lines = decision.source
-    .split(/\r?\n/u)
-    .map((line) => line.trim())
-    .filter((line) => line.length > 0);
+  const sourceLines = decision.source.split(/\r?\n/u);
+  const lines = sourceLines.map((line) => line.trim()).filter((line) => line.length > 0);
   const repeatedChunk = /([A-Za-z_][A-Za-z0-9_]*\s*=\s*[^;\n]{0,30})\1{7}/u.test(decision.source);
-  return (lines.length >= 40 && new Set(lines).size * 3 < lines.length) || repeatedChunk;
+  return (
+    sourceLines.some((line) => line.length >= MAX_COMPLETE_SOURCE_LINE_CHARACTERS) ||
+    (lines.length >= 40 && new Set(lines).size * 3 < lines.length) ||
+    repeatedChunk
+  );
 }
 
 function isImportOnlySource(decision: Extract<AgentDecision, { action: "execute" }>): boolean {
@@ -73,6 +77,21 @@ function containsMalformedCallSuffix(
   decision: Extract<AgentDecision, { action: "execute" }>,
 ): boolean {
   return decision.language !== "shell" && /\)\p{L}[\p{L}\p{N}_]*\s*(?:$|\n)/u.test(decision.source);
+}
+
+function definesUncalledEntryPoint(
+  decision: Extract<AgentDecision, { action: "execute" }>,
+): boolean {
+  if (decision.language === "shell") return false;
+  const lines = decision.source.split(/\r?\n/u);
+  const definition =
+    decision.language === "python"
+      ? /^\s*(?:async\s+)?def\s+main\s*\(/u
+      : /^\s*(?:async\s+)?function\s+main\s*\(/u;
+  if (!lines.some((line) => definition.test(line))) return false;
+  return !lines.some(
+    (line) => !definition.test(line) && !/^\s*(?:#|\/\/)/u.test(line) && /\bmain\s*\(/u.test(line),
+  );
 }
 
 function containsBareIdentifierStatement(
@@ -128,6 +147,7 @@ function isInvalidProgram(
   return (
     containsProtocolFragment(decision) ||
     containsMalformedCallSuffix(decision) ||
+    definesUncalledEntryPoint(decision) ||
     containsBareIdentifierStatement(decision) ||
     isPathologicallyRepetitive(decision) ||
     (rejectIncompleteSource && isImportOnlySource(decision))

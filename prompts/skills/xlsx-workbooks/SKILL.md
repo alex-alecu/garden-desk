@@ -25,9 +25,8 @@ Use `openpyxl` for local workbook work. Prefer one complete bounded program over
 
 1. Preserve sheets, formulas, styles, dimensions, merges, and freeze panes that the user did not ask to change. Never save a workbook loaded with `data_only=True`, because that can replace formulas with cached values.
 2. Use restrained formatting: descriptive title, clear headers, sensible column widths, numeric/date formats, frozen header rows, and filters when they improve usability.
-3. Save requested deliverables beneath `/workspace`; keep scripts, checkpoints, caches, and temporary files separate and undeclared.
-4. Reopen every output with `data_only=False`. Verify requested sheets, labels, values, formulas, styles, merges, and dimensions before declaring the artifact. Explain that newly written formulas are not locally calculated by `openpyxl`.
-5. Pass only a flat sequence of scalar cell values to `Worksheet.append()`. Never pass a source row tuple or a converted list as one nested cell; spread copied values into the output row or join them into one scalar string.
+3. Save beneath `/workspace`, keep intermediates separate, then reopen with `data_only=False` and verify requested sheets, labels, values, formulas, styles, merges, and dimensions before declaring the artifact. Explain that `openpyxl` does not calculate new formulas.
+4. Pass only a flat sequence of scalar cell values to `Worksheet.append()`. Never pass a source row tuple or a converted list as one nested cell; spread copied values into the output row or join them into one scalar string.
 
 ## Oversized tabular results
 

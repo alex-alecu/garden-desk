@@ -182,6 +182,7 @@ export function progressInstructions(input: ProgressInstructionsInput): readonly
       : [];
   const invalidTable =
     requestsTable(input.input.task) &&
+    candidates.length === 0 &&
     completedSuccessfully(latest) &&
     !validGfmTable(stripWorkProgress(latest.stdout));
   return invalidTable

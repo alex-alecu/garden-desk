@@ -249,3 +249,28 @@ describe("deliverable fact labels", () => {
     expect(request.prompt).toContain("create at most one missing file per later execution");
   });
 });
+
+describe("multi-format prompt budget", () => {
+  it("fits the scaled three-format request at the certified 8K floor", () => {
+    const task = [
+      "Review the complete selected corpus containing XLSX invoices, DOCX meeting notes, and one policy PDF; attention rows contain Priority review, meeting-note entries start Decision record, and policy pages start Policy section.",
+      "Create the requested polished management reports in the private workspace and visibly label MATCHING_INVOICES, INVOICE_TOTAL, MEETING_NOTES, and POLICY_PAGES.",
+      "Required deliverables: scaled-report.pdf, scaled-report.docx, scaled-report.xlsx.",
+    ].join(" ");
+    const request = generationInput(
+      { task, modelId: "gemma-4-12b-it-qat-q4_0" },
+      {
+        executions: [],
+        inference: {
+          promptTokens: 0,
+          outputTokens: 0,
+          promptDurationMs: 0,
+          generationDurationMs: 0,
+          totalDurationMs: 0,
+        },
+        rejectedDuplicates: 0,
+      },
+    );
+    expect(Math.ceil(JSON.stringify(request).length / 4)).toBeLessThanOrEqual(4_096);
+  });
+});

@@ -140,6 +140,7 @@ describe("AgentLoop XLSX table column normalization", () => {
 
 describe("AgentLoop oversized table artifact", () => {
   it("allows final declaration without printing the complete table again", async () => {
+    const prompts: string[] = [];
     const source = "print('complete')";
     const artifact = {
       name: "results.xlsx",
@@ -156,7 +157,7 @@ describe("AgentLoop oversized table artifact", () => {
             artifacts: [artifact.name],
           },
         ],
-        [],
+        prompts,
       ),
       executor(
         [
@@ -173,6 +174,8 @@ describe("AgentLoop oversized table artifact", () => {
 
     expect(result.executions).toHaveLength(1);
     expect(result.artifacts).toEqual([artifact.name]);
+    expect(prompts[1]).toContain('Produced artifact names: ["results.xlsx"]');
+    expect(prompts[1]).not.toContain("did not produce a verified GFM table");
   });
 });
 
