@@ -35,6 +35,16 @@ function targetTriple(): string {
   return triple;
 }
 
+function compileSharedRuntime(): void {
+  const tsc = join(
+    repositoryRoot,
+    "node_modules",
+    ".bin",
+    process.platform === "win32" ? "tsc.cmd" : "tsc",
+  );
+  run(tsc, ["-b", join(repositoryRoot, "packages", "shared")]);
+}
+
 async function sha256(path: string): Promise<string> {
   const digest = createHash("sha256");
   await new Promise<void>((accept, reject) => {
@@ -99,6 +109,7 @@ await mkdir(generatedRoot, { recursive: true });
 await mkdir(join(resourcesRoot, "migrations"), { recursive: true });
 await mkdir(binariesRoot, { recursive: true });
 reportDevelopmentResourceStage("coreBundle");
+compileSharedRuntime();
 const bundle = await buildBundle();
 reportDevelopmentResourceStage("coreExecutable");
 const executable = await prepareSea(bundle);

@@ -1,5 +1,65 @@
 import { type AgentDecision, AgentDecisionSchema, AgentWorkspacePathSchema } from "@vault/shared";
 
+const SOURCE_STATEMENT_KEYWORDS = new Set([
+  "and",
+  "as",
+  "assert",
+  "async",
+  "await",
+  "break",
+  "class",
+  "continue",
+  "def",
+  "del",
+  "elif",
+  "else",
+  "except",
+  "False",
+  "finally",
+  "for",
+  "from",
+  "global",
+  "if",
+  "import",
+  "in",
+  "is",
+  "lambda",
+  "None",
+  "nonlocal",
+  "not",
+  "or",
+  "pass",
+  "raise",
+  "return",
+  "True",
+  "try",
+  "while",
+  "with",
+  "yield",
+]);
+
+// A trailing line made only of bare identifier tokens is hallucinated debris,
+// not code: real closing statements carry punctuation such as `()` or a leading
+// keyword. Gemma occasionally appends schema-field names (for example
+// `skills_requested_none`) after `main()`, which would otherwise turn an already
+// correct repair into an invalid program and stall the run.
+function isTrailingIdentifierDebris(line: string): boolean {
+  const trimmed = line.trim();
+  if (trimmed.length === 0 || !/^[\p{L}\p{N}_]+(?: [\p{L}\p{N}_]+)*$/u.test(trimmed)) return false;
+  const [first] = trimmed.split(" ");
+  return first !== undefined && !SOURCE_STATEMENT_KEYWORDS.has(first);
+}
+
+function withoutTrailingIdentifierDebris(lines: unknown[]): unknown[] {
+  let end = lines.length;
+  while (end > 0) {
+    const line = lines[end - 1];
+    if (typeof line !== "string" || !isTrailingIdentifierDebris(line)) break;
+    end -= 1;
+  }
+  return end === lines.length ? lines : lines.slice(0, end);
+}
+
 export function normalizeSourceItems(items: unknown[]): unknown[] {
   const lines = items
     .flatMap((line) => {
@@ -18,7 +78,7 @@ export function normalizeSourceItems(items: unknown[]): unknown[] {
       typeof line === "string" ? line.replace(/(\)\s*)\p{L}[\p{L}\p{N}_]*\s*$/u, "$1") : line,
     );
   let squareDepth = 0;
-  return lines.filter((line) => {
+  const balanced = lines.filter((line) => {
     if (typeof line !== "string") return true;
     const opens = line.match(/\[/gu)?.length ?? 0;
     const closes = line.match(/\]/gu)?.length ?? 0;
@@ -26,6 +86,7 @@ export function normalizeSourceItems(items: unknown[]): unknown[] {
     squareDepth = Math.max(0, squareDepth + opens - closes);
     return true;
   });
+  return withoutTrailingIdentifierDebris(balanced);
 }
 
 function normalizedSourcePath(path: unknown): unknown {

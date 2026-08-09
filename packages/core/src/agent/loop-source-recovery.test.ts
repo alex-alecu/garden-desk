@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { rejectedExecutionReason } from "./loop-decisions.js";
+import { parseAgentDecision } from "./prompt-normalization.js";
 
 describe("Agent source validation", () => {
   it("rejects model protocol fragments before execution", () => {
@@ -64,5 +65,17 @@ describe("Agent valid source", () => {
         [],
       ),
     ).toBeUndefined();
+  });
+
+  it("strips trailing hallucinated identifier debris so a valid repair is accepted", () => {
+    const program = "print('ok')\nif __name__ == '__main__':\n    main()";
+    const decision = parseAgentDecision({
+      action: "execute",
+      language: "python",
+      source: [...program.split("\n"), "skills_requested_none", "command_args_none Giants_none"],
+      summary: "Repair",
+    });
+    expect(decision).toMatchObject({ action: "execute", source: program });
+    expect(rejectedExecutionReason(decision as never, [])).toBeUndefined();
   });
 });
