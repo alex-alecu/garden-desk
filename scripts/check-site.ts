@@ -120,8 +120,12 @@ requireText(home, "social-card.png", "home");
 requireText(home, "Zero application telemetry", "home differentiation");
 requireText(home, "tracks absolutely nothing", "home differentiation");
 requireText(home, "No runtime configuration", "home differentiation");
+requireText(home, "No cloud fallback", "home differentiation");
 requireText(home, 'class="principle-cloud"', "home principle animation");
 requireText(home, 'class="format-strip"', "home static format strip");
+requireText(home, "data-reveal", "home scroll motion");
+requireText(home, 'class="ticker"', "home differentiation ticker");
+requireText(home, "data-cipher", "home cipher background animation");
 requireText(home, "Gemma 4 12B QAT", "home model");
 requireText(home, "16 GB unified memory", "home macOS requirement");
 requireText(home, "12 GB GPU VRAM", "home Windows requirement");
@@ -148,6 +152,10 @@ requireText(assetText, ".technical-details-action{display:none}", "demo technica
 requireText(assetText, "max(690px,100svh - 96px)", "home demo viewport height");
 requireText(assetText, "min-width:760px", "demo minimum width");
 requireText(assetText, "min-height:600px", "demo minimum height");
+requireText(assetText, "prefers-reduced-motion", "home reduced-motion fallback");
+if (!/IntersectionObserver/u.test(assetText)) {
+  failures.push("home motion: missing scroll reveal observer");
+}
 if (!/toggleAttribute\([`'"]inert[`'"]/u.test(assetText)) {
   failures.push("home mobile demo gate: missing inert iframe controller");
 }

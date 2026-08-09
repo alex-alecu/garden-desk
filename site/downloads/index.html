@@ -5,47 +5,55 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="Vault Desk desktop download availability for macOS and Windows." />
     <meta name="robots" content="index,follow" />
+    <meta name="theme-color" content="#05131a" />
     <link rel="canonical" href="https://alex-alecu.github.io/vault-desk/downloads/" />
     <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="../assets/site.css" />
+    <script type="module" src="../assets/motion.ts"></script>
     <meta property="og:title" content="Downloads — Vault Desk" />
     <meta property="og:url" content="https://alex-alecu.github.io/vault-desk/downloads/" />
     <title>Downloads — Vault Desk</title>
   </head>
   <body>
     <a class="skip-link" href="#main">Skip to content</a>
-    <header class="site-header">
+    <div class="aurora" aria-hidden="true">
+      <span class="aurora-blob aurora-one"></span>
+      <span class="aurora-blob aurora-two"></span>
+    </div>
+    <header class="site-header" data-header>
       <a class="wordmark" href="../"><img src="../assets/favicon.svg" alt="" />Vault Desk</a>
       <nav aria-label="Main navigation" class="site-nav">
         <a href="../#how-it-works">How it works</a>
         <a href="../#privacy">Privacy</a>
         <a href="./" aria-current="page">Downloads</a>
-        <a class="nav-button" href="../demo/">Try the demo</a>
+        <a class="nav-button" data-magnetic href="../demo/"><span>Try the demo</span></a>
       </nav>
     </header>
     <main class="legal" id="main">
       <p class="eyebrow">Desktop availability</p>
       <h1>Downloads are coming soon.</h1>
       <p class="lede">
-        Vault Desk is still completing its cross-platform launch gate. No public installer is
-        available yet, and this page will not send you to an unsigned or provisional build.
+        Vault Desk is still completing its cross-platform launch gate. No public installer exists
+        yet, and this page will never hand you an unsigned or provisional build. Signed or nothing.
       </p>
       <div class="download-grid">
-        <article class="download-card">
+        <article class="download-card" data-reveal>
           <span class="status-pill">Coming soon</span>
           <h2>macOS</h2>
           <p>Launch target: Apple Silicon Macs with at least 16 GB unified memory.</p>
         </article>
-        <article class="download-card">
+        <article class="download-card" data-reveal data-reveal-delay="90">
           <span class="status-pill">Coming soon</span>
           <h2>Windows</h2>
           <p>Launch target: Windows x64 PCs with NVIDIA graphics and at least 12 GB GPU VRAM.</p>
         </article>
       </div>
       <div class="section-actions">
-        <a class="button button-primary" href="../demo/">Try the synthetic demo</a>
-        <a class="button button-secondary" href="../#requirements">View launch requirements</a>
-        <a class="button button-secondary" href="https://github.com/alex-alecu/vault-desk"
+        <a class="button button-primary" data-magnetic href="../demo/"
+          ><span>Try the synthetic demo</span></a
+        >
+        <a class="button button-ghost" href="../#requirements">View launch requirements</a>
+        <a class="button button-ghost" href="https://github.com/alex-alecu/vault-desk"
           >Follow development on GitHub</a
         >
       </div>
