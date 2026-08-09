@@ -1,6 +1,5 @@
-import { type AgentDecision, AgentDecisionSchema } from "@vault/shared";
+import type { AgentDecision } from "@vault/shared";
 import { effectiveGenerationInput, type GenerationInput } from "../runtime/inference.js";
-import { artifactCandidateNames } from "./artifact-declarations.js";
 import { MAX_AGENT_EXECUTIONS } from "./limits.js";
 import {
   completedSuccessfully,
@@ -15,56 +14,37 @@ import {
   serializePrompt,
   usablePromptTokens,
 } from "./prompt-budget.js";
-import { activePromptSkillNames, systemPrompt, taskStatePrompt } from "./prompt-content.js";
-import { attachmentsAlreadyRead, continuationInstructions } from "./prompt-inputs.js";
+import { systemPrompt, taskStatePrompt } from "./prompt-content.js";
+import { fitCurrentPrompt, joinedPromptSections } from "./prompt-fitting.js";
+import {
+  type GenerationRecovery,
+  generationSchema,
+  needsSourceDiscoveryRepair,
+} from "./prompt-generation-schema.js";
+import { continuationInstructions } from "./prompt-inputs.js";
 import { defaultPromptLibrary, type PromptLibrary } from "./prompt-library.js";
+import { parseAgentDecision } from "./prompt-normalization.js";
 import { observationStreamCharacters } from "./prompt-observations.js";
 import {
-  needsProgressExecution,
   progressEnabled,
   progressExecutionBackedResponse,
   progressInstructions,
 } from "./prompt-progress.js";
 import { rejectionInstructions } from "./prompt-rejection.js";
-import {
-  agentDecisionJsonSchema,
-  GENERATION_LIMIT_RECOVERY_SOURCE_LINES,
-} from "./prompt-schema.js";
 import type { AgentProgress, AgentPromptInput } from "./prompt-types.js";
 
 export const MAX_EXECUTIONS = MAX_AGENT_EXECUTIONS;
 
+export type { GenerationRecovery } from "./prompt-generation-schema.js";
 export type { AgentProgress, AgentPromptInput } from "./prompt-types.js";
 
-function needsShellSourceRepair(progress: AgentProgress): boolean {
-  if (progress.sourceExecutionRequired === true) return true;
-  if (
-    progress.lastRejectedProgramReason === "shell_limit" ||
-    progress.lastRejectedProgramReason === "shell_source"
-  )
-    return true;
-  const latest = progress.executions.at(-1);
-  return (
-    latest?.language === "shell" &&
-    latest.exitCode !== 0 &&
-    /unterminated quoted string/iu.test(latest.stderr)
-  );
-}
-
-function needsSourceDiscoveryRepair(
+function sourceDiscoveryRepairInstructions(
   input: AgentPromptInput,
   progress: AgentProgress,
   library: PromptLibrary,
-): boolean {
-  if (!activePromptSkillNames(input, progress, library).has("terminal-commands")) return false;
-  const latest = progress.executions.at(-1);
-  return (
-    latest?.language === "shell" &&
-    (latest.exitCode !== 0 ||
-      latest.termination !== "completed" ||
-      latest.stderr.trim().length > 0 ||
-      latest.stdout.trim().length === 0)
-  );
+): readonly string[] {
+  if (!needsSourceDiscoveryRepair(input, progress, library)) return [];
+  return [library.recovery("source-empty")];
 }
 
 function shellSourceRepairInstructions(
@@ -81,17 +61,12 @@ function shellSourceRepairInstructions(
   return [library.recovery("shell-quote")];
 }
 
-export type GenerationRecovery = "generation_limit" | undefined;
 interface PromptOptions extends PromptBounds {
   recovery: GenerationRecovery;
 }
 interface GenerationInputOptions {
   contextTokens?: number;
   recovery?: GenerationRecovery;
-}
-
-function joinedPromptSections(sections: readonly string[]): string {
-  return sections.filter((section) => section.length > 0).join("\n\n");
 }
 
 function prompt(
@@ -101,10 +76,9 @@ function prompt(
   options: PromptOptions,
 ): string {
   const library = input.promptLibrary ?? defaultPromptLibrary();
-  const { executions } = progress;
   const requiredLabels = requiredOutputLabels(input.task);
-  const completed = executions.filter(completedSuccessfully);
-  const missingLabels = missingOutputLabels(completed.at(-1)?.stdout ?? "", requiredLabels);
+  const completed = progress.executions.filter(completedSuccessfully).at(-1);
+  const missingLabels = missingOutputLabels(completed?.stdout ?? "", requiredLabels);
   const beforeTask = [
     systemPrompt(input, progress, library),
     ...generationRecoveryInstructions(options.recovery, finalResponse, library),
@@ -113,6 +87,7 @@ function prompt(
   const afterTask = [
     ...rejectionInstructions(progress, library),
     ...shellSourceRepairInstructions(progress, library),
+    ...sourceDiscoveryRepairInstructions(input, progress, library),
     ...progressInstructions({
       finalResponse,
       input,
@@ -122,80 +97,28 @@ function prompt(
       missingLabels,
     }),
   ];
-  const fixed = joinedPromptSections([
-    ...beforeTask,
-    taskStatePrompt(input, progress, library, 0),
-    ...afterTask,
-  ]);
-  const remainingCharacters = Math.max(0, usablePromptTokens(options) * 4 - fixed.length);
+  const fixedState = taskStatePrompt(input, progress, library, {
+    observationCharacters: 0,
+    includeCompaction: false,
+  });
+  const fixed = joinedPromptSections([...beforeTask, fixedState, ...afterTask]);
+  const maximumCharacters = usablePromptTokens(options) * 4;
+  const remainingCharacters = Math.max(0, maximumCharacters - fixed.length);
   const observationCharacters = Math.min(
     remainingCharacters,
     observationStreamCharacters(Math.floor(remainingCharacters / 4)),
   );
-  const current = joinedPromptSections([
-    ...beforeTask,
-    taskStatePrompt(input, progress, library, observationCharacters),
-    ...afterTask,
-  ]);
+  const current = fitCurrentPrompt(
+    {
+      beforeTask,
+      afterTask,
+      observationCharacters,
+      taskState: (characters) =>
+        taskStatePrompt(input, progress, library, { observationCharacters: characters }),
+    },
+    maximumCharacters,
+  );
   return serializePrompt(current, input.history, options);
-}
-
-function recoverySourceLineLimit(
-  generationLimitRecovery: boolean,
-  sourceDiscoveryRecovery: boolean,
-): { sourceLineLimit?: number } {
-  if (generationLimitRecovery) return { sourceLineLimit: GENERATION_LIMIT_RECOVERY_SOURCE_LINES };
-  if (sourceDiscoveryRecovery) return { sourceLineLimit: 40 };
-  return {};
-}
-
-function sourceDiscoveryOnly(input: AgentPromptInput, progress: AgentProgress): AgentPromptInput {
-  if (progress.lastRejectedProgramReason !== "source_allowlist") return input;
-  return { ...input, task: "Inspect the selected source tree and locate the requested evidence." };
-}
-
-function generationSchema(
-  input: AgentPromptInput,
-  progress: AgentProgress,
-  finalResponse: boolean,
-  recovery: GenerationRecovery,
-) {
-  const library = input.promptLibrary ?? defaultPromptLibrary();
-  const schemaInput = sourceDiscoveryOnly(input, progress);
-  const requiredLabels = requiredOutputLabels(schemaInput.task);
-  const requiresProgressExecution = needsProgressExecution({
-    finalResponse,
-    progress,
-    requiredLabels,
-    library,
-    input: schemaInput,
-  });
-  const inputNames = input.inputNames ?? [];
-  const requiresAttachmentExecution =
-    !finalResponse &&
-    progress.executions.length === 0 &&
-    inputNames.length > 0 &&
-    !attachmentsAlreadyRead(inputNames, input.history);
-  const generationLimitRecovery = recovery === "generation_limit" && !finalResponse;
-  const sourceDiscoveryRecovery =
-    progress.lastRejectedProgramReason === "source_allowlist" && !finalResponse;
-  const deliverableRecovery = progress.deliverableExecutionRequired === true && !finalResponse;
-  const artifactNames = artifactCandidateNames(progress.executions);
-  return agentDecisionJsonSchema({
-    artifactNames,
-    skillNames: library.skillNames(),
-    task: schemaInput.task,
-    finalResponse,
-    requiresSourceExecution:
-      requiresProgressExecution ||
-      requiresAttachmentExecution ||
-      needsShellSourceRepair(progress) ||
-      needsSourceDiscoveryRepair(input, progress, library) ||
-      sourceDiscoveryRecovery ||
-      deliverableRecovery ||
-      generationLimitRecovery,
-    ...recoverySourceLineLimit(generationLimitRecovery, sourceDiscoveryRecovery),
-  });
 }
 
 interface BuildGenerationInput {
@@ -258,18 +181,7 @@ export function generationInput(
 }
 
 export function parseDecision(value: unknown): AgentDecision {
-  if (typeof value !== "object" || value === null) return AgentDecisionSchema.parse(value);
-  const decision = value as Record<string, unknown>;
-  if (decision.action === "execute" && Array.isArray(decision.source)) {
-    return AgentDecisionSchema.parse({ ...decision, source: decision.source.join("\n") });
-  }
-  if (decision.action === "execute" && Array.isArray(decision.command)) {
-    return AgentDecisionSchema.parse({ ...decision, command: decision.command.join("\n") });
-  }
-  if (decision.action === "respond" && Array.isArray(decision.response)) {
-    return AgentDecisionSchema.parse({ ...decision, response: decision.response.join("\n") });
-  }
-  return AgentDecisionSchema.parse(value);
+  return parseAgentDecision(value);
 }
 
 export function executionBackedResponse(

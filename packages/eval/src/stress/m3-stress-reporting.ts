@@ -1,4 +1,4 @@
-import type { AgentRunSnapshot } from "@vault/shared";
+import type { AgentRunSnapshot, AgentTrace } from "@vault/shared";
 import type { ActiveCase, StressCaseResult } from "./m3-stress-runtime.js";
 
 export function terminal(snapshot: AgentRunSnapshot): boolean {
@@ -61,7 +61,16 @@ function measuredRunMs(active: ActiveCase, snapshot: AgentRunSnapshot): number {
   );
 }
 
-function stressError(active: ActiveCase, snapshot: AgentRunSnapshot): string | null {
+function contextCompactions(trace: AgentTrace | undefined): number {
+  if (trace?.captureVersion !== 1) return 0;
+  return trace.turns.filter((turn) => turn.prompt.includes("# Compacted task state")).length;
+}
+
+function stressError(
+  active: ActiveCase,
+  snapshot: AgentRunSnapshot,
+  compactions: number,
+): string | null {
   if (
     active.fixture.maxExecutions !== undefined &&
     snapshot.executions.length > active.fixture.maxExecutions
@@ -71,20 +80,32 @@ function stressError(active: ActiveCase, snapshot: AgentRunSnapshot): string | n
   if (active.fixture.forbidArtifacts === true && snapshot.artifacts.length > 0) {
     return "Expected no artifacts.";
   }
+  const requiredCompactions =
+    active.fixture.minimumContextCompactions ??
+    (active.fixture.requiresContextCompaction === true ? 1 : 0);
+  if (compactions < requiredCompactions) {
+    return `Expected at least ${requiredCompactions} automatic context compaction event${requiredCompactions === 1 ? "" : "s"}.`;
+  }
   return snapshot.run.error;
 }
 
 export function stressResultFor(
   active: ActiveCase,
   snapshot: AgentRunSnapshot,
-  verifiedDeliverables: string[] = [],
-  verificationOutput = "",
+  verification: {
+    output?: string;
+    trace?: AgentTrace;
+    verified?: string[];
+  } = {},
 ): StressCaseResult {
+  const verifiedDeliverables = verification.verified ?? [];
+  const verificationOutput = verification.output ?? "";
   const output = snapshotOutput(snapshot);
   const missingTokens = active.fixture.expectedTokens.filter(
     (token) => !outputHasToken(output, token),
   );
-  const error = stressError(active, snapshot);
+  const compactions = contextCompactions(verification.trace);
+  const error = stressError(active, snapshot, compactions);
   return {
     id: active.fixture.id,
     passed:
@@ -113,5 +134,6 @@ export function stressResultFor(
     error,
     verifiedDeliverables,
     verificationOutput,
+    contextCompactions: compactions,
   };
 }

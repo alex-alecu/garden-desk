@@ -1,1 +1,1 @@
-[{{omitted_characters}} characters omitted from the middle of this stream. This observation is an excerpt, not the complete output. Write the complete text to a /workspace file and read back the part you need instead of printing it again.]
+[{{omitted_characters}} characters omitted from the middle of this execution field. This field is an excerpt, not the complete value. Successful source remains at its assigned /workspace path. When complete stdout or stderr is needed, write it to a /workspace file and read back the part you need instead of printing it again.]

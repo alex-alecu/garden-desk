@@ -10,6 +10,11 @@ export interface HistoricalRun {
 export interface DurableAgentHistory {
   messages: ConversationMessage[];
   runs: HistoricalRun[];
+  /**
+   * Anchored continuity prose for turns that no longer fit verbatim. It replaces a
+   * bare omitted-message count and never carries authoritative values.
+   */
+  summary?: string | undefined;
 }
 
 function tokens(text: string): number {
@@ -111,15 +116,37 @@ function compactMessages(messages: ConversationMessage[], excerptTokens: number)
   return { lines, tokens: tokens(lines.join("\n")) };
 }
 
-function olderConversation(messages: ConversationMessage[], budgetTokens: number) {
+function verbatimMessages(messages: ConversationMessage[]) {
+  const lines = messages.map(
+    (message) => `message ${message.id} ${message.role}: ${message.content}`,
+  );
+  return { lines, tokens: tokens(lines.join("\n")) };
+}
+
+function anchoredSummary(summary: string | undefined, budgetTokens: number) {
+  if (summary === undefined || summary.trim().length === 0) return undefined;
+  const lines = [summary.trim()];
+  const used = tokens(lines[0] as string);
+  return used <= budgetTokens ? { lines, tokens: used, anchored: true } : undefined;
+}
+
+function olderConversation(
+  messages: ConversationMessage[],
+  budgetTokens: number,
+  summary?: string,
+) {
+  const verbatim = verbatimMessages(messages);
+  if (verbatim.tokens <= budgetTokens) return { ...verbatim, anchored: false };
+  const anchored = anchoredSummary(summary, budgetTokens);
+  if (anchored !== undefined) return anchored;
   for (const excerptTokens of [128, 64, 32, 16, 8]) {
     const compacted = compactMessages(messages, excerptTokens);
-    if (compacted.tokens <= budgetTokens) return compacted;
+    if (compacted.tokens <= budgetTokens) return { ...compacted, anchored: false };
   }
   const marker = `${messages.length} older messages remain in durable conversation history.`;
   return tokens(marker) <= budgetTokens
-    ? { lines: [marker], tokens: tokens(marker) }
-    : { lines: [], tokens: 0 };
+    ? { lines: [marker], tokens: tokens(marker), anchored: false }
+    : { lines: [], tokens: 0, anchored: false };
 }
 
 function olderRunSummaries(
@@ -164,9 +191,12 @@ export function assembleHistory(
   const older = olderConversation(
     history.messages.slice(0, recent.start),
     remaining - summaries.tokens,
+    history.summary,
   );
   return [
-    older.lines.length === 0 ? "" : `Older conversation summary:\n${older.lines.join("\n")}`,
+    older.lines.length === 0
+      ? ""
+      : `${older.anchored ? "Anchored summary of earlier turns" : "Older conversation summary"}:\n${older.lines.join("\n")}`,
     summaries.lines.length === 0 ? "" : `Older execution summary:\n${summaries.lines.join("\n")}`,
     repairText.length === 0 ? "" : `Newest unsuperseded failed execution:\n${repairText}`,
     recent.lines.length === 0 ? "" : `Recent conversation:\n${recent.lines.join("\n")}`,

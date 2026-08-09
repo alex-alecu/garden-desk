@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, rm, writeFile } from "node:fs/promises";
 import { totalmem } from "node:os";
 import { dirname, join } from "node:path";
 import {
@@ -10,8 +10,10 @@ import {
 import {
   prepareSmallCase,
   SMALL_CONCURRENT_CASES,
+  SMALL_FOCUSED_REPORT_CASES,
   SMALL_SEQUENTIAL_CASES,
 } from "./small-profile.js";
+import { createStressRoot, requireStressPlatform } from "./stress-platform.js";
 import { runConcurrentCases, runSequentialCases } from "./stress-suite.js";
 
 const CASE_DEADLINE_MS = 30 * 60_000;
@@ -21,7 +23,9 @@ function requestedCase(): (typeof SMALL_SEQUENTIAL_CASES)[number] | undefined {
   const index = process.argv.indexOf("--case");
   if (index === -1) return undefined;
   const value = process.argv[index + 1];
-  const id = SMALL_SEQUENTIAL_CASES.find((candidate) => candidate === value);
+  const id = [...SMALL_SEQUENTIAL_CASES, ...SMALL_FOCUSED_REPORT_CASES].find(
+    (candidate) => candidate === value,
+  );
   if (id === undefined) throw new Error(`Unknown small stress case: ${value ?? "missing"}`);
   return id;
 }
@@ -30,7 +34,7 @@ async function runPolicyCases(endpoint: string, root: string): Promise<string[]>
   const regularFile = join(root, "not-a-folder.txt");
   await writeFile(regularFile, "not a folder\n");
   const cases = [
-    { name: "macos-root", params: { rootPath: "/" } },
+    { name: "filesystem-root", params: { rootPath: process.platform === "win32" ? "C:\\" : "/" } },
     { name: "missing-folder", params: { rootPath: join(root, "missing") } },
     { name: "regular-file", params: { rootPath: regularFile } },
   ];
@@ -80,10 +84,8 @@ async function runSmallSuite(
 }
 
 async function main(): Promise<void> {
-  if (process.platform !== "darwin" || process.arch !== "arm64") {
-    throw new Error("The M3 small stress suite requires physical Apple silicon.");
-  }
-  const root = await mkdtemp("/tmp/vault-m3-stress-small-");
+  requireStressPlatform();
+  const root = await createStressRoot("vault-m3-stress-small");
   const output = reportPath();
   let runtime: Awaited<ReturnType<typeof startStressRuntime>> | undefined;
   try {

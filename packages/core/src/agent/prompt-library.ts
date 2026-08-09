@@ -189,6 +189,17 @@ export class PromptLibrary {
     );
   }
 
+  activeSkillStates(
+    activeNames: ReadonlySet<string>,
+    name: string,
+    values: PromptValues = {},
+  ): string[] {
+    return this.skills.flatMap((skill) => {
+      const state = skill.statePrompts.get(name);
+      return activeNames.has(skill.name) && state !== undefined ? [render(state, values)] : [];
+    });
+  }
+
   recovery(name: string, values: PromptValues = {}): string {
     return render(this.required(this.recoveryPrompts, "recovery", name), values);
   }

@@ -78,7 +78,7 @@ On Windows Pro and Enterprise with Hyper-V already enabled, Vault Desk uses **HC
 
 ## Project status
 
-The M3 desktop agent and canonical headless gate are implemented and certified on physical Apple silicon and Windows x64. One Windows application directory contains the CUDA and Vulkan runtimes, chooses them automatically, and passed real-Gemma CUDA plus HCS Plan9 guest evidence. The installed-Windows UI, live-execution, and debug-snapshot observations pass; generated-file packaged-app evidence, the refreshed Windows guest document probe, dedicated-standard-user setup, macOS lower-tier context, and release-credential signing remain before the global launch gate closes. See the current [M3 status](docs/M3_STATUS.md) for exact evidence.
+The M3 desktop agent and canonical headless gate are implemented and certified on physical Apple silicon and Windows x64. One Windows application directory contains the CUDA and Vulkan runtimes, chooses them automatically, and passed real-Gemma CUDA plus HCS Plan9 guest evidence. The installed-Windows UI, live-execution, debug-snapshot, and refreshed guest document observations pass; generated-file packaged-app evidence, dedicated-standard-user setup, macOS lower-tier context, and release-credential signing remain before the global launch gate closes. See the current [M3 status](docs/M3_STATUS.md) for exact evidence.
 
 The community software is free. Signed public installers are not yet available.
 

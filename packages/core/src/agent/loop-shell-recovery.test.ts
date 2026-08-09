@@ -126,6 +126,7 @@ describe("AgentLoop embedded shell source", () => {
     expect(prompts[1]).toContain("embedded a Python or Node program");
     expect(prompts[1]).toContain("executes it without shell quoting");
     expect(schemas[1]).not.toHaveProperty("oneOf");
+    expect(JSON.stringify(schemas[1])).toContain('"maxItems":40');
   });
 });
 

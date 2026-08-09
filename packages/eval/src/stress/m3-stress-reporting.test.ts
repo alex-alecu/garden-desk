@@ -4,6 +4,7 @@ import {
   AgentExecutionSnapshotSchema,
   type AgentRunSnapshot,
   AgentRunSnapshotSchema,
+  AgentTraceSchema,
 } from "@vault/shared";
 import { describe, expect, it } from "vitest";
 import { stressResultFor } from "./m3-stress-reporting.js";
@@ -117,8 +118,10 @@ describe("M3 stress result evidence", () => {
       startedAt: performance.now(),
     };
 
-    expect(stressResultFor(active, snapshot("Done."), []).passed).toBe(false);
-    expect(stressResultFor(active, snapshot("Done."), ["report.pdf"]).passed).toBe(true);
+    expect(stressResultFor(active, snapshot("Done."), { verified: [] }).passed).toBe(false);
+    expect(stressResultFor(active, snapshot("Done."), { verified: ["report.pdf"] }).passed).toBe(
+      true,
+    );
   });
 });
 
@@ -144,7 +147,7 @@ describe("invalid-input stress evidence", () => {
 
     expect(stressResultFor(active, snapshot("The PDF is invalid.")).passed).toBe(false);
     expect(
-      stressResultFor(active, snapshot("The PDF is invalid.", "EOF marker not found"), []).passed,
+      stressResultFor(active, snapshot("The PDF is invalid.", "EOF marker not found")).passed,
     ).toBe(true);
     expect(
       stressResultFor(
@@ -152,5 +155,98 @@ describe("invalid-input stress evidence", () => {
         snapshot("The PDF is invalid.", "EOF marker not found", [artifact()]),
       ),
     ).toMatchObject({ passed: false, error: "Expected no artifacts." });
+  });
+});
+
+function compactionCase(): ActiveCase {
+  return {
+    fixture: {
+      id: "context-compaction",
+      source: "/tmp/context-compaction",
+      task: "Process the full corpus.",
+      fixtureMs: 1,
+      evidence: { bytes: 1, files: 1, expected: {} },
+      expectedTokens: ["COMPACTION_TOTAL=38687"],
+      requiresContextCompaction: true,
+    },
+    folderId: "folder",
+    previousSnapshots: [],
+    sessionId: "session",
+    runId: "run",
+    startedAt: performance.now(),
+  };
+}
+
+function traceWithPrompts(...prompts: string[]) {
+  return AgentTraceSchema.parse({
+    runId: "77ff5b22-555d-4ef2-9170-fdd7118738f1",
+    captureVersion: 1,
+    status: "recorded",
+    turns: prompts.map(
+      (prompt, index) =>
+        ({
+          id: `11111111-1111-4111-8111-${String(index + 1).padStart(12, "0")}`,
+          runId: "77ff5b22-555d-4ef2-9170-fdd7118738f1",
+          sequence: index,
+          phase: "decision",
+          requestId: "22222222-2222-4222-8222-222222222222",
+          jobId: "ea31a359-3b01-4d54-9950-e3d46e807381",
+          modelId: "test",
+          contextSize: 131_072,
+          maxTokens: 8_192,
+          allocatedContextTokens: 131_072,
+          promptHash: `sha256:${"0".repeat(64)}`,
+          schemaHash: `sha256:${"1".repeat(64)}`,
+          responseHash: null,
+          prompt,
+          jsonSchema: {},
+          structuredResponse: null,
+          outcome: "accepted_response",
+          executionSequence: null,
+          createdAt: timestamp,
+          responseCapturedAt: timestamp,
+          completedAt: timestamp,
+        }) as const,
+    ),
+  });
+}
+
+describe("context compaction stress evidence", () => {
+  it("requires an inspectable compacted task record in a later traced prompt", () => {
+    const active = compactionCase();
+    const result = snapshot("Done.", "COMPACTION_TOTAL=38687\n");
+
+    expect(
+      stressResultFor(active, result, { trace: traceWithPrompts("No compaction.") }),
+    ).toMatchObject({
+      passed: false,
+      error: "Expected at least 1 automatic context compaction event.",
+    });
+    expect(
+      stressResultFor(active, result, {
+        trace: traceWithPrompts("# Compacted task state\nComplete."),
+      }),
+    ).toMatchObject({ passed: true, contextCompactions: 1 });
+  });
+
+  it("can require repeated turnover instead of one compacted prompt", () => {
+    const active = compactionCase();
+    active.fixture.minimumContextCompactions = 3;
+    active.fixture.requiresContextCompaction = false;
+    const result = snapshot("Done.", "COMPACTION_TOTAL=38687\n");
+    const compacted = "# Compacted task state\nComplete.";
+
+    expect(
+      stressResultFor(active, result, { trace: traceWithPrompts(compacted, compacted) }),
+    ).toMatchObject({
+      passed: false,
+      contextCompactions: 2,
+      error: "Expected at least 3 automatic context compaction events.",
+    });
+    expect(
+      stressResultFor(active, result, {
+        trace: traceWithPrompts(compacted, compacted, compacted),
+      }),
+    ).toMatchObject({ passed: true, contextCompactions: 3 });
   });
 });

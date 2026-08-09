@@ -94,7 +94,11 @@ describe("AgentLoop XLSX Python syntax repair", () => {
     const repaired = "try:\n    print('done')\nexcept Exception:\n    raise";
     await new AgentLoop(
       inference(
-        [execute(broken, "Collect filtered rows"), execute(repaired, "Rebuild valid program")],
+        [
+          execute(broken, "Collect filtered rows"),
+          execute(repaired, "Rebuild valid program"),
+          { action: "respond", response: "Repair complete." },
+        ],
         prompts,
       ),
       executor(

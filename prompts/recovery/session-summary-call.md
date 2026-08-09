@@ -1,0 +1,1 @@
+Your previous attempt returned prose instead of the required structured summary call. Call exactly the one available function now. Put the complete updated Markdown summary in its `summary` string array and return no prose outside the call.

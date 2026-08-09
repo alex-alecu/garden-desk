@@ -86,6 +86,83 @@ describe("AgentLoop structured retry prompts", () => {
   });
 });
 
+describe("AgentLoop source-line schema", () => {
+  it("keeps source items bounded while parser normalization owns line splitting", () => {
+    const request = generationInput(
+      { task: "Inspect the selected files.", modelId: "test-model" },
+      { executions: [], inference: performance, rejectedDuplicates: 0 },
+    );
+    expect(JSON.stringify(request.jsonSchema)).toContain(
+      '"items":{"type":"string","maxLength":512}',
+    );
+    expect(JSON.stringify(request.jsonSchema)).not.toContain('"pattern"');
+  });
+});
+
+describe("deliverable follow-up generation budget", () => {
+  it("keeps initial analysis capacity and bounds later creation work", () => {
+    const input = { task: "Create management-report.pdf in the workspace.", modelId: "test" };
+    const progress = { executions: [], inference: performance, rejectedDuplicates: 0 };
+    expect(generationInput(input, progress).maxTokens).toBe(32_768);
+    expect(
+      generationInput(input, {
+        ...progress,
+        executions: [completedSource("steps/analyze.py", "print('facts')", "facts\n")],
+      }).maxTokens,
+    ).toBe(4_096);
+  });
+});
+
+describe("compacted follow-up generation budget", () => {
+  it("bounds the turn after oversized current-run evidence", () => {
+    const request = generationInput(
+      { task: "Find the target value.", modelId: "test" },
+      {
+        executions: [completedSource("steps/analyze.py", "print('data')", "x".repeat(40_000))],
+        inference: performance,
+        rejectedDuplicates: 0,
+      },
+    );
+    expect(request.maxTokens).toBe(4_096);
+  });
+});
+
+describe("AgentLoop repetitive-program recovery", () => {
+  it("bounds the fresh source-only repair after repetitive malformed source", async () => {
+    const invalid = Array.from({ length: 60 }, () => "main()").join("\n");
+    const repaired = "print('repaired')";
+    const schemas: Array<Record<string, unknown>> = [];
+    const decisions: AgentDecision[] = [
+      { action: "execute", language: "python", source: invalid, summary: "Malformed" },
+      { action: "execute", language: "python", source: repaired, summary: "Repair" },
+      { action: "respond", response: "Done." },
+    ];
+    const model: Pick<InferenceService, "generate"> = {
+      async generate(input) {
+        schemas.push(input.jsonSchema);
+        return {
+          protocolVersion: 1,
+          requestId: "invalid-recovery-test",
+          status: "ok",
+          operation: "generate",
+          value: decisions.shift(),
+          memory: { cpuRamBytes: 1, gpuVramBytes: 1, budgetBytes: 1, detectedGpuVramBytes: 1 },
+          performance,
+        };
+      },
+    };
+    const result = await new AgentLoop(model, {
+      async execute() {
+        return completedSource("steps/repair.py", repaired, "repaired\n");
+      },
+    }).run({ task: "Inspect the selected files.", modelId: "test-model" });
+
+    expect(result.executions).toHaveLength(1);
+    expect(schemas[1]).not.toHaveProperty("oneOf");
+    expect(JSON.stringify(schemas[1])).toContain('"maxItems":40');
+  });
+});
+
 function completedSource(path: string, source: string, stdout: string): AgentExecutionResult {
   return {
     language: "python",

@@ -4,11 +4,16 @@ import {
   parseWorkProgress,
   workProgressAdvanced,
 } from "@vault/shared";
+import { requestedArtifactNames, requestedFactLabels } from "./artifact-declarations.js";
 import { SHELL_COMMAND_CHARACTER_LIMIT } from "./prompt-schema.js";
+import { hasUnbalancedSourceDelimiters } from "./source-delimiters.js";
+
+const MAX_COMPLETE_SOURCE_LINE_CHARACTERS = 500;
 
 export type RejectedExecutionReason =
   | "duplicate"
   | "invalid"
+  | "unterminated_source_string"
   | "shell_limit"
   | "shell_source"
   | "source_allowlist";
@@ -26,11 +31,14 @@ function isPathologicallyRepetitive(
   decision: Extract<AgentDecision, { action: "execute" }>,
 ): boolean {
   if (decision.language === "shell") return false;
-  const lines = decision.source
-    .split(/\r?\n/u)
-    .map((line) => line.trim())
-    .filter((line) => line.length > 0);
-  return lines.length >= 40 && new Set(lines).size * 3 < lines.length;
+  const sourceLines = decision.source.split(/\r?\n/u);
+  const lines = sourceLines.map((line) => line.trim()).filter((line) => line.length > 0);
+  const repeatedChunk = /([A-Za-z_][A-Za-z0-9_]*\s*=\s*[^;\n]{0,30})\1{7}/u.test(decision.source);
+  return (
+    sourceLines.some((line) => line.length >= MAX_COMPLETE_SOURCE_LINE_CHARACTERS) ||
+    (lines.length >= 40 && new Set(lines).size * 3 < lines.length) ||
+    repeatedChunk
+  );
 }
 
 function isImportOnlySource(decision: Extract<AgentDecision, { action: "execute" }>): boolean {
@@ -63,6 +71,38 @@ function containsProtocolFragment(
     decision.language !== "shell" &&
     /<\|?(?:tool_call|channel|thought)(?:\||>)/iu.test(decision.source)
   );
+}
+
+function containsMalformedCallSuffix(
+  decision: Extract<AgentDecision, { action: "execute" }>,
+): boolean {
+  return decision.language !== "shell" && /\)\p{L}[\p{L}\p{N}_]*\s*(?:$|\n)/u.test(decision.source);
+}
+
+function definesUncalledEntryPoint(
+  decision: Extract<AgentDecision, { action: "execute" }>,
+): boolean {
+  if (decision.language === "shell") return false;
+  const lines = decision.source.split(/\r?\n/u);
+  const definition =
+    decision.language === "python"
+      ? /^\s*(?:async\s+)?def\s+main\s*\(/u
+      : /^\s*(?:async\s+)?function\s+main\s*\(/u;
+  if (!lines.some((line) => definition.test(line))) return false;
+  return !lines.some(
+    (line) => !definition.test(line) && !/^\s*(?:#|\/\/)/u.test(line) && /\bmain\s*\(/u.test(line),
+  );
+}
+
+function containsBareIdentifierStatement(
+  decision: Extract<AgentDecision, { action: "execute" }>,
+): boolean {
+  if (decision.language === "shell") return false;
+  const allowed = new Set(["break", "continue", "False", "None", "pass", "return", "True"]);
+  return decision.source
+    .split(/\r?\n/u)
+    .map((line) => line.trim())
+    .some((line) => /^\p{L}[\p{L}\p{N}_]*$/u.test(line) && !allowed.has(line));
 }
 
 function reachedShellCommandLimit(
@@ -106,8 +146,29 @@ function isInvalidProgram(
 ): boolean {
   return (
     containsProtocolFragment(decision) ||
+    containsMalformedCallSuffix(decision) ||
+    definesUncalledEntryPoint(decision) ||
+    containsBareIdentifierStatement(decision) ||
     isPathologicallyRepetitive(decision) ||
     (rejectIncompleteSource && isImportOnlySource(decision))
+  );
+}
+
+function hasUnterminatedSourceString(
+  decision: Extract<AgentDecision, { action: "execute" }>,
+): boolean {
+  return decision.language !== "shell" && hasUnbalancedSourceDelimiters(decision.source);
+}
+
+function rendersRequestedFactWithColon(
+  decision: Extract<AgentDecision, { action: "execute" }>,
+  task: string,
+): boolean {
+  if (decision.language === "shell" || requestedArtifactNames(task).length === 0) return false;
+  const labels = requestedFactLabels(task);
+  return (
+    labels.some((label) => decision.source.includes(`${label}:`)) ||
+    (labels.length > 0 && /\{label\}\s*:\s*\{value\}/u.test(decision.source))
   );
 }
 
@@ -121,7 +182,9 @@ function policyRejectionReason(
     return "shell_source";
   if (rejectIncompleteSource && usesGuessedSourceExtensionAllowlist(decision, task))
     return "source_allowlist";
+  if (rendersRequestedFactWithColon(decision, task)) return "invalid";
   if (isInvalidProgram(decision, rejectIncompleteSource)) return "invalid";
+  if (hasUnterminatedSourceString(decision)) return "unterminated_source_string";
   return undefined;
 }
 

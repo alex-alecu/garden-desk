@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm, symlink, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -108,8 +108,9 @@ describe("artifact export", () => {
 
     const target = join(root, "target.pdf");
     const link = join(root, "linked.pdf");
-    await writeFile(target, "target");
-    await symlink(target, link);
+    if (process.platform === "win32") await mkdir(target);
+    else await writeFile(target, "target");
+    await symlink(target, link, process.platform === "win32" ? "junction" : "file");
     await expect(
       exportAndAuditArtifact({
         database: catalog.database,

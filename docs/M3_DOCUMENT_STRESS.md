@@ -4,6 +4,8 @@ Created: 2026-07-26
 
 This evaluation measures the M3 generic offline development agent with the real Gemma 4 12B QAT worker, current-user daemon, and no-NIC microVM. It does not add a product document parser. The small suite first exposed an XLSX agent-loop limitation and then verified the focused Core-owned repair described below.
 
+The current cross-platform small profile also contains one single-turn and one three-turn context-compaction workload. The separate `pnpm test:stress:m3:context-session` command sizes synthetic conversation pressure from the worker's reported allocation, requires three distinct anchored-summary versions in later traced prompts, and verifies final recall of pre-compaction decisions. These runners record the actual allocation and must be executed independently on each physical tier; passing one tier is never evidence for another.
+
 ## Two-commit delivery
 
 The work is intentionally split into two commits in one pull request:
@@ -20,20 +22,20 @@ The work is intentionally split into two commits in one pull request:
 | XLSX folder | 3 XLSX, 2 sheets each, 2,500 rows per sheet | Traverse every workbook, sheet, and row. |
 | Mixed folder | 2 XLSX as above and 3 DOCX with 12 page-break-delimited pages each | Produce complete XLSX and DOCX counts and checksums. |
 | Invalid document | 1 truncated PDF | Stop after bounded validation without creating an artifact. |
-| Invalid folder requests | macOS `/`, a missing path, a regular file, and an invalid session ID | Reject through daemon RPC before inference or VM work. |
+| Invalid folder requests | the platform filesystem root, a missing path, a regular file, and an invalid session ID | Reject through daemon RPC before inference or VM work. |
 | Concurrent | PDF, XLSX-folder, and mixed-folder cases | Observe three runs in the running state while sharing the real resident model. |
 
 Every positive fixture stores its final target on each file's final page or worksheet row. A passing exact count and checksum therefore requires complete traversal rather than opening only the first page, sheet, or file.
 
 ## Running phase 1
 
-Prerequisites are the same generated signed macOS helper, agent guest image, and canonical model used by `pnpm test:m3:macos`. Run on physical Apple silicon outside a restricted shell:
+Prerequisites are the generated platform microVM helper, agent guest image, and canonical model used by `pnpm test:m3:macos` or `pnpm test:m3:windows`. On Windows the suite additionally uses the packaged inference worker, AppContainer launcher, and Node runtime so VRAM detection matches the desktop. Run on physical Apple silicon or Windows x64 outside a restricted shell:
 
 ```sh
-pnpm test:stress:m3:macos:small
+pnpm test:stress:m3:small
 ```
 
-The command creates fixtures and workspace state under a short `/tmp` path, calls only daemon RPC through the CLI client, and removes the temporary corpus after completion. A complete local report containing terminal snapshots, ordered events, execution output, and recorded inference traces is retained under `packages/eval/.generated/stress/`. That report can contain generated code and source-derived output and must remain local.
+The command creates fixtures and workspace state under a short `/tmp` path on macOS and under the user temporary directory on Windows, calls only daemon RPC through the CLI client, and removes the temporary corpus after completion. A complete local report containing terminal snapshots, ordered events, execution output, and recorded inference traces is retained under `packages/eval/.generated/stress/`. That report can contain generated code and source-derived output and must remain local.
 
 The suite exits nonzero when it finds a limit. A nonzero result is evidence to record, not by itself authorization to change the agent. Agent changes require a separate owner-approved strategy and verification.
 
@@ -50,9 +52,9 @@ The suite exits nonzero when it finds a limit. A nonzero result is evidence to r
 The sequential command runs PDF, workbook, XLSX-folder, then mixed-folder and removes each generated corpus after its run. A single sequential case can be selected with `--case pdf`, `--case workbook`, `--case xlsx-folder`, or `--case mixed-folder`. The concurrent command must retain all three corpora until the three runs are terminal.
 
 ```sh
-pnpm test:stress:m3:macos:scaled:sequential
-pnpm test:stress:m3:macos:scaled:sequential -- --case workbook
-pnpm test:stress:m3:macos:scaled:concurrent
+pnpm test:stress:m3:scaled:sequential
+pnpm test:stress:m3:scaled:sequential -- --case workbook
+pnpm test:stress:m3:scaled:concurrent
 ```
 
 These commands are intentionally explicit and pass the runner's `--confirm-scaled` guard. The corrected definitions were run on physical Apple silicon; the evidence is recorded below.

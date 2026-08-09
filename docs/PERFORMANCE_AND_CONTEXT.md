@@ -167,15 +167,15 @@ Do not carry forward hidden chain-of-thought or model-private reasoning. Only st
 
 ## Compaction Triggers
 
-The context manager should compact proactively:
+M3 uses the worker's actual reported allocation rather than fixed context-size assumptions or percentage thresholds:
 
-- At 70 percent of the certified active context, refresh the structured task state.
-- At 85 percent, compact before adding new large evidence.
-- At 95 percent, compact before the next model turn unless the current turn is already ending.
-- After any long tool run, update the task and evidence ledgers before asking the model to continue.
-- After every export or approval, freeze the relevant ledger entries for audit.
+- Rebuild task state before every model turn.
+- Give successful source, commands, stdout, and stderr together at most half of the remaining prompt space, capped at 8,000 estimated tokens. If they exceed that allocation-derived budget, add the compacted ledgers before the turn; keep failed repair source exact and fail closed when it cannot fit.
+- Keep up to two newest user turns in the allocation-derived recent-history budget. Use the anchored summary when verbatim older turns no longer fit; otherwise preserve them verbatim.
+- Refresh the summary after four newly uncovered messages at contexts of at least 16,384 tokens. Fit only the largest pending prefix that leaves its 1,024-token output reserve inside the actual allocation, then continue the backlog on a later refresh.
+- Retain exact exports, approvals, execution records, artifacts, and audit state outside the prompt regardless of compaction.
 
-Manual user compact should be supported as a normal command. Manual compact must not discard citations, pending work, or approvals.
+A manual compact command is not part of the active M3 desktop contract. If added later, it must use the same ledgers and must not discard citations, pending work, or approvals.
 
 ## Long-Running Session Acceptance Test
 

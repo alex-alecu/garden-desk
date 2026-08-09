@@ -1,6 +1,10 @@
 import { AgentDecisionSchema, type AgentExecutionResult } from "@vault/shared";
 import { describe, expect, it } from "vitest";
-import { artifactCandidateNames, declaredArtifactOutputs } from "./artifact-declarations.js";
+import {
+  artifactCandidateNames,
+  declaredArtifactOutputs,
+  requestedArtifactNames,
+} from "./artifact-declarations.js";
 import { generationInput } from "./prompt.js";
 
 function execution(
@@ -155,5 +159,118 @@ describe("deliverable-free response schema", () => {
       },
     ).jsonSchema as { oneOf: Array<{ properties: { artifacts: Record<string, unknown> } }> };
     expect(schema.oneOf[0]?.properties.artifacts).toEqual({ type: "array", maxItems: 0 });
+  });
+});
+
+describe("explicitly named deliverables", () => {
+  it("requires source execution until the requested file is observed", () => {
+    const task = "Create a polished PDF named management-report.pdf in the workspace.";
+    expect(requestedArtifactNames(task)).toEqual(["management-report.pdf"]);
+    const schema = generationInput(
+      { task, modelId: "test" },
+      {
+        executions: [],
+        inference: {
+          promptTokens: 0,
+          outputTokens: 0,
+          promptDurationMs: 0,
+          generationDurationMs: 0,
+          totalDurationMs: 0,
+        },
+        rejectedDuplicates: 0,
+      },
+    ).jsonSchema;
+
+    expect(schema).not.toHaveProperty("oneOf");
+    expect(schema).toMatchObject({ properties: { action: { const: "execute" } } });
+  });
+
+  it("prioritizes a missing named deliverable when one execution remains", () => {
+    const task = "Create management-report.pdf in the workspace.";
+    const progress = {
+      executions: Array.from({ length: 5 }, () => execution([])),
+      inference: {
+        promptTokens: 0,
+        outputTokens: 0,
+        promptDurationMs: 0,
+        generationDurationMs: 0,
+        totalDurationMs: 0,
+      },
+      rejectedDuplicates: 0,
+    };
+    const prompt = generationInput({ task, modelId: "test" }, progress).prompt;
+
+    expect(prompt).toContain("Only one execution remains");
+    expect(prompt).toContain('["management-report.pdf"]');
+    expect(prompt).toContain("Derive any missing fact");
+    expect(prompt).toContain("Do not repeat completed analysis");
+  });
+});
+
+describe("deliverable fact labels", () => {
+  it("adds exact deliverable labels only after initial context allocation", () => {
+    const task = "Create report.pdf and visibly label MATCHING_INVOICES and INVOICE_TOTAL.";
+    const empty = {
+      executions: [],
+      inference: {
+        promptTokens: 0,
+        outputTokens: 0,
+        promptDurationMs: 0,
+        generationDurationMs: 0,
+        totalDurationMs: 0,
+      },
+      rejectedDuplicates: 0,
+    };
+    expect(generationInput({ task, modelId: "test" }, empty).prompt).not.toContain(
+      "Every requested deliverable must preserve",
+    );
+    const afterExecution = { ...empty, executions: [execution([])] };
+    expect(generationInput({ task, modelId: "test" }, afterExecution).prompt).toContain(
+      'Every requested deliverable must preserve these exact LABEL=value facts: ["MATCHING_INVOICES","INVOICE_TOTAL"]',
+    );
+  });
+
+  it("decomposes several named outputs into incremental actions", () => {
+    const request = generationInput(
+      { task: "Create report.pdf, report.docx, and report.xlsx.", modelId: "test" },
+      {
+        executions: [],
+        inference: {
+          promptTokens: 0,
+          outputTokens: 0,
+          promptDurationMs: 0,
+          generationDurationMs: 0,
+          totalDurationMs: 0,
+        },
+        rejectedDuplicates: 0,
+      },
+    );
+    expect(request.prompt).toContain("gather shared facts once");
+    expect(request.prompt).toContain("create at most one missing file per later execution");
+  });
+});
+
+describe("multi-format prompt budget", () => {
+  it("fits the scaled three-format request at the certified 8K floor", () => {
+    const task = [
+      "Review the complete selected corpus containing XLSX invoices, DOCX meeting notes, and one policy PDF; attention rows contain Priority review, meeting-note entries start Decision record, and policy pages start Policy section.",
+      "Create the requested polished management reports in the private workspace and visibly label MATCHING_INVOICES, INVOICE_TOTAL, MEETING_NOTES, and POLICY_PAGES.",
+      "Required deliverables: scaled-report.pdf, scaled-report.docx, scaled-report.xlsx.",
+    ].join(" ");
+    const request = generationInput(
+      { task, modelId: "gemma-4-12b-it-qat-q4_0" },
+      {
+        executions: [],
+        inference: {
+          promptTokens: 0,
+          outputTokens: 0,
+          promptDurationMs: 0,
+          generationDurationMs: 0,
+          totalDurationMs: 0,
+        },
+        rejectedDuplicates: 0,
+      },
+    );
+    expect(Math.ceil(JSON.stringify(request).length / 4)).toBeLessThanOrEqual(4_096);
   });
 });

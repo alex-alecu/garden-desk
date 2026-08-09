@@ -19,14 +19,11 @@ import { readCanonicalModelManifest, verifyModelFile } from "../models.js";
 import { verifyDeliverables } from "./deliverable-verification.js";
 import type { PreparedStressCase } from "./document-workloads.js";
 import { createProgressReporter, stressResultFor, terminal } from "./m3-stress-reporting.js";
+import { stressPlatform } from "./stress-platform.js";
 
 const repositoryRoot = process.cwd();
 const modelRoot = join(repositoryRoot, "packages/eval/.generated/models");
 const modelPath = join(modelRoot, "gemma-4-12b-it-qat-q4_0.gguf");
-const helper = join(
-  repositoryRoot,
-  "packages/workers/native/macos-vz-helper/.generated/vault-vz-helper",
-);
 const images = join(repositoryRoot, "packages/workers/images");
 
 export interface ActiveCase {
@@ -54,6 +51,7 @@ export interface StressCaseResult {
   error: string | null;
   verifiedDeliverables: string[];
   verificationOutput: string;
+  contextCompactions: number;
 }
 
 export interface StressRunEvidence {
@@ -114,12 +112,14 @@ export async function prepareModelStore(): Promise<void> {
 
 export async function startStressRuntime(workspace: string): Promise<StressRuntime> {
   await mkdir(workspace);
+  const platform = await stressPlatform();
   const core = await createVaultCore({
     workspaceDir: workspace,
     modelStoreDir: modelRoot,
     profile: "auto",
-    agentHelperPath: helper,
+    agentHelperPath: platform.helper,
     agentImageRoot: images,
+    ...(platform.inference ?? {}),
   });
   try {
     const daemon = await startDaemon(core, workspace);
@@ -268,7 +268,11 @@ export async function collectEvidence(
   );
   return {
     previousRuns,
-    result: stressResultFor(active, snapshot, verification.verified, verification.output),
+    result: stressResultFor(active, snapshot, {
+      verified: verification.verified,
+      output: verification.output,
+      trace,
+    }),
     snapshot,
     trace,
   };

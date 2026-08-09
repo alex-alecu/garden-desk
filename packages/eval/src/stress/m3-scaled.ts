@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, rm, writeFile } from "node:fs/promises";
 import { totalmem } from "node:os";
 import { dirname, join } from "node:path";
 import { prepareModelStore, requireRealModel, startStressRuntime } from "./m3-stress-runtime.js";
@@ -9,6 +9,7 @@ import {
   SCALED_WORKLOAD_PLAN,
   type ScaledCaseId,
 } from "./scaled-profile.js";
+import { createStressRoot, requireStressPlatform } from "./stress-platform.js";
 import { runConcurrentCases, runSequentialCases } from "./stress-suite.js";
 
 const CASE_DEADLINE_MS = 12 * 60 * 60_000;
@@ -84,11 +85,9 @@ function suitePassed(suite: Awaited<ReturnType<typeof runSelectedSuite>>): boole
 }
 
 async function main(): Promise<void> {
-  if (process.platform !== "darwin" || process.arch !== "arm64") {
-    throw new Error("The M3 scaled stress suite requires physical Apple silicon.");
-  }
+  requireStressPlatform();
   const options = parseOptions(process.argv.slice(2));
-  const root = await mkdtemp("/tmp/vault-m3-stress-scaled-");
+  const root = await createStressRoot("vault-m3-stress-scaled");
   const output = reportPath(options.mode);
   let runtime: Awaited<ReturnType<typeof startStressRuntime>> | undefined;
   try {

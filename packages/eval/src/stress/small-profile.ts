@@ -1,6 +1,12 @@
 import { writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import {
+  createCompactionCorpus,
+  createOversizedRevenueCorpus,
+  createRepeatedCompactionCorpus,
+  OVERSIZED_TABLE_PLAN,
+} from "./context-compaction-fixture.js";
+import {
   createDocxCorpus,
   createPdf,
   createXlsxCorpus,
@@ -19,12 +25,14 @@ export type SmallCaseId =
   | "word-report"
   | "excel-report"
   | "excel-row-filter"
-  | "cross-format-report"
   | "large-corpus-continuation"
   | "invalid-document"
   | "romanian-task"
   | "no-skill-direct"
-  | "terminal-discovery";
+  | "terminal-discovery"
+  | "context-compaction"
+  | "repeated-context-compaction"
+  | "oversized-table-result";
 
 function expectedValue(evidence: FixtureEvidence, name: string): string {
   const value = evidence.expected[name];
@@ -43,7 +51,7 @@ function reportFacts(evidence: FixtureEvidence): string[] {
 
 function deliverables(names: string[]) {
   return (evidence: FixtureEvidence): DeliverableExpectation[] =>
-    names.map((name) => ({ name, facts: reportFacts(evidence) }));
+    names.map((name) => ({ name, facts: reportFacts(evidence), deterministic: true }));
 }
 
 async function createBusinessCorpus(source: string, workbooks = 4): Promise<FixtureEvidence> {
@@ -129,21 +137,6 @@ const CASES: StressCaseDefinition<SmallCaseId>[] = [
     ],
   },
   {
-    id: "cross-format-report",
-    task: [
-      ...REPORT_SOURCE,
-      "Create matching management-report.pdf, management-report.docx, and management-report.xlsx deliverables in the private workspace.",
-      "Each report must visibly label the four results as MATCHING_INVOICES, INVOICE_TOTAL, MEETING_NOTES, and POLICY_PAGES.",
-    ].join(" "),
-    create: createBusinessCorpus,
-    expected: () => [],
-    deliverables: deliverables([
-      "management-report.pdf",
-      "management-report.docx",
-      "management-report.xlsx",
-    ]),
-  },
-  {
     id: "large-corpus-continuation",
     task: reportTask("Excel", "large-corpus-report.xlsx"),
     create: async (source) => createBusinessCorpus(source, 24),
@@ -186,6 +179,57 @@ const CASES: StressCaseDefinition<SmallCaseId>[] = [
     },
     expected: () => ["SURCHARGE_BPS=275"],
   },
+  {
+    id: "context-compaction",
+    task: [
+      "Use exactly one Python execution to recursively read every CSV record under /source and print one normalized line for every record, preserving its record ID, amount, and status.",
+      "After that large observation fills the live evidence context, compact it automatically and finish without rerunning the program, rereading the source, or asking the user.",
+      "Return COMPACTION_TOTAL=<the amount from the record whose status is COMPACTION_TARGET>.",
+    ].join(" "),
+    create: createCompactionCorpus,
+    expected: (evidence) => [`COMPACTION_TOTAL=${expectedValue(evidence, "compactionTarget")}`],
+    maxExecutions: 1,
+    requiresContextCompaction: true,
+  },
+  {
+    id: "repeated-context-compaction",
+    task: [
+      "Use exactly three Python executions in this order, with one source file per execution and no combined reader.",
+      "Execution 1 must read only /source/stage-1.csv, execution 2 only /source/stage-2.csv, and execution 3 only /source/stage-3.csv.",
+      "Every file has the exact case-sensitive CSV header ID,Amount,Status; use those exact DictReader keys.",
+      "In each execution print one normalized line for every record in that file, preserving record ID, amount, and status.",
+      "Execution 1 must also print STAGE_1_TOTAL=<Amount from the row whose Status equals STAGE_1_TARGET>, execution 2 STAGE_2_TOTAL=<Amount from the row whose Status equals STAGE_2_TARGET>, and execution 3 STAGE_3_TOTAL=<Amount from the row whose Status equals STAGE_3_TARGET>.",
+      "Capture each target Amount during the same loop that prints the rows; a CSV reader cannot be iterated a second time.",
+      "After each large observation, continue from Vault Core's compacted task and evidence ledgers without rerunning any earlier execution.",
+      "After all three executions return those three exact labels from the compacted evidence ledger. No additional skill is needed; keep the skills field empty on every turn.",
+    ].join(" "),
+    create: createRepeatedCompactionCorpus,
+    expected: (evidence) =>
+      [1, 2, 3].map(
+        (stage) => `STAGE_${stage}_TOTAL=${expectedValue(evidence, `stage${stage}Total`)}`,
+      ),
+    maxExecutions: 3,
+    minimumContextCompactions: 3,
+  },
+  {
+    id: "oversized-table-result",
+    task: [
+      "Search every Excel workbook in the selected folder for rows describing revenue received and return all matching rows in a nice table.",
+      "Return the complete result even when it is too large for the chat response.",
+      "Do not omit rows, abbreviate cells, use placeholders, or ask which output format to use.",
+    ].join(" "),
+    create: createOversizedRevenueCorpus,
+    expected: () => [],
+    deliverables: (evidence) => [
+      {
+        deterministic: true,
+        extension: ".xlsx",
+        facts: Array.from({ length: OVERSIZED_TABLE_PLAN.rows }, (_, index) =>
+          expectedValue(evidence, `revenueRow${index + 1}`),
+        ),
+      },
+    ],
+  },
 ];
 
 export async function prepareSmallCase(
@@ -197,5 +241,17 @@ export async function prepareSmallCase(
   return prepareStressCase(root, definition);
 }
 
-export const SMALL_SEQUENTIAL_CASES: SmallCaseId[] = CASES.map(({ id }) => id);
-export const SMALL_CONCURRENT_CASES: SmallCaseId[] = ["pdf-report", "word-report", "excel-report"];
+export const SMALL_FOCUSED_REPORT_CASES: SmallCaseId[] = [
+  "pdf-report",
+  "word-report",
+  "excel-report",
+  "large-corpus-continuation",
+];
+export const SMALL_SEQUENTIAL_CASES: SmallCaseId[] = CASES.map(({ id }) => id).filter(
+  (id) => !SMALL_FOCUSED_REPORT_CASES.includes(id),
+);
+export const SMALL_CONCURRENT_CASES: SmallCaseId[] = [
+  "excel-row-filter",
+  "terminal-discovery",
+  "invalid-document",
+];

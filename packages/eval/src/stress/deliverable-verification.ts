@@ -1,8 +1,7 @@
-import { execFile } from "node:child_process";
 import { rm } from "node:fs/promises";
 import { dirname } from "node:path";
-import { promisify } from "node:util";
 import { type AgentRunSnapshot, AgentRunSummarySchema, SessionSummarySchema } from "@vault/shared";
+import { extractedArtifactText } from "./artifact-text.js";
 import type { PreparedStressCase } from "./document-workloads.js";
 
 interface VerificationCase {
@@ -14,7 +13,6 @@ interface VerificationCase {
 }
 
 type Rpc = (method: string, params: Record<string, unknown>) => Promise<unknown>;
-const execFileAsync = promisify(execFile);
 
 function expectationLabel(item: NonNullable<PreparedStressCase["deliverables"]>[number]): string {
   return item.name ?? `one ${item.extension ?? "deliverable"} artifact`;
@@ -69,29 +67,39 @@ async function materialize(
   return paths;
 }
 
+async function verifyOneDeterministically(
+  item: NonNullable<PreparedStressCase["deliverables"]>[number],
+  artifact: { name: string; path: string },
+  index: number,
+): Promise<{ output: string; verified?: string }> {
+  try {
+    const extracted = await extractedArtifactText(artifact.path);
+    const missing = item.facts.filter((fact) => !extracted.includes(fact));
+    const forbidden = (item.forbiddenFacts ?? []).filter((fact) => extracted.includes(fact));
+    return missing.length === 0 && forbidden.length === 0
+      ? { output: `VERIFIED_${index + 1}=${artifact.name}`, verified: artifact.name }
+      : {
+          output: `INVALID_${index + 1}=missing:${missing.join(",")};forbidden:${forbidden.join(",")}`,
+        };
+  } catch (error) {
+    return { output: `INVALID_${index + 1}=extraction:${String(error)}` };
+  }
+}
+
 async function verifyDeterministically(
   expectations: NonNullable<PreparedStressCase["deliverables"]>,
   paths: Array<{ name: string; path: string }>,
 ): Promise<DeliverableVerification> {
-  const output: string[] = [];
-  const verified: string[] = [];
-  for (const [index, item] of expectations.entries()) {
-    const artifact = paths[index];
-    if (artifact === undefined) continue;
-    const extracted = await execFileAsync("/usr/bin/unzip", ["-p", artifact.path], {
-      encoding: "utf8",
-      maxBuffer: 64 * 1024 * 1024,
-    });
-    const missing = item.facts.filter((fact) => !extracted.stdout.includes(fact));
-    const forbidden = (item.forbiddenFacts ?? []).filter((fact) => extracted.stdout.includes(fact));
-    output.push(
-      missing.length === 0 && forbidden.length === 0
-        ? `VERIFIED_${index + 1}=${artifact.name}`
-        : `INVALID_${index + 1}=missing:${missing.join(",")};forbidden:${forbidden.join(",")}`,
-    );
-    if (missing.length === 0 && forbidden.length === 0) verified.push(artifact.name);
-  }
-  return { output: output.join("\n"), verified };
+  const results = await Promise.all(
+    expectations.map(async (item, index) => {
+      const artifact = paths[index];
+      return artifact === undefined ? undefined : verifyOneDeterministically(item, artifact, index);
+    }),
+  );
+  return {
+    output: results.flatMap((result) => result?.output ?? []).join("\n"),
+    verified: results.flatMap((result) => result?.verified ?? []),
+  };
 }
 
 export async function verifyDeliverables(

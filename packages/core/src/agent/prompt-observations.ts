@@ -6,6 +6,27 @@ const MINIMUM_OBSERVATION_STREAM_CHARACTERS = 2_048;
 
 export const OBSERVATION_STREAM_CHARACTERS = OBSERVATION_STREAM_TOKENS * 4;
 
+function executionHasUsableEvidence(execution: AgentExecutionResult): boolean {
+  return (
+    execution.exitCode === 0 &&
+    (execution.termination === "completed" || execution.termination === "resource_limit") &&
+    execution.stderr.trim().length === 0 &&
+    execution.stdout.trim().length > 0
+  );
+}
+
+export function executionContextCharacters(executions: readonly AgentExecutionResult[]): number {
+  return executions.reduce(
+    (total, execution) =>
+      total +
+      (execution.source?.length ?? 0) +
+      (execution.command?.length ?? 0) +
+      execution.stdout.length +
+      execution.stderr.length,
+    0,
+  );
+}
+
 /**
  * All observed streams together may use half of the space the prompt has left, so a
  * small context degrades to shorter excerpts instead of exhausting the window.
@@ -46,11 +67,22 @@ export function observations(
   totalStreamCharacters = OBSERVATION_STREAM_CHARACTERS,
   library: PromptLibrary = defaultPromptLibrary(),
 ) {
-  let remainingCharacters = totalStreamCharacters;
-  let remainingStreams = executions.reduce(
-    (count, result) => count + Number(result.stdout.length > 0) + Number(result.stderr.length > 0),
-    0,
-  );
+  const mandatoryCharacters = executions.reduce((total, result) => {
+    if (executionHasUsableEvidence(result)) return total;
+    return total + (result.source?.length ?? 0) + (result.command?.length ?? 0);
+  }, 0);
+  let remainingCharacters = Math.max(0, totalStreamCharacters - mandatoryCharacters);
+  let remainingStreams = executions.reduce((count, result) => {
+    const compactableProgram = executionHasUsableEvidence(result)
+      ? Number((result.source?.length ?? 0) > 0) + Number((result.command?.length ?? 0) > 0)
+      : 0;
+    return (
+      count +
+      compactableProgram +
+      Number(result.stdout.length > 0) +
+      Number(result.stderr.length > 0)
+    );
+  }, 0);
   const bounded = (text: string) => {
     if (text.length === 0) return text;
     const share = Math.floor(remainingCharacters / remainingStreams);
@@ -63,8 +95,14 @@ export function observations(
     step: index + 1,
     language: result.language,
     path: result.path,
-    source: result.source,
-    command: result.command,
+    source:
+      result.source === null || !executionHasUsableEvidence(result)
+        ? result.source
+        : bounded(result.source),
+    command:
+      result.command === null || !executionHasUsableEvidence(result)
+        ? result.command
+        : bounded(result.command),
     exitCode: result.exitCode,
     stdout: bounded(result.stdout),
     stderr: bounded(result.stderr),

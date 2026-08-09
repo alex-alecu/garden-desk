@@ -1,0 +1,1 @@
+For the missing PDF deliverable, use only `reportlab.lib.pagesizes`, `reportlab.lib.styles`, `reportlab.platypus`, or `reportlab.pdfgen.canvas`; never `reportlab.lib.pages`. Keep creation and reopening straight-line without a trailing `try` block.

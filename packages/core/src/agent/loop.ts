@@ -9,6 +9,7 @@ import type {
 import type { AgentSessionExecution } from "@vault/workers";
 import type { InferenceService } from "../runtime/inference.js";
 import { createGenerationRequest } from "../runtime/inference.js";
+import { normalizeDeliverableFactRendering } from "./artifact-declarations.js";
 import { addPerformance } from "./inference-performance.js";
 import { finishRun, recordOutcome } from "./loop-outcomes.js";
 import { structuredRetryInput } from "./loop-retry.js";
@@ -216,7 +217,7 @@ export class AgentLoop {
     turnId: string | undefined,
   ): TracedDecision {
     try {
-      const decision = parseDecision(value);
+      const decision = normalizeDeliverableFactRendering(parseDecision(value), input.task);
       input.signal?.throwIfAborted();
       return { decision, ...(turnId === undefined ? {} : { turnId }) };
     } catch (error) {

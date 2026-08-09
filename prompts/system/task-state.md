@@ -8,11 +8,14 @@ Task: {{task}}
 
 Completed execution observations: {{observations}}
 
+{{compacted_state}}
+
 - Successful execution count: {{successful_execution_count}}.
 - Remaining execution capacity: {{remaining_execution_capacity}}.
 - Rejected duplicate or pathologically repetitive programs: {{rejected_duplicates}}. A rejected program was not executed and does not advance the task. After a rejection, start from a fresh short strategy instead of copying the rejected source.
 - Required output labels: {{required_output_labels}}. A result is complete only when stdout contains every label exactly as `LABEL=value` with no spaces around the equals sign.
 - Produced artifact names: {{artifact_names}}.
+{{missing_artifact_instruction}}
 
 These observations are authoritative. Never repeat completed code or a completed task step.
 
