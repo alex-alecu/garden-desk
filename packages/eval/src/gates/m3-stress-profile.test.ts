@@ -10,6 +10,11 @@ import {
   SMALL_FOCUSED_REPORT_CASES,
   SMALL_SEQUENTIAL_CASES,
 } from "../stress/small-profile.js";
+import {
+  XLSX_PATH_LIST_ACCOUNTS,
+  XLSX_PATH_LIST_MONTHS,
+  XLSX_PATH_LIST_ROWS,
+} from "../stress/xlsx-path-list-fixture.js";
 import { XLSX_ROW_FILTER_PLAN } from "../stress/xlsx-row-filter-fixture.js";
 
 describe("M3 scaled document workload", () => {
@@ -43,6 +48,14 @@ describe("M3 XLSX row-filter regression workload", () => {
   });
 });
 
+describe("M3 XLSX path-list regression workload", () => {
+  it("keeps 36 synthetic account workbooks across 12 Romanian month folders", () => {
+    expect(XLSX_PATH_LIST_MONTHS).toHaveLength(12);
+    expect(XLSX_PATH_LIST_ACCOUNTS).toHaveLength(3);
+    expect(XLSX_PATH_LIST_ROWS).toHaveLength(36);
+  });
+});
+
 describe("M3 context turnover regressions", () => {
   it("keeps enough records to exceed the bounded observation stream", () => {
     expect(CONTEXT_COMPACTION_PLAN).toEqual({ records: 6_000, shards: 3 });
@@ -68,6 +81,7 @@ describe("M3 small stress sweep", () => {
         "repeated-context-compaction",
         "oversized-table-result",
         "excel-row-filter",
+        "excel-chat-path-list",
         "terminal-discovery",
       ]),
     );
@@ -76,5 +90,7 @@ describe("M3 small stress sweep", () => {
       "terminal-discovery",
       "invalid-document",
     ]);
+    expect(SMALL_FOCUSED_REPORT_CASES).not.toContain("excel-chat-path-list");
+    expect(SMALL_CONCURRENT_CASES).not.toContain("excel-chat-path-list");
   });
 });

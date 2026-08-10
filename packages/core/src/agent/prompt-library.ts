@@ -10,7 +10,7 @@ import { parseSkillMetadata, type SkillRepairTrigger } from "./prompt-skill-meta
 const PROMPT_FILE_LIMIT = 128_000;
 const PLACEHOLDER = /\{\{([a-z0-9_]+)\}\}/gu;
 const FORMAT_ACTION =
-  "(?:create|generate|write|make|build|produce|save|convert|read|review|inspect|check|tell|locate|summarize|extract|edit|update|merge|split|rotate|find|total|sum|calculate|analyze|process|validate|raport|raportează|raporteaza|citește|citeste|analizează|analizeaza|calculează|calculeaza)";
+  "(?:create|generate|write|make|build|produce|save|convert|read|review|inspect|check|tell|locate|search|summarize|extract|edit|update|merge|split|rotate|find|total|sum|calculate|analyze|process|validate|raport|raportează|raporteaza|citește|citeste|analizează|analizeaza|calculează|calculeaza|caută|cauta)";
 const ROUTING_STOP_WORDS = new Set([
   "agent",
   "and",

@@ -104,7 +104,7 @@ async function entryText(archive: Buffer, entry: ZipEntryLocation): Promise<stri
  * Reads every member of an OOXML deliverable without a platform archive tool so
  * macOS and Windows verify identical artifact bytes.
  */
-async function extractedArchiveText(path: string): Promise<string> {
+export async function extractedArchiveText(path: string): Promise<string> {
   const archive = await readFile(path);
   const entries = centralDirectoryEntries(archive);
   const parts = await Promise.all(entries.map(async (entry) => entryText(archive, entry)));

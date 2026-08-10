@@ -1,4 +1,5 @@
-import type { AgentRunSnapshot, AgentTrace } from "@vault/shared";
+import type { AgentExecutionSnapshot, AgentRunSnapshot, AgentTrace } from "@vault/shared";
+import type { ExpectedTableRow } from "./document-workloads.js";
 import type { ActiveCase, StressCaseResult } from "./m3-stress-runtime.js";
 
 export function terminal(snapshot: AgentRunSnapshot): boolean {
@@ -49,6 +50,17 @@ function snapshotOutput(snapshot: AgentRunSnapshot): string {
   ].join("\n");
 }
 
+function executions(active: ActiveCase, snapshot: AgentRunSnapshot): AgentExecutionSnapshot[] {
+  return [...active.previousSnapshots, snapshot].flatMap((run) => run.executions);
+}
+
+function expectedOutput(active: ActiveCase, snapshot: AgentRunSnapshot): string {
+  if (active.fixture.requiresDirectXlsxSource !== true) return snapshotOutput(snapshot);
+  return executions(active, snapshot)
+    .map((execution) => execution.stdout)
+    .join("\n");
+}
+
 function outputHasToken(output: string, token: string): boolean {
   const escaped = token.replaceAll(/[.*+?^${}()|[\]\\]/gu, "\\$&");
   return new RegExp(`(?:^|\\n)${escaped}(?:\\.0+)?[\\t ]*(?:$|\\n)`, "u").test(output);
@@ -59,6 +71,97 @@ function measuredRunMs(active: ActiveCase, snapshot: AgentRunSnapshot): number {
     Date.parse(snapshot.run.updatedAt) - Date.parse(snapshot.run.createdAt),
     Math.round(performance.now() - active.startedAt),
   );
+}
+
+function gfmTableRows(response: string): string[][] {
+  return response
+    .split(/\r?\n/u)
+    .map((line) => line.trim())
+    .filter((line) => line.startsWith("|") && line.endsWith("|"))
+    .map((line) =>
+      line
+        .slice(1, -1)
+        .split("|")
+        .map((cell) => cell.trim()),
+    )
+    .filter(
+      (cells) =>
+        cells.length >= 2 &&
+        !cells.every((cell) => /^:?-{3,}:?$/u.test(cell.replaceAll(/[\t ]/gu, ""))),
+    );
+}
+
+function amountPattern(amount: number): RegExp {
+  const digits = String(amount);
+  const leading = digits.slice(0, digits.length % 3 || 3);
+  const groups = digits.slice(leading.length).match(/.{3}/gu) ?? [];
+  const formatted = [leading, ...groups].map((part) =>
+    part.replaceAll(/[.*+?^${}()|[\]\\]/gu, "\\$&"),
+  );
+  return new RegExp(`(?<!\\d)${formatted.join("[\\s,.]?")}(?:[,.]0+)?(?!\\d)`, "u");
+}
+
+function missingTableRows(response: string, expected: ExpectedTableRow[]): ExpectedTableRow[] {
+  const rows = gfmTableRows(response);
+  return expected.filter(
+    ({ marker, amount }) =>
+      !rows.some(
+        (cells) =>
+          cells.some((cell) => cell.includes(marker)) &&
+          cells.some((cell) => amountPattern(amount).test(cell)),
+      ),
+  );
+}
+
+function schemaUsesSourceOnly(schema: Record<string, unknown>): boolean {
+  const properties = schema.properties;
+  if (properties === null || typeof properties !== "object" || Array.isArray(properties)) {
+    return false;
+  }
+  return Object.hasOwn(properties, "source") && !Object.hasOwn(properties, "command");
+}
+
+function initialTraceErrors(trace: AgentTrace | undefined): string[] {
+  const firstTurn = trace?.captureVersion === 1 ? trace.turns[0] : undefined;
+  if (firstTurn === undefined) return ["Expected a recorded initial inference trace."];
+  const errors: string[] = [];
+  if (!firstTurn.prompt.includes("## Active skill: xlsx-workbooks")) {
+    errors.push("Expected active XLSX guidance in the first trace prompt.");
+  }
+  if (!schemaUsesSourceOnly(firstTurn.jsonSchema)) {
+    errors.push("Expected a source-only first trace schema.");
+  }
+  return errors;
+}
+
+function directXlsxTraceError(
+  active: ActiveCase,
+  snapshot: AgentRunSnapshot,
+  trace: AgentTrace | undefined,
+): string | null {
+  if (active.fixture.requiresDirectXlsxSource !== true) return null;
+  const errors = initialTraceErrors(trace);
+  const allExecutions = executions(active, snapshot);
+  if (allExecutions[0]?.language !== "python") {
+    errors.push("Expected Python as the first execution.");
+  }
+  if (allExecutions.some((execution) => execution.language === "shell")) {
+    errors.push("Expected no shell execution.");
+  }
+  return errors.length === 0 ? null : errors.join(" ");
+}
+
+function executionMetrics(active: ActiveCase, snapshot: AgentRunSnapshot) {
+  const runs = [...active.previousSnapshots, snapshot];
+  return {
+    executions: runs.reduce((total, run) => total + run.executions.length, 0),
+    executionMs: runs.reduce(
+      (runTotal, run) =>
+        runTotal +
+        run.executions.reduce((total, execution) => total + (execution.durationMs ?? 0), 0),
+      0,
+    ),
+  };
 }
 
 function contextCompactions(trace: AgentTrace | undefined): number {
@@ -73,7 +176,7 @@ function stressError(
 ): string | null {
   if (
     active.fixture.maxExecutions !== undefined &&
-    snapshot.executions.length > active.fixture.maxExecutions
+    executions(active, snapshot).length > active.fixture.maxExecutions
   ) {
     return `Expected at most ${active.fixture.maxExecutions} executions.`;
   }
@@ -100,38 +203,39 @@ export function stressResultFor(
 ): StressCaseResult {
   const verifiedDeliverables = verification.verified ?? [];
   const verificationOutput = verification.output ?? "";
-  const output = snapshotOutput(snapshot);
+  const output = expectedOutput(active, snapshot);
   const missingTokens = active.fixture.expectedTokens.filter(
     (token) => !outputHasToken(output, token),
   );
+  const missingRows = missingTableRows(
+    snapshot.run.response ?? "",
+    active.fixture.expectedTableRows ?? [],
+  );
   const compactions = contextCompactions(verification.trace);
   const error = stressError(active, snapshot, compactions);
+  const traceError = directXlsxTraceError(active, snapshot, verification.trace);
+  const passed =
+    snapshot.run.state === "succeeded" &&
+    missingTokens.length === 0 &&
+    missingRows.length === 0 &&
+    verifiedDeliverables.length === (active.fixture.deliverables?.length ?? 0) &&
+    error === null &&
+    traceError === null;
   return {
     id: active.fixture.id,
-    passed:
-      snapshot.run.state === "succeeded" &&
-      missingTokens.length === 0 &&
-      verifiedDeliverables.length === (active.fixture.deliverables?.length ?? 0) &&
-      error === null,
+    passed,
     fixtureMs: active.fixture.fixtureMs,
     fixtureBytes: active.fixture.evidence.bytes,
     fixtureFiles: active.fixture.evidence.files,
     runMs: measuredRunMs(active, snapshot),
     state: snapshot.run.state,
-    executions: [...active.previousSnapshots, snapshot].reduce(
-      (total, run) => total + run.executions.length,
-      0,
-    ),
-    executionMs: [...active.previousSnapshots, snapshot].reduce(
-      (runTotal, run) =>
-        runTotal +
-        run.executions.reduce((total, execution) => total + (execution.durationMs ?? 0), 0),
-      0,
-    ),
+    ...executionMetrics(active, snapshot),
     expectedTokens: active.fixture.expectedTokens,
     missingTokens,
+    missingTableRows: missingRows,
     producedArtifacts: snapshot.artifacts.map((artifact) => artifact.name),
     error,
+    traceError,
     verifiedDeliverables,
     verificationOutput,
     contextCompactions: compactions,

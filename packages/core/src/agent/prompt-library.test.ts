@@ -93,6 +93,26 @@ describe("PromptLibrary skill selection", () => {
   });
 });
 
+describe("PromptLibrary plain-language search routing", () => {
+  it("routes a plain-language Excel search request directly to the workbook skill", () => {
+    const prompts = library();
+    const input = {
+      task: "Search all excel files in current folder for revenue that came into the business and return the results in a nice table here",
+      inputNames: [],
+    };
+    expect([...prompts.activeSkillNames(input)]).toEqual(["xlsx-workbooks"]);
+  });
+
+  it("routes a Romanian workbook search request to the workbook skill", () => {
+    expect([
+      ...library().activeSkillNames({
+        task: "Caută în toate registrele Excel din folder veniturile încasate.",
+        inputNames: [],
+      }),
+    ]).toEqual(["xlsx-workbooks"]);
+  });
+});
+
 describe("PromptLibrary Romanian skill selection", () => {
   it.each([
     "Analizează registrele cu salarii și avansuri din acest folder.",

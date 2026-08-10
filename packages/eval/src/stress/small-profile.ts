@@ -18,6 +18,11 @@ import {
   prepareStressCase,
   type StressCaseDefinition,
 } from "./document-workloads.js";
+import {
+  createXlsxPathListCorpus,
+  XLSX_PATH_LIST_ROWS,
+  XLSX_PATH_LIST_TASK,
+} from "./xlsx-path-list-fixture.js";
 import { createFilteredRowsXlsxCorpus } from "./xlsx-row-filter-fixture.js";
 
 export type SmallCaseId =
@@ -25,6 +30,7 @@ export type SmallCaseId =
   | "word-report"
   | "excel-report"
   | "excel-row-filter"
+  | "excel-chat-path-list"
   | "large-corpus-continuation"
   | "invalid-document"
   | "romanian-task"
@@ -135,6 +141,20 @@ const CASES: StressCaseDefinition<SmallCaseId>[] = [
         forbiddenFacts: ["ordinary transfer"],
       },
     ],
+  },
+  {
+    id: "excel-chat-path-list",
+    task: XLSX_PATH_LIST_TASK,
+    create: createXlsxPathListCorpus,
+    expected: () => [
+      "VAULT_PROGRESS_DONE=36",
+      "VAULT_PROGRESS_TOTAL=36",
+      "VAULT_PROGRESS_COMPLETE=1",
+    ],
+    expectedTableRows: () => XLSX_PATH_LIST_ROWS,
+    forbidArtifacts: true,
+    maxExecutions: 5,
+    requiresDirectXlsxSource: true,
   },
   {
     id: "large-corpus-continuation",

@@ -17,7 +17,7 @@ import {
 } from "@vault/shared";
 import { readCanonicalModelManifest, verifyModelFile } from "../models.js";
 import { verifyDeliverables } from "./deliverable-verification.js";
-import type { PreparedStressCase } from "./document-workloads.js";
+import type { ExpectedTableRow, PreparedStressCase } from "./document-workloads.js";
 import { createProgressReporter, stressResultFor, terminal } from "./m3-stress-reporting.js";
 import { stressPlatform } from "./stress-platform.js";
 
@@ -47,8 +47,10 @@ export interface StressCaseResult {
   executionMs: number;
   expectedTokens: string[];
   missingTokens: string[];
+  missingTableRows: ExpectedTableRow[];
   producedArtifacts: string[];
   error: string | null;
+  traceError: string | null;
   verifiedDeliverables: string[];
   verificationOutput: string;
   contextCompactions: number;
