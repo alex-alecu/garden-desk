@@ -25,48 +25,6 @@ export const AgentWorkspacePathSchema = z
     "unsafe_workspace_path",
   );
 
-const AgentSkillNameSchema = z
-  .string()
-  .min(1)
-  .max(64)
-  .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/u);
-const AgentRequestedSkillsSchema = z.array(AgentSkillNameSchema).max(8).optional();
-
-export const AgentDecisionSchema = z.union([
-  z.discriminatedUnion("language", [
-    z.object({
-      action: z.literal("execute"),
-      language: z.enum(["python", "node"]),
-      path: AgentWorkspacePathSchema.optional(),
-      skills: AgentRequestedSkillsSchema,
-      source: z.string().min(1).max(128_000),
-      summary: z.string().min(1).max(500),
-    }),
-    z.object({
-      action: z.literal("execute"),
-      language: z.literal("shell"),
-      command: z.string().min(1).max(128_000),
-      skills: AgentRequestedSkillsSchema,
-      summary: z.string().min(1).max(500),
-    }),
-  ]),
-  z
-    .object({
-      action: z.literal("respond"),
-      response: z.string().min(1).max(64_000),
-      artifacts: z.array(AgentWorkspacePathSchema).max(16).optional(),
-      skills: AgentRequestedSkillsSchema,
-    })
-    .superRefine((decision, context) => {
-      if (
-        decision.artifacts !== undefined &&
-        new Set(decision.artifacts).size !== decision.artifacts.length
-      ) {
-        context.addIssue({ code: "custom", message: "duplicate_artifact_path" });
-      }
-    }),
-]);
-
 const AgentExecutionEvidenceSchema = z.object({
   exitCode: z.number().int().min(0).max(255),
   stdout: z.string().max(1_000_000),
@@ -106,7 +64,7 @@ export const AgentExecutionResultSchema = z.discriminatedUnion("language", [
 export const AgentRunResultSchema = z.object({
   response: z.string().min(1),
   artifacts: z.array(AgentWorkspacePathSchema).max(16).default([]),
-  executions: z.array(AgentExecutionResultSchema).max(6),
+  executions: z.array(AgentExecutionResultSchema).max(24),
   inference: InferencePerformanceSchema,
 });
 
@@ -189,6 +147,7 @@ export const AgentExecutionSnapshotSchema = z.object({
 export const AgentRunSummarySchema = z.object({
   id: AgentRunIdSchema,
   sessionId: SessionIdSchema,
+  parentRunId: AgentRunIdSchema.nullable().default(null),
   jobId: JobIdSchema,
   state: AgentRunStateSchema,
   response: z.string().max(256_000).nullable(),
@@ -203,6 +162,10 @@ export const AgentEventTypeSchema = z.enum([
   "inference.started",
   "execution.started",
   "execution.completed",
+  "tool.started",
+  "tool.completed",
+  "subagent.started",
+  "subagent.completed",
   "assistant.completed",
   "run.failed",
   "run.cancelled",
@@ -214,6 +177,8 @@ export const AgentEventSchema = z.object({
   sequence: z.number().int().nonnegative(),
   type: AgentEventTypeSchema,
   summary: z.string().min(1).max(1_000),
+  toolName: z.string().min(1).max(128).nullable().default(null),
+  toolCallId: z.string().min(1).max(255).nullable().default(null),
   language: AgentLanguageSchema.nullable().default(null),
   path: AgentWorkspacePathSchema.nullable().default(null),
   source: z.string().max(128_000).nullable().default(null),
@@ -246,13 +211,12 @@ export const AgentArtifactSummarySchema = z.object({
 export const AgentRunSnapshotSchema = z.object({
   run: AgentRunSummarySchema,
   events: z.array(AgentEventSchema).max(1_000),
-  executions: z.array(AgentExecutionSnapshotSchema).max(6).default([]),
+  executions: z.array(AgentExecutionSnapshotSchema).max(24).default([]),
   artifacts: z.array(AgentArtifactSummarySchema).max(100),
   thinking: z.string().max(64_000).nullable().default(null),
 });
 
 export type AgentLanguage = z.infer<typeof AgentLanguageSchema>;
-export type AgentDecision = z.infer<typeof AgentDecisionSchema>;
 export type AgentExecutionResult = z.infer<typeof AgentExecutionResultSchema>;
 export type AgentRunResult = z.infer<typeof AgentRunResultSchema>;
 export type AgentRunPerformance = z.infer<typeof AgentRunPerformanceSchema>;
@@ -266,6 +230,8 @@ export type AgentEventType = z.infer<typeof AgentEventTypeSchema>;
 export type AgentEvent = z.infer<typeof AgentEventSchema>;
 export type AgentEventDetail = Pick<
   AgentEvent,
+  | "toolName"
+  | "toolCallId"
   | "language"
   | "path"
   | "source"

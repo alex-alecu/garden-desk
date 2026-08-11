@@ -1,13 +1,13 @@
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { AgentExecutionResult } from "@vault/shared";
+import type { ChatGenerationResult } from "@vault/shared";
 import type { CodeAgentLauncher } from "@vault/workers";
 import { afterEach, describe, expect, it } from "vitest";
 import { AuditLog } from "../audit/log.js";
 import { ConversationStore } from "../conversations/store.js";
 import { JobStore } from "../jobs/jobs.js";
-import type { InferenceService } from "../runtime/inference.js";
+import type { ChatInput } from "../runtime/inference.js";
 import { ArtifactStore } from "../workspace/artifacts.js";
 import { openWorkspaceCatalog } from "../workspace/catalog.js";
 import { WorkspaceScope } from "../workspace/scope.js";
@@ -16,139 +16,127 @@ import { AgentStore } from "./store.js";
 
 const roots: string[] = [];
 
-const completed: AgentExecutionResult = {
-  language: "python",
-  path: "steps/0001.py",
-  source: "print('ok')",
-  command: null,
-  exitCode: 0,
-  stdout: "ok\n",
-  stderr: "",
-  durationMs: 1,
-  termination: "completed",
-  artifacts: [],
-};
-
-function launcher(): CodeAgentLauncher {
+function result(text: string): ChatGenerationResult {
   return {
-    async openAgentSession() {
-      return {
-        async execute() {
-          return completed;
-        },
-        async cancel() {},
-        async close() {},
-      };
+    protocolVersion: 1,
+    requestId: "summary-test",
+    status: "ok",
+    operation: "chat",
+    text,
+    toolCalls: [],
+    stopReason: "text",
+    memory: {
+      cpuRamBytes: 1,
+      gpuVramBytes: 1,
+      budgetBytes: 2,
+      detectedGpuVramBytes: 1,
+      contextSizeTokens: 65_536,
     },
-    async deleteWorkspace() {},
+    performance: {
+      promptTokens: 1,
+      outputTokens: 1,
+      promptDurationMs: 1,
+      generationDurationMs: 1,
+      totalDurationMs: 2,
+    },
   };
 }
 
-async function waitForTerminal(service: AgentService, runId: string) {
-  const deadline = performance.now() + 10_000;
-  while (performance.now() < deadline) {
-    const snapshot = service.snapshot(runId);
-    if (snapshot.run.state !== "queued" && snapshot.run.state !== "running") return snapshot;
-    await new Promise((accept) => setTimeout(accept, 10));
+const launcher: CodeAgentLauncher = {
+  async openAgentSession() {
+    return {
+      async execute() {
+        throw new Error("execution_should_not_start");
+      },
+      async cancel() {},
+      async close() {},
+    };
+  },
+  async deleteWorkspace() {},
+};
+
+async function terminal(service: AgentService, runId: string): Promise<void> {
+  for (let attempt = 0; attempt < 1_000; attempt += 1) {
+    const state = service.snapshot(runId).run.state;
+    if (state !== "queued" && state !== "running") return;
+    await new Promise((accept) => setTimeout(accept, 2));
   }
   throw new Error("agent_test_timeout");
+}
+
+async function startWhenIdle(service: AgentService, sessionId: string, task: string) {
+  for (let attempt = 0; attempt < 1_000; attempt += 1) {
+    try {
+      return service.start(sessionId, task);
+    } catch (error) {
+      if (!(error instanceof Error) || error.message !== "agent_busy") throw error;
+      await new Promise((accept) => setTimeout(accept, 2));
+    }
+  }
+  throw new Error("agent_idle_timeout");
+}
+
+async function summaryFixture() {
+  const root = await mkdtemp(join(tmpdir(), "vault-agent-summary-"));
+  roots.push(root);
+  const scope = await WorkspaceScope.create(root);
+  const catalog = openWorkspaceCatalog(scope.root);
+  const artifacts = await ArtifactStore.create(scope);
+  const conversations = new ConversationStore(catalog.database);
+  const requests: ChatInput[] = [];
+  const inference = {
+    async chat(input: ChatInput) {
+      requests.push(input);
+      const system = input.messages[0];
+      const summarizing = system?.role === "system" && system.text.startsWith("Produce only");
+      return result(summarizing ? "## Objective\n- Keep working\n## Facts\n- Local" : "Done.");
+    },
+    async modelStatus() {
+      return {
+        modelId: "model",
+        name: "Gemma",
+        state: "ready",
+        thinkingSupported: true,
+        contextSizeTokens: 65_536,
+      } as never;
+    },
+  };
+  const service = new AgentService(
+    catalog.database,
+    new AgentStore(catalog.database, artifacts),
+    conversations,
+    new JobStore(catalog.database),
+    artifacts,
+    inference,
+    launcher,
+    new AuditLog(catalog.database),
+  );
+  return { catalog, conversations, requests, service };
 }
 
 afterEach(async () => {
   await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
 });
 
-// biome-ignore lint/complexity/noExcessiveLinesPerFunction: one complete multi-turn session is the behavior under test.
 describe("anchored session summary lifecycle", () => {
-  // biome-ignore lint/complexity/noExcessiveLinesPerFunction: setup and assertions show the complete anchored boundary.
-  it("persists an anchored summary and offers it to the next run", async () => {
-    const root = await mkdtemp(join(tmpdir(), "vault-agent-summary-"));
-    roots.push(root);
-    const scope = await WorkspaceScope.create(root);
-    const catalog = openWorkspaceCatalog(scope.root);
-    const artifacts = await ArtifactStore.create(scope);
-    const conversations = new ConversationStore(catalog.database);
-    const store = new AgentStore(catalog.database, artifacts);
-    const prompts: string[] = [];
-    const inference: Pick<InferenceService, "generate"> & Pick<InferenceService, "modelStatus"> = {
-      async generate(input) {
-        prompts.push(input.prompt);
-        const summarizing = input.prompt.startsWith(
-          "You are summarizing an offline knowledge-work session",
-        );
-        return {
-          protocolVersion: 1,
-          requestId: "summary-lifecycle",
-          status: "ok",
-          operation: "generate",
-          value: summarizing
-            ? { summary: ["## Objective", "- Keep the invoice review going."] }
-            : { action: "respond", response: ["Done."], artifacts: [], skills: [] },
-          memory: {
-            cpuRamBytes: 1,
-            gpuVramBytes: 1,
-            budgetBytes: 1,
-            detectedGpuVramBytes: 1,
-            contextSizeTokens: 65_536,
-          },
-          performance: {
-            promptTokens: 1,
-            outputTokens: 1,
-            promptDurationMs: 1,
-            generationDurationMs: 1,
-            totalDurationMs: 2,
-          },
-        };
-      },
-      async modelStatus() {
-        return {
-          modelId: "gemma-4-12b-it-qat-q4_0",
-          name: "Gemma 4 12B QAT",
-          state: "ready",
-          thinkingSupported: true,
-          contextSizeTokens: 65_536,
-        } as never;
-      },
-    };
-    const service = new AgentService(
-      catalog.database,
-      store,
-      conversations,
-      new JobStore(catalog.database),
-      artifacts,
-      inference,
-      launcher(),
-      new AuditLog(catalog.database),
-    );
+  it("persists a summary and places it in a later model history", async () => {
+    const { catalog, conversations, requests, service } = await summaryFixture();
     const session = conversations.createSession(null);
-    // Five turns: the first anchors, and later turns accumulate enough new messages
-    // to merge into that anchor instead of re-deriving it.
-    const filler = " background-note".repeat(4_000);
-    const tasks = [
-      `Review the invoices.${filler}`,
-      `Now filter them.${filler}`,
-      `Then total them.${filler}`,
-      `Export the workbook.${filler}`,
-      "Confirm the totals.",
-    ];
-    for (const task of tasks) {
-      const run = service.start(session.id, task);
-      await waitForTerminal(service, run.id);
+    for (const task of ["First", "Second", "Third"]) {
+      const run = await startWhenIdle(service, session.id, task);
+      await terminal(service, run.id);
     }
-
-    const anchored = catalog.database
-      .prepare(
-        "SELECT text, covered_message_count AS count FROM agent_session_summaries WHERE session_id = ?",
-      )
-      .get(session.id) as { text: string; count: number } | undefined;
-    expect(anchored?.text).toContain("Keep the invoice review going.");
-    expect(anchored?.count).toBeGreaterThan(0);
-    // A later turn merges into the stored anchor rather than re-deriving it.
-    expect(prompts.some((prompt) => prompt.includes("<previous-summary>"))).toBe(true);
-    expect(prompts.some((prompt) => prompt.includes("Anchored summary of earlier turns"))).toBe(
-      true,
-    );
-
+    const anchor = catalog.database
+      .prepare("SELECT text FROM agent_session_summaries WHERE session_id = ?")
+      .get(session.id) as { text: string } | undefined;
+    expect(anchor?.text).toContain("Keep working");
+    expect(
+      requests.some((request) =>
+        request.messages.some(
+          (message) => message.role === "user" && message.text.includes("<anchored-summary>"),
+        ),
+      ),
+    ).toBe(true);
     await service.close();
     catalog.close();
   });

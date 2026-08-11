@@ -1,8 +1,19 @@
-import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { closeSync, existsSync, openSync, readdirSync, readFileSync, readSync } from "node:fs";
 import { join } from "node:path";
 
 export function readPromptFile(path: string): string {
   return readFileSync(path, "utf8");
+}
+
+export function readPromptPrefix(path: string, byteLength: number): string {
+  const descriptor = openSync(path, "r");
+  try {
+    const buffer = Buffer.alloc(byteLength);
+    const length = readSync(descriptor, buffer, 0, buffer.length, 0);
+    return buffer.toString("utf8", 0, length);
+  } finally {
+    closeSync(descriptor);
+  }
 }
 
 export function promptDirectoryExists(path: string): boolean {

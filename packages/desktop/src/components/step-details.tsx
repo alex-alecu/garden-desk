@@ -77,6 +77,9 @@ export function StepDetails({ step, thinking }: { step: AgentStep; thinking: str
         {step.execution === undefined ? null : <ExecutionStatus execution={step.execution} />}
       </div>
       <p className="step-detail-title">{step.title}</p>
+      {step.execution === undefined && step.detail !== undefined ? (
+        <TextBlock label="Details" value={step.detail} />
+      ) : null}
       <StepEvidence step={step} />
       <StepInference step={step} thinking={thinking} />
     </div>

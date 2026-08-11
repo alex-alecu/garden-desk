@@ -15,4 +15,6 @@ export interface TimelineItem {
   detail?: string;
   runId?: string | null;
   sequence?: number;
+  toolName?: string | null;
+  toolCallId?: string | null;
 }

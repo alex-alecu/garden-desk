@@ -1,3 +1,0 @@
-The proposed program was rejected before execution because it used an API absent from or ineffective in the certified document libraries.
-
-Submit one fresh complete program of at most 80 short lines. For OpenPyXL, import only `load_workbook`, `Workbook`, and modules actually used; never import `PageSetup` from `openpyxl.worksheet.page_setup`. Reopen a saved workbook with the imported function `load_workbook(path)`, never `workbook.load_workbook(path)`. `Worksheet.max_row` is already an integer: compare it directly, never call `len(max_row)`. For pypdf, import `PdfReader` and `PdfWriter` from `pypdf`, never `PageObject` from `pypdf.generic`, and set title metadata with `writer.add_metadata({"/Title": title})` rather than assigning `writer.title`.

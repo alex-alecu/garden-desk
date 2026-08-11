@@ -11,7 +11,12 @@ import type {
   SessionSummary,
   WorkspaceStatus,
 } from "@vault/shared";
-import type { EmbeddingInput, GenerationInput, InferenceService } from "./runtime/inference.js";
+import type {
+  ChatInput,
+  EmbeddingInput,
+  GenerationInput,
+  InferenceService,
+} from "./runtime/inference.js";
 
 export interface VaultCorePorts extends InferenceService {
   status(): Promise<WorkspaceStatus>;
@@ -65,6 +70,26 @@ function artifactPorts(ports: VaultCorePorts) {
   };
 }
 
+function inferencePorts(ports: VaultCorePorts) {
+  return {
+    generate: (
+      input: GenerationInput,
+      signal?: AbortSignal,
+      onThinkingDelta?: (text: string) => void,
+      identity?: Parameters<InferenceService["generate"]>[3],
+    ) => ports.generate(input, signal, onThinkingDelta, identity),
+    chat: (
+      input: ChatInput,
+      signal?: AbortSignal,
+      onThinkingDelta?: (text: string) => void,
+      identity?: Parameters<InferenceService["chat"]>[3],
+    ) => ports.chat(input, signal, onThinkingDelta, identity),
+    embed: (input: EmbeddingInput, signal?: AbortSignal) => ports.embed(input, signal),
+    modelStatus: () => ports.modelStatus(),
+    unloadModel: () => ports.unloadModel(),
+  };
+}
+
 export function createFacade(ports: VaultCorePorts): VaultCore {
   return {
     status: () => ports.status(),
@@ -93,15 +118,7 @@ export function createFacade(ports: VaultCorePorts): VaultCore {
     cancelAgent: (jobId) => ports.cancelAgent(jobId),
     cancelJob: (jobId) => ports.cancelJob(jobId),
     verifyAudit: () => ports.verifyAudit(),
-    generate: (
-      input: GenerationInput,
-      signal?: AbortSignal,
-      onThinkingDelta?: (text: string) => void,
-      identity?: Parameters<InferenceService["generate"]>[3],
-    ) => ports.generate(input, signal, onThinkingDelta, identity),
-    embed: (input: EmbeddingInput, signal?: AbortSignal) => ports.embed(input, signal),
-    modelStatus: () => ports.modelStatus(),
-    unloadModel: () => ports.unloadModel(),
+    ...inferencePorts(ports),
     close: () => ports.close(),
   };
 }

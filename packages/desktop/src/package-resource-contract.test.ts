@@ -4,6 +4,6 @@ import { migrationNamesFromPaths, packagedMigrationNames } from "./package-resou
 describe("packaged migration resources", () => {
   it("includes every source migration in order", () => {
     expect(migrationNamesFromPaths(packagedMigrationNames)).toEqual(packagedMigrationNames);
-    expect(packagedMigrationNames.at(-1)).toBe("0012-agent-session-summaries.sql");
+    expect(packagedMigrationNames.at(-1)).toBe("0013-agent-tool-calling.sql");
   });
 });

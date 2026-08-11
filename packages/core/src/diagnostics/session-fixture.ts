@@ -129,10 +129,14 @@ function insertRuns(database: DatabaseSync): void {
   insertJob.run(IDS.job, "current", NOW, NOW);
   insertJob.run(IDS.oldJob, "old", NOW, NOW);
   database
-    .prepare("INSERT INTO agent_runs VALUES (?, ?, ?, 'succeeded', ?, NULL, ?, ?, NULL, 1)")
+    .prepare(
+      "INSERT INTO agent_runs (id, session_id, job_id, state, response, error, created_at, updated_at, performance_json, trace_version) VALUES (?, ?, ?, 'succeeded', ?, NULL, ?, ?, NULL, 1)",
+    )
     .run(IDS.run, IDS.session, IDS.job, "done", NOW, NOW);
   database
-    .prepare("INSERT INTO agent_runs VALUES (?, ?, ?, 'succeeded', ?, NULL, ?, ?, NULL, 0)")
+    .prepare(
+      "INSERT INTO agent_runs (id, session_id, job_id, state, response, error, created_at, updated_at, performance_json, trace_version) VALUES (?, ?, ?, 'succeeded', ?, NULL, ?, ?, NULL, 0)",
+    )
     .run(IDS.oldRun, IDS.session, IDS.oldJob, "historical", NOW, NOW);
   insertExecutionEvidence(database);
 }
@@ -140,7 +144,7 @@ function insertRuns(database: DatabaseSync): void {
 function insertExecutionEvidence(database: DatabaseSync): void {
   database
     .prepare(
-      "INSERT INTO agent_events VALUES (?, ?, 0, 'execution.completed', ?, 'python', ?, ?, ?, 'completed', ?, ?, NULL, 0, 3)",
+      "INSERT INTO agent_events (id, run_id, sequence, event_type, summary, language, code, stdout, stderr, termination, created_at, workspace_path, command, exit_code, duration_ms) VALUES (?, ?, 0, 'execution.completed', ?, 'python', ?, ?, ?, 'completed', ?, ?, NULL, 0, 3)",
     )
     .run(
       IDS.event,

@@ -11,7 +11,7 @@ import {
   type JobId,
   type RequestId,
 } from "@vault/shared";
-import type { GenerationInput } from "../runtime/inference.js";
+import type { ChatInput, GenerationInput } from "../runtime/inference.js";
 import type { ArtifactStore } from "../workspace/artifacts.js";
 import type { DatabasePort } from "../workspace/database.js";
 
@@ -21,7 +21,7 @@ interface TraceArtifactStore {
 }
 
 interface TraceRequest {
-  input: GenerationInput;
+  input: GenerationInput | ChatInput;
   requestId: RequestId;
   jobId: JobId;
 }
@@ -94,9 +94,13 @@ export class AgentTraceStore {
       .get(runId) as { trace_version: number } | undefined;
     if (run === undefined) throw new Error("run_not_found");
     if (run.trace_version !== 1) throw new Error("trace_not_enabled");
-    const schema = canonicalJson(request.input.jsonSchema);
+    const prompt =
+      "prompt" in request.input ? request.input.prompt : canonicalJson(request.input.messages);
+    const schema = canonicalJson(
+      "jsonSchema" in request.input ? request.input.jsonSchema : { tools: request.input.tools },
+    );
     const [promptHash, schemaHash] = await Promise.all([
-      this.artifacts.put(Buffer.from(request.input.prompt, "utf8")),
+      this.artifacts.put(Buffer.from(prompt, "utf8")),
       this.artifacts.put(Buffer.from(schema, "utf8")),
     ]);
     const id = randomUUID();

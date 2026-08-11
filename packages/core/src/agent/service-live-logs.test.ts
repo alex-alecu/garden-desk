@@ -16,21 +16,24 @@ import { AgentStore } from "./store.js";
 
 const roots: string[] = [];
 
-function executeDecisionInference(): Pick<InferenceService, "generate"> {
+function executeDecisionInference(): Pick<InferenceService, "chat"> {
   return {
-    async generate() {
+    async chat() {
       return {
         protocolVersion: 1,
         requestId: "agent-launch-failure-test",
         status: "ok",
-        operation: "generate",
-        value: {
-          action: "execute",
-          language: "python",
-          source: "print('partial')",
-          summary: "Run Python",
+        operation: "chat",
+        text: "",
+        toolCalls: [{ id: "call-1", name: "python", params: { source: "print('partial')" } }],
+        stopReason: "toolCalls",
+        memory: {
+          cpuRamBytes: 1,
+          gpuVramBytes: 1,
+          budgetBytes: 1,
+          detectedGpuVramBytes: 1,
+          contextSizeTokens: 16_384,
         },
-        memory: { cpuRamBytes: 1, gpuVramBytes: 1, budgetBytes: 1, detectedGpuVramBytes: 1 },
         performance: {
           promptTokens: 1,
           outputTokens: 1,
@@ -84,7 +87,7 @@ async function fixture() {
 }
 
 async function waitForTerminal(service: AgentService, runId: string) {
-  for (let attempt = 0; attempt < 100; attempt += 1) {
+  for (let attempt = 0; attempt < 1_000; attempt += 1) {
     const snapshot = service.snapshot(runId);
     if (snapshot.run.state !== "queued" && snapshot.run.state !== "running") return snapshot;
     await new Promise((accept) => setTimeout(accept, 2));

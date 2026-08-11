@@ -1,3 +1,0 @@
-The proposed corpus program was rejected before execution because it printed `VAULT_PROGRESS` completion markers inside a loop or incremented workbook DONE inside the worksheet loop. Partial work and worksheet counts must never look like completed workbook coverage.
-
-Submit one fresh program of at most 64 short lines. Build the complete sorted corpus first. For each path, process every worksheet, close the workbook, then increment DONE once outside the worksheet loop. Print exactly one DONE, TOTAL, and COMPLETE marker set after every loop has ended. COMPLETE may be 1 only when DONE equals the fixed TOTAL.

@@ -11,6 +11,7 @@ export const packagedMigrationNames = [
   "0010-agent-skill-request-traces.sql",
   "0011-agent-unbacked-response-traces.sql",
   "0012-agent-session-summaries.sql",
+  "0013-agent-tool-calling.sql",
 ];
 
 export function migrationNamesFromPaths(paths: readonly string[]): string[] {

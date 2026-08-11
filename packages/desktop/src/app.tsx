@@ -12,7 +12,6 @@ import { DropOverlay } from "./components/drop-overlay.js";
 import { GuidedExamples } from "./components/guided-examples.js";
 import { SecureWorkspaceBanner } from "./components/secure-workspace-banner.js";
 import { TechnicalDetails } from "./components/technical-details.js";
-import { useContinuationQuestion } from "./continuation.js";
 import { attach, openAttachment, remove, selectSession, send } from "./desktop-actions.js";
 import { type DropIntent, useNativeDrop } from "./desktop-drop.js";
 import { initialModelStatus, useModelRefresh } from "./desktop-model.js";
@@ -114,7 +113,6 @@ export function App({ api, capabilities }: { api: DesktopApi; capabilities: Desk
       },
       stepId,
     );
-  const continuationProps = useContinuationQuestion(state.activeRun, state.executions, runTask);
   return (
     <div
       className="app-shell"
@@ -199,7 +197,6 @@ export function App({ api, capabilities }: { api: DesktopApi; capabilities: Desk
           runId={state.activeRun?.id}
           thinking={state.thinking}
           working={state.activeRun?.state === "queued" || state.activeRun?.state === "running"}
-          {...continuationProps}
         />
         <Composer
           attachments={state.attachments.filter((attachment) =>

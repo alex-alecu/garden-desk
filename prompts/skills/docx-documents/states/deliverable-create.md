@@ -1,1 +1,0 @@
-For a new DOCX use `Document()`, never `Document(output_path)` before it exists. For an edit, load the source normally and save a separate workspace output. Reopen it and verify requested facts, paragraph/table counts, styles, sections, headers, and footers before declaration.

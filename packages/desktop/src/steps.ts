@@ -5,7 +5,7 @@ export interface AgentStep {
   id: string;
   runId: string | null;
   ordinal: number;
-  kind: "planning" | "execution" | "outcome";
+  kind: "planning" | "execution" | "tool" | "subagent" | "outcome";
   title: string;
   detail?: string;
   execution?: AgentExecutionSnapshot;
@@ -18,6 +18,10 @@ function stepKind(item: TimelineItem): AgentStep["kind"] {
   if (item.eventType === "inference.started") return "planning";
   if (item.eventType === "execution.started" || item.eventType === "execution.completed") {
     return "execution";
+  }
+  if (item.eventType === "tool.started" || item.eventType === "tool.completed") return "tool";
+  if (item.eventType === "subagent.started" || item.eventType === "subagent.completed") {
+    return "subagent";
   }
   return "outcome";
 }

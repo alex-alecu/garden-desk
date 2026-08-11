@@ -26,6 +26,7 @@ export function unavailableInference(message?: string) {
   };
   return {
     generate: unsupported,
+    chat: unsupported,
     embed: unsupported,
     async modelStatus() {
       return {

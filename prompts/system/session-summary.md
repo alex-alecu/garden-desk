@@ -9,21 +9,29 @@ Output exactly this Markdown structure and keep the section order unchanged.
 ## Objective
 - One or two brief sentences describing what the user is trying to accomplish.
 
-## Important Details
-- Constraints, preferences, decisions and why, or "(none)".
+## Facts
+- Constraints, preferences, decisions, observations, exact values, and unresolved hypotheses, or "(none)".
 
 ## Work State
-- Completed, active, and blocked work, or "(none)".
+### Completed
+- Completed work, or "(none)".
+### Active
+- Active work, or "(none)".
+### Blocked
+- Blocked work, or "(none)".
 
 ## Next Move
 - The immediate concrete action, or "(none)".
+
+## Relevant Files
+- Exact relevant paths, or "(none)".
 
 Rules:
 
 - Keep every section, even when empty.
 - Use terse bullets, never prose paragraphs.
-- Preserve exact file paths, identifiers, and error strings when they appear.
-- Never state a count, total, amount, or other computed result as fact. Those values come from durable execution records, not from this summary. Refer to them as requested work instead of restating digits.
+- Preserve exact file paths, identifiers, loaded skill names, successful observations, numeric reconciliations, and error strings when they appear.
+- Make the next move use completed discovery rather than repeat it.
 - Do not answer the task, propose code, or mention that you are summarizing.
 
 Conversation history:

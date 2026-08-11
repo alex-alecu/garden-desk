@@ -1,7 +1,7 @@
 import { resolve } from "node:path";
 import type { InferenceProfile, WorkspaceStatus } from "@vault/shared";
 import { createCodeAgentLauncher } from "./agent/launcher.js";
-import { PromptLibrary } from "./agent/prompt-library.js";
+import { MarkdownDefinitionLibrary } from "./agent/markdown-definition-library.js";
 import { AgentService } from "./agent/service.js";
 import { AgentStore } from "./agent/store.js";
 import { AuditLog } from "./audit/log.js";
@@ -198,6 +198,8 @@ function assembleVaultCore(services: CoreServices): VaultCore {
     verifyAudit: async () => audit.verify(),
     generate: (input, signal, onThinkingDelta, identity) =>
       inference.generate(input, signal, onThinkingDelta, identity),
+    chat: (input, signal, onThinkingDelta, identity) =>
+      inference.chat(input, signal, onThinkingDelta, identity),
     embed: (input, signal) => inference.embed(input, signal),
     modelStatus: () => inference.modelStatus(),
     unloadModel: () => inference.unloadModel(),
@@ -260,7 +262,7 @@ export async function createVaultCore(options: VaultCoreOptions): Promise<VaultC
           ),
           audit,
           agentSessionCapacity,
-          new PromptLibrary(promptDirectory),
+          new MarkdownDefinitionLibrary(promptDirectory),
         );
   const restoredSessionId = conversations.mostRecentSessionId();
   if (agent !== undefined && restoredSessionId !== undefined) {

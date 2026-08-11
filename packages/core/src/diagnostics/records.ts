@@ -124,6 +124,7 @@ export function runFromRow(row: Row): { run: AgentRunSummary; traceVersion: numb
     run: parseDebugValue(AgentRunSummarySchema, {
       id: row.id,
       sessionId: row.session_id,
+      parentRunId: row.parent_run_id,
       jobId: row.job_id,
       state: row.state,
       response: row.response,
@@ -143,6 +144,8 @@ export function eventFromRow(row: Row): AgentEvent {
     sequence: row.sequence,
     type: row.event_type,
     summary: row.summary,
+    toolName: row.tool_name,
+    toolCallId: row.tool_call_id,
     language: row.language,
     path: row.workspace_path,
     source: row.code,
