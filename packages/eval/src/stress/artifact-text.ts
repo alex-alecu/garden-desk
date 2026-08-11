@@ -66,10 +66,39 @@ async function extractedPdfText(path: string): Promise<string> {
   );
 }
 
+export interface PdfArtifactEvidence {
+  metadata: Record<string, string>;
+  pageTexts: string[];
+  rotations: number[];
+}
+
+export async function pdfArtifactEvidence(path: string): Promise<PdfArtifactEvidence> {
+  const script = [
+    "from pathlib import Path",
+    "from types import ModuleType",
+    "import json, sys, tarfile",
+    "archive = tarfile.open(sys.argv[2])",
+    "member = next(item for item in archive.getmembers() if item.name.endswith('/src/typing_extensions.py'))",
+    "module = ModuleType('typing_extensions')",
+    "exec(compile(archive.extractfile(member).read(), member.name, 'exec'), module.__dict__)",
+    "sys.modules['typing_extensions'] = module",
+    "from pypdf import PdfReader",
+    "reader = PdfReader(Path(sys.argv[1]))",
+    "print(json.dumps({'metadata': {str(k): str(v) for k, v in (reader.metadata or {}).items()}, 'pageTexts': [(page.extract_text() or '') for page in reader.pages], 'rotations': [page.rotation for page in reader.pages]}))",
+  ].join("\n");
+  const output = await runHostPython(
+    script,
+    [path, typingExtensionsSource],
+    [join(wheelRoot, "pypdf-6.14.2-py3-none-any.whl")],
+  );
+  return JSON.parse(output) as PdfArtifactEvidence;
+}
+
 interface ZipEntryLocation {
   compressed: boolean;
   compressedSize: number;
   localHeaderOffset: number;
+  name: string;
 }
 
 function centralDirectoryEntries(archive: Buffer): ZipEntryLocation[] {
@@ -86,6 +115,7 @@ function centralDirectoryEntries(archive: Buffer): ZipEntryLocation[] {
       compressed: archive.readUInt16LE(offset + 10) === 8,
       compressedSize: archive.readUInt32LE(offset + 20),
       localHeaderOffset: archive.readUInt32LE(offset + 42),
+      name: archive.toString("utf8", offset + 46, offset + 46 + nameLength),
     });
     offset += 46 + nameLength + extraLength + commentLength;
   }
@@ -111,9 +141,46 @@ export async function extractedArchiveText(path: string): Promise<string> {
   return parts.join("\n");
 }
 
+function decodedXmlText(value: string): string {
+  return value
+    .replaceAll(/&#x([0-9a-f]+);/giu, (_, digits: string) =>
+      String.fromCodePoint(Number.parseInt(digits, 16)),
+    )
+    .replaceAll(/&#([0-9]+);/gu, (_, digits: string) =>
+      String.fromCodePoint(Number.parseInt(digits, 10)),
+    )
+    .replaceAll("&lt;", "<")
+    .replaceAll("&gt;", ">")
+    .replaceAll("&quot;", '"')
+    .replaceAll("&apos;", "'")
+    .replaceAll("&amp;", "&");
+}
+
+function visibleWordXml(xml: string): string {
+  return decodedXmlText(
+    xml
+      .replaceAll(/<w:(?:br|cr|tab)\b[^>]*\/?\s*>/gu, "\t")
+      .replaceAll(/<\/w:(?:p|tr)>/gu, "\n")
+      .replaceAll(/<\/w:tc>/gu, "\t")
+      .replaceAll(/<[^>]+>/gu, ""),
+  );
+}
+
+async function extractedDocxText(path: string): Promise<string> {
+  const archive = await readFile(path);
+  const visibleEntries = centralDirectoryEntries(archive).filter((entry) =>
+    /^word\/(?:document|header\d+|footer\d+)\.xml$/u.test(entry.name),
+  );
+  const parts = await Promise.all(
+    visibleEntries.map(async (entry) => visibleWordXml(await entryText(archive, entry))),
+  );
+  return parts.join("\n");
+}
+
 export async function extractedArtifactText(path: string): Promise<string> {
   const extension = extname(path).toLowerCase();
   if (extension === ".xlsx") return extractedWorkbookText(path);
   if (extension === ".pdf") return extractedPdfText(path);
+  if (extension === ".docx") return extractedDocxText(path);
   return extractedArchiveText(path);
 }

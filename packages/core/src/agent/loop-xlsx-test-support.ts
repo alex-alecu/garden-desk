@@ -72,6 +72,6 @@ export function execute(source: string, summary: string): AgentDecision {
 
 export function expectBoundedSourceSchema(schema: Record<string, unknown>): void {
   expect(schema).toMatchObject({
-    properties: { source: { maxItems: 160 }, summary: { type: "string" } },
+    properties: { source: { maxItems: 80 }, summary: { type: "string" } },
   });
 }

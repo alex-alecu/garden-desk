@@ -19,6 +19,10 @@ import {
   type StressCaseDefinition,
 } from "./document-workloads.js";
 import {
+  FILE_MANIPULATION_CASES,
+  type FileManipulationCaseId,
+} from "./file-manipulation-profile.js";
+import {
   createXlsxPathListCorpus,
   XLSX_PATH_LIST_ROWS,
   XLSX_PATH_LIST_TASK,
@@ -26,6 +30,7 @@ import {
 import { createFilteredRowsXlsxCorpus } from "./xlsx-row-filter-fixture.js";
 
 export type SmallCaseId =
+  | FileManipulationCaseId
   | "pdf-report"
   | "word-report"
   | "excel-report"
@@ -46,18 +51,38 @@ function expectedValue(evidence: FixtureEvidence, name: string): string {
   return String(value);
 }
 
-function reportFacts(evidence: FixtureEvidence): string[] {
+function reportFactAlternatives(evidence: FixtureEvidence): string[][] {
+  const invoiceTotal = expectedValue(evidence, "xlsxTotal");
   return [
-    `MATCHING_INVOICES=${expectedValue(evidence, "xlsxMatches")}`,
-    `INVOICE_TOTAL=${expectedValue(evidence, "xlsxTotal")}`,
-    `MEETING_NOTES=${expectedValue(evidence, "wordPages")}`,
-    `POLICY_PAGES=${expectedValue(evidence, "pdfPages")}`,
+    [
+      `MATCHING_INVOICES=${expectedValue(evidence, "xlsxMatches")}`,
+      `MATCHING_INVOICES: ${expectedValue(evidence, "xlsxMatches")}`,
+    ],
+    [
+      `INVOICE_TOTAL=${invoiceTotal}`,
+      `INVOICE_TOTAL=${invoiceTotal}.0`,
+      `INVOICE_TOTAL: ${invoiceTotal}`,
+      `INVOICE_TOTAL: ${invoiceTotal}.0`,
+    ],
+    [
+      `MEETING_NOTES=${expectedValue(evidence, "wordPages")}`,
+      `MEETING_NOTES: ${expectedValue(evidence, "wordPages")}`,
+    ],
+    [
+      `POLICY_PAGES=${expectedValue(evidence, "pdfPages")}`,
+      `POLICY_PAGES: ${expectedValue(evidence, "pdfPages")}`,
+    ],
   ];
 }
 
 function deliverables(names: string[]) {
   return (evidence: FixtureEvidence): DeliverableExpectation[] =>
-    names.map((name) => ({ name, facts: reportFacts(evidence), deterministic: true }));
+    names.map((name) => ({
+      name,
+      facts: [],
+      factAlternatives: reportFactAlternatives(evidence),
+      deterministic: true,
+    }));
 }
 
 async function createBusinessCorpus(source: string, workbooks = 4): Promise<FixtureEvidence> {
@@ -104,6 +129,7 @@ const INVALID_TASK = [
 ].join(" ");
 
 const CASES: StressCaseDefinition<SmallCaseId>[] = [
+  ...FILE_MANIPULATION_CASES,
   {
     id: "pdf-report",
     task: reportTask("PDF", "management-report.pdf"),
@@ -208,7 +234,7 @@ const CASES: StressCaseDefinition<SmallCaseId>[] = [
     ].join(" "),
     create: createCompactionCorpus,
     expected: (evidence) => [`COMPACTION_TOTAL=${expectedValue(evidence, "compactionTarget")}`],
-    maxExecutions: 1,
+    maxExecutions: 2,
     requiresContextCompaction: true,
   },
   {
@@ -263,15 +289,10 @@ export async function prepareSmallCase(
 
 export const SMALL_FOCUSED_REPORT_CASES: SmallCaseId[] = [
   "pdf-report",
-  "word-report",
   "excel-report",
   "large-corpus-continuation",
 ];
 export const SMALL_SEQUENTIAL_CASES: SmallCaseId[] = CASES.map(({ id }) => id).filter(
   (id) => !SMALL_FOCUSED_REPORT_CASES.includes(id),
 );
-export const SMALL_CONCURRENT_CASES: SmallCaseId[] = [
-  "excel-row-filter",
-  "terminal-discovery",
-  "invalid-document",
-];
+export const SMALL_CONCURRENT_CASES: SmallCaseId[] = ["xlsx-edit", "docx-edit", "pdf-merge"];

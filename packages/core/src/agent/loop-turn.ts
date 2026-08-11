@@ -1,15 +1,16 @@
 import type { AgentRunResult } from "@vault/shared";
-import { artifactCandidateNames } from "./artifact-declarations.js";
+import { artifactCandidateNames, requestedFactLabels } from "./artifact-declarations.js";
 import { rejectsUnbackedResponse } from "./deliverable-completion.js";
 import type { AgentExecutor, AgentRunInput, TracedDecision } from "./loop.js";
-import { rejectedExecutionReason } from "./loop-decisions.js";
+import { rejectedExecutionReasonWithContext } from "./loop-decisions.js";
 import { executeAgentDecision, rejectExecution } from "./loop-execution.js";
 import { finishRun, recordOutcome } from "./loop-outcomes.js";
+import { requiredOutputLabels } from "./output-contract.js";
 import { type AgentProgress, executionBackedResponse } from "./prompt.js";
 import { LedgerAnchor } from "./prompt-compaction.js";
 import { activePromptSkillNames } from "./prompt-content.js";
 import { defaultPromptLibrary } from "./prompt-library.js";
-import { progressEnabled } from "./prompt-progress.js";
+import { needsProgressExecution } from "./prompt-progress.js";
 
 export function activateRequestedSkills(
   input: AgentRunInput,
@@ -59,6 +60,33 @@ export interface ExecuteTurnResult {
   result?: AgentRunResult;
 }
 
+function requiresProgressExecution(input: AgentRunInput, progress: AgentProgress): boolean {
+  const library = input.promptLibrary ?? defaultPromptLibrary();
+  return needsProgressExecution({
+    finalResponse: false,
+    input,
+    library,
+    progress,
+    requiredLabels: requiredOutputLabels(input.task),
+  });
+}
+
+function turnRejectionReason(
+  input: AgentRunInput,
+  progress: AgentProgress,
+  decision: Extract<TracedDecision["decision"], { action: "execute" }>,
+) {
+  const library = input.promptLibrary ?? defaultPromptLibrary();
+  const active = activePromptSkillNames(input, progress, library);
+  const skillRejection =
+    decision.language === "shell" ? undefined : library.sourceRejection(active, decision.source);
+  return rejectedExecutionReasonWithContext(decision, progress.executions, {
+    rejectIncompleteSource: requiresProgressExecution(input, progress),
+    task: input.task,
+    ...(skillRejection === undefined ? {} : { skillRejection }),
+  });
+}
+
 function respondTurn(
   input: AgentRunInput,
   progress: AgentProgress,
@@ -94,12 +122,7 @@ export async function executeTurn(turn: ExecuteTurnInput): Promise<ExecuteTurnRe
     return respondTurn(input, progress, { ...traced, decision }, consecutiveDuplicates);
   }
   const library = input.promptLibrary ?? defaultPromptLibrary();
-  const rejection = rejectedExecutionReason(
-    traced.decision,
-    progress.executions,
-    progressEnabled(input, progress, library),
-    input.task,
-  );
+  const rejection = turnRejectionReason(input, progress, traced.decision);
   if (rejection !== undefined) {
     return {
       consecutiveDuplicates: rejectExecution(input, progress, {
@@ -125,9 +148,9 @@ export async function executeTurn(turn: ExecuteTurnInput): Promise<ExecuteTurnRe
   const verified = executionBackedResponse(input, progress, "");
   const result =
     active.size === 1 &&
-    library.progressSkill(active) !== undefined &&
+    library.progressSkill(active, input.task) !== undefined &&
     verified.length > 0 &&
-    artifactCandidateNames(progress.executions).length === 0
+    artifactCandidateNames(progress.executions, requestedFactLabels(input.task)).length === 0
       ? finishRun(input, progress, verified)
       : undefined;
   return { consecutiveDuplicates: 0, ...(result === undefined ? {} : { result }) };

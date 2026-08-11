@@ -3,24 +3,24 @@ name: pdf-documents
 description: Guides local PDF reading, creation, and page operations. Use when the task or an attachment explicitly identifies a PDF file or PDF deliverable.
 trigger-extensions: .pdf
 trigger-keywords: pdf, portable document
+source-rejections: from\s+pypdf\.generic\s+import\s+PageObject\b=>unsupported_document_api;; \bwriter\.title\s*==>unsupported_document_api
+source-removals: from pypdf.generic import PageObject=>PageObject
 produces-deliverables: true
 ---
 
 # PDF Documents
 
-Use `pypdf` for reading and structural operations. Use ReportLab Platypus for a new styled PDF.
+Use `pypdf` for reading/page operations and ReportLab Platypus for new styled PDFs. Follow requested facts and names literally.
 
 ## Process
 
-1. Read PDFs with `PdfReader` and base answers on text extracted from the real pages, never on filenames or binary decoding.
-2. Use `PdfWriter` for requested merge, split, rotate, and metadata changes. Preserve pages that the request does not change.
-3. For a new styled PDF, use ReportLab Platypus flowables, A4 defaults unless another page size is requested, embedded bundled fonts, readable margins, page breaks, headings, tables, and restrained colors. Do not invoke external converters or native renderers.
-4. Save beneath `/workspace`, keep intermediates separate, then reopen with `PdfReader` and verify page count, requested text, order, rotation, and metadata before declaring it.
-5. When the task explicitly expects invalid-input detection and requests a marker, catch the parse exception, print that exact marker to stdout, and exit normally with code 0. The marker is the completed validation result: do not repair the PDF, write an artifact, print a traceback, or execute again.
+1. Recursively discover `.pdf` inputs under `/source` by extension. Locate named inputs inside the processing program, not a separate listing step. Derive facts from `PdfReader` page text. Keep simple counters and loops at top level.
+2. For merge/split/rotation, build the exact ordered page list and add each page once with `PdfWriter`. Import only `PdfReader`/`PdfWriter` from `pypdf`, never `PageObject` from `pypdf.generic`. Set title with `writer.add_metadata({"/Title": title})`, not `writer.title`; verify via `reader.metadata.get("/Title")`.
+3. New styled PDFs use Platypus flowables, A4 margins, bundled fonts, real headings/breaks, and fitting tables; no converters.
+4. Save under `/workspace`; reopen and verify text, count/order, rotations, sizes, and metadata before declaration.
+5. For requested invalid-input detection, catch the parse error, print the exact marker, exit 0, and do not repair, create, traceback, or retry.
 
 ## Verification
 
-- [ ] Every referenced input was parsed successfully, or the exact expected invalid marker completed cleanly.
-- [ ] Page count, text, order, rotation, and metadata match the request.
-- [ ] A new styled PDF uses ReportLab Platypus and bundled fonts.
-- [ ] Only requested PDF outputs are declared as deliverables.
+- [ ] Inputs parse (or the requested invalid marker completes cleanly).
+- [ ] Reopened text/order/rotation/size/metadata match; declare only requested PDFs.

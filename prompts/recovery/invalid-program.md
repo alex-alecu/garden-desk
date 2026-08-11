@@ -1,6 +1,6 @@
 The most recent proposal was rejected because its source was only imports or was pathologically repetitive.
 
-Do not repeat or extend that fragment. Name a materially different strategy in the summary, then submit a fresh complete executable body of at most 40 source lines with each required import listed once.
+Do not repeat or extend that fragment. Name a materially different strategy in the summary, then submit a fresh complete executable body within the source-line limit with each required import listed once.
 
 Keep every source-array line short and complete. A line near the 512-character structured-output boundary is treated as truncated and rejected.
 

@@ -8,10 +8,7 @@ import {
   verifiedProgressOutput,
 } from "./output-contract.js";
 
-function result(
-  termination: AgentExecutionResult["termination"],
-  exitCode: number,
-): AgentExecutionResult {
+function result(termination: AgentExecutionResult["termination"], exitCode: number) {
   return {
     language: "python",
     path: "steps/0001.py",
@@ -23,7 +20,7 @@ function result(
     durationMs: 1,
     termination,
     artifacts: [],
-  };
+  } satisfies AgentExecutionResult;
 }
 
 describe("execution completion summary", () => {
@@ -63,6 +60,23 @@ it("keeps completed progress through later clean deliverable work", () => {
   expect(progressWorkflowPhase([progress, document], ["MATCHING_INVOICES", "POLICY_PAGES"])).toBe(
     "complete",
   );
+});
+
+it("keeps completed progress through a later non-progress document failure", () => {
+  const progress: AgentExecutionResult = {
+    ...result("completed", 0),
+    source: "print('VAULT_PROGRESS_COMPLETE=1')",
+    stdout:
+      "MATCHING_INVOICES=8\nVAULT_PROGRESS_DONE=4\nVAULT_PROGRESS_TOTAL=4\nVAULT_PROGRESS_COMPLETE=1\n",
+  };
+  const document: AgentExecutionResult = {
+    ...result("crash", 1),
+    path: "steps/report.py",
+    source: "Document().save('/workspace/report.docx')",
+    stderr: "SyntaxError: invalid syntax",
+  };
+
+  expect(progressWorkflowPhase([progress, document], ["MATCHING_INVOICES"])).toBe("complete");
 });
 
 it("leaves an artifact-only XLSX response to the final model response", () => {

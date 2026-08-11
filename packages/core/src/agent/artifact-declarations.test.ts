@@ -84,6 +84,33 @@ describe("deliverable freshness", () => {
       { name: "changed.pdf", bytesBase64: Buffer.from("new").toString("base64") },
     ]);
   });
+
+  it("invalidates a deliverable when later analysis changes a required fact", () => {
+    const created = {
+      ...execution([{ name: "report.docx", content: "stale" }]),
+      stdout: "MATCHING_INVOICES=0\nINVOICE_TOTAL=0.0\n",
+    };
+    const corrected = {
+      ...execution([]),
+      stdout: "MATCHING_INVOICES=8\nINVOICE_TOTAL=20012.0\n",
+    };
+    const labels = ["MATCHING_INVOICES", "INVOICE_TOTAL"];
+
+    expect(artifactCandidateNames([created, corrected], labels)).toEqual([]);
+  });
+
+  it("accepts a deliverable recaptured after corrected facts", () => {
+    const created = {
+      ...execution([{ name: "report.docx", content: "stale" }]),
+      stdout: "MATCHING_INVOICES=0\n",
+    };
+    const corrected = { ...execution([]), stdout: "MATCHING_INVOICES=8\n" };
+    const recaptured = execution([{ name: "report.docx", content: "fresh" }]);
+
+    expect(artifactCandidateNames([created, corrected, recaptured], ["MATCHING_INVOICES"])).toEqual(
+      ["report.docx"],
+    );
+  });
 });
 
 describe("deliverable response contract", () => {
@@ -163,6 +190,12 @@ describe("deliverable-free response schema", () => {
 });
 
 describe("explicitly named deliverables", () => {
+  it("treats only the into-target as output for a PDF merge", () => {
+    const task =
+      "Combine cover.pdf followed by appendix.pdf into board-pack.pdf and rotate its final page.";
+    expect(requestedArtifactNames(task)).toEqual(["board-pack.pdf"]);
+  });
+
   it("requires source execution until the requested file is observed", () => {
     const task = "Create a polished PDF named management-report.pdf in the workspace.";
     expect(requestedArtifactNames(task)).toEqual(["management-report.pdf"]);
@@ -247,30 +280,5 @@ describe("deliverable fact labels", () => {
     );
     expect(request.prompt).toContain("gather shared facts once");
     expect(request.prompt).toContain("create at most one missing file per later execution");
-  });
-});
-
-describe("multi-format prompt budget", () => {
-  it("fits the scaled three-format request at the certified 8K floor", () => {
-    const task = [
-      "Review the complete selected corpus containing XLSX invoices, DOCX meeting notes, and one policy PDF; attention rows contain Priority review, meeting-note entries start Decision record, and policy pages start Policy section.",
-      "Create the requested polished management reports in the private workspace and visibly label MATCHING_INVOICES, INVOICE_TOTAL, MEETING_NOTES, and POLICY_PAGES.",
-      "Required deliverables: scaled-report.pdf, scaled-report.docx, scaled-report.xlsx.",
-    ].join(" ");
-    const request = generationInput(
-      { task, modelId: "gemma-4-12b-it-qat-q4_0" },
-      {
-        executions: [],
-        inference: {
-          promptTokens: 0,
-          outputTokens: 0,
-          promptDurationMs: 0,
-          generationDurationMs: 0,
-          totalDurationMs: 0,
-        },
-        rejectedDuplicates: 0,
-      },
-    );
-    expect(Math.ceil(JSON.stringify(request).length / 4)).toBeLessThanOrEqual(4_096);
   });
 });

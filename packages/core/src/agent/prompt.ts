@@ -4,6 +4,7 @@ import { MAX_AGENT_EXECUTIONS } from "./limits.js";
 import {
   completedSuccessfully,
   missingOutputLabels,
+  requestsDirectTable,
   requiredOutputLabels,
 } from "./output-contract.js";
 import {
@@ -14,7 +15,7 @@ import {
   serializePrompt,
   usablePromptTokens,
 } from "./prompt-budget.js";
-import { systemPrompt, taskStatePrompt } from "./prompt-content.js";
+import { activePromptSkillNames, systemPrompt, taskStatePrompt } from "./prompt-content.js";
 import { fitCurrentPrompt, joinedPromptSections } from "./prompt-fitting.js";
 import {
   type GenerationRecovery,
@@ -26,6 +27,7 @@ import { defaultPromptLibrary, type PromptLibrary } from "./prompt-library.js";
 import { parseAgentDecision } from "./prompt-normalization.js";
 import { observationStreamCharacters } from "./prompt-observations.js";
 import {
+  needsProgressExecution,
   progressEnabled,
   progressExecutionBackedResponse,
   progressInstructions,
@@ -69,6 +71,27 @@ interface GenerationInputOptions {
   recovery?: GenerationRecovery;
 }
 
+function progressSkill(
+  input: AgentPromptInput,
+  progress: AgentProgress,
+  library: PromptLibrary,
+): string | undefined {
+  if (requestsDirectTable(input.task)) return undefined;
+  const activeNames = activePromptSkillNames(input, progress, library);
+  if (activeNames.size > 1) return undefined;
+  if (
+    !needsProgressExecution({
+      finalResponse: false,
+      input,
+      library,
+      progress,
+      requiredLabels: requiredOutputLabels(input.task),
+    })
+  )
+    return undefined;
+  return library.progressSkill(activeNames, input.task)?.name;
+}
+
 function prompt(
   input: AgentPromptInput,
   progress: AgentProgress,
@@ -85,7 +108,7 @@ function prompt(
     ...continuationInstructions(input.continuation, library),
   ];
   const afterTask = [
-    ...rejectionInstructions(progress, library),
+    ...rejectionInstructions(progress, library, progressSkill(input, progress, library)),
     ...shellSourceRepairInstructions(progress, library),
     ...sourceDiscoveryRepairInstructions(input, progress, library),
     ...progressInstructions({

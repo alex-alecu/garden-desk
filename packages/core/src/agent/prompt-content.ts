@@ -105,10 +105,10 @@ function missingArtifactInstruction(
   input: PromptContentInput,
   progress: PromptContentProgress,
 ): string {
-  const artifacts = artifactCandidateNames(progress.executions);
+  const requestedFacts = requestedFactLabels(input.task);
+  const artifacts = artifactCandidateNames(progress.executions, requestedFacts);
   const requiredArtifacts = requestedArtifactNames(input.task);
   const missingArtifacts = requiredArtifacts.filter((name) => !artifacts.includes(name));
-  const requestedFacts = requestedFactLabels(input.task);
   return [
     requiredArtifacts.length > 0 && progress.executions.length > 0 && requestedFacts.length > 0
       ? `Every requested deliverable must preserve these exact LABEL=value facts: ${JSON.stringify(requestedFacts)}.`
@@ -130,7 +130,7 @@ export function taskStatePrompt(
   const { observationCharacters } = options;
   const requiredLabels = requiredOutputLabels(input.task);
   const inputs = attachmentFiles(input.inputNames ?? []);
-  const artifacts = artifactCandidateNames(progress.executions);
+  const artifacts = artifactCandidateNames(progress.executions, requestedFactLabels(input.task));
   const compactedState =
     options.includeCompaction === false
       ? ""

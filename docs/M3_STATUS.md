@@ -1,6 +1,6 @@
 # Milestone M3 Status
 
-Updated: 2026-08-08
+Updated: 2026-08-11
 
 The persistent-workspace M3 implementation and canonical headless gate are certified on physical Apple silicon and Windows x64. The installed-Windows UI, live-execution, debug-snapshot, 200 percent display-scale, 64K dedicated-VRAM tier, refreshed guest document probe, and packaging observations also pass. The cross-platform M3 and Community Desktop V1 launch gate remain open for generated-file Open and Save As observations on both packaged platforms, dedicated-standard-user setup, macOS lower-tier context observation, and release-credential signing.
 
@@ -14,6 +14,8 @@ The persistent-workspace M3 implementation and canonical headless gate are certi
 - Explicitly deferred: host shell, writable source mounts, networking, package installation, Git tooling, in-app document renderers or editors, OCR/retrieval document intelligence, external integrations, and arbitrary downloadable libraries.
 
 ## Generated File Deliverables
+
+- The 2026-08-11 realistic manipulation and recovery cycle is recorded in [STRESS_TEST.md](../STRESS_TEST.md). On physical Apple silicon, the exact final implementation passed the 16-result default real-Gemma/no-NIC sweep with three concurrent edit/merge cases, complete 36-workbook direct-chat output, multi-sheet aggregation, one and three context compactions, and an independently reopened 2,000-row overflow workbook. Focused PDF, XLSX, and 24-workbook multi-format reports also passed independent byte-level verification. The canonical macOS M3 gate returned `certified`, and `pnpm verify` passed 536 unit tests plus native, TypeScript, source-size, lint, Rust, helper, sidecar, and desktop-build checks. This updates macOS and local build evidence only; physical Windows and packaged Open/Save As remain separate.
 
 - The final structured `respond` action can declare a unique bounded list of observed current-run workspace paths. Core no longer creates an artifact row for every changed file; it selects the latest bytes and persists only valid declared deliverables with successful completion. A captured deliverable remains eligible across unrelated executions, stdout, stderr, and exit-status evidence; only an authoritative workspace delta that changes or removes its path makes those bytes stale, while recapture replaces them with the latest bytes. Missing, removed, oversized, undeclared, failed-run, and internal checkpoint files produce no card. Historical artifact rows remain valid without a schema migration except legacy `checkpoint.json` and `checkpoints.json` rows, which stay recoverable only through the private workspace and debug snapshot.
 - `artifacts.materialize` and `artifacts.export` verify session ownership, artifact identity, and content hash. Open creates an owner-only temporary copy. Save As uses a native dialog and an atomic Core write with symlink and path-identity checks; the destination never enters the webview or audit metadata.

@@ -13,7 +13,7 @@ import type { JobStore } from "../jobs/jobs.js";
 import type { InferenceService } from "../runtime/inference.js";
 import type { ArtifactStore } from "../workspace/artifacts.js";
 import type { DatabasePort } from "../workspace/database.js";
-import { prepareDeclaredArtifacts } from "./artifact-declarations.js";
+import { prepareDeclaredArtifacts, requestedFactLabels } from "./artifact-declarations.js";
 import { ArtifactMaterializer } from "./artifact-materialization.js";
 import { materializeAndAuditAttachment } from "./attachment-materialization.js";
 import { resolveAgentTask } from "./continuation.js";
@@ -233,6 +233,7 @@ export class AgentService {
         result.artifacts,
         result.executions,
         this.artifacts,
+        requestedFactLabels(resolvedTask.task),
       );
       this.database.transaction(() => {
         this.conversations.appendMessage(run.sessionId, "assistant", result.response, run.id);

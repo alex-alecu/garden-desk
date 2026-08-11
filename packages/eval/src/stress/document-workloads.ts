@@ -3,11 +3,17 @@ import { join } from "node:path";
 import type { FixtureEvidence } from "./document-fixtures.js";
 
 export interface DeliverableExpectation {
+  archiveFacts?: string[];
+  archiveForbiddenFacts?: string[];
   deterministic?: boolean;
   extension?: string;
+  factAlternatives?: string[][];
   facts: string[];
   forbiddenFacts?: string[];
   name?: string;
+  orderedFacts?: string[];
+  pdfMetadata?: Record<string, string>;
+  pdfRotations?: number[];
 }
 
 export interface ExpectedTableRow {

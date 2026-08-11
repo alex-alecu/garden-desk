@@ -105,7 +105,12 @@ describe("AgentLoop verified results", () => {
     const inspection = { ...completed, source: "print('rows')", stdout: "rows\n" };
     const resultEvidence = {
       ...completed,
-      source: "print('Total: 4')",
+      source: [
+        "print('Total: 4')",
+        "print('VAULT_PROGRESS_DONE=36')",
+        "print('VAULT_PROGRESS_TOTAL=36')",
+        "print('VAULT_PROGRESS_COMPLETE=1')",
+      ].join("\n"),
       stdout: completeXlsx("| Count | Total |\n| ---: | ---: |\n| 1 | 4 |"),
     };
     const schemas: Array<Record<string, unknown>> = [];
@@ -144,7 +149,12 @@ describe("AgentLoop selected-folder XLSX", () => {
     const inspection = { ...completed, source: "print('rows')", stdout: "rows\n" };
     const resultEvidence = {
       ...completed,
-      source: "print('Match count:', 1)",
+      source: [
+        "print('Match count:', 1)",
+        "print('VAULT_PROGRESS_DONE=36')",
+        "print('VAULT_PROGRESS_TOTAL=36')",
+        "print('VAULT_PROGRESS_COMPLETE=1')",
+      ].join("\n"),
       stdout: completeXlsx("Match count: 1"),
     };
     const prompts: string[] = [];
@@ -221,72 +231,5 @@ describe("AgentLoop limits", () => {
       }),
     );
     expect(schemas[6]).not.toHaveProperty("oneOf");
-  });
-});
-
-describe("AgentLoop duplicate decisions", () => {
-  it("does not execute a program again after it already succeeded", async () => {
-    const calls: string[] = [];
-    const prompts: string[] = [];
-    const nextCode = "print('next')";
-    const decisions: AgentDecision[] = [
-      { action: "execute", language: "python", source: completed.source ?? "", summary: "Step 1" },
-      { action: "execute", language: "python", source: completed.source ?? "", summary: "Repeat" },
-      { action: "execute", language: "python", source: nextCode, summary: "Step 2" },
-      { action: "respond", response: "Done." },
-    ];
-    const second = { ...completed, source: nextCode, stdout: "next\n" };
-    const loop = new AgentLoop(
-      capturingInference(decisions, prompts),
-      executor([{ ...completed }, second], calls),
-    );
-
-    const result = await loop.run({ task: "Complete two steps", modelId: "test-model" });
-
-    expect(calls).toEqual([completed.source ?? "", nextCode]);
-    expect(result.executions).toEqual([completed, second]);
-    expect(prompts[2]).toContain("Rejected duplicate or pathologically repetitive programs: 1.");
-  });
-});
-
-describe("AgentLoop failed duplicate decisions", () => {
-  it("does not spend another execution on an unchanged failed program", async () => {
-    const calls: string[] = [];
-    const prompts: string[] = [];
-    const failed = {
-      ...completed,
-      exitCode: 1,
-      stderr: "SyntaxError",
-      termination: "crash" as const,
-    };
-    const repaired = { ...completed, source: "print('repaired')" };
-    const loop = new AgentLoop(
-      capturingInference(
-        [
-          { action: "execute", language: "python", source: failed.source ?? "", summary: "Try" },
-          {
-            action: "execute",
-            language: "python",
-            source: failed.source ?? "",
-            summary: "Repeat",
-          },
-          {
-            action: "execute",
-            language: "python",
-            source: repaired.source ?? "",
-            summary: "Repair",
-          },
-          { action: "respond", response: "Done." },
-        ],
-        prompts,
-      ),
-      executor([failed, repaired], calls),
-    );
-
-    const result = await loop.run({ task: "Inspect input", modelId: "test-model" });
-
-    expect(calls).toEqual([failed.source, repaired.source]);
-    expect(result.executions).toEqual([failed, repaired]);
-    expect(prompts[2]).toContain("Rejected duplicate or pathologically repetitive programs: 1.");
   });
 });

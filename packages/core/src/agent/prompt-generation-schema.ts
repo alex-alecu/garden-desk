@@ -1,4 +1,8 @@
-import { artifactCandidateNames, requestedArtifactNames } from "./artifact-declarations.js";
+import {
+  artifactCandidateNames,
+  requestedArtifactNames,
+  requestedFactLabels,
+} from "./artifact-declarations.js";
 import { requiredOutputLabels } from "./output-contract.js";
 import { activePromptSkillNames } from "./prompt-content.js";
 import { attachmentsAlreadyRead } from "./prompt-inputs.js";
@@ -43,15 +47,59 @@ export function needsSourceDiscoveryRepair(
   );
 }
 
-function recoverySourceLineLimit(
-  generationLimitRecovery: boolean,
+function needsExpandedDeliverableRecovery(
   rejection: AgentProgress["lastRejectedProgramReason"],
-  sourceObservationRecovery: boolean,
-): { sourceLineLimit?: number } {
-  if (generationLimitRecovery) return { sourceLineLimit: GENERATION_LIMIT_RECOVERY_SOURCE_LINES };
-  if (rejection === "source_allowlist" || sourceObservationRecovery) return { sourceLineLimit: 40 };
-  if (rejection !== undefined && rejection !== "duplicate") return { sourceLineLimit: 40 };
-  return {};
+  deliverableSkillActive: boolean,
+): boolean {
+  return (
+    deliverableSkillActive &&
+    (rejection === "invalid" || rejection === "unterminated_source_string")
+  );
+}
+
+interface RecoverySourceLimitInput {
+  deliverableSkillActive: boolean;
+  generationLimitRecovery: boolean;
+  progressExecution: boolean;
+  rejection: AgentProgress["lastRejectedProgramReason"];
+  sourceObservationRecovery: boolean;
+}
+
+const RECOVERY_SOURCE_LINES: Partial<
+  Record<NonNullable<AgentProgress["lastRejectedProgramReason"]>, number>
+> = {
+  progress_inside_loop: 64,
+  progress_markers: 80,
+  table_truncation: 80,
+  unsupported_document_api: 100,
+};
+
+function progressSourceLineLimit(options: RecoverySourceLimitInput): number | undefined {
+  if (!options.progressExecution) return undefined;
+  if (options.rejection === "invalid" || options.rejection === "unterminated_source_string") {
+    return 64;
+  }
+  return options.rejection === undefined ? 80 : undefined;
+}
+
+function recoverySourceLineLimit(options: RecoverySourceLimitInput): {
+  sourceLineLimit?: number;
+} {
+  if (options.generationLimitRecovery) {
+    return { sourceLineLimit: GENERATION_LIMIT_RECOVERY_SOURCE_LINES };
+  }
+  const progressLimit = progressSourceLineLimit(options);
+  if (progressLimit !== undefined) return { sourceLineLimit: progressLimit };
+  if (needsExpandedDeliverableRecovery(options.rejection, options.deliverableSkillActive)) {
+    return { sourceLineLimit: 100 };
+  }
+  if (options.sourceObservationRecovery) return { sourceLineLimit: 40 };
+  const fixed =
+    options.rejection === undefined ? undefined : RECOVERY_SOURCE_LINES[options.rejection];
+  if (fixed !== undefined) return { sourceLineLimit: fixed };
+  return options.rejection !== undefined && options.rejection !== "duplicate"
+    ? { sourceLineLimit: 40 }
+    : {};
 }
 
 function sourceDiscoveryOnly(input: AgentPromptInput, progress: AgentProgress): AgentPromptInput {
@@ -77,6 +125,10 @@ function attachmentExecutionRequired(
   );
 }
 
+function currentArtifactNames(input: AgentPromptInput, progress: AgentProgress): string[] {
+  return artifactCandidateNames(progress.executions, requestedFactLabels(input.task));
+}
+
 export function generationSchema(
   input: AgentPromptInput,
   progress: AgentProgress,
@@ -85,6 +137,8 @@ export function generationSchema(
 ) {
   const library = input.promptLibrary ?? defaultPromptLibrary();
   const schemaInput = sourceDiscoveryOnly(input, progress);
+  const activeNames = activePromptSkillNames(schemaInput, progress, library);
+  const deliverableSkillActive = library.deliverableSkill(activeNames) !== undefined;
   const progressExecution = needsProgressExecution({
     finalResponse,
     progress,
@@ -99,7 +153,7 @@ export function generationSchema(
     rejection !== undefined && rejection !== "duplicate" && !finalResponse;
   const sourceObservationRecovery = needsSourceDiscoveryRepair(input, progress, library);
   const deliverableRecovery = progress.deliverableExecutionRequired === true && !finalResponse;
-  const artifactNames = artifactCandidateNames(progress.executions);
+  const artifactNames = currentArtifactNames(input, progress);
   const requiresSourceExecution =
     progressExecution ||
     attachmentExecutionRequired(finalResponse, progress, input) ||
@@ -116,6 +170,12 @@ export function generationSchema(
     task: schemaInput.task,
     finalResponse,
     requiresSourceExecution,
-    ...recoverySourceLineLimit(generationLimitRecovery, rejection, sourceObservationRecovery),
+    ...recoverySourceLineLimit({
+      deliverableSkillActive,
+      generationLimitRecovery,
+      progressExecution,
+      rejection,
+      sourceObservationRecovery,
+    }),
   });
 }

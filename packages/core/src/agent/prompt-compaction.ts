@@ -1,5 +1,5 @@
 import type { AgentExecutionResult } from "@vault/shared";
-import { artifactCandidateNames } from "./artifact-declarations.js";
+import { artifactCandidateNames, requestedFactLabels } from "./artifact-declarations.js";
 import { MAX_AGENT_EXECUTIONS } from "./limits.js";
 import {
   type AnchoredLedger,
@@ -36,7 +36,7 @@ export class LedgerAnchor {
       this.anchor,
       {
         evidence: evidenceLines(task, pending),
-        artifacts: artifactCandidateNames(executions),
+        artifacts: artifactCandidateNames(executions, requestedFactLabels(task)),
         warnings: warningLedger(executions, this.anchor.coveredExecutions),
       },
       executions.length,

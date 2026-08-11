@@ -4,11 +4,20 @@ import { AgentLoop } from "./loop.js";
 import { completed, completeXlsx, execute, executor, inference } from "./loop-xlsx-test-support.js";
 import { progressContinuationResponse } from "./output-contract.js";
 
+function markerSource(body: string): string {
+  return [
+    body,
+    "print(f'VAULT_PROGRESS_DONE={done}')",
+    "print(f'VAULT_PROGRESS_TOTAL={total}')",
+    "print(f'VAULT_PROGRESS_COMPLETE={1 if done == total else 0}')",
+  ].join("\n");
+}
+
 describe("AgentLoop XLSX coverage repair", () => {
   it("asks for missing progress markers after otherwise complete output", async () => {
     const prompts: string[] = [];
     const source = "print('XLSX_MATCHES=4')";
-    const repaired = "print('XLSX_MATCHES=4\\nVAULT_PROGRESS_COMPLETE=1')";
+    const repaired = markerSource("print('XLSX_MATCHES=4')");
     await new AgentLoop(
       inference([execute(source, "Scan"), execute(repaired, "Add coverage evidence")], prompts),
       executor(
@@ -33,7 +42,7 @@ describe("AgentLoop XLSX checkpoint repair", () => {
   it("requires progress markers on a clean partial exit", async () => {
     const prompts: string[] = [];
     const source = "print('Checkpoint saved')";
-    const repaired = "print('XLSX_MATCHES=4\\nVAULT_PROGRESS_COMPLETE=1')";
+    const repaired = markerSource("print('XLSX_MATCHES=4')");
     await new AgentLoop(
       inference([execute(source, "Scan"), execute(repaired, "Add progress")], prompts),
       executor(
@@ -57,7 +66,7 @@ describe("AgentLoop XLSX row serialization repair", () => {
   it("explains that appended workbook rows must be flat scalar sequences", async () => {
     const prompts: string[] = [];
     const broken = "output.append([source_path, sheet_name, row_values])";
-    const repaired = "output.append([source_path, sheet_name, *row_values])";
+    const repaired = markerSource("output.append([source_path, sheet_name, *row_values])");
     await new AgentLoop(
       inference(
         [execute(broken, "Collect filtered rows"), execute(repaired, "Flatten copied values")],
@@ -182,7 +191,7 @@ describe("AgentLoop XLSX continuation selection", () => {
 
 describe("AgentLoop resumable XLSX execution", () => {
   it("repeats identical code only while verified progress advances", async () => {
-    const source = "print('resume checkpoint')";
+    const source = markerSource("print('resume checkpoint')");
     const partial = (done: number) => ({
       ...completed,
       source,
@@ -209,7 +218,7 @@ describe("AgentLoop resumable XLSX execution", () => {
     const decisions: AgentDecision[] = [];
     const results: AgentExecutionResult[] = [];
     for (let index = 1; index <= 6; index += 1) {
-      const source = `print(${index})`;
+      const source = markerSource(`print(${index})`);
       decisions.push(execute(source, "Process a batch"));
       results.push({
         ...completed,

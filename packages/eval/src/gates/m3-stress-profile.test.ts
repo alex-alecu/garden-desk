@@ -63,15 +63,14 @@ describe("M3 context turnover regressions", () => {
   });
 
   it("keeps the complete table too large for the response contract", () => {
-    expect(OVERSIZED_TABLE_PLAN).toEqual({ rows: 2_000, workbooks: 4 });
+    expect(OVERSIZED_TABLE_PLAN).toEqual({ rows: 2_000, sheetsPerWorkbook: 2, workbooks: 4 });
   });
 });
 
 describe("M3 small stress sweep", () => {
-  it("keeps stochastic management reports focused while sweeping named regressions", () => {
+  it("sweeps realistic file work while keeping the largest reports focused", () => {
     expect(SMALL_FOCUSED_REPORT_CASES).toEqual([
       "pdf-report",
-      "word-report",
       "excel-report",
       "large-corpus-continuation",
     ]);
@@ -83,14 +82,14 @@ describe("M3 small stress sweep", () => {
         "excel-row-filter",
         "excel-chat-path-list",
         "terminal-discovery",
+        "word-report",
       ]),
     );
-    expect(SMALL_CONCURRENT_CASES).toEqual([
-      "excel-row-filter",
-      "terminal-discovery",
-      "invalid-document",
-    ]);
     expect(SMALL_FOCUSED_REPORT_CASES).not.toContain("excel-chat-path-list");
     expect(SMALL_CONCURRENT_CASES).not.toContain("excel-chat-path-list");
+    expect(SMALL_SEQUENTIAL_CASES).toEqual(
+      expect.arrayContaining(["xlsx-edit", "docx-edit", "pdf-merge"]),
+    );
+    expect(SMALL_CONCURRENT_CASES).toEqual(["xlsx-edit", "docx-edit", "pdf-merge"]);
   });
 });

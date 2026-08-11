@@ -5,45 +5,21 @@ import {
   promptSkillDirectories,
   readPromptFile,
 } from "../prompt-files.js";
+import type { SkillSourceRejection, SkillSourceRemoval } from "./prompt-skill-metadata.js";
 import { parseSkillMetadata, type SkillRepairTrigger } from "./prompt-skill-metadata.js";
+import { skillApplies, taskContainsKeyword } from "./prompt-skill-routing.js";
 
 const PROMPT_FILE_LIMIT = 128_000;
 const PLACEHOLDER = /\{\{([a-z0-9_]+)\}\}/gu;
-const FORMAT_ACTION =
-  "(?:create|generate|write|make|build|produce|save|convert|read|review|inspect|check|tell|locate|search|summarize|extract|edit|update|merge|split|rotate|find|total|sum|calculate|analyze|process|validate|raport|raportează|raporteaza|citește|citeste|analizează|analizeaza|calculează|calculeaza|caută|cauta)";
-const ROUTING_STOP_WORDS = new Set([
-  "agent",
-  "and",
-  "asks",
-  "attachment",
-  "attached",
-  "explicit",
-  "filename",
-  "for",
-  "from",
-  "guides",
-  "has",
-  "including",
-  "local",
-  "mention",
-  "mentions",
-  "read",
-  "requires",
-  "selected",
-  "shell",
-  "source",
-  "task",
-  "the",
-  "use",
-  "when",
-  "with",
-]);
 
 export interface PromptSkill {
   body: string;
   description: string;
   name: string;
+  progressExcludeKeywords: readonly string[];
   repairTriggers: readonly SkillRepairTrigger[];
+  sourceRejections: readonly SkillSourceRejection[];
+  sourceRemovals: readonly SkillSourceRemoval[];
   triggerExtensions: readonly string[];
   triggerKeywords: readonly string[];
   usesProgressMarkers: boolean;
@@ -96,60 +72,6 @@ function loadSkills(directory: string): PromptSkill[] {
       statePrompts: promptFiles(join(entry.path, "states")),
     }))
     .sort((left, right) => left.name.localeCompare(right.name, "en-US"));
-}
-
-function routingTerms(value: string): Set<string> {
-  return new Set(
-    value
-      .toLocaleLowerCase("en-US")
-      .split(/[^\p{L}\p{N}]+/u)
-      .filter((term) => term.length >= 3 && !ROUTING_STOP_WORDS.has(term)),
-  );
-}
-
-function hasExtension(values: readonly string[], extension: string): boolean {
-  return values.some((name) => name.toLocaleLowerCase("en-US").endsWith(extension));
-}
-
-function escapedPattern(value: string): string {
-  return value.replaceAll(/[.*+?^${}()|[\]\\]/gu, "\\$&").replaceAll(/\s+/gu, "\\s+");
-}
-
-function taskRequestsKeyword(task: string, keyword: string): boolean {
-  const value = escapedPattern(keyword);
-  const boundary = "[\\p{L}\\p{N}_]";
-  const action = `(?<!${boundary})${FORMAT_ACTION}(?!${boundary})`;
-  const term = `(?<!${boundary})${value}(?!${boundary})`;
-  return new RegExp(`(?:${action}[^\\n]{0,120}${term}|${term}[^\\n]{0,120}${action})`, "iu").test(
-    task,
-  );
-}
-
-function taskNamesExtension(task: string, extension: string): boolean {
-  return new RegExp(`${escapedPattern(extension)}(?![\\p{L}\\p{N}_])`, "iu").test(task);
-}
-
-function declarativeSkillApplies(skill: PromptSkill, input: SkillSelectionInput): boolean {
-  const names = [...input.inputNames, ...(input.evidenceNames ?? [])];
-  const extensionApplies = skill.triggerExtensions.some(
-    (extension) => hasExtension(names, extension) || taskNamesExtension(input.task, extension),
-  );
-  return (
-    extensionApplies ||
-    skill.triggerKeywords.some((keyword) => taskRequestsKeyword(input.task, keyword))
-  );
-}
-
-function skillApplies(skill: PromptSkill, input: SkillSelectionInput): boolean {
-  if (input.suppressedSkillNames?.includes(skill.name) === true) return false;
-  if (input.suppressProgressSkills === true && skill.usesProgressMarkers) return false;
-  if (input.requestedSkillNames?.includes(skill.name) === true) return true;
-  if (declarativeSkillApplies(skill, input)) return true;
-  if (skill.triggerExtensions.length > 0 || skill.triggerKeywords.length > 0) return false;
-  const names = [...input.inputNames, ...(input.evidenceNames ?? [])];
-  const evidenceTerms = routingTerms([input.task, ...names].join("\n"));
-  const triggerText = skill.description.split(/\buse when\b/iu).at(-1) ?? skill.description;
-  return [...routingTerms(triggerText)].some((term) => evidenceTerms.has(term));
 }
 
 function render(content: string, values: PromptValues): string {
@@ -231,8 +153,13 @@ export class PromptLibrary {
     return new Set(this.selectedSkills(input).map((skill) => skill.name));
   }
 
-  progressSkill(activeNames: ReadonlySet<string>): PromptSkill | undefined {
-    return this.skills.find((skill) => activeNames.has(skill.name) && skill.usesProgressMarkers);
+  progressSkill(activeNames: ReadonlySet<string>, task = ""): PromptSkill | undefined {
+    return this.skills.find(
+      (skill) =>
+        activeNames.has(skill.name) &&
+        skill.usesProgressMarkers &&
+        !skill.progressExcludeKeywords.some((keyword) => taskContainsKeyword(task, keyword)),
+    );
   }
 
   deliverableSkill(activeNames: ReadonlySet<string>): PromptSkill | undefined {
@@ -247,6 +174,22 @@ export class PromptLibrary {
           .filter((trigger) => trigger.pattern.test(output))
           .map((trigger) => this.skillRecovery(skill.name, trigger.prompt)),
       );
+  }
+
+  sourceRejection(
+    activeNames: ReadonlySet<string>,
+    source: string,
+  ): SkillSourceRejection["reason"] | undefined {
+    return this.skills
+      .filter((skill) => activeNames.has(skill.name))
+      .flatMap((skill) => skill.sourceRejections)
+      .find((rule) => rule.pattern.test(source))?.reason;
+  }
+
+  sourceRemovals(activeNames: ReadonlySet<string>): readonly SkillSourceRemoval[] {
+    return this.skills
+      .filter((skill) => activeNames.has(skill.name))
+      .flatMap((skill) => skill.sourceRemovals);
   }
 
   hasSkill(name: string): boolean {

@@ -25,15 +25,23 @@ function discoveredXlsx(command: string): AgentExecutionResult {
   };
 }
 
+function progressSource(body: string): string {
+  return [
+    body,
+    "print('VAULT_PROGRESS_DONE=1')",
+    "print('VAULT_PROGRESS_TOTAL=1')",
+    "print('VAULT_PROGRESS_COMPLETE=1')",
+  ].join("\n");
+}
+
 function expectXlsxDiscoveryInstructions(prompt: string): void {
   expect(prompt).toContain("load_workbook(path, read_only=True, data_only=True)");
-  expect(prompt).toContain("Discover requested workbooks case-insensitively");
-  expect(prompt).toContain("locate requested columns case-insensitively");
-  expect(prompt).toContain("A missing required column is an error");
-  expect(prompt).toContain("consume the header from that iterator");
-  expect(prompt).toContain("TOTAL counts the requested workbook corpus");
-  expect(prompt).toContain("one consistent cumulative state");
-  expect(prompt).toContain("rediscover the corpus, reconcile changes");
+  expect(prompt).toContain("Include upper/mixed-case extensions");
+  expect(prompt).toContain("Never use flat `os.listdir`/`glob`");
+  expect(prompt).toContain("`header = next(rows)`");
+  expect(prompt).toContain("Locate roles from header aliases");
+  expect(prompt).toContain("After all loops");
+  expect(prompt).toContain("atomically checkpoint completed sorted paths");
 }
 
 describe("AgentLoop XLSX progress", () => {
@@ -42,7 +50,7 @@ describe("AgentLoop XLSX progress", () => {
     const schemas: Array<Record<string, unknown>> = [];
     const calls: string[] = [];
     const inspection = "print('inspection')";
-    const calculation = "print('XLSX_MATCHES=2\\nXLSX_TOTAL=2003')";
+    const calculation = progressSource("print('XLSX_MATCHES=2\\nXLSX_TOTAL=2003')");
     const resultEvidence = {
       ...completed,
       source: calculation,
@@ -62,15 +70,14 @@ describe("AgentLoop XLSX progress", () => {
 
     expect(result.response).toBe("XLSX_MATCHES=2\nXLSX_TOTAL=2003");
     expect(calls).toEqual([inspection, calculation]);
-    expect(prompts[0]).toContain("Prefer one complete bounded program");
+    expect(prompts[0]).toContain("Prefer one bounded program");
     expectXlsxDiscoveryInstructions(prompts[0] ?? "");
-    expect(prompts[0]).toContain("Close every workbook in a `finally` block");
-    expect(prompts[0]).toContain("Iterate every requested worksheet");
-    expect(prompts[0]).toContain("atomic checkpoint under `/workspace`");
-    expect(prompts[0]).toContain("never double-count restored values");
-    expect(prompts[0]).toContain("Set COMPLETE to 1 only after every requested workbook");
-    expect(prompts[0]).toContain("VAULT_PROGRESS_DONE=<integer>");
-    expect(prompts[0]).toContain("at most 160 complete source lines");
+    expect(prompts[0]).toContain("Close workbooks in `finally`");
+    expect(prompts[0]).toContain("`sheet in workbook.worksheets`");
+    expect(prompts[0]).toContain("cumulative results");
+    expect(prompts[0]).toContain("COMPLETE is 1 only when DONE equals TOTAL");
+    expect(prompts[0]).toContain("`VAULT_PROGRESS_DONE`");
+    expect(prompts[0]).toContain("at most 80 complete source lines");
     expect(prompts[0]).not.toContain("adapt these complete source lines");
     expect(prompts[1]).toContain(
       "Current required phase: recover from an incomplete workbook execution",
@@ -103,7 +110,7 @@ describe("AgentLoop discovered XLSX routing", () => {
     const schemas: Array<Record<string, unknown>> = [];
     const calls: string[] = [];
     const discovery = "find /source -iname '*.xlsx'";
-    const analysis = "print('salary analysis')";
+    const analysis = progressSource("print('salary analysis')");
     const result = await new AgentLoop(
       inference(
         [
@@ -146,8 +153,8 @@ describe("AgentLoop XLSX inspection repair", () => {
   it("repairs a crashed inspection with streaming workbook guidance", async () => {
     const prompts: string[] = [];
     const failedSource = "print('failed')";
-    const repairedSource = "print('inspection')";
-    const calculation = "print('XLSX_MATCHES=2\\nXLSX_TOTAL=2003')";
+    const repairedSource = progressSource("print('inspection')");
+    const calculation = progressSource("print('XLSX_MATCHES=2\\nXLSX_TOTAL=2003')");
     const result = await new AgentLoop(
       inference(
         [
@@ -192,8 +199,8 @@ describe("AgentLoop XLSX inspection repair", () => {
 describe("AgentLoop XLSX result repair", () => {
   it("repairs a calculation that omits a required output label", async () => {
     const prompts: string[] = [];
-    const calculation = "print('calculation')";
-    const repair = "print('XLSX_MATCHES=2\\nWORD_PAGES=36')";
+    const calculation = progressSource("print('calculation')");
+    const repair = progressSource("print('XLSX_MATCHES=2\\nWORD_PAGES=36')");
     const result = await new AgentLoop(
       inference(
         [
@@ -230,7 +237,7 @@ describe("AgentLoop XLSX result repair", () => {
 describe("AgentLoop mixed-format result repair", () => {
   it("repairs a complete XLSX result when a sibling format wrote an error", async () => {
     const first = "print('partial mixed result')";
-    const repair = "print('repaired mixed result')";
+    const repair = progressSource("print('repaired mixed result')");
     const result = await new AgentLoop(
       inference(
         [

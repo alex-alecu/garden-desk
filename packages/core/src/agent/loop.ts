@@ -23,8 +23,10 @@ import {
   MAX_EXECUTIONS,
   parseDecision,
 } from "./prompt.js";
+import { activePromptSkillNames } from "./prompt-content.js";
 import { defaultPromptLibrary } from "./prompt-library.js";
 import { progressEnabled } from "./prompt-progress.js";
+import { removeUnusedSourceLines } from "./source-normalization.js";
 import type { AgentTraceStore } from "./trace-store.js";
 
 const MAX_DECISIONS = 12;
@@ -186,7 +188,7 @@ export class AgentLoop {
     addPerformance(inference, generated.performance);
     this.contextTokens = generated.memory.contextSizeTokens ?? this.contextTokens;
     input.onThinking?.(null);
-    return this.parseTracedDecision(input, generated.value, turnId);
+    return this.parseTracedDecision(input, progress, generated.value, turnId);
   }
 
   private async generate(
@@ -213,11 +215,17 @@ export class AgentLoop {
 
   private parseTracedDecision(
     input: AgentRunInput,
+    progress: AgentProgress,
     value: unknown,
     turnId: string | undefined,
   ): TracedDecision {
     try {
-      const decision = normalizeDeliverableFactRendering(parseDecision(value), input.task);
+      const library = input.promptLibrary ?? defaultPromptLibrary();
+      const activeNames = activePromptSkillNames(input, progress, library);
+      const decision = removeUnusedSourceLines(
+        normalizeDeliverableFactRendering(parseDecision(value), input.task),
+        library.sourceRemovals(activeNames),
+      );
       input.signal?.throwIfAborted();
       return { decision, ...(turnId === undefined ? {} : { turnId }) };
     } catch (error) {

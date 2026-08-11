@@ -58,6 +58,27 @@ function expectRequestFits(contextTokens: number, request: ReturnType<typeof gen
 }
 
 describe("hardware-derived prompt compaction", () => {
+  it("fits a cold mixed-office request at the certified minimum context", () => {
+    const request = generationInput(
+      {
+        task: [
+          "Review the complete selected business folder, including invoice workbooks, Word meeting notes, and the policy PDF.",
+          "Find invoice rows whose note contains Priority review and total their amount values; also count Decision record paragraphs in the meeting notes and Policy section pages in the policy PDF.",
+          "Create a polished Word management report named management-report.docx in the private workspace.",
+          "The report must visibly label the four results as MATCHING_INVOICES, INVOICE_TOTAL, MEETING_NOTES, and POLICY_PAGES so another local process can verify them.",
+        ].join(" "),
+        modelId: "test",
+      },
+      progress(),
+      false,
+      { contextTokens: 8_192 },
+    );
+    expect(request.prompt).toContain("## Active skill: docx-documents");
+    expect(request.prompt).toContain("## Active skill: pdf-documents");
+    expect(request.prompt).toContain("## Active skill: xlsx-workbooks");
+    expectRequestFits(8_192, request);
+  });
+
   it("compacts the same output only where the allocated prompt budget requires it", () => {
     const completed = execution("print('done')", "x".repeat(20_000));
     for (const contextTokens of CONTEXT_TIERS) {

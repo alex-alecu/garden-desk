@@ -1,5 +1,5 @@
 import type { AgentDecision, AgentExecutionResult } from "@vault/shared";
-import { artifactCandidateNames } from "./artifact-declarations.js";
+import { artifactCandidateNames, requestedFactLabels } from "./artifact-declarations.js";
 
 const CREATION_REQUEST =
   /\b(?:create|generate|write|make|build|produce|save|convert|export|render|output)\b/iu;
@@ -15,8 +15,8 @@ export function requestsDeliverable(task: string, deliverableSkillActive: boolea
   return deliverableSkillActive && CREATION_REQUEST.test(task);
 }
 
-function producedDeliverable(executions: readonly AgentExecutionResult[]): boolean {
-  return artifactCandidateNames(executions).length > 0;
+function producedDeliverable(executions: readonly AgentExecutionResult[], task: string): boolean {
+  return artifactCandidateNames(executions, requestedFactLabels(task)).length > 0;
 }
 
 /**
@@ -44,7 +44,7 @@ export function rejectsUnbackedResponse(input: DeliverableCompletionInput): bool
   const { decision, deliverableSkillActive, executions, task } = input;
   if (!requestsDeliverable(task, deliverableSkillActive)) return false;
   if (decision.artifacts !== undefined && decision.artifacts.length > 0) return false;
-  if (producedDeliverable(executions)) return false;
+  if (producedDeliverable(executions, task)) return false;
   if (executions.length > 0) return false;
   return isPromiseOnlyResponse(decision.response);
 }

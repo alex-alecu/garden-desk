@@ -81,7 +81,13 @@ describe("AgentLoop XLSX table escape recovery", () => {
   it("repairs a table formatter that emitted an invalid pipe escape", async () => {
     const prompts: string[] = [];
     const failedSource = "print('| Result |')";
-    const repairedSource = "separator = chr(124)\nprint(separator + ' Result ' + separator)";
+    const repairedSource = [
+      "separator = chr(124)",
+      "print(separator + ' Result ' + separator)",
+      "print('VAULT_PROGRESS_DONE=36')",
+      "print('VAULT_PROGRESS_TOTAL=36')",
+      "print('VAULT_PROGRESS_COMPLETE=1')",
+    ].join("\n");
     const table = "| Result |\n| --- |\n| avans |";
     const result = await new AgentLoop(
       inference(
@@ -184,7 +190,12 @@ describe("AgentLoop XLSX plain-result recovery", () => {
     const prompts: string[] = [];
     const schemas: Array<Record<string, unknown>> = [];
     const plainSource = "print('Saved 17 matches')";
-    const tableSource = "print('| Result |\\n| --- |\\n| avans |')";
+    const tableSource = [
+      "print('| Result |\\n| --- |\\n| avans |')",
+      "print('VAULT_PROGRESS_DONE=36')",
+      "print('VAULT_PROGRESS_TOTAL=36')",
+      "print('VAULT_PROGRESS_COMPLETE=1')",
+    ].join("\n");
     const table = "| Result |\n| --- |\n| avans |";
     const result = await new AgentLoop(
       inference(
@@ -219,8 +230,12 @@ describe("AgentLoop XLSX table dimension recovery", () => {
   it("repairs reset_dimensions use on a normal worksheet", async () => {
     const prompts: string[] = [];
     const failedSource = "load_workbook('/workspace/avans_results.xlsx').active.reset_dimensions()";
-    const repairedSource =
-      "workbook = load_workbook('/workspace/avans_results.xlsx', data_only=True)";
+    const repairedSource = [
+      "workbook = load_workbook('/workspace/avans_results.xlsx', data_only=True)",
+      "print('VAULT_PROGRESS_DONE=36')",
+      "print('VAULT_PROGRESS_TOTAL=36')",
+      "print('VAULT_PROGRESS_COMPLETE=1')",
+    ].join("\n");
     const table = "| Result |\n| --- |\n| avans |";
     const result = await new AgentLoop(
       inference(

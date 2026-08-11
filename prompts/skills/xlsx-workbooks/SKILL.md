@@ -4,41 +4,36 @@ description: Guides local XLSX workbook creation, reading, editing, and large-co
 trigger-extensions: .xlsx
 trigger-keywords: xlsx, excel, excel workbook, excel spreadsheet, workbook, workbooks, spreadsheet, spreadsheets, invoice, invoices, salary, salaries, transactions, advances, tranzacții, tranzactii, salarii, avansuri, tabel
 uses-progress-markers: true
+progress-exclude-keywords: edit, change, update, replace, modify
 repair-triggers: SyntaxError: invalid syntax=>python-syntax;; SyntaxError:[^\n]{0,80}was never closed=>python-syntax;; unterminated string literal=>table;; invalid escape sequence=>table;; Worksheet[^\n]{0,80}reset_dimensions=>table;; Cannot convert[^\n]{0,240}to Excel=>row-serialization;; Error processing=>analysis-error
+source-rejections: str\(h\)[^\n]{0,80}for\s+i\s+in\s+range\(len\(header\)\)=>invalid;; ^(\s*)for\s+\w+\s+in\s+\w+\.worksheets\s*:[\s\S]{0,2000}^\1\s+(?:DONE|done)\s*\+=\s*1\b=>progress_inside_loop;; from\s+openpyxl\.worksheet\.page_setup\s+import\s+PageSetup\b=>unsupported_document_api;; \blen\(\s*[^\n)]*\.max_row\s*\)=>unsupported_document_api;; ^\s*([A-Za-z_]\w*)\s*=\s*Workbook\s*\([\s\S]{0,3000}\b\1\.load_workbook\s*\(=>unsupported_document_api
+source-removals: from openpyxl.worksheet.page_setup import PageSetup=>PageSetup
 produces-deliverables: true
 ---
 
 # XLSX Workbooks
 
-Use `openpyxl`. Prefer one complete bounded program over many exploratory steps.
+Use `openpyxl`. Follow requested names, cells, columns, and facts literally. Prefer one bounded program.
 
 ## Reading and analysis
 
-1. Discover requested workbooks case-insensitively by walking `/source` (the read-only selected folder; "current folder" means `/source`, not `.` or `/workspace`) and testing `filename.lower().endswith(".xlsx")`; never give `endswith` a glob or alternation like `"(.xlsx|xls)"`, reuse a shell path list, or guess paths, extensions, worksheets, or columns.
-2. Use `load_workbook(path, read_only=True, data_only=True)`. In read-only mode call `worksheet.reset_dimensions()` on each worksheet (never the workbook) before iterating when metadata may understate the range, then do not compare `max_row`/`max_column` (either may be `None`). Iterate every requested worksheet with one `iter_rows(values_only=True)` iterator, consume the header from that iterator, then continue the same iterator for data rows.
-3. Normalize header text with `str(value).strip().casefold()` and locate requested columns case-insensitively. A missing required column is an error, not evidence of zero matching rows: report it, keep progress incomplete, and exit nonzero instead of swallowing `ValueError` or `IndexError`. Match user criteria case-insensitively where appropriate. Parse requested numeric values deliberately; skip or report malformed values instead of silently coercing them. Compute each requested count, total, average, or grouping from the matching records—not from file, worksheet, or row counts. Render a `values_only` row tuple as a table row with `"| " + " | ".join("" if c is None else str(c) for c in row) + " |"`, giving every field (including the amount) its own full-value cell; never index it by string key, fixed-width slice a cell, drop fields, append `...`, or round.
-4. Close every workbook in a `finally` block. Suppress known library warnings only if they would otherwise write non-error stderr; never hide parsing errors.
-5. For a corpus likely to exceed one execution window, use a sorted corpus list and an atomic checkpoint under `/workspace` holding completed paths and cumulative state. On each continuation, rediscover the corpus, reconcile changes, skip completed files, and never double-count restored values.
-6. On every successful corpus-analysis exit, print `VAULT_PROGRESS_DONE=<integer>`, `VAULT_PROGRESS_TOTAL=<integer>`, and `VAULT_PROGRESS_COMPLETE=<0-or-1>`, each on its own newline-terminated line via a separate `print()`; never concatenate adjacent f-strings, which drops the newlines. DONE counts only workbooks read without a handled or unhandled error; TOTAL counts the requested workbook corpus. A caught workbook error must keep COMPLETE at 0 and exit nonzero after a concise stderr error. Every successful exit must leave stderr completely empty: do not print discovery, status, warnings, or debug text there. Any stderr on exit code 0 makes the result unverified. Set COMPLETE to 1 only after every requested workbook was read successfully. Print final requested labels only when COMPLETE is 1.
+1. Build one complete sorted corpus with recursive `os.walk('/source')` and `name.casefold().endswith(".xlsx")`; set TOTAL before opening files. Include upper/mixed-case extensions. Never use flat `os.listdir`/`glob`, guess paths, or break early. Keep simple counters and loops at top level.
+2. Analyze with `load_workbook(path, read_only=True, data_only=True)`. For each `sheet in workbook.worksheets`, use `rows = sheet.iter_rows(values_only=True)`, `header = next(rows)`, and `{str(value).casefold(): index for index, value in enumerate(header)}`. Row values are scalars: never use `.value` or assume positions. Use `reset_dimensions()` only for proven bad read-only metadata.
+3. Locate roles from header aliases, then test row values; never search target words in header names. Use `flow_index` from `cash_flow`/`direction`/`flow` and text indexes from `category`/`description`/`note`. With flow, require incoming/inflow/credit plus revenue/sale/customer-payment/received; without flow, match unambiguous revenue text in the full row.
+4. If the task asks for a table here or in chat, print the complete table directly and do not create or save a workbook unless one is also explicitly requested. A complete chat table uses columns `["Source", "Sheet", *header]` and results `[path, sheet.title, *row]`. With `sep = chr(124)`, emit columns, `["---"] * len(columns)`, then each full result. Never nest fields in `Data`, multiply `sep`, slice, truncate, omit, or round.
+5. Close workbooks in `finally`. For long corpora atomically checkpoint completed sorted paths and cumulative results. After all loops, leave stderr empty and print `VAULT_PROGRESS_DONE`, `VAULT_PROGRESS_TOTAL`, and `VAULT_PROGRESS_COMPLETE` exactly once; COMPLETE is 1 only when DONE equals TOTAL.
 
 ## Creation and editing
 
-1. Preserve sheets, formulas, styles, dimensions, merges, and freeze panes the user did not ask to change. Never save a workbook loaded with `data_only=True`, which can replace formulas with cached values.
-2. Use restrained formatting: descriptive title, headers, sensible widths, numeric/date formats, frozen header rows, and useful filters.
-3. Save beneath `/workspace`, keep intermediates separate, then reopen with `data_only=False` and verify sheets, labels, values, formulas, styles, merges, and dimensions before declaring it. `openpyxl` does not calculate new formulas.
-4. Pass only flat scalar cell values to `Worksheet.append()`; never pass a row tuple or list as one nested cell. Spread copied values into the row or join them into one scalar string.
+1. Edit in normal mode with `data_only=False`; change only requested cells and only the top-left cell of a merge. Preserve formulas, styles, dimensions, merges, panes, filters, sheet order/visibility, and unrelated content. OpenPyXL does not calculate formulas.
+2. For filtered output use one flat program with `os`, `load_workbook`, and `Workbook`; preserve the source header and append scalar rows `[source_path, sheet.title, *row]`. Import no unused page/style helpers.
+3. Save under `/workspace`, reopen normally, and verify requested values plus preserved structure before declaration.
 
 ## Oversized tabular results
 
-1. The chat response holds at most 100 lines and 64,000 characters; before printing a full table, estimate whether every row fits.
-2. When a complete tabular result cannot fit, create one verified XLSX workbook in `/workspace` instead of printing, abbreviating, or omitting rows; it is a required deliverable even if the user named no filename.
-3. Choose a concise descriptive `.xlsx` filename, preserve every requested row and column as scalar cells, then reopen and verify the exact result count.
-4. Print a concise result count plus the progress markers, then declare the verified workbook in the `artifacts` field. Never claim that an undeclared workspace file was delivered.
+For all/every/complete rows from multiple workbooks, create and reopen one XLSX with every requested row and column unless the task explicitly requires a direct chat table; do not render a chat table first or branch after printing it. Also use XLSX above 100 lines or 64,000 characters. Never abbreviate or claim an undeclared file.
 
 ## Verification
 
-- [ ] Complete requested corpus and worksheet coverage is evidenced.
-- [ ] Aggregates are derived from the requested records and one consistent cumulative state.
-- [ ] Progress, stdout labels, checkpoints, and artifacts agree.
-- [ ] Existing formulas and unrequested content are preserved.
-- [ ] Every generated or edited workbook reopens successfully and contains the requested visible results.
+- [ ] Corpus, rows, aggregates, progress, and artifacts agree.
+- [ ] Edited structure is preserved and every output reopens with the requested results.

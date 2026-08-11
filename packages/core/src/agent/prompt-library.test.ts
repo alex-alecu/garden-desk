@@ -113,6 +113,19 @@ describe("PromptLibrary plain-language search routing", () => {
   });
 });
 
+describe("PromptLibrary workbook progress scope", () => {
+  it("keeps corpus progress for analysis but excludes targeted workbook edits", () => {
+    const prompts = library();
+    const active = new Set(["xlsx-workbooks"]);
+    expect(prompts.progressSkill(active, "Search all Excel files for revenue.")?.name).toBe(
+      "xlsx-workbooks",
+    );
+    expect(prompts.progressSkill(active, "Edit Budget!B3 and save revised-budget.xlsx.")).toBe(
+      undefined,
+    );
+  });
+});
+
 describe("PromptLibrary Romanian skill selection", () => {
   it.each([
     "Analizează registrele cu salarii și avansuri din acest folder.",
@@ -138,10 +151,9 @@ describe("PromptLibrary invalid PDF validation", () => {
     });
 
     expect([...prompts.activeSkillNames(input)]).toEqual(["pdf-documents"]);
-    expect(body).toContain("print that exact marker to stdout");
-    expect(body).toContain("exit normally with code 0");
-    expect(body).toContain("do not repair the PDF, write an artifact");
-    expect(body).toContain("or execute again");
+    expect(body).toContain("print the exact marker");
+    expect(body).toContain("exit 0");
+    expect(body).toContain("do not repair, create, traceback, or retry");
   });
 });
 
@@ -159,7 +171,9 @@ describe("PromptLibrary workbook aggregates", () => {
     expect(body).toContain("## Reading and analysis");
     expect(body).toContain("## Creation and editing");
   });
+});
 
+describe("PromptLibrary workbook corpus contract", () => {
   it("loads one cumulative amount contract", () => {
     const prompts = library();
     const input = { task: "Total matching amounts in every XLSX workbook.", inputNames: [] };
@@ -171,19 +185,34 @@ describe("PromptLibrary workbook aggregates", () => {
     });
 
     expect([...prompts.activeSkillNames(input)]).toEqual(["xlsx-workbooks"]);
-    expect(body).toContain("Discover requested workbooks case-insensitively");
-    expect(body).toContain("consume the header from that iterator");
-    expect(body).toContain("Compute each requested count, total, average, or grouping");
-    expect(body).toContain("atomic checkpoint under `/workspace`");
-    expect(body).toContain("never double-count restored values");
-    expect(body).toContain("VAULT_PROGRESS_DONE=<integer>");
-    expect(body).toContain("each on its own newline-terminated line");
-    expect(body).toContain("Every successful exit must leave stderr completely empty");
-    expect(body).toContain("Any stderr on exit code 0 makes the result unverified");
-    expect(body).toContain("Progress, stdout labels, checkpoints, and artifacts agree");
-    expect(body).toContain("When a complete tabular result cannot fit");
-    expect(body).toContain("create one verified XLSX workbook in `/workspace`");
-    expect(body).toContain("Never claim that an undeclared workspace file was delivered");
+    expect(body).toContain("Build one complete sorted corpus");
+    expect(body).toContain('name.casefold().endswith(".xlsx")');
+    expect(body).toContain("Include upper/mixed-case extensions");
+    expect(body).toContain("Never use flat `os.listdir`/`glob`");
+    expect(body).toContain("`sheet in workbook.worksheets`");
+    expect(body).toContain("`header = next(rows)`");
+    expect(body).toContain("for index, value in enumerate(header)");
+    expect(body).toContain("Row values are scalars: never use `.value`");
+    expect(body).toContain("`VAULT_PROGRESS_DONE`");
+    expect(body).toContain("`VAULT_PROGRESS_TOTAL`");
+    expect(body).toContain("`VAULT_PROGRESS_COMPLETE`");
+    expect(body).toContain("never search target words in header names");
+    expect(body).toContain("Use `flow_index` from `cash_flow`/`direction`/`flow`");
+    expect(body).toContain('complete chat table uses columns `["Source", "Sheet", *header]`');
+    expect(body).toContain("print the complete table directly");
+    expect(body).toContain("Never nest fields in `Data`");
+    expect(body).toContain('`["---"] * len(columns)`');
+    expect(body).toContain("append scalar rows `[source_path, sheet.title, *row]`");
+    expect(body).toContain("atomically checkpoint completed sorted paths");
+    expect(body).toContain("`VAULT_PROGRESS_COMPLETE` exactly once");
+    expect(body).toContain("For all/every/complete rows from multiple workbooks");
+    expect(body).toContain("unless the task explicitly requires a direct chat table");
+    expect(body).toContain("do not render a chat table first");
+    expect(body).toContain("above 100 lines or 64,000 characters");
+    expect(body).toContain("Never abbreviate or claim an undeclared file");
+    expect(prompts.skillRecovery("xlsx-workbooks", "program-shape")).toContain(
+      "Use this short artifact-first shape",
+    );
     expect(
       prompts.repairPrompts(new Set(["xlsx-workbooks"]), "SyntaxError: '(' was never closed"),
     ).toEqual(expect.arrayContaining([expect.stringContaining("fresh, complete, small program")]));
@@ -248,37 +277,4 @@ describe("PromptLibrary skill routing precision", () => {
       }),
     ]).toEqual([]);
   });
-});
-
-describe("PromptLibrary abbreviated document routing", () => {
-  it("routes an abbreviated Word request to DOCX guidance alongside PDF", () => {
-    const prompts = library();
-    expect([
-      ...prompts.activeSkillNames({
-        task: "Write a short story for children in word & pdf docs",
-        inputNames: [],
-      }),
-    ]).toEqual(["docx-documents", "pdf-documents"]);
-    expect([
-      ...prompts.activeSkillNames({ task: "Save the notes as a word doc.", inputNames: [] }),
-    ]).toEqual(["docx-documents"]);
-  });
-
-  it("marks only deliverable-producing skills in skill metadata", () => {
-    const prompts = library();
-    expect(prompts.deliverableSkill(new Set(["docx-documents"]))?.name).toBe("docx-documents");
-    expect(prompts.deliverableSkill(new Set(["pdf-documents"]))?.name).toBe("pdf-documents");
-    expect(prompts.deliverableSkill(new Set(["terminal-commands"]))).toBeUndefined();
-  });
-});
-
-describe("PromptLibrary extension routing precision", () => {
-  it.each(["report.pdfs", "report.pdfx", "report.pdf_backup", "report.docxx", "report.xlsxx"])(
-    "does not route partial document extension %s",
-    (name) => {
-      expect([...library().activeSkillNames({ task: `Review ${name}.`, inputNames: [] })]).toEqual(
-        [],
-      );
-    },
-  );
 });

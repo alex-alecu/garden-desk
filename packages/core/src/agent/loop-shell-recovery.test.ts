@@ -119,7 +119,7 @@ describe("AgentLoop embedded shell source", () => {
       executor([repaired], calls),
     );
 
-    const result = await loop.run({ task: "Find salary entries", modelId: "test-model" });
+    const result = await loop.run({ task: "Find matching text entries", modelId: "test-model" });
 
     expect(calls).toEqual([repaired.source]);
     expect(result.executions).toEqual([repaired]);
@@ -257,7 +257,7 @@ describe("AgentLoop shell quote repair", () => {
       executor([failed, repaired], calls),
     );
 
-    const result = await loop.run({ task: "Find salary entries", modelId: "test-model" });
+    const result = await loop.run({ task: "Find matching text entries", modelId: "test-model" });
 
     expect(calls).toEqual([command, repaired.source]);
     expect(result.executions).toEqual([failed, repaired]);

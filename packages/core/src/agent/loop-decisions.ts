@@ -5,15 +5,24 @@ import {
   workProgressAdvanced,
 } from "@vault/shared";
 import { requestedArtifactNames, requestedFactLabels } from "./artifact-declarations.js";
-import { SHELL_COMMAND_CHARACTER_LIMIT } from "./prompt-schema.js";
-import { hasUnbalancedSourceDelimiters } from "./source-delimiters.js";
-
-const MAX_COMPLETE_SOURCE_LINE_CHARACTERS = 500;
+import { requestsDirectTable, requestsOverflowArtifact } from "./output-contract.js";
+import {
+  embedsSourceProgram,
+  hasUnterminatedSourceString,
+  isInvalidProgram,
+  reachedShellCommandLimit,
+  startsInteractiveInterpreter,
+  usesGuessedSourceExtensionAllowlist,
+} from "./source-program-validation.js";
 
 export type RejectedExecutionReason =
   | "duplicate"
   | "invalid"
+  | "progress_markers"
+  | "progress_inside_loop"
+  | "table_truncation"
   | "unterminated_source_string"
+  | "unsupported_document_api"
   | "shell_limit"
   | "shell_source"
   | "source_allowlist";
@@ -25,139 +34,6 @@ function sameProgram(
   return decision.language === "shell"
     ? execution.command === decision.command
     : execution.source === decision.source;
-}
-
-function isPathologicallyRepetitive(
-  decision: Extract<AgentDecision, { action: "execute" }>,
-): boolean {
-  if (decision.language === "shell") return false;
-  const sourceLines = decision.source.split(/\r?\n/u);
-  const lines = sourceLines.map((line) => line.trim()).filter((line) => line.length > 0);
-  const repeatedChunk = /([A-Za-z_][A-Za-z0-9_]*\s*=\s*[^;\n]{0,30})\1{7}/u.test(decision.source);
-  return (
-    sourceLines.some((line) => line.length >= MAX_COMPLETE_SOURCE_LINE_CHARACTERS) ||
-    (lines.length >= 40 && new Set(lines).size * 3 < lines.length) ||
-    repeatedChunk
-  );
-}
-
-function isImportOnlySource(decision: Extract<AgentDecision, { action: "execute" }>): boolean {
-  if (decision.language === "shell") return false;
-  const statements = decision.source
-    .split(/\r?\n/u)
-    .map((line) => line.trim())
-    .filter(
-      (line) =>
-        line.length > 0 &&
-        !line.startsWith("#") &&
-        !line.startsWith("//") &&
-        !line.startsWith("/*") &&
-        line !== "*/",
-    );
-  return (
-    statements.length > 0 &&
-    statements.every(
-      (line) =>
-        /^(?:from\s+\S+\s+import\b|import\s+)/u.test(line) ||
-        /^(?:const|let|var)\s+\S+\s*=\s*require\(/u.test(line),
-    )
-  );
-}
-
-function containsProtocolFragment(
-  decision: Extract<AgentDecision, { action: "execute" }>,
-): boolean {
-  return (
-    decision.language !== "shell" &&
-    /<\|?(?:tool_call|channel|thought)(?:\||>)/iu.test(decision.source)
-  );
-}
-
-function containsMalformedCallSuffix(
-  decision: Extract<AgentDecision, { action: "execute" }>,
-): boolean {
-  return decision.language !== "shell" && /\)\p{L}[\p{L}\p{N}_]*\s*(?:$|\n)/u.test(decision.source);
-}
-
-function definesUncalledEntryPoint(
-  decision: Extract<AgentDecision, { action: "execute" }>,
-): boolean {
-  if (decision.language === "shell") return false;
-  const lines = decision.source.split(/\r?\n/u);
-  const definition =
-    decision.language === "python"
-      ? /^\s*(?:async\s+)?def\s+main\s*\(/u
-      : /^\s*(?:async\s+)?function\s+main\s*\(/u;
-  if (!lines.some((line) => definition.test(line))) return false;
-  return !lines.some(
-    (line) => !definition.test(line) && !/^\s*(?:#|\/\/)/u.test(line) && /\bmain\s*\(/u.test(line),
-  );
-}
-
-function containsBareIdentifierStatement(
-  decision: Extract<AgentDecision, { action: "execute" }>,
-): boolean {
-  if (decision.language === "shell") return false;
-  const allowed = new Set(["break", "continue", "False", "None", "pass", "return", "True"]);
-  return decision.source
-    .split(/\r?\n/u)
-    .map((line) => line.trim())
-    .some((line) => /^\p{L}[\p{L}\p{N}_]*$/u.test(line) && !allowed.has(line));
-}
-
-function reachedShellCommandLimit(
-  decision: Extract<AgentDecision, { action: "execute" }>,
-): boolean {
-  return decision.language === "shell" && decision.command.length >= SHELL_COMMAND_CHARACTER_LIMIT;
-}
-
-function embedsSourceProgram(decision: Extract<AgentDecision, { action: "execute" }>): boolean {
-  return (
-    decision.language === "shell" &&
-    /(?:^|[;&|]\s*|\n)\s*(?:env\s+)?(?:\S*\/)?(?:python(?:\d+(?:\.\d+)*)?|node)(?:(?:\s+-\S+)*\s+-(?:c|e)(?:\s|$)|(?:\s+-\S+)*\s+(?:-\s*)?<<)/iu.test(
-      decision.command,
-    )
-  );
-}
-
-function startsInteractiveInterpreter(
-  decision: Extract<AgentDecision, { action: "execute" }>,
-): boolean {
-  if (decision.language !== "shell") return false;
-  const command = decision.command.trim();
-  if (/(?:^|\s)(?:--help|--version|-h|-V)(?:\s|$)/u.test(command)) return false;
-  return /^(?:env\s+)?(?:\S*\/)?(?:python(?:\d+(?:\.\d+)*)?|node)(?:\s+-\S*)*$/iu.test(command);
-}
-
-function usesGuessedSourceExtensionAllowlist(
-  decision: Extract<AgentDecision, { action: "execute" }>,
-  task: string,
-): boolean {
-  return (
-    decision.language !== "shell" &&
-    /\b(?:codebase|source\s+(?:code|file)|locat(?:e|ing)|search(?:ing)?)\b/iu.test(task) &&
-    /\b(?:file|filename|name)\s*\.endswith\s*\(\s*\(/u.test(decision.source)
-  );
-}
-
-function isInvalidProgram(
-  decision: Extract<AgentDecision, { action: "execute" }>,
-  rejectIncompleteSource: boolean,
-): boolean {
-  return (
-    containsProtocolFragment(decision) ||
-    containsMalformedCallSuffix(decision) ||
-    definesUncalledEntryPoint(decision) ||
-    containsBareIdentifierStatement(decision) ||
-    isPathologicallyRepetitive(decision) ||
-    (rejectIncompleteSource && isImportOnlySource(decision))
-  );
-}
-
-function hasUnterminatedSourceString(
-  decision: Extract<AgentDecision, { action: "execute" }>,
-): boolean {
-  return decision.language !== "shell" && hasUnbalancedSourceDelimiters(decision.source);
 }
 
 function rendersRequestedFactWithColon(
@@ -172,18 +48,135 @@ function rendersRequestedFactWithColon(
   );
 }
 
+function truncatesCompleteTable(
+  decision: Extract<AgentDecision, { action: "execute" }>,
+  task: string,
+): boolean {
+  if (decision.language === "shell") return false;
+  const requestsCompleteTable =
+    /\b(?:all|every|complete)\b/iu.test(task) && /\b(?:table|tabel(?:ul)?)\b/iu.test(task);
+  if (!requestsCompleteTable) return false;
+  const expandedRows = /\b[A-Za-z_]\w*\.append\(\[[^\]\n]*,\s*[^\]\n]*,\s*\*row\s*\]\)/u.test(
+    decision.source,
+  );
+  const savesResult = /\.save\(\s*["']\/workspace\/[^"'\n]+\.[A-Za-z0-9]{1,16}["']/u.test(
+    decision.source,
+  );
+  return (
+    (requestsDirectTable(task) && savesResult) ||
+    (requestsOverflowArtifact(task) && expandedRows && !savesResult) ||
+    (requestsDirectTable(task) &&
+      expandedRows &&
+      (/\bData\b/u.test(decision.source) ||
+        /["'`]\.join\(\s*columns\s*\)/u.test(decision.source))) ||
+    /\[\s*-?\d*\s*:\s*-?\d+\s*\]/u.test(decision.source) ||
+    /\.slice\(\s*\d*\s*,\s*\d+\s*\)/u.test(decision.source) ||
+    serializesExpandedRowAsScalar(decision.source)
+  );
+}
+
+function serializesExpandedRowAsScalar(source: string): boolean {
+  const expandedCollections = new Set(
+    [...source.matchAll(/\b([A-Za-z_]\w*)\.append\(\[[^\]\n]*,\s*[^\]\n]*,\s*\*row\s*\]\)/gu)].map(
+      (match) => match[1],
+    ),
+  );
+  if (expandedCollections.size === 0) return false;
+  for (const match of source.matchAll(/\bfor\s+([A-Za-z_]\w*)\s+in\s+([A-Za-z_]\w*)\s*:/gu)) {
+    const item = match[1];
+    const collection = match[2];
+    if (item === undefined || collection === undefined || !expandedCollections.has(collection))
+      continue;
+    const body = source.slice((match.index ?? 0) + match[0].length, (match.index ?? 0) + 800);
+    const scalarIteration = new RegExp(
+      `\\bfor\\s+[A-Za-z_]\\w*\\s+in\\s+${item}\\[2\\](?!\\s*:)`,
+      "u",
+    );
+    if (scalarIteration.test(body)) return true;
+  }
+  return false;
+}
+
+function ignoredPythonLine(line: string): boolean {
+  return line.trim().length === 0 || line.trimStart().startsWith("#");
+}
+
+function pythonIndent(line: string): number {
+  return line.length - line.trimStart().length;
+}
+
+function closeCompletedLoops(loopIndents: number[], indent: number): void {
+  while (loopIndents.at(-1) !== undefined && indent <= (loopIndents.at(-1) ?? 0)) {
+    loopIndents.pop();
+  }
+}
+
+function printsProgressInsideLoop(
+  decision: Extract<AgentDecision, { action: "execute" }>,
+): boolean {
+  if (decision.language !== "python") return false;
+  const loopIndents: number[] = [];
+  for (const line of decision.source.split(/\r?\n/u)) {
+    if (ignoredPythonLine(line)) continue;
+    const indent = pythonIndent(line);
+    closeCompletedLoops(loopIndents, indent);
+    if (/^\s*(?:async\s+)?(?:for|while)\b[^:]*:\s*(?:#.*)?$/u.test(line)) {
+      loopIndents.push(indent);
+      continue;
+    }
+    if (loopIndents.length > 0 && /print\([^\n]*VAULT_PROGRESS_/u.test(line)) return true;
+  }
+  return false;
+}
+
+function hasMalformedProgressMarkers(
+  decision: Extract<AgentDecision, { action: "execute" }>,
+  requirePresence: boolean,
+): boolean {
+  if (decision.language !== "python") return false;
+  const source = decision.source;
+  const markers = ["VAULT_PROGRESS_DONE", "VAULT_PROGRESS_TOTAL", "VAULT_PROGRESS_COMPLETE"];
+  if (markers.every((marker) => !source.includes(marker))) return requirePresence;
+  if (markers.some((marker) => !source.includes(marker))) return true;
+  if (/print\([^\n)]*['"]VAULT_PROGRESS_(?:DONE|TOTAL|COMPLETE)['"]\)/u.test(source)) return true;
+  return source.includes("VAULT_PROGRESS_DONE=1") && /VAULT_PROGRESS_TOTAL=\{[^}]+\}/u.test(source);
+}
+
+interface RejectionOptions {
+  rejectIncompleteSource: boolean;
+  requireProgressMarkers: boolean;
+  skillRejection?: RejectedExecutionReason;
+  task: string;
+}
+
+function documentExecutionRejection(
+  decision: Extract<AgentDecision, { action: "execute" }>,
+  options: RejectionOptions,
+): RejectedExecutionReason | undefined {
+  if (options.skillRejection !== undefined) return options.skillRejection;
+  if (options.rejectIncompleteSource && printsProgressInsideLoop(decision))
+    return "progress_inside_loop";
+  if (
+    options.rejectIncompleteSource &&
+    hasMalformedProgressMarkers(decision, options.requireProgressMarkers)
+  )
+    return "progress_markers";
+  return truncatesCompleteTable(decision, options.task) ? "table_truncation" : undefined;
+}
+
 function policyRejectionReason(
   decision: Extract<AgentDecision, { action: "execute" }>,
-  rejectIncompleteSource: boolean,
-  task: string,
+  options: RejectionOptions,
 ): RejectedExecutionReason | undefined {
   if (reachedShellCommandLimit(decision)) return "shell_limit";
   if (embedsSourceProgram(decision) || startsInteractiveInterpreter(decision))
     return "shell_source";
-  if (rejectIncompleteSource && usesGuessedSourceExtensionAllowlist(decision, task))
+  if (options.rejectIncompleteSource && usesGuessedSourceExtensionAllowlist(decision, options.task))
     return "source_allowlist";
-  if (rendersRequestedFactWithColon(decision, task)) return "invalid";
-  if (isInvalidProgram(decision, rejectIncompleteSource)) return "invalid";
+  const documentRejection = documentExecutionRejection(decision, options);
+  if (documentRejection !== undefined) return documentRejection;
+  if (rendersRequestedFactWithColon(decision, options.task)) return "invalid";
+  if (isInvalidProgram(decision, options.rejectIncompleteSource)) return "invalid";
   if (hasUnterminatedSourceString(decision)) return "unterminated_source_string";
   return undefined;
 }
@@ -194,7 +187,25 @@ export function rejectedExecutionReason(
   rejectIncompleteSource = false,
   task = "",
 ): RejectedExecutionReason | undefined {
-  const policyRejection = policyRejectionReason(decision, rejectIncompleteSource, task);
+  return rejectedExecutionReasonWithContext(decision, executions, {
+    rejectIncompleteSource,
+    task,
+  });
+}
+
+export function rejectedExecutionReasonWithContext(
+  decision: Extract<AgentDecision, { action: "execute" }>,
+  executions: AgentExecutionResult[],
+  context: {
+    rejectIncompleteSource: boolean;
+    skillRejection?: RejectedExecutionReason;
+    task: string;
+  },
+): RejectedExecutionReason | undefined {
+  const policyRejection = policyRejectionReason(decision, {
+    ...context,
+    requireProgressMarkers: context.rejectIncompleteSource && executions.length > 0,
+  });
   if (policyRejection !== undefined) return policyRejection;
   const matching = executions.filter((execution) => sameProgram(decision, execution));
   const latest = matching.at(-1);

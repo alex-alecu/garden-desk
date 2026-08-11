@@ -7,6 +7,24 @@ import {
 
 export type ProgressWorkflowPhase = "work" | "repair" | "continue" | "complete";
 
+export function requestsDirectTable(task: string): boolean {
+  return (
+    /\b(?:table|tabel(?:ul)?)\b/iu.test(task) &&
+    /\b(?:here|chat|aici)\b/iu.test(task) &&
+    !requestsOverflowArtifact(task) &&
+    !/\b(?:save|create|generate|produce|write)\b[^\n]{0,100}\.[a-z0-9]{1,16}\b/iu.test(task)
+  );
+}
+
+export function requestsOverflowArtifact(task: string): boolean {
+  return (
+    /\b(?:table|tabel(?:ul)?)\b/iu.test(task) &&
+    /\b(?:too large|cannot fit|can't fit|does not fit|won't fit|larger than)\b[^\n]{0,80}\b(?:chat|response)\b/iu.test(
+      task,
+    )
+  );
+}
+
 export function requiredOutputLabels(task: string): string[] {
   return [
     ...new Set(
@@ -118,12 +136,15 @@ export function progressWorkflowPhase(
 ): ProgressWorkflowPhase {
   const last = executions.at(-1);
   if (last === undefined) return "work";
-  if (!completedCleanly(last)) return "repair";
   const progress = executions
     .filter(completedCleanly)
     .map((execution) => parseWorkProgress(execution.stdout))
     .filter((item) => item !== undefined)
     .at(-1);
+  const latestTargetsProgress = `${last.source ?? ""}\n${last.stdout}`.includes("VAULT_PROGRESS_");
+  if (!completedCleanly(last) && (progress?.complete !== true || latestTargetsProgress)) {
+    return "repair";
+  }
   if (progress === undefined) return "repair";
   if (!progress.complete) return "continue";
   const cleanOutput = executions

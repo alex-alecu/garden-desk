@@ -230,7 +230,7 @@ function expectObservationPrompts(prompts: string[]): void {
   expect(prompts[1]).toContain("terminal-commands (available)");
   expect(prompts[1]).not.toContain("never assume a flat folder");
   expect(prompts[1]).toContain("iter_rows(values_only=True)");
-  expect(prompts[1]).toContain("Prefer one complete bounded program");
+  expect(prompts[1]).toContain("Prefer one bounded program");
   expect(prompts[1]).toContain("replace it with a different bounded strategy");
   expect(prompts[1]).toContain("Every repair must be a short complete runnable program");
   expect(prompts[1]).toContain(

@@ -7,11 +7,24 @@ export interface SkillRepairTrigger {
   prompt: string;
 }
 
+export interface SkillSourceRejection {
+  pattern: RegExp;
+  reason: "invalid" | "progress_inside_loop" | "unsupported_document_api";
+}
+
+export interface SkillSourceRemoval {
+  identifier: string;
+  line: string;
+}
+
 export interface ParsedSkillMetadata {
   body: string;
   description: string;
   name: string;
+  progressExcludeKeywords: string[];
   repairTriggers: SkillRepairTrigger[];
+  sourceRejections: SkillSourceRejection[];
+  sourceRemovals: SkillSourceRemoval[];
   triggerExtensions: string[];
   triggerKeywords: string[];
   usesProgressMarkers: boolean;
@@ -66,6 +79,49 @@ function repairTriggers(lines: string[]): SkillRepairTrigger[] {
   });
 }
 
+function metadataEntries(lines: string[], key: string): string[] {
+  return (
+    frontmatterValue(lines, key)
+      ?.split(";;")
+      .map((entry) => entry.trim()) ?? []
+  );
+}
+
+function sourceRejections(lines: string[]): SkillSourceRejection[] {
+  return metadataEntries(lines, "source-rejections").map((entry) => {
+    const separator = entry.lastIndexOf("=>");
+    const source = entry.slice(0, separator).trim();
+    const reason = entry.slice(separator + 2).trim();
+    if (
+      separator < 1 ||
+      !safeRepairPattern(source) ||
+      !["invalid", "progress_inside_loop", "unsupported_document_api"].includes(reason)
+    ) {
+      throw new Error("Skill source rejection is invalid.");
+    }
+    try {
+      return {
+        pattern: new RegExp(source, "imu"),
+        reason: reason as SkillSourceRejection["reason"],
+      };
+    } catch {
+      throw new Error("Skill source rejection is invalid.");
+    }
+  });
+}
+
+function sourceRemovals(lines: string[]): SkillSourceRemoval[] {
+  return metadataEntries(lines, "source-removals").map((entry) => {
+    const separator = entry.lastIndexOf("=>");
+    const line = entry.slice(0, separator).trim();
+    const identifier = entry.slice(separator + 2).trim();
+    if (separator < 1 || line.length > 240 || !/^[A-Za-z_]\w*$/u.test(identifier)) {
+      throw new Error("Skill source removal is invalid.");
+    }
+    return { identifier, line };
+  });
+}
+
 export function parseSkillMetadata(directoryName: string, content: string): ParsedSkillMetadata {
   const match = /^---\r?\n([\s\S]*?)\r?\n---\r?\n([\s\S]+)$/u.exec(content.trim());
   if (match === null) throw new Error(`Skill ${directoryName} has invalid frontmatter.`);
@@ -75,6 +131,7 @@ export function parseSkillMetadata(directoryName: string, content: string): Pars
   const body = match[2]?.trim() ?? "";
   const triggerExtensions = listValue(frontmatter, "trigger-extensions");
   const triggerKeywords = listValue(frontmatter, "trigger-keywords");
+  const progressExcludeKeywords = listValue(frontmatter, "progress-exclude-keywords");
   const progressValue = frontmatterValue(frontmatter, "uses-progress-markers");
   const deliverableValue = frontmatterValue(frontmatter, "produces-deliverables");
   if (
@@ -88,6 +145,7 @@ export function parseSkillMetadata(directoryName: string, content: string): Pars
     body.length === 0 ||
     triggerExtensions.some((extension) => !/^\.[a-z0-9]{1,16}$/u.test(extension)) ||
     triggerKeywords.some((keyword) => keyword.length > 80) ||
+    progressExcludeKeywords.some((keyword) => keyword.length > 80) ||
     (progressValue !== undefined && progressValue !== "true" && progressValue !== "false") ||
     (deliverableValue !== undefined && deliverableValue !== "true" && deliverableValue !== "false")
   ) {
@@ -97,7 +155,10 @@ export function parseSkillMetadata(directoryName: string, content: string): Pars
     body,
     description,
     name,
+    progressExcludeKeywords,
     repairTriggers: repairTriggers(frontmatter),
+    sourceRejections: sourceRejections(frontmatter),
+    sourceRemovals: sourceRemovals(frontmatter),
     triggerExtensions,
     triggerKeywords,
     usesProgressMarkers: progressValue === "true",

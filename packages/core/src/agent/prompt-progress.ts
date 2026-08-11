@@ -1,5 +1,9 @@
 import { type AgentExecutionResult, parseWorkProgress, stripWorkProgress } from "@vault/shared";
-import { artifactCandidateNames, requestedArtifactNames } from "./artifact-declarations.js";
+import {
+  artifactCandidateNames,
+  requestedArtifactNames,
+  requestedFactLabels,
+} from "./artifact-declarations.js";
 import { executionSucceeded } from "./history.js";
 import {
   completedSuccessfully,
@@ -12,6 +16,7 @@ import {
 import type { AgentProgress, AgentPromptInput } from "./prompt.js";
 import { activePromptSkillNames } from "./prompt-content.js";
 import type { PromptLibrary } from "./prompt-library.js";
+import { workflowShapePrompts } from "./prompt-workflow-shapes.js";
 
 export function progressExecutions(executions: AgentExecutionResult[]): AgentExecutionResult[] {
   return executions.filter((execution) => execution.language !== "shell");
@@ -51,7 +56,10 @@ export function progressEnabled(
   progress: AgentProgress,
   library: PromptLibrary,
 ): boolean {
-  return library.progressSkill(activePromptSkillNames(input, progress, library)) !== undefined;
+  return (
+    library.progressSkill(activePromptSkillNames(input, progress, library), input.task) !==
+    undefined
+  );
 }
 
 export function progressExecutionBackedResponse(
@@ -61,7 +69,11 @@ export function progressExecutionBackedResponse(
 ): string | undefined {
   const verified = verifiedProgressOutput(executions, requiredLabels);
   if (!requestsTable(input.task)) return verified;
-  if (verified !== undefined && artifactCandidateNames(executions).length > 0) return verified;
+  if (
+    verified !== undefined &&
+    artifactCandidateNames(executions, requestedFactLabels(input.task)).length > 0
+  )
+    return verified;
   const table = latestGfmTableOutput(executions);
   return table !== undefined && (verified !== undefined || hasCompleteHistoricalProgress(input))
     ? table
@@ -82,7 +94,10 @@ export function needsProgressExecution(options: ProgressExecutionInput): boolean
   if (progress.executions.length === 0 && historicalResultSatisfies(input)) return false;
   const phase = progressWorkflowPhase(progressExecutions(progress.executions), requiredLabels);
   if (phase !== "complete") return true;
-  if (requestsTable(input.task) && artifactCandidateNames(progress.executions).length > 0) {
+  if (
+    requestsTable(input.task) &&
+    artifactCandidateNames(progress.executions, requestedFactLabels(input.task)).length > 0
+  ) {
     return false;
   }
   return (
@@ -151,28 +166,51 @@ interface ProgressInstructionsInput {
   missingLabels: string[];
 }
 
-export function progressInstructions(input: ProgressInstructionsInput): readonly string[] {
-  const activeNames = activePromptSkillNames(input.input, input.progress, input.library);
-  const skill = input.library.progressSkill(activeNames);
-  if (skill === undefined)
-    return input.finalResponse ? [input.library.state("final-response")] : [];
-  const executions = progressExecutions(input.progress.executions);
-  const instructions = phaseInstructions({
-    finalResponse: input.finalResponse,
-    hasCleanUnmarkedOutput: hasCleanUnmarkedOutput(executions, input.requiredLabels),
-    hasCleanLabeledOutput: hasCleanLabeledOutput(
-      executions,
-      input.requiredLabels,
-      input.missingLabels,
-    ),
-    phase: progressWorkflowPhase(executions, input.requiredLabels),
-    skillName: skill.name,
-    library: input.library,
-  });
-  const latest = executions.at(-1);
-  if (latest === undefined) return instructions;
-  const repairs = input.library.repairPrompts(activeNames, `${latest.stderr}\n${latest.stdout}`);
-  const candidates = artifactCandidateNames(input.progress.executions);
+function progressRepairPrompts(
+  input: ProgressInstructionsInput,
+  activeNames: ReadonlySet<string>,
+  phase: ProgressWorkflowPhase,
+  latest: AgentExecutionResult,
+): readonly string[] {
+  return phase === "complete"
+    ? []
+    : input.library.repairPrompts(activeNames, `${latest.stderr}\n${latest.stdout}`);
+}
+
+interface PostExecutionInstructionsInput {
+  activeNames: ReadonlySet<string>;
+  input: ProgressInstructionsInput;
+  latest: AgentExecutionResult;
+  phase: ProgressWorkflowPhase;
+  skillName: string;
+}
+
+function currentWorkflowShapePrompts(
+  options: Omit<PostExecutionInstructionsInput, "latest"> & { latest?: AgentExecutionResult },
+): readonly string[] {
+  const { activeNames, input, latest, phase, skillName } = options;
+  return workflowShapePrompts(
+    {
+      activeNames,
+      input: input.input,
+      ...(latest === undefined ? {} : { latestStdout: latest.stdout }),
+      phase,
+      progress: input.progress,
+      requiredLabels: input.requiredLabels,
+      skillName,
+    },
+    input.library,
+  );
+}
+
+function postExecutionInstructions(options: PostExecutionInstructionsInput): readonly string[] {
+  const { activeNames, input, latest, phase, skillName } = options;
+  const shapes = currentWorkflowShapePrompts(options);
+  const repairs = progressRepairPrompts(input, activeNames, phase, latest);
+  const candidates = artifactCandidateNames(
+    input.progress.executions,
+    requestedFactLabels(input.input.task),
+  );
   const missingArtifact = requestedArtifactNames(input.input.task).some(
     (name) => !candidates.includes(name),
   );
@@ -186,6 +224,38 @@ export function progressInstructions(input: ProgressInstructionsInput): readonly
     completedSuccessfully(latest) &&
     !validGfmTable(stripWorkProgress(latest.stdout));
   return invalidTable
-    ? [...instructions, ...deliverableStates, input.library.skillRecovery(skill.name, "table")]
-    : [...instructions, ...deliverableStates, ...repairs];
+    ? [...shapes, ...deliverableStates, input.library.skillRecovery(skillName, "table")]
+    : [...shapes, ...deliverableStates, ...repairs];
+}
+
+export function progressInstructions(input: ProgressInstructionsInput): readonly string[] {
+  const activeNames = activePromptSkillNames(input.input, input.progress, input.library);
+  const skill = input.library.progressSkill(activeNames, input.input.task);
+  if (skill === undefined)
+    return input.finalResponse ? [input.library.state("final-response")] : [];
+  const executions = progressExecutions(input.progress.executions);
+  const phase = progressWorkflowPhase(executions, input.requiredLabels);
+  const instructions = phaseInstructions({
+    finalResponse: input.finalResponse,
+    hasCleanUnmarkedOutput: hasCleanUnmarkedOutput(executions, input.requiredLabels),
+    hasCleanLabeledOutput: hasCleanLabeledOutput(
+      executions,
+      input.requiredLabels,
+      input.missingLabels,
+    ),
+    phase,
+    skillName: skill.name,
+    library: input.library,
+  });
+  const latest = executions.at(-1);
+  if (latest === undefined) {
+    return [
+      ...instructions,
+      ...currentWorkflowShapePrompts({ input, activeNames, skillName: skill.name, phase }),
+    ];
+  }
+  return [
+    ...instructions,
+    ...postExecutionInstructions({ input, activeNames, skillName: skill.name, phase, latest }),
+  ];
 }
