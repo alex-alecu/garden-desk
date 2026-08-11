@@ -41,6 +41,9 @@ export async function runPrimaryAgent(input: PrimaryRunInput): Promise<AgentRunR
     modelId: AGENT_MODEL_ID,
     onEvent: (type, summary, detail) => store.appendEvent(run.id, type, summary, detail),
     onThinking: input.onThinking,
+    savedScripts: store.execution
+      .listSessionScriptPaths(run.sessionId)
+      .map((path) => `/workspace/${path}`),
     signal: input.signal,
     skills: {
       metadata: () => [...definitions.skills],

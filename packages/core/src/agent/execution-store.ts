@@ -184,6 +184,15 @@ export class AgentExecutionStore {
     ).map(executionFromRow);
   }
 
+  listSessionScriptPaths(sessionId: string, limit = 8): string[] {
+    const rows = this.database
+      .prepare(
+        "SELECT DISTINCT e.workspace_path AS path FROM agent_executions e JOIN agent_runs r ON r.id = e.run_id WHERE r.session_id = ? AND e.state = 'completed' AND e.exit_code = 0 AND e.workspace_path IS NOT NULL ORDER BY e.created_at DESC LIMIT ?",
+      )
+      .all(sessionId, limit) as Array<{ path: string }>;
+    return rows.map((row) => row.path);
+  }
+
   private row(executionId: string): ExecutionRow {
     const row = this.database
       .prepare("SELECT * FROM agent_executions WHERE id = ?")

@@ -30,6 +30,9 @@ export function initialChatMessages(input: ChatAgentInput): ChatMessage[] {
     }
   }
   const names = input.inputNames?.length ? `\nSelected inputs: ${input.inputNames.join(", ")}` : "";
-  messages.push({ role: "user", text: `${input.task}${names}` });
+  const scripts = input.savedScripts?.length
+    ? `\nSaved scripts from earlier steps under /workspace (read one and extend a copy instead of retyping its data): ${input.savedScripts.join(", ")}`
+    : "";
+  messages.push({ role: "user", text: `${input.task}${names}${scripts}` });
   return messages;
 }

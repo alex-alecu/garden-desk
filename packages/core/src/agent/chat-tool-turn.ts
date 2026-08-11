@@ -13,6 +13,7 @@ const GUEST_TOOLS = new Set(["bash", "python", "node", "read", "glob", "grep", "
 const CODE_TOOLS = new Set(["bash", "python", "node"]);
 
 export interface ChatToolState {
+  checkpoint: number;
   executions: AgentExecutionResult[];
   failedTools: number;
   guestExecutions: number;
@@ -159,6 +160,38 @@ async function executeToolCall(input: ToolTurnInput, call: ChatToolCall): Promis
     });
   }
   input.state.failedTools = result.failed ? input.state.failedTools + 1 : 0;
+}
+
+export function initialToolState(messages: ChatMessage[]): ChatToolState {
+  return {
+    checkpoint: messages.length,
+    executions: [],
+    failedTools: 0,
+    guestExecutions: 0,
+    messages,
+    responseOnly: false,
+    signatures: [],
+  };
+}
+
+const FAILURE_EVIDENCE_LIMIT = 400;
+
+/**
+ * Discards the failed direction from live context: truncates messages back to the
+ * last checkpointed working state and keeps one short deterministic failure note.
+ * Durable execution and trace records are unaffected.
+ */
+export function rollbackFailedDirection(state: ChatToolState): void {
+  const lastFailure = state.messages.findLast((message) => message.role === "tool");
+  const evidence = lastFailure?.result.slice(0, FAILURE_EVIDENCE_LIMIT) ?? "(no tool output)";
+  state.messages = state.messages.slice(0, state.checkpoint);
+  state.messages.push({
+    role: "system",
+    text: `A direction failed three consecutive tool attempts and was removed from context. Do not retry it. Last failure evidence:\n${evidence}\nContinue from the earlier working state with a materially different approach.`,
+  });
+  state.checkpoint = state.messages.length;
+  state.failedTools = 0;
+  state.signatures = [];
 }
 
 export async function executeToolCalls(

@@ -104,4 +104,50 @@ describe("agent tool persistence", () => {
     ]);
     catalog.close();
   });
+
+  it("lists a session's successful script paths for follow-up runs, newest first", async () => {
+    const { catalog, jobs, sessions, store } = await fixture();
+    const session = sessions.createSession(null);
+    const first = store.createRun(session.id, jobs.create("agent", "first").id);
+    const second = store.createRun(session.id, jobs.create("agent", "second").id);
+    const succeeded = store.execution.create(first.id, {
+      language: "python",
+      path: ".vault-tools/extract.py",
+      source: "print('extract')",
+    });
+    store.execution.appendStream(succeeded.id, "stdout", Buffer.from("extract\n"));
+    store.execution.complete(succeeded.id, {
+      language: "python",
+      path: ".vault-tools/extract.py",
+      source: "print('extract')",
+      command: null,
+      exitCode: 0,
+      stdout: "extract\n",
+      stderr: "",
+      durationMs: 1,
+      termination: "completed",
+      artifacts: [],
+    });
+    const failed = store.execution.create(second.id, {
+      language: "python",
+      path: ".vault-tools/broken.py",
+      source: "raise SystemExit(1)",
+    });
+    store.execution.complete(failed.id, {
+      language: "python",
+      path: ".vault-tools/broken.py",
+      source: "raise SystemExit(1)",
+      command: null,
+      exitCode: 1,
+      stdout: "",
+      stderr: "",
+      durationMs: 1,
+      termination: "completed",
+      artifacts: [],
+    });
+
+    expect(store.execution.listSessionScriptPaths(session.id)).toEqual([".vault-tools/extract.py"]);
+    expect(store.execution.listSessionScriptPaths(randomUUID())).toEqual([]);
+    catalog.close();
+  });
 });

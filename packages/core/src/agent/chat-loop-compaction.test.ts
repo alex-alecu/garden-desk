@@ -60,18 +60,13 @@ describe("ChatAgentLoop compaction", () => {
   });
 });
 
-describe("ChatAgentLoop failed-tool compaction", () => {
-  it("replaces three failed tool attempts with an anchored summary", async () => {
+describe("ChatAgentLoop failed-direction rollback", () => {
+  it("discards three failed tool attempts and keeps one deterministic failure note", async () => {
     const requests: Parameters<InferenceService["chat"]>[0][] = [];
     const failures = ["call-1", "call-2", "call-3"].map((id) =>
-      generated("", [tool("list", id, { path: "/source" })]),
+      generated("", [tool("list", id, { path: `/source/${id}` })]),
     );
-    const loop = new ChatAgentLoop(
-      model(
-        [...failures, generated("Failed inspection summary."), generated("New approach.")],
-        requests,
-      ),
-    );
+    const loop = new ChatAgentLoop(model([...failures, generated("New approach.")], requests));
     const failedExecutor = {
       async inspect(run: Parameters<typeof source>[0]) {
         return execution(source(run), "permission denied", 1);
@@ -83,19 +78,50 @@ describe("ChatAgentLoop failed-tool compaction", () => {
 
     await loop.run(input(failedExecutor, ["list"]));
 
-    expect(requests[4]?.messages).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          role: "user",
-          text: expect.stringContaining("Failed inspection summary."),
-        }),
-        expect.objectContaining({ role: "user", text: "Complete the task." }),
-        expect.objectContaining({
-          role: "system",
-          text: expect.stringContaining("Three consecutive tool attempts failed"),
-        }),
-      ]),
-    );
+    const messages = requests[3]?.messages ?? [];
+    expect(messages).toEqual([
+      expect.objectContaining({ role: "system" }),
+      expect.objectContaining({ role: "user", text: "Complete the task." }),
+      expect.objectContaining({
+        role: "system",
+        text: expect.stringContaining("permission denied"),
+      }),
+    ]);
+    expect(messages.some((message) => message.role === "tool")).toBe(false);
+  });
+});
+
+describe("ChatAgentLoop rollback checkpoint", () => {
+  it("restores the last working step so earlier successful evidence survives the rollback", async () => {
+    const requests: Parameters<InferenceService["chat"]>[0][] = [];
+    const replies = [
+      generated("", [tool("python", "good-1", { source: "print('extract')" })]),
+      ...["bad-1", "bad-2", "bad-3"].map((id) =>
+        generated("", [tool("python", id, { source: `raise SystemExit('${id}')` })]),
+      ),
+      generated("Recovered."),
+    ];
+    const loop = new ChatAgentLoop(model(replies, requests));
+    const executor = {
+      async execute(run: Parameters<typeof source>[0]) {
+        const failing = source(run).startsWith("raise");
+        return execution(source(run), failing ? "boom" : "", failing ? 1 : 0);
+      },
+    };
+
+    await loop.run(input(executor, ["python"]));
+
+    const messages = requests[4]?.messages ?? [];
+    expect(messages).toEqual([
+      expect.objectContaining({ role: "system" }),
+      expect.objectContaining({ role: "user", text: "Complete the task." }),
+      expect.objectContaining({
+        role: "assistant",
+        toolCalls: [tool("python", "good-1", { source: "print('extract')" })],
+      }),
+      expect.objectContaining({ role: "tool", toolCallId: "good-1" }),
+      expect.objectContaining({ role: "system", text: expect.stringContaining("boom") }),
+    ]);
   });
 });
 

@@ -15,7 +15,12 @@ import type { AgentExecutor } from "./agent-executor.js";
 import { artifactCandidateNames } from "./artifact-results.js";
 import { compactChatHistory } from "./chat-compaction.js";
 import { initialChatMessages } from "./chat-initial-messages.js";
-import { type ChatToolState, executeToolCalls } from "./chat-tool-turn.js";
+import {
+  type ChatToolState,
+  executeToolCalls,
+  initialToolState,
+  rollbackFailedDirection,
+} from "./chat-tool-turn.js";
 import { GenericToolRegistry, type SkillReader, type SubagentRequest } from "./generic-tools.js";
 import { addPerformance, emptyPerformance } from "./inference-performance.js";
 import type { AgentDefinition } from "./markdown-definition-library.js";
@@ -40,6 +45,7 @@ export interface ChatAgentInput {
   modelId: string;
   onEvent?(type: AgentEventType, summary: string, detail?: Partial<AgentEventDetail>): void;
   onThinking?(text: string | null): void;
+  savedScripts?: string[];
   signal?: AbortSignal;
   skills: SkillReader;
   spawnTask?(request: SubagentRequest): Promise<string>;
@@ -186,16 +192,14 @@ export class ChatAgentLoop {
     promptTokens: number,
   ): Promise<void> {
     if (state.failedTools >= 3) {
-      state.messages = await this.compact(input, state.messages, 0, performance);
-      state.messages.push({
-        role: "system",
-        text: "Three consecutive tool attempts failed. The failed attempts were cleared. Try a materially different approach.",
-      });
-      state.failedTools = 0;
+      rollbackFailedDirection(state);
+      input.onEvent?.("inference.started", "Backtracking to the last working step.");
       return;
     }
+    if (state.failedTools === 0) state.checkpoint = state.messages.length;
     if (promptTokens >= this.contextTokens * COMPACTION_RATIO) {
       state.messages = await this.compact(input, state.messages, 2, performance);
+      state.checkpoint = state.messages.length;
     }
   }
 
@@ -210,6 +214,7 @@ export class ChatAgentLoop {
     } catch (error) {
       if (state.messages.length < 4) throw error;
       state.messages = await this.compact(input, state.messages, 2, performance);
+      state.checkpoint = state.messages.length;
       state.failedTools = 0;
       return await this.generate(input, state.messages, tools, "chat");
     }
@@ -235,6 +240,7 @@ export class ChatAgentLoop {
       this.record(input, generated.turnId, "invalid_response");
       state.messages.pop();
       state.messages = await this.compact(input, state.messages, 1, performance);
+      state.checkpoint = state.messages.length;
       state.messages.push({
         role: "system",
         text: "The previous answer hit its output limit and was discarded. Return the complete answer once, using the retained evidence, without preamble or omitted rows.",
@@ -268,14 +274,7 @@ export class ChatAgentLoop {
       ...(input.signal === undefined ? {} : { signal: input.signal }),
     });
     const performance = emptyPerformance();
-    const state: ChatToolState = {
-      executions: [],
-      failedTools: 0,
-      guestExecutions: 0,
-      messages: initialChatMessages(input),
-      responseOnly: false,
-      signatures: [],
-    };
+    const state = initialToolState(initialChatMessages(input));
     const turns = Math.min(HARD_TURN_LIMIT, input.agent.steps);
     for (let turn = 0; turn < turns; turn += 1) {
       input.signal?.throwIfAborted();
