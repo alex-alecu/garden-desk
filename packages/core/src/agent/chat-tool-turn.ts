@@ -6,9 +6,11 @@ import type {
   ChatToolCall,
 } from "@vault/shared";
 import type { AgentToolResult, GenericToolRegistry } from "./generic-tools.js";
+import { subagentTitle, toolCompletedSummary, toolStartedSummary } from "./tool-summaries.js";
 
 const EXECUTION_LIMIT = 24;
 const DOOM_LOOP_COUNT = 3;
+const MAX_PARALLEL_TASKS = 2;
 const GUEST_TOOLS = new Set(["bash", "python", "node", "read", "glob", "grep", "list"]);
 const CODE_TOOLS = new Set(["bash", "python", "node"]);
 
@@ -64,16 +66,10 @@ function repeatedCall(state: ChatToolState, call: ChatToolCall): boolean {
   );
 }
 
-function description(call: ChatToolCall): string {
-  if (typeof call.params !== "object" || call.params === null) return "Sub-agent task";
-  const value = (call.params as Record<string, unknown>).description;
-  return typeof value === "string" ? value : "Sub-agent task";
-}
-
 function beforeExecution(input: ToolTurnInput, call: ChatToolCall, repeated: boolean): void {
   const detail = eventDetail(call);
-  input.onEvent?.("tool.started", `Using ${call.name}.`, detail);
-  if (call.name === "task") input.onEvent?.("subagent.started", description(call), detail);
+  input.onEvent?.("tool.started", toolStartedSummary(call), detail);
+  if (call.name === "task") input.onEvent?.("subagent.started", subagentTitle(call), detail);
   if (CODE_TOOLS.has(call.name) && !repeated) {
     input.onEvent?.("execution.started", `Running ${call.name}.`, detail);
   }
@@ -102,11 +98,7 @@ function completedExecution(
 
 function completedTool(input: ToolTurnInput, call: ChatToolCall, result: AgentToolResult): void {
   const detail = { toolName: call.name, toolCallId: call.id, stdout: result.content };
-  input.onEvent?.(
-    "tool.completed",
-    result.failed ? `${call.name} failed.` : `${call.name} completed.`,
-    detail,
-  );
+  input.onEvent?.("tool.completed", toolCompletedSummary(call, result.failed), detail);
   if (call.name === "task") {
     input.onEvent?.(
       "subagent.completed",
@@ -145,6 +137,21 @@ async function executeToolCall(input: ToolTurnInput, call: ChatToolCall): Promis
   const repeated = repeatedCall(input.state, call);
   beforeExecution(input, call, repeated);
   const result = await toolResult(input, call, repeated);
+  finalizeToolCall(input, call, repeated, result);
+}
+
+/**
+ * Applies the ordered side effects of a completed tool call: execution and completion events, the
+ * tool result message, the doom-loop note, and failure counting. Kept separate from execution so a
+ * group of parallel sub-agent calls can run concurrently yet still fold their results into the
+ * conversation and failure counters in the original call order.
+ */
+function finalizeToolCall(
+  input: ToolTurnInput,
+  call: ChatToolCall,
+  repeated: boolean,
+  result: AgentToolResult,
+): void {
   completedExecution(input, call, result);
   input.state.messages.push({
     role: "tool",
@@ -198,5 +205,48 @@ export async function executeToolCalls(
   input: Omit<ToolTurnInput, "state"> & { state: ChatToolState },
   calls: readonly ChatToolCall[],
 ): Promise<void> {
-  for (const call of calls) await executeToolCall(input, call);
+  let index = 0;
+  while (index < calls.length) {
+    const call = calls[index];
+    if (call === undefined) break;
+    const group = consecutiveTaskGroup(calls, index);
+    if (group.length > 1) {
+      await executeTaskGroup(input, group);
+      index += group.length;
+    } else {
+      await executeToolCall(input, call);
+      index += 1;
+    }
+  }
+}
+
+/**
+ * Collects the run of consecutive `task` calls beginning at `start`, capped so at most
+ * {@link MAX_PARALLEL_TASKS} sub-agents run together. A single task, or any non-task tool, is
+ * handled by the sequential path.
+ */
+function consecutiveTaskGroup(calls: readonly ChatToolCall[], start: number): ChatToolCall[] {
+  const group: ChatToolCall[] = [];
+  for (let i = start; i < calls.length && group.length < MAX_PARALLEL_TASKS; i += 1) {
+    const call = calls[i];
+    if (call === undefined || call.name !== "task") break;
+    group.push(call);
+  }
+  return group;
+}
+
+/**
+ * Runs a group of sub-agent `task` calls concurrently on the model's parallel context sequences,
+ * then folds their results into the conversation in the original call order so history and failure
+ * counting stay deterministic regardless of which sub-agent finished first.
+ */
+async function executeTaskGroup(input: ToolTurnInput, group: ChatToolCall[]): Promise<void> {
+  const started = group.map((call) => {
+    const repeated = repeatedCall(input.state, call);
+    beforeExecution(input, call, repeated);
+    return { call, repeated, result: toolResult(input, call, repeated) };
+  });
+  for (const { call, repeated, result } of started) {
+    finalizeToolCall(input, call, repeated, await result);
+  }
 }

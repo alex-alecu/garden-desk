@@ -32,6 +32,7 @@ export type EmbeddingInput = Omit<
 export interface GenerationRequestIdentity {
   requestId: RequestId;
   jobId: JobId;
+  priority?: "primary" | "secondary";
 }
 
 export function effectiveGenerationInput(input: GenerationInput): GenerationInput {

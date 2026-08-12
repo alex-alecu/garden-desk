@@ -90,6 +90,7 @@ Negative:
 | 2026-07-25 | Allowed memory-bounded parallel conversation VMs while retaining one serialized resident inference worker. |
 | 2026-07-28 | Raised new executable proposals to 32,768 output tokens and added bounded 8,192-token multi-turn workspace-edit recovery when generation reaches that limit. |
 | 2026-08-06 | Added inspectable current-run context compaction and required file delivery for verified results that exceed the response contract. |
+| 2026-08-12 | Superseded the single-stream inference worker: the resident worker now exposes multiple parallel context sequences on one loaded model, used for bounded sub-agent parallelism with overflow queued. |
 | 2026-08-08 | Derived execution and conversation turnover from the reported allocation and retained bounded evidence across repeated compactions. |
 | 2026-08-08 | Distinguished useful exit-zero output truncation from resource failures during source-recovery schema selection. |
 | 2026-08-11 | Replaced the structured single-action loop with native multi-turn generic tools, Markdown agents and on-demand skills, isolated child runs, measured compaction, and real interpreter-error recovery. |

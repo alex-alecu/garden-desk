@@ -1,10 +1,14 @@
 import type { AgentArtifactSummary, AgentRunPerformance, AttachmentSummary } from "@vault/shared";
+import { useEffect, useRef, useState } from "react";
 import Markdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { type ActivityRow, clusterEntries } from "../activity-rows.js";
 import type { ArtifactSaveResult } from "../artifact-actions.js";
 import type { TimelineItem } from "../state.js";
+import { ActivityCluster } from "./activity-cluster.js";
 import { GeneratedFiles } from "./generated-files.js";
-import { UserMessage } from "./user-message.js";
+import { Icon } from "./icons.js";
+import { copyUserMessage, UserMessage } from "./user-message.js";
 
 function formatDuration(milliseconds: number): string {
   if (milliseconds < 1_000) return `${milliseconds}ms`;
@@ -64,27 +68,51 @@ export type OrderedEntry = {
   order: number;
 };
 
-function ActivityStep({
-  item,
-  selected,
-  onSelectStep,
-}: {
-  item: TimelineItem;
-  selected: boolean;
+interface TimelineEntriesProps {
+  artifacts: AgentArtifactSummary[];
+  attachmentsByMessage: Map<string, AttachmentSummary[]>;
+  entries: OrderedEntry[];
+  lastAssistantId: string | undefined;
+  nativeActionMessage: string | undefined;
+  onOpenArtifact(item: AgentArtifactSummary): Promise<void>;
+  onOpenAttachment(attachmentId: string): void;
+  onSaveArtifact(item: AgentArtifactSummary): Promise<ArtifactSaveResult>;
   onSelectStep(stepId: string | undefined): void;
-}) {
+  performance: AgentRunPerformance | null;
+  runId: string | undefined;
+  selectedStepId: string | undefined;
+  working: boolean;
+  activeRunState: string | undefined;
+  activeRunDurationMs: number | undefined;
+}
+
+function ResponseCopyButton({ text }: { text: string }) {
+  const [copyState, setCopyState] = useState<"copied" | "failed" | "idle">("idle");
+  const resetTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  useEffect(
+    () => () => {
+      if (resetTimer.current !== undefined) clearTimeout(resetTimer.current);
+    },
+    [],
+  );
+  const copy = async () => {
+    try {
+      await copyUserMessage(text);
+      setCopyState("copied");
+    } catch {
+      setCopyState("failed");
+    }
+    if (resetTimer.current !== undefined) clearTimeout(resetTimer.current);
+    resetTimer.current = setTimeout(() => setCopyState("idle"), 2_000);
+  };
+  const label = copyState === "copied" ? "Copied" : copyState === "failed" ? "Copy failed" : "Copy";
   return (
-    <article className="timeline-item timeline-activity">
-      <button
-        aria-current={selected ? "step" : undefined}
-        aria-label={`Show technical details for: ${item.text}`}
-        className="activity-step"
-        onClick={() => onSelectStep(selected ? undefined : item.id)}
-        type="button"
-      >
-        {item.text}
+    <div className="response-actions">
+      <button aria-label={`${label} response`} onClick={copy} title={label} type="button">
+        <Icon name={copyState === "copied" ? "copy-check" : "copy"} />
+        <span aria-live="polite">{copyState === "idle" ? "" : label}</span>
       </button>
-    </article>
+    </div>
   );
 }
 
@@ -123,6 +151,7 @@ function TimelineMessage({
         onOpen={onOpenArtifact}
         onSave={onSaveArtifact}
       />
+      {item.kind === "assistant" ? <ResponseCopyButton text={item.text} /> : null}
       {showMetrics && performance !== null ? <ResponseMetrics performance={performance} /> : null}
     </article>
   );
@@ -141,51 +170,111 @@ export function TimelineEntries({
   performance,
   runId,
   selectedStepId,
-}: {
-  artifacts: AgentArtifactSummary[];
-  attachmentsByMessage: Map<string, AttachmentSummary[]>;
-  entries: OrderedEntry[];
-  lastAssistantId: string | undefined;
-  nativeActionMessage: string | undefined;
-  onOpenArtifact(item: AgentArtifactSummary): Promise<void>;
-  onOpenAttachment(attachmentId: string): void;
-  onSaveArtifact(item: AgentArtifactSummary): Promise<ArtifactSaveResult>;
-  onSelectStep(stepId: string | undefined): void;
-  performance: AgentRunPerformance | null;
-  runId: string | undefined;
-  selectedStepId: string | undefined;
-}) {
-  return entries.map((entry) => {
-    const item = entry.item;
-    if (item.kind === "activity") {
-      return (
-        <ActivityStep
-          item={item}
-          key={item.id}
-          onSelectStep={onSelectStep}
-          selected={item.id === selectedStepId}
-        />
-      );
-    }
-    const messageAttachments = attachmentsByMessage.get(item.id) ?? [];
-    const showMetrics = item.id === lastAssistantId && item.runId === runId && performance !== null;
-    return (
-      <TimelineMessage
-        attachments={messageAttachments}
-        artifacts={
-          item.kind === "assistant" && item.runId !== null && item.runId !== undefined
-            ? artifacts.filter((artifact) => artifact.runId === item.runId)
-            : []
-        }
-        item={item}
-        key={item.id}
-        nativeActionMessage={nativeActionMessage}
-        onOpenArtifact={onOpenArtifact}
-        onOpenAttachment={onOpenAttachment}
-        onSaveArtifact={onSaveArtifact}
-        performance={performance}
-        showMetrics={showMetrics}
-      />
-    );
-  });
+  working,
+  activeRunState,
+  activeRunDurationMs,
+}: TimelineEntriesProps) {
+  return clusterEntries(entries.map((entry) => entry.item)).map((entry) => (
+    <TimelineEntry
+      entry={entry}
+      key={entry.kind === "cluster" ? `cluster-${entry.runId}-${entry.rows[0]?.id}` : entry.item.id}
+      {...{
+        artifacts,
+        attachmentsByMessage,
+        lastAssistantId,
+        nativeActionMessage,
+        onOpenArtifact,
+        onOpenAttachment,
+        onSaveArtifact,
+        onSelectStep,
+        performance,
+        runId,
+        selectedStepId,
+        working,
+        activeRunState,
+        activeRunDurationMs,
+      }}
+    />
+  ));
+}
+
+function TimelineEntry({
+  entry,
+  ...props
+}: Omit<TimelineEntriesProps, "entries"> & { entry: ReturnType<typeof clusterEntries>[number] }) {
+  if (entry.kind === "cluster") return <ActivityClusterEntry entry={entry} {...props} />;
+  return <TimelineMessageEntry item={entry.item} {...props} />;
+}
+
+function ActivityClusterEntry({
+  entry,
+  activeRunDurationMs,
+  activeRunState,
+  onSelectStep,
+  runId,
+  selectedStepId,
+  working,
+}: Pick<
+  TimelineEntriesProps,
+  "activeRunDurationMs" | "activeRunState" | "onSelectStep" | "runId" | "selectedStepId" | "working"
+> & { entry: Extract<ReturnType<typeof clusterEntries>[number], { kind: "cluster" }> }) {
+  const active = entry.runId === runId;
+  const failed = active && (activeRunState === "failed" || activeRunState === "cancelled");
+  const selected = entry.rows.find((row) => row.stepId === selectedStepId)?.id;
+  return (
+    <ActivityCluster
+      failed={failed}
+      finishedDurationMs={active && !working ? activeRunDurationMs : undefined}
+      forceExpandedRowId={selected}
+      onOpenDetails={(row: ActivityRow) => onSelectStep(row.stepId)}
+      parallel={entry.parallel}
+      rows={entry.rows}
+      runId={entry.runId}
+      startedAt={entry.createdAt}
+      working={active && working}
+    />
+  );
+}
+
+function TimelineMessageEntry({
+  artifacts,
+  attachmentsByMessage,
+  item,
+  lastAssistantId,
+  nativeActionMessage,
+  onOpenArtifact,
+  onOpenAttachment,
+  onSaveArtifact,
+  performance,
+  runId,
+}: Pick<
+  TimelineEntriesProps,
+  | "artifacts"
+  | "attachmentsByMessage"
+  | "lastAssistantId"
+  | "nativeActionMessage"
+  | "onOpenArtifact"
+  | "onOpenAttachment"
+  | "onSaveArtifact"
+  | "performance"
+  | "runId"
+> & { item: TimelineItem }) {
+  const showMetrics = item.id === lastAssistantId && item.runId === runId && performance !== null;
+  const responseArtifacts =
+    item.kind === "assistant" && item.runId != null
+      ? artifacts.filter((artifact) => artifact.runId === item.runId)
+      : [];
+  return (
+    <TimelineMessage
+      attachments={attachmentsByMessage.get(item.id) ?? []}
+      artifacts={responseArtifacts}
+      item={item}
+      nativeActionMessage={nativeActionMessage}
+      onOpenArtifact={onOpenArtifact}
+      onOpenAttachment={onOpenAttachment}
+      onSaveArtifact={onSaveArtifact}
+      performance={performance}
+      showMetrics={showMetrics}
+    />
+  );
 }

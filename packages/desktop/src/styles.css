@@ -2556,3 +2556,256 @@ textarea:focus-visible {
   border-color: #4d8f8a;
   background: rgb(24 52 58 / 92%);
 }
+
+/* Agent activity cluster: flat, Codex-style rows with a persistent timer header. */
+:root {
+  --motion-fast: 120ms;
+  --motion-medium: 220ms;
+  --motion-slow: 350ms;
+  --motion-ease: cubic-bezier(0.2, 0, 0, 1);
+}
+
+.activity-cluster {
+  margin: 6px 0 14px;
+}
+
+.activity-cluster-header {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 4px 0 6px;
+  border-bottom: 1px solid var(--border-color);
+  background: transparent;
+}
+
+.activity-cluster-title,
+.activity-cluster-toggle {
+  color: var(--ink-soft);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.activity-cluster-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.activity-cluster-chevron {
+  display: inline-flex;
+  transition: transform var(--motion-fast) var(--motion-ease);
+}
+
+.activity-cluster-chevron.open {
+  transform: rotate(90deg);
+}
+
+.activity-cluster-chevron .icon {
+  width: 15px;
+  height: 15px;
+}
+
+.activity-cluster-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-top: 8px;
+}
+
+.activity-cluster-parallel,
+.activity-cluster-earlier {
+  margin: 0 0 4px;
+  color: var(--ink-soft);
+  font-size: 12px;
+}
+
+.activity-row {
+  display: grid;
+  grid-template-columns: 18px 1fr;
+  align-items: start;
+  column-gap: 8px;
+  padding: 3px 0;
+  animation: activity-row-enter var(--motion-fast) var(--motion-ease);
+}
+
+.activity-row[data-kind="subagent"] {
+  margin-left: 14px;
+  border-left: 1px solid var(--border-color);
+  padding-left: 10px;
+}
+
+.activity-row-icon {
+  display: inline-flex;
+  padding-top: 1px;
+  color: var(--ink-soft);
+}
+
+.activity-row-icon .icon {
+  width: 15px;
+  height: 15px;
+}
+
+.activity-row-failed .activity-row-icon {
+  color: #c0503f;
+}
+
+.activity-row-label {
+  padding: 0;
+  border: 0;
+  color: var(--ink-soft);
+  background: transparent;
+  font-family: inherit;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.activity-row-label:disabled {
+  cursor: default;
+}
+
+.activity-row-detail {
+  grid-column: 2;
+  margin-top: 4px;
+}
+
+.activity-row-detail pre {
+  margin: 0;
+  padding: 8px 10px;
+  overflow-x: auto;
+  border-radius: 8px;
+  background: rgb(0 0 0 / 5%);
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 12px;
+  white-space: pre-wrap;
+}
+
+.activity-row-open {
+  margin-top: 6px;
+  padding: 0;
+  border: 0;
+  color: var(--accent-strong);
+  background: transparent;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.activity-row-shimmer {
+  background: linear-gradient(
+    100deg,
+    var(--ink-soft) 0%,
+    var(--ink-soft) 40%,
+    var(--ink) 50%,
+    var(--ink-soft) 60%,
+    var(--ink-soft) 100%
+  );
+  background-size: 220% 100%;
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: activity-shimmer 1.6s linear infinite;
+}
+
+@keyframes activity-shimmer {
+  from {
+    background-position: 140% 0;
+  }
+  to {
+    background-position: -40% 0;
+  }
+}
+
+@keyframes activity-row-enter {
+  from {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .activity-row {
+    animation: none;
+  }
+  .activity-row-shimmer {
+    background: none;
+    -webkit-text-fill-color: currentcolor;
+    animation: none;
+    color: var(--ink);
+  }
+  .activity-cluster-chevron {
+    transition: none;
+  }
+}
+
+.response-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 6px 2px 0;
+  color: var(--ink-soft);
+  font-size: 11px;
+}
+
+.response-actions button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 4px;
+  border: 0;
+  border-radius: 6px;
+  color: var(--ink-soft);
+  background: transparent;
+  cursor: pointer;
+}
+
+.response-actions button:hover {
+  color: var(--accent-strong);
+  background: var(--navigation-hover);
+}
+
+.response-actions .icon {
+  width: 15px;
+  height: 15px;
+}
+
+.technical-context-meter dd {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.context-meter-track {
+  display: block;
+  height: 5px;
+  border-radius: 3px;
+  background: rgb(0 0 0 / 8%);
+  overflow: hidden;
+}
+
+.context-meter-fill {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  background: var(--accent);
+  transition: width var(--motion-medium) var(--motion-ease);
+}
+
+.context-meter-track.warning .context-meter-fill {
+  background: #c9803a;
+}
+
+.app-shell[data-theme="dark"] .activity-row-detail pre {
+  background: rgb(255 255 255 / 6%);
+}
+
+.app-shell[data-theme="dark"] .context-meter-track {
+  background: rgb(255 255 255 / 10%);
+}

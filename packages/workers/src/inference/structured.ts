@@ -101,6 +101,7 @@ async function gemmaStructuredValue(
   request: StructuredGenerationRequest,
   session: LlamaChatSession,
   callbacks: StructuredCallbacks,
+  signal?: AbortSignal,
 ): Promise<unknown> {
   try {
     const result = await session.promptWithMeta(request.prompt, {
@@ -110,6 +111,7 @@ async function gemmaStructuredValue(
       temperature: 0,
       onResponseChunk: callbacks.onResponseChunk,
       onToken: callbacks.onToken,
+      ...(signal === undefined ? {} : { signal }),
     });
     if (result.stopReason === "maxTokens") throw new Error("generation_token_limit");
     const response = plainResponse(request.jsonSchema, result.responseText);
@@ -126,14 +128,23 @@ interface StructuredCallbacks {
   onToken: (tokens: Token[]) => void;
 }
 
-export async function structuredValue(
-  request: StructuredGenerationRequest,
-  llama: Pick<Llama, "createGrammarForJsonSchema">,
-  session: LlamaChatSession,
-  callbacks: StructuredCallbacks,
-): Promise<unknown> {
+interface StructuredValueInput {
+  callbacks: StructuredCallbacks;
+  llama: Pick<Llama, "createGrammarForJsonSchema">;
+  request: StructuredGenerationRequest;
+  session: LlamaChatSession;
+  signal?: AbortSignal;
+}
+
+export async function structuredValue({
+  request,
+  llama,
+  session,
+  callbacks,
+  signal,
+}: StructuredValueInput): Promise<unknown> {
   if (request.modelId.startsWith("gemma-4")) {
-    return await gemmaStructuredValue(request, session, callbacks);
+    return await gemmaStructuredValue(request, session, callbacks, signal);
   }
   const grammar = await llama.createGrammarForJsonSchema(request.jsonSchema as never);
   const result = await session.promptWithMeta(request.prompt, {
@@ -142,6 +153,7 @@ export async function structuredValue(
     temperature: 0,
     onResponseChunk: callbacks.onResponseChunk,
     onToken: callbacks.onToken,
+    ...(signal === undefined ? {} : { signal }),
   });
   if (result.stopReason === "maxTokens") throw new Error("generation_token_limit");
   return grammar.parse(result.responseText);

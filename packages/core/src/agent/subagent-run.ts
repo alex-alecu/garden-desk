@@ -85,6 +85,7 @@ export async function runSubagent(ports: SubagentPorts, request: SubagentRequest
       modelId: ports.modelId,
       onEvent: (type, summary, detail) => ports.store.appendEvent(child.id, type, summary, detail),
       signal: ports.signal,
+      inferencePriority: "secondary",
       skills: skillReader(ports.library),
       systemPrompt: (name) => ports.library.system(name),
       task: `${request.description}\n\n${request.prompt}`,

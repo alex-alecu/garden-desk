@@ -10,7 +10,7 @@ interface MemoryReportRuntime {
 export async function memoryReport(
   runtime: MemoryReportRuntime,
   contextSizeTokens: number,
-  contextLimit?: { tokens: number; reason: GenerationContextLimitReason },
+  contextLimit?: { tokens: number; reason: GenerationContextLimitReason; sequenceCount?: number },
 ) {
   const memory = await runtime.llama.getLlamaMemoryUsage();
   return {
@@ -24,6 +24,9 @@ export async function memoryReport(
       : {
           contextLimitTokens: contextLimit.tokens,
           contextLimitReason: contextLimit.reason,
+          ...(contextLimit.sequenceCount === undefined
+            ? {}
+            : { sequenceCount: contextLimit.sequenceCount }),
         }),
   };
 }

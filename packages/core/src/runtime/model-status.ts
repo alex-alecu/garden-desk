@@ -13,6 +13,7 @@ export interface ModelRuntimeMeasurements {
   gpuVramBytes?: number;
   contextLimitTokens?: number;
   contextLimitReason?: GenerationContextLimitReason;
+  sequenceCount?: number;
 }
 
 export function generationMeasurements(
@@ -31,6 +32,7 @@ export function generationMeasurements(
     ...(memory.contextLimitReason === undefined
       ? {}
       : { contextLimitReason: memory.contextLimitReason }),
+    ...(memory.sequenceCount === undefined ? {} : { sequenceCount: memory.sequenceCount }),
   };
 }
 

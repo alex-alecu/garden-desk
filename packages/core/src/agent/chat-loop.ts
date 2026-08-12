@@ -45,9 +45,11 @@ export interface ChatAgentInput {
   modelId: string;
   onEvent?(type: AgentEventType, summary: string, detail?: Partial<AgentEventDetail>): void;
   onThinking?(text: string | null): void;
+  onContext?(used: number, allocated: number): void;
   savedScripts?: string[];
   signal?: AbortSignal;
   skills: SkillReader;
+  inferencePriority?: "primary" | "secondary";
   spawnTask?(request: SubagentRequest): Promise<string>;
   systemPrompt(name: string): string;
   task: string;
@@ -66,10 +68,8 @@ function outputTokens(
   phase: "chat" | "compaction",
 ) {
   if (phase === "compaction") return CHAT_OUTPUT_TOKENS;
-  const dynamic = Math.min(
-    MAX_CHAT_OUTPUT_TOKENS,
-    Math.max(CHAT_OUTPUT_TOKENS, Math.floor(contextTokens / 8)),
-  );
+  const scaled = Math.max(CHAT_OUTPUT_TOKENS, Math.floor(contextTokens / 8));
+  const dynamic = Math.min(MAX_CHAT_OUTPUT_TOKENS, scaled);
   return tools.length === 0 ? Math.max(4_096, dynamic) : dynamic;
 }
 
@@ -95,7 +95,11 @@ export class ChatAgentLoop {
     tools: ReturnType<GenericToolRegistry["definitions"]>,
     phase: "chat" | "compaction",
   ): Promise<{ result: ChatGenerationResult; turnId?: string }> {
-    const identity = { requestId: randomUUID(), jobId: JobIdSchema.parse(randomUUID()) };
+    const identity = {
+      requestId: randomUUID(),
+      jobId: JobIdSchema.parse(randomUUID()),
+      ...(input.inferencePriority === undefined ? {} : { priority: input.inferencePriority }),
+    };
     const request = {
       modelId: input.modelId,
       messages,
@@ -125,6 +129,7 @@ export class ChatAgentLoop {
         result.memory.contextSizeTokens,
       );
       this.contextTokens = result.memory.contextSizeTokens ?? this.contextTokens;
+      input.onContext?.(result.performance.promptTokens, this.contextTokens);
       return { result, ...(turnId === undefined ? {} : { turnId }) };
     } catch (error) {
       this.record(input, turnId, input.signal?.aborted ? "cancelled" : "inference_failed");
@@ -219,7 +224,6 @@ export class ChatAgentLoop {
       return await this.generate(input, state.messages, tools, "chat");
     }
   }
-
   private async turn(options: {
     input: ChatAgentInput;
     state: ChatToolState;
@@ -262,7 +266,6 @@ export class ChatAgentLoop {
     await this.recoverContext(input, state, performance, generated.result.performance.promptTokens);
     return undefined;
   }
-
   async run(input: ChatAgentInput): Promise<AgentRunResult> {
     this.requestedContextSize = input.contextTokens;
     this.contextTokens =

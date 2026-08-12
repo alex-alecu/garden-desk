@@ -23,6 +23,7 @@ import {
 import type { ModelResolver } from "./models.js";
 import type { ResourceScheduler } from "./scheduler.js";
 import { AsyncSerial } from "./serial.js";
+import { SlotLimiter } from "./slot-limiter.js";
 import {
   createChatWorkerRequest,
   createEmbedWorkerRequest,
@@ -38,7 +39,8 @@ type StagedModel = Awaited<ReturnType<ModelResolver["resolve"]>>;
 
 export class InferenceSupervisor implements InferenceService {
   private readonly active = new Map<AbortController, Promise<void>>();
-  private readonly serial = new AsyncSerial();
+  private readonly slots = new SlotLimiter(1);
+  private readonly residency = new AsyncSerial();
   private measurements: Parameters<typeof modelRuntimeStatus>[2] = {};
   private resident:
     | {
@@ -115,6 +117,8 @@ export class InferenceSupervisor implements InferenceService {
     }
     if (response.operation === "generate" || response.operation === "chat") {
       this.measurements = generationMeasurements(response.memory);
+      if (response.memory.sequenceCount !== undefined)
+        this.slots.setCapacity(response.memory.sequenceCount);
     }
     recordInferenceAudit(this.audit, {
       operation: request.operation,
@@ -124,7 +128,6 @@ export class InferenceSupervisor implements InferenceService {
     });
     return response;
   }
-
   private finishExecution(execution: ActiveInferenceExecution): void {
     this.active.delete(execution.lifecycle);
     execution.finish();
@@ -164,7 +167,12 @@ export class InferenceSupervisor implements InferenceService {
     if (request.operation === "probe") {
       return { lease: this.scheduler.reserve(request.operation), stagedModel: undefined };
     }
-    const resident = await this.prepareModel(request.modelId, request.operation, signal);
+    // Serialize only resident preparation so concurrent generations never race model load;
+    // generation itself stays parallel across the model's context sequences.
+    const resident = await this.residency.run(
+      () => this.prepareModel(request.modelId, request.operation, signal),
+      signal,
+    );
     return { lease: resident.lease, stagedModel: resident.stagedModel };
   }
 
@@ -202,13 +210,15 @@ export class InferenceSupervisor implements InferenceService {
     request: InferenceWorkerRequest,
     signal?: AbortSignal,
     onThinkingDelta?: (text: string) => void,
+    priority: "primary" | "secondary" = "primary",
   ) {
     const execution = this.startExecution(signal);
     let lease: ResourceLease | undefined;
     try {
-      const result = await this.serial.run(async () => {
-        return await this.executeOne(request, execution, onThinkingDelta);
-      }, execution.signal);
+      const result = await this.slots.run(
+        async () => await this.executeOne(request, execution, onThinkingDelta),
+        { signal: execution.signal, priority },
+      );
       lease = result.lease;
       return result.response;
     } catch (error) {
@@ -277,6 +287,7 @@ export class InferenceSupervisor implements InferenceService {
       createChatWorkerRequest(input, identity),
       signal,
       onThinkingDelta,
+      identity?.priority ?? "primary",
     );
     return expectChatResponse(response);
   }

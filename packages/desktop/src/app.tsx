@@ -197,6 +197,7 @@ export function App({ api, capabilities }: { api: DesktopApi; capabilities: Desk
           runId={state.activeRun?.id}
           thinking={state.thinking}
           working={state.activeRun?.state === "queued" || state.activeRun?.state === "running"}
+          activeRunState={state.activeRun?.state}
         />
         <Composer
           attachments={state.attachments.filter((attachment) =>
@@ -270,6 +271,8 @@ export function App({ api, capabilities }: { api: DesktopApi; capabilities: Desk
         onClose={() => setTechnicalDetailsOpen(false)}
         open={technicalDetailsOpen}
         onSelectStep={onSelectStep}
+        contextUsedTokens={state.contextUsedTokens}
+        contextAllocatedTokens={state.contextAllocatedTokens}
         selectedStepId={state.selectedStepId}
         sessionId={state.activeSessionId}
         steps={steps}

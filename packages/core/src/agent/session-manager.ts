@@ -41,6 +41,10 @@ interface WarmSession {
 
 export class AgentSessionManager {
   private readonly warm = new Map<string, WarmSession>();
+  // FIFO chain per session id. Parallel sub-agents share their parent's session guest, which can
+  // run only one execution at a time, so overlapping executions queue here instead of failing with
+  // `agent_session_busy`. Keyed by session id so it survives warm-session recreation.
+  private readonly executionQueues = new Map<string, Promise<unknown>>();
   private serial: Promise<void> = Promise.resolve();
   private clock = 0;
 
@@ -125,6 +129,42 @@ export class AgentSessionManager {
   }
 
   async execute(
+    sessionId: string,
+    request: AgentSessionExecution,
+    signal?: AbortSignal,
+    observer?: AgentExecutionObserver,
+  ) {
+    signal?.throwIfAborted();
+    const previous = this.executionQueues.get(sessionId) ?? Promise.resolve();
+    const tail = previous
+      .catch(() => undefined)
+      .then(() => {
+        signal?.throwIfAborted();
+        return this.executeOnce(sessionId, request, signal, observer);
+      });
+    const settled = tail.catch(() => undefined);
+    this.executionQueues.set(sessionId, settled);
+    void settled.then(() => {
+      // Drop the entry once this is the last queued execution, so idle sessions do not retain a
+      // resolved promise forever. A newer execute replaces the entry before this runs.
+      if (this.executionQueues.get(sessionId) === settled) this.executionQueues.delete(sessionId);
+    });
+    // The chain (`settled`) preserves FIFO order for the next caller, while the caller itself may
+    // reject as soon as its signal aborts, even while still waiting behind an earlier execution.
+    return await this.awaitWithAbort(tail, signal);
+  }
+
+  private awaitWithAbort<T>(work: Promise<T>, signal: AbortSignal | undefined): Promise<T> {
+    if (signal === undefined) return work;
+    if (signal.aborted) return Promise.reject(signal.reason);
+    return new Promise<T>((accept, reject) => {
+      const onAbort = () => reject(signal.reason);
+      signal.addEventListener("abort", onAbort, { once: true });
+      work.then(accept, reject).finally(() => signal.removeEventListener("abort", onAbort));
+    });
+  }
+
+  private async executeOnce(
     sessionId: string,
     request: AgentSessionExecution,
     signal?: AbortSignal,

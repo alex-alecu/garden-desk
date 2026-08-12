@@ -1,4 +1,6 @@
 import {
+  type InferenceWorkerFrame,
+  InferenceWorkerFrameSchema,
   type InferenceWorkerMessage,
   InferenceWorkerMessageSchema,
   type InferenceWorkerRequest,
@@ -24,6 +26,15 @@ function encode(value: unknown): Buffer {
 
 export function encodeInferenceRequest(request: InferenceWorkerRequest): Buffer {
   return encode(InferenceWorkerRequestSchema.parse(request));
+}
+
+export function encodeInferenceCancel(
+  requestId: InferenceWorkerRequest["requestId"],
+  code: "cancelled" | "timeout",
+): Buffer {
+  return encode(
+    InferenceWorkerFrameSchema.parse({ protocolVersion: 1, operation: "cancel", requestId, code }),
+  );
 }
 
 export function encodeInferenceResponse(response: InferenceWorkerResponse): Buffer {
@@ -61,9 +72,9 @@ export class InferenceResponseDecoder {
 export class InferenceRequestDecoder {
   private pending = Buffer.alloc(0);
 
-  push(chunk: Buffer): InferenceWorkerRequest[] {
+  push(chunk: Buffer): InferenceWorkerFrame[] {
     this.pending = Buffer.concat([this.pending, chunk]);
-    const requests: InferenceWorkerRequest[] = [];
+    const requests: InferenceWorkerFrame[] = [];
     while (this.pending.length >= HEADER_BYTES) {
       const length = this.pending.readUInt32BE(0);
       if (length === 0 || length > MAX_FRAME_BYTES) {
@@ -71,7 +82,7 @@ export class InferenceRequestDecoder {
       }
       if (this.pending.length < HEADER_BYTES + length) break;
       const payload = this.pending.subarray(HEADER_BYTES, HEADER_BYTES + length);
-      requests.push(InferenceWorkerRequestSchema.parse(JSON.parse(payload.toString("utf8"))));
+      requests.push(InferenceWorkerFrameSchema.parse(JSON.parse(payload.toString("utf8"))));
       this.pending = this.pending.subarray(HEADER_BYTES + length);
     }
     return requests;

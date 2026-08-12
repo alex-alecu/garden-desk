@@ -74,7 +74,7 @@ Every supported tier uses:
 - Page, section, and table summary trees.
 - Evidence packs rather than raw folder stuffing.
 - Claim-level verification.
-- One Gemma generation at a time through the shared resident worker; independent conversations may overlap microVM work within the hardware-derived RAM cap.
+- The shared resident worker generates on one loaded Gemma model but supports multiple parallel context sequences (node-llama-cpp exposes `sequences`, `sequencesLeft`, and a maximum-parallelism batch strategy), so parallelism is bounded by KV-cache memory rather than by the runtime. V1 uses bounded extra sequences for sub-agents; requests beyond the available sequence slots queue. Extending parallel sequences to concurrent user conversations and background work is planned, not yet current. Independent conversations may also overlap microVM work within the hardware-derived RAM cap.
 - Conservative multimodal page inspection.
 - The same supported workflows.
 - The same citation and approval requirements.
@@ -210,3 +210,4 @@ Each certified profile needs:
 | 2026-07-22 | Replaced the fixed 8K product context with automatic macOS memory tiers, complete detected Windows GPU VRAM use, and runtime-fitted context up to 256K. |
 | 2026-08-01 | Capped automatic context at 64K or 128K using separate Mac unified-memory and Windows VRAM thresholds and exposed the measured allocations, selected cap, and threshold reason through the typed runtime status. |
 | 2026-08-04 | Restricted Windows automatic budgets and context tiers to one device's dedicated VRAM. |
+| 2026-08-12 | Recorded that the single loaded model supports multiple parallel context sequences (memory-bounded), used for sub-agents in V1, with concurrent conversations planned. |

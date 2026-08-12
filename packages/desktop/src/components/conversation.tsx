@@ -4,7 +4,6 @@ import type { ArtifactSaveResult } from "../artifact-actions.js";
 import type { TimelineItem } from "../state.js";
 import { EmptyConversation } from "./empty-conversation.js";
 import { attachmentsByUserMessage } from "./message-attachments.js";
-import { RunProgress } from "./run-progress.js";
 import { type OrderedEntry, TimelineEntries } from "./timeline-entries.js";
 
 interface ConversationProps {
@@ -24,6 +23,7 @@ interface ConversationProps {
   runId: string | undefined;
   thinking: string | null;
   working?: boolean | undefined;
+  activeRunState?: string | undefined;
 }
 
 function showsInConversation(item: TimelineItem): boolean {
@@ -68,6 +68,7 @@ export function Conversation({
   runId,
   thinking,
   working = false,
+  activeRunState,
 }: ConversationProps) {
   const entries = conversationEntries(timeline);
   const scrollContainer = useRef<HTMLElement>(null);
@@ -109,6 +110,9 @@ export function Conversation({
           onSaveArtifact={onSaveArtifact}
           onSelectStep={onSelectStep}
           selectedStepId={selectedStepId}
+          working={working}
+          activeRunState={activeRunState}
+          activeRunDurationMs={performance?.totalDurationMs}
         />
         {thinking === null || thinking.length === 0 ? null : (
           <article className="thinking-stream">
@@ -119,9 +123,6 @@ export function Conversation({
             <p>{thinking}</p>
           </article>
         )}
-        {working && (thinking === null || thinking.length === 0) ? (
-          <RunProgress runId={runId} timeline={timeline} />
-        ) : null}
       </div>
     </section>
   );

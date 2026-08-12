@@ -133,6 +133,74 @@ describe("memory-bounded parallel agent VMs", () => {
   });
 });
 
+describe("shared session execution queue", () => {
+  it("serializes overlapping executions on one session in FIFO order without failing", async () => {
+    const events: string[] = [];
+    let active = 0;
+    let peak = 0;
+    const codeLauncher = launcher(events);
+    const open = codeLauncher.openAgentSession.bind(codeLauncher);
+    codeLauncher.openAgentSession = async (request) => {
+      const session = await open(request);
+      return {
+        ...session,
+        async execute(execution, signal, observer) {
+          active += 1;
+          peak = Math.max(peak, active);
+          if (active > 1) throw new Error("agent_session_busy");
+          await new Promise((accept) => setTimeout(accept, 5));
+          active -= 1;
+          return await session.execute(execution, signal, observer);
+        },
+      };
+    };
+    const manager = new AgentSessionManager(codeLauncher, resolver(events), limits);
+    const sessionId = randomUUID();
+    const first = manager.execute(sessionId, { language: "shell", command: "a" });
+    const second = manager.execute(sessionId, { language: "shell", command: "b" });
+    await expect(Promise.all([first, second])).resolves.toHaveLength(2);
+    expect(peak).toBe(1);
+    expect(events.filter((event) => event.startsWith("execute:"))).toHaveLength(2);
+    await manager.close();
+  });
+});
+
+describe("shared session execution queue cancellation", () => {
+  it("honors an abort while an execution waits behind another", async () => {
+    const events: string[] = [];
+    let release!: () => void;
+    const proceed = new Promise<void>((accept) => {
+      release = accept;
+    });
+    const codeLauncher = launcher(events);
+    const open = codeLauncher.openAgentSession.bind(codeLauncher);
+    codeLauncher.openAgentSession = async (request) => {
+      const session = await open(request);
+      return {
+        ...session,
+        async execute(execution, signal, observer) {
+          await proceed;
+          return await session.execute(execution, signal, observer);
+        },
+      };
+    };
+    const manager = new AgentSessionManager(codeLauncher, resolver(events), limits);
+    const sessionId = randomUUID();
+    const controller = new AbortController();
+    const first = manager.execute(sessionId, { language: "shell", command: "a" });
+    const queued = manager.execute(
+      sessionId,
+      { language: "shell", command: "b" },
+      controller.signal,
+    );
+    controller.abort(new DOMException("stop", "AbortError"));
+    await expect(queued).rejects.toBeInstanceOf(DOMException);
+    release();
+    await expect(first).resolves.toMatchObject({ stdout: "ok" });
+    await manager.close();
+  });
+});
+
 describe("agent session cancellation", () => {
   it("does not open or execute a session after cancellation", async () => {
     const events: string[] = [];

@@ -140,8 +140,17 @@ export class AgentService {
 
   snapshot(runId: string): AgentRunSnapshot {
     const snapshot = this.store.snapshot(runId);
-    const thinking = [...this.active.values()].find((run) => run.runId === runId)?.thinking ?? null;
-    return { ...snapshot, thinking };
+    const active = [...this.active.values()].find((run) => run.runId === runId);
+    return {
+      ...snapshot,
+      thinking: active?.thinking ?? null,
+      contextUsedTokens: active?.contextUsedTokens ?? snapshot.contextUsedTokens,
+      contextAllocatedTokens: active?.contextAllocatedTokens ?? snapshot.contextAllocatedTokens,
+    };
+  }
+  private updateActive(jobId: string, patch: Partial<ActiveRun>): void {
+    const run = this.active.get(jobId);
+    if (run !== undefined) Object.assign(run, patch);
   }
   listRuns(sessionId: string): AgentRunSummary[] {
     return this.store.listRuns(sessionId);
@@ -181,8 +190,7 @@ export class AgentService {
     const state = cancelled ? "cancelled" : "failed";
     const detail = cancelled ? "cancelled" : agentFailureText(error);
     const event = agentFailureEvent(cancelled, detail);
-    const active = this.active.get(run.jobId);
-    if (active !== undefined) active.thinking = null;
+    this.updateActive(run.jobId, { thinking: null });
     this.database.transaction(() => {
       this.store.execution.failIncomplete(run.id, cancelled);
       this.store.transitionRun(run.id, { state, error: detail });
@@ -229,10 +237,9 @@ export class AgentService {
         definitions: this.definitions,
         history,
         jobs: this.jobs,
-        onThinking: (thinking) => {
-          const active = this.active.get(run.jobId);
-          if (active !== undefined) active.thinking = thinking;
-        },
+        onThinking: (thinking) => this.updateActive(run.jobId, { thinking }),
+        onContext: (contextUsedTokens, contextAllocatedTokens) =>
+          this.updateActive(run.jobId, { contextUsedTokens, contextAllocatedTokens }),
         run,
         sessions: this.sessions,
         signal,
@@ -240,8 +247,7 @@ export class AgentService {
         task,
       });
       const performance = runPerformance(result, run.createdAt);
-      const active = this.active.get(run.jobId);
-      if (active !== undefined) active.thinking = null;
+      this.updateActive(run.jobId, { thinking: null });
       const deliverables = await prepareArtifacts(
         result.artifacts,
         result.executions,
@@ -283,7 +289,6 @@ export class AgentService {
       releaseCapacity?.();
     }
   }
-
   async close(): Promise<void> {
     this.closed = true;
     const active = [...this.active.values()];

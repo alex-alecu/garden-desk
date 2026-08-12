@@ -214,6 +214,8 @@ export const AgentRunSnapshotSchema = z.object({
   executions: z.array(AgentExecutionSnapshotSchema).max(24).default([]),
   artifacts: z.array(AgentArtifactSummarySchema).max(100),
   thinking: z.string().max(64_000).nullable().default(null),
+  contextUsedTokens: z.number().int().nonnegative().nullable().default(null),
+  contextAllocatedTokens: z.number().int().positive().nullable().default(null),
 });
 
 export type AgentLanguage = z.infer<typeof AgentLanguageSchema>;
