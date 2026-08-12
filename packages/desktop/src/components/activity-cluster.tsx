@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ActivityRow } from "../activity-rows.js";
 import { ActivityRowView } from "./activity-row.js";
 import { Icon } from "./icons.js";
@@ -81,6 +81,12 @@ export function ActivityCluster(props: ClusterProps) {
   useEffect(() => {
     if (forcedOpen) setOpen(true);
   }, [forcedOpen]);
+  const wasWorking = useRef(props.working);
+  useEffect(() => {
+    // Collapse to the timer line when a run finishes cleanly; a failed or cancelled run stays open.
+    if (wasWorking.current && !props.working) setOpen(openStateOnFinish(props.failed));
+    wasWorking.current = props.working;
+  }, [props.working, props.failed]);
   const elapsedMs = useElapsedMs(props.startedAt, props.working);
   const display = displayState(
     { ...props, finishedDurationMs: props.working ? elapsedMs : props.finishedDurationMs },
@@ -106,7 +112,12 @@ export function ActivityCluster(props: ClusterProps) {
             <p className="activity-cluster-earlier">{display.hiddenCount} earlier steps</p>
           ) : null}
           {display.visible.map((row) => (
-            <ActivityRowView key={row.id} onOpenDetails={props.onOpenDetails} row={row} />
+            <ActivityRowView
+              key={row.id}
+              live={props.working}
+              onOpenDetails={props.onOpenDetails}
+              row={row}
+            />
           ))}
         </div>
       ) : null}
@@ -156,6 +167,14 @@ function clusterRows(rows: ActivityRow[], working: boolean, expanded: boolean): 
   if (!expanded) return [];
   if (working && rows.length > VISIBLE_ROWS) return rows.slice(rows.length - VISIBLE_ROWS);
   return rows;
+}
+
+/**
+ * The open state a cluster should take the moment a run stops working: a clean finish collapses to
+ * the timer line, while a failed or cancelled run stays expanded so the failing row is visible.
+ */
+export function openStateOnFinish(failed: boolean): boolean {
+  return failed;
 }
 
 function parallelCount(rows: ActivityRow[]): number {

@@ -116,7 +116,7 @@ const timeline = [
 
 const steps = agentSteps(timeline, [execution, activeExecution]);
 
-function renderTechnicalDetails(selectedStepId?: string): string {
+function renderTechnicalDetails(selectedStepId?: string, nativeActionMessage?: string): string {
   return renderToStaticMarkup(
     <TechnicalDetails
       api={{} as DesktopApi}
@@ -135,6 +135,7 @@ function renderTechnicalDetails(selectedStepId?: string): string {
         contextLimitTokens: 131_072,
         contextLimitReason: "windows_gpu_vram_above_24_gib",
       }}
+      nativeActionMessage={nativeActionMessage}
       onClose={() => undefined}
       onSelectStep={() => undefined}
       open
@@ -180,6 +181,22 @@ it("keeps the overview separate from step evidence", () => {
   expect(markup).not.toContain("Response completed");
   expect(markup).not.toContain("Step 1 · Planning the task.");
   expect(markup).not.toContain("Code the model wrote");
+});
+
+it("offers a session transcript copy action in the overview", () => {
+  const markup = renderTechnicalDetails();
+
+  expect(markup).toContain("Copy session transcript");
+  expect(markup).toMatch(/class="transcript-copy"/);
+  expect(markup).not.toMatch(/class="transcript-copy">[\s\S]*?disabled/);
+});
+
+it("disables the transcript copy when native actions are unavailable", () => {
+  const markup = renderTechnicalDetails(undefined, "Unavailable in the public demo");
+
+  expect(markup).toContain("Copy session transcript");
+  expect(markup).toMatch(/class="transcript-copy">[\s\S]*?disabled/);
+  expect(markup).toContain('title="Unavailable in the public demo"');
 });
 
 it("opens a selected step in its own tab with highlighted Python source", () => {

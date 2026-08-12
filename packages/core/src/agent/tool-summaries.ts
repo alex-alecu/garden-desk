@@ -58,9 +58,8 @@ function verbObject(call: ChatToolCall): VerbObject {
       return { running: `Listing ${object}`, done: `Listed ${object}` };
     }
     case "python":
-      return { running: "Running Python", done: "Ran Python" };
     case "node":
-      return { running: "Running Node", done: "Ran Node" };
+      return { running: "Running code", done: "Ran code" };
     case "bash": {
       const command = stringParam(call, "command");
       const object = command === undefined ? "a command" : truncateMiddle(command);

@@ -16,7 +16,9 @@ describe("tool summaries", () => {
     expect(toolStartedSummary(grep)).toBe("Searching for revenue in /source");
     expect(toolCompletedSummary(grep, false)).toBe("Searched for revenue in /source.");
 
-    expect(toolStartedSummary(call("python", { source: "print(1)" }))).toBe("Running Python");
+    expect(toolStartedSummary(call("python", { source: "print(1)" }))).toBe("Running code");
+    expect(toolStartedSummary(call("node", { source: "console.log(1)" }))).toBe("Running code");
+    expect(toolCompletedSummary(call("python", { source: "print(1)" }), false)).toBe("Ran code.");
     expect(toolStartedSummary(call("skill", { name: "workbooks" }))).toBe(
       "Loading workbooks skill",
     );

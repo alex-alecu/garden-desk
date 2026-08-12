@@ -1250,6 +1250,25 @@ textarea:focus-visible {
   opacity: 0.58;
 }
 
+.app-shell[data-theme="dark"] .generated-file-card {
+  border-color: rgb(134 190 180 / 16%);
+  background: var(--reading-raised);
+}
+
+.app-shell[data-theme="dark"] .generated-file-open,
+.app-shell[data-theme="dark"] .generated-file-save {
+  color: var(--ink);
+}
+
+.app-shell[data-theme="dark"] .generated-file-open:hover:not(:disabled),
+.app-shell[data-theme="dark"] .generated-file-save:hover:not(:disabled) {
+  background: rgb(255 255 255 / 6%);
+}
+
+.app-shell[data-theme="dark"] .generated-file-save {
+  border-left-color: rgb(134 190 180 / 16%);
+}
+
 .thinking-stream {
   width: min(620px, 88%);
   margin: 4px 0 20px;
@@ -1757,6 +1776,39 @@ textarea:focus-visible {
 
 .debug-snapshot-controls p[role="alert"] {
   color: #f0a48a;
+}
+
+.transcript-copy {
+  margin-top: 8px;
+}
+
+.transcript-copy button {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 34px;
+  padding: 0 10px;
+  border: 1px solid var(--reading-border);
+  border-radius: 8px;
+  color: var(--ink);
+  background: transparent;
+  cursor: pointer;
+}
+
+.transcript-copy button:hover:not(:disabled) {
+  background: var(--navigation-hover);
+}
+
+.transcript-copy button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.transcript-copy .icon {
+  width: 15px;
+  height: 15px;
 }
 
 .execution-heading {
@@ -2629,6 +2681,9 @@ textarea:focus-visible {
   align-items: start;
   column-gap: 8px;
   padding: 3px 0;
+}
+
+.activity-row-running {
   animation: activity-row-enter var(--motion-fast) var(--motion-ease);
 }
 
@@ -2731,7 +2786,8 @@ textarea:focus-visible {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .activity-row {
+  .activity-row,
+  .activity-row-running {
     animation: none;
   }
   .activity-row-shimmer {
