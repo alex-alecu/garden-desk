@@ -15,6 +15,8 @@ export const initialDesktopState: DesktopState = {
   artifacts: [],
   executions: [],
   thinking: null,
+  contextUsedTokens: null,
+  contextAllocatedTokens: null,
   loaded: false,
   selectedStepId: undefined,
   traces: [],
@@ -32,6 +34,8 @@ export function emptyConversation(newSessionFolderId: string | null | undefined)
     artifacts: [],
     executions: [],
     thinking: null,
+    contextUsedTokens: null,
+    contextAllocatedTokens: null,
     selectedStepId: undefined,
     traces: [],
   };

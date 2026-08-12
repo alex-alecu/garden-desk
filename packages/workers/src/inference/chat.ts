@@ -100,6 +100,7 @@ export async function generateChatTurn(
   request: ChatGenerationRequest,
   chat: LlamaChat,
   callbacks: ChatGenerationCallbacks,
+  signal?: AbortSignal,
 ): Promise<ChatTurn> {
   const functions = chatFunctions(request);
   const result = await chat.generateResponse(toChatHistory(request.messages), {
@@ -111,6 +112,7 @@ export async function generateChatTurn(
     temperature: request.temperature,
     onResponseChunk: callbacks.onResponseChunk,
     onToken: callbacks.onToken,
+    ...(signal === undefined ? {} : { signal }),
   });
   const calls = result.functionCalls ?? [];
   const toolCalls: ChatToolCall[] = calls.map((call) => {

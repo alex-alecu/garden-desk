@@ -23,6 +23,7 @@ interface PrimaryRunInput {
   task: string;
   chat: InferenceService["chat"];
   onThinking(thinking: string | null): void;
+  onContext(used: number, allocated: number): void;
 }
 
 export async function runPrimaryAgent(input: PrimaryRunInput): Promise<AgentRunResult> {
@@ -41,6 +42,7 @@ export async function runPrimaryAgent(input: PrimaryRunInput): Promise<AgentRunR
     modelId: AGENT_MODEL_ID,
     onEvent: (type, summary, detail) => store.appendEvent(run.id, type, summary, detail),
     onThinking: input.onThinking,
+    onContext: input.onContext,
     savedScripts: store.execution
       .listSessionScriptPaths(run.sessionId)
       .map((path) => `/workspace/${path}`),

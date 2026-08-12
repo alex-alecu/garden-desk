@@ -37,6 +37,8 @@ export interface DesktopState {
   loaded: boolean;
   selectedStepId: string | undefined;
   traces: AgentTrace[];
+  contextUsedTokens: number | null;
+  contextAllocatedTokens: number | null;
 }
 
 export type DesktopAction =

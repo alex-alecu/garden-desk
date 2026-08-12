@@ -1,53 +1,63 @@
 import type { ModelRuntimeStatus } from "@vault/shared";
-import { modelUsage } from "../model-usage.js";
+import { contextMeter, vramUsage } from "../model-usage.js";
 
-export function TechnicalModelUsage({ model }: { model: ModelRuntimeStatus }) {
-  const usage = modelUsage(model);
-  if (usage === undefined) return null;
+function formatTokens(tokens: number): string {
+  if (tokens < 1_000) return String(tokens);
+  return `${Number((tokens / 1_000).toFixed(1))}K`;
+}
+
+function VramLine({ vram }: { vram: NonNullable<ReturnType<typeof vramUsage>> }) {
+  const memory = vram.budget === undefined ? vram.used : `${vram.used} of ${vram.budget}`;
+  const sequences =
+    vram.sequences !== undefined && vram.sequences > 1
+      ? ` · ${vram.sequences} parallel sequences`
+      : "";
+  return (
+    <div>
+      <dt>VRAM / unified memory</dt>
+      <dd>
+        {memory}
+        {sequences}
+      </dd>
+    </div>
+  );
+}
+
+function ContextMeterRow({ meter }: { meter: NonNullable<ReturnType<typeof contextMeter>> }) {
+  return (
+    <div className="technical-context-meter">
+      <dt>Context</dt>
+      <dd>
+        <span className="context-meter-label">
+          {formatTokens(meter.used)} / {formatTokens(meter.allocated)} · {meter.percent}%
+        </span>
+        <span
+          aria-hidden="true"
+          className={`context-meter-track${meter.warning ? " warning" : ""}`}
+        >
+          <span className="context-meter-fill" style={{ width: `${meter.percent}%` }} />
+        </span>
+      </dd>
+    </div>
+  );
+}
+
+export function TechnicalModelUsage({
+  model,
+  contextUsedTokens = null,
+  contextAllocatedTokens = null,
+}: {
+  model: ModelRuntimeStatus;
+  contextUsedTokens?: number | null | undefined;
+  contextAllocatedTokens?: number | null | undefined;
+}) {
+  const vram = vramUsage(model);
+  const meter = contextMeter(contextUsedTokens, contextAllocatedTokens, model);
+  if (vram === undefined && meter === undefined) return null;
   return (
     <dl className="technical-model-usage">
-      {usage.ram === undefined ? null : (
-        <div>
-          <dt>RAM allocation</dt>
-          <dd>{usage.ram}</dd>
-        </div>
-      )}
-      {usage.vram === undefined ? null : (
-        <div>
-          <dt>VRAM / unified memory allocation</dt>
-          <dd>{usage.vram}</dd>
-        </div>
-      )}
-      {usage.totalAllocated === undefined ? null : (
-        <div>
-          <dt>Total model and context allocation</dt>
-          <dd>{usage.totalAllocated}</dd>
-        </div>
-      )}
-      {usage.budget === undefined ? null : (
-        <div>
-          <dt>VRAM / unified memory budget</dt>
-          <dd>{usage.budget}</dd>
-        </div>
-      )}
-      {usage.context === undefined ? null : (
-        <div>
-          <dt>Context allocated</dt>
-          <dd>{usage.context} tokens</dd>
-        </div>
-      )}
-      {usage.contextLimit === undefined ? null : (
-        <div>
-          <dt>Context hardware cap</dt>
-          <dd>{usage.contextLimit} tokens</dd>
-        </div>
-      )}
-      {usage.contextExplanation === undefined ? null : (
-        <div className="technical-model-reason">
-          <dt>Why this context</dt>
-          <dd>{usage.contextExplanation}</dd>
-        </div>
-      )}
+      {vram === undefined ? null : <VramLine vram={vram} />}
+      {meter === undefined ? null : <ContextMeterRow meter={meter} />}
     </dl>
   );
 }

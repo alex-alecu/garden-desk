@@ -7,6 +7,7 @@ import {
   resolveGenerationContextSize,
   resolveMaximumGenerationContext,
   resolveRuntimeMemoryBudget,
+  resolveSequenceCount,
 } from "./memory.js";
 
 const GiB = 1024 * 1024 * 1024;
@@ -148,5 +149,26 @@ describe("combined generation allocation", () => {
 
   it("reports the combined CPU and GPU allocation", () => {
     expect(combinedAllocationBytes({ cpuRamBytes: 3, gpuVramBytes: 5 })).toBe(8);
+  });
+});
+
+describe("parallel sequence count", () => {
+  it("stays single when the budget has no headroom for another sequence", () => {
+    // Model 8 GiB + one 2 GiB context = 10 GiB fills a 10 GiB budget exactly.
+    expect(resolveSequenceCount(10 * GiB, 8 * GiB, 2 * GiB)).toBe(1);
+  });
+
+  it("adds sequences while each extra context fits, capped at two extra", () => {
+    // 6 GiB model + 1 GiB per sequence in a 16 GiB budget leaves room for many, but the cap holds.
+    expect(resolveSequenceCount(16 * GiB, 6 * GiB, 1 * GiB)).toBe(3);
+  });
+
+  it("adds exactly one extra sequence when only one more context fits", () => {
+    // 8 GiB model + 2 GiB per sequence in 12 GiB budget: primary + one extra = 12 GiB.
+    expect(resolveSequenceCount(12 * GiB, 8 * GiB, 2 * GiB)).toBe(2);
+  });
+
+  it("degrades to a single sequence for a non-positive per-sequence cost", () => {
+    expect(resolveSequenceCount(16 * GiB, 6 * GiB, 0)).toBe(1);
   });
 });

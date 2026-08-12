@@ -58,3 +58,4 @@ Negative:
 | 2026-07-13 | Updated the packaging gate for the Tauri desktop shell selected by ADR 0014. |
 | 2026-07-15 | Replaced the EmbeddingGemma retrieval line with the ADR 0016 default encoder (Qwen3-Embedding-0.6B) on the same runtime. |
 | 2026-07-22 | Replaced fixed profile validation with automatic macOS tiers and complete detected Windows GPU VRAM. |
+| 2026-08-12 | Recorded that the runtime supports multiple parallel context sequences on the single loaded model; V1 uses bounded extra sequences for sub-agents, and extra sequences never reduce the primary certified context. |

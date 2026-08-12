@@ -211,9 +211,7 @@ describe("conversation activity presentation", () => {
 
     const orderedText = [
       "Build a report",
-      "Loading the local model",
-      "Inspecting the selected data",
-      "Finished this step",
+      "Worked for",
       "The report is ready",
       "Generated files",
       "report.csv",
@@ -245,14 +243,13 @@ describe("conversation activity presentation", () => {
       }),
     );
 
-    expect(markup).toContain("Working locally");
+    expect(markup).toContain("Working for");
     expect(markup).toContain("Finished this step.");
-    expect(markup).toContain("1 execution completed");
   });
 });
 
 describe("conversation step selection", () => {
-  it("exposes each activity step as a labelled button and marks the selected one", () => {
+  it("renders flat activity rows and auto-expands the selected step's cluster", () => {
     const markup = renderToStaticMarkup(
       createElement(Conversation, {
         artifacts: [],
@@ -267,8 +264,9 @@ describe("conversation step selection", () => {
       }),
     );
 
-    expect(markup).toContain('class="activity-step"');
-    expect(markup).toContain('aria-label="Show technical details for: Finished this step.');
-    expect(markup).toContain('aria-current="step"');
+    expect(markup).toContain('class="activity-row-label');
+    expect(markup).toContain("Finished this step.");
+    expect(markup).toMatch(/activity-cluster-toggle" type="button"/);
+    expect(markup).toContain('aria-expanded="true"');
   });
 });

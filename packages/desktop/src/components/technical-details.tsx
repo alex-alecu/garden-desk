@@ -35,6 +35,8 @@ interface TechnicalDetailsProps {
   thinking: string | null;
   thinkingStepId: string | undefined;
   nativeActionMessage?: string | undefined;
+  contextUsedTokens?: number | null;
+  contextAllocatedTokens?: number | null;
   onClose(): void;
   onSelectStep(stepId: string | undefined): void;
 }
@@ -136,6 +138,8 @@ function Overview({
   nativeActionMessage,
   sessionId,
   timeline,
+  contextUsedTokens,
+  contextAllocatedTokens,
 }: TechnicalDetailsProps) {
   const limits = timeline.find((item) => item.eventType === "run.started")?.text;
   return (
@@ -163,7 +167,11 @@ function Overview({
       )}
       <article className="technical-details-item">
         <p>Certified guest capabilities</p>
-        <TechnicalModelUsage model={model} />
+        <TechnicalModelUsage
+          contextAllocatedTokens={contextAllocatedTokens}
+          contextUsedTokens={contextUsedTokens}
+          model={model}
+        />
         {limits === undefined ? null : <p className="technical-limits">{limits}</p>}
         <details>
           <summary>Show tools and runtimes</summary>

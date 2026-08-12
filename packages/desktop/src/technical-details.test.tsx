@@ -168,8 +168,10 @@ it("keeps the overview separate from step evidence", () => {
   expect(markup).toContain("4 CPUs, 4 GiB memory, 128 MiB persistent workspace");
   expect(markup).toContain("Certified guest capabilities");
   expect(markup).toMatch(
-    /Certified guest capabilities.*RAM allocation.*1.0 GiB.*VRAM \/ unified memory allocation.*11.5 GiB.*Total model and context allocation.*12.5 GiB.*VRAM \/ unified memory budget.*16.0 GiB.*Context allocated.*128K tokens.*Context hardware cap.*128K tokens.*Why this context.*more than 24 GiB VRAM.*largest context that fits/s,
+    /Certified guest capabilities.*VRAM \/ unified memory.*12.5 GiB of 16.0 GiB/s,
   );
+  expect(markup).not.toContain("Why this context");
+  expect(markup).not.toContain("Total model and context allocation");
   expect(markup).toContain("Python: 3.14.5");
   expect(markup).toContain("/usr/bin/patch");
   expect(markup).not.toContain("text/csv");

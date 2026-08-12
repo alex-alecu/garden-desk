@@ -84,13 +84,20 @@ export async function generate(
   request: StructuredGenerationRequest,
   runtime: LoadedRuntime,
   emit: (message: InferenceWorkerMessage) => void,
+  signal?: AbortSignal,
 ): Promise<InferenceWorkerResponse> {
   const generation = await generationSession(request, runtime);
   const { session } = generation;
   const initialMeter = session.sequence.tokenMeter.getState();
   const startedAt = performance.now();
   const callbacks = generationCallbacks(request.requestId, emit);
-  const value = await structuredValue(request, runtime.llama, session, callbacks);
+  const value = await structuredValue({
+    request,
+    llama: runtime.llama,
+    session,
+    callbacks,
+    ...(signal === undefined ? {} : { signal }),
+  });
   const completedAt = performance.now();
   const finalMeter = session.sequence.tokenMeter.getState();
   return {
@@ -117,32 +124,36 @@ export async function chat(
   request: ChatGenerationRequest,
   runtime: LoadedRuntime,
   emit: (message: InferenceWorkerMessage) => void,
+  signal?: AbortSignal,
 ): Promise<InferenceWorkerResponse> {
   const session = await chatSession(request, runtime);
-  const initialMeter = session.chat.sequence.tokenMeter.getState();
-  const startedAt = performance.now();
-  const callbacks = generationCallbacks(request.requestId, emit);
-  const turn = await generateChatTurn(request, session.chat, callbacks);
-  const completedAt = performance.now();
-  const finalMeter = session.chat.sequence.tokenMeter.getState();
-  return {
-    protocolVersion: 1,
-    requestId: request.requestId,
-    status: "ok",
-    operation: "chat",
-    text: turn.text,
-    toolCalls: turn.toolCalls,
-    stopReason: turn.stopReason,
-    memory: await memoryReport(runtime, session.chat.sequence.contextSize, {
-      tokens: session.contextLimitTokens,
-      reason: session.contextLimitReason,
-    }),
-    performance: performanceReport({
-      initial: initialMeter,
-      final: finalMeter,
-      startedAt,
-      firstTokenAt: callbacks.firstTokenAt(),
-      completedAt,
-    }),
-  };
+  return await session.pool.use(async (chat) => {
+    const initialMeter = chat.sequence.tokenMeter.getState();
+    const startedAt = performance.now();
+    const callbacks = generationCallbacks(request.requestId, emit);
+    const turn = await generateChatTurn(request, chat, callbacks, signal);
+    const completedAt = performance.now();
+    const finalMeter = chat.sequence.tokenMeter.getState();
+    return {
+      protocolVersion: 1,
+      requestId: request.requestId,
+      status: "ok",
+      operation: "chat",
+      text: turn.text,
+      toolCalls: turn.toolCalls,
+      stopReason: turn.stopReason,
+      memory: await memoryReport(runtime, chat.sequence.contextSize, {
+        tokens: session.contextLimitTokens,
+        reason: session.contextLimitReason,
+        sequenceCount: session.sequenceCount,
+      }),
+      performance: performanceReport({
+        initial: initialMeter,
+        final: finalMeter,
+        startedAt,
+        firstTokenAt: callbacks.firstTokenAt(),
+        completedAt,
+      }),
+    };
+  });
 }

@@ -63,6 +63,45 @@ process.stdin.on("data", (chunk) => {
 });
 `;
 
+const parallelWorkerScript = `
+let pending = Buffer.alloc(0);
+function send(value) {
+  const payload = Buffer.from(JSON.stringify(value));
+  const frame = Buffer.alloc(4 + payload.length);
+  frame.writeUInt32BE(payload.length, 0);
+  payload.copy(frame, 4);
+  process.stdout.write(frame);
+}
+function done(request) {
+  send({
+    protocolVersion: 1,
+    requestId: request.requestId,
+    status: "ok",
+    operation: "generate",
+    value: {result: "ok"},
+    memory: {cpuRamBytes: 1, gpuVramBytes: 1, budgetBytes: 1024, detectedGpuVramBytes: 1024},
+    performance: {promptTokens: 10, outputTokens: 2, promptDurationMs: 5, generationDurationMs: 4, totalDurationMs: 9}
+  });
+}
+const requests = new Map();
+process.stdin.on("data", (chunk) => {
+  pending = Buffer.concat([pending, chunk]);
+  while (pending.length >= 4) {
+    const length = pending.readUInt32BE(0);
+    if (pending.length < 4 + length) return;
+    const frame = JSON.parse(pending.subarray(4, 4 + length));
+    pending = pending.subarray(4 + length);
+    if (frame.operation === "cancel") {
+      const request = requests.get(frame.requestId);
+      if (request) done(request);
+      continue;
+    }
+    requests.set(frame.requestId, frame);
+    if (frame.requestId === "second") setTimeout(() => done(frame), 10);
+  }
+});
+`;
+
 const probe = InferenceWorkerRequestSchema.parse({
   protocolVersion: 1,
   requestId: "test",
@@ -84,6 +123,13 @@ const largeGeneration = InferenceWorkerRequestSchema.parse({
   contextSize: 512,
   maxTokens: 8,
 });
+
+function generation(requestId: string) {
+  return InferenceWorkerRequestSchema.parse({
+    ...largeGeneration,
+    requestId,
+  });
+}
 
 function execute(script: string, timeoutMs = 500, signal?: AbortSignal, request = probe) {
   return new InferenceWorkerClient(new ScriptLauncher(script), "unused").execute({
@@ -156,6 +202,22 @@ describe("resident inference worker", () => {
 
     expect(launcher.launches).toBe(1);
     expect(thinking).toEqual(["Checking locally. ", "Checking locally. "]);
+    await expect(client.unload()).resolves.toBe(true);
+  });
+
+  it("cancels one multiplexed request without interrupting its sibling", async () => {
+    const client = new InferenceWorkerClient(new ScriptLauncher(parallelWorkerScript), "unused");
+    const controller = new AbortController();
+    const common = { modelPath: "/approved/model.gguf", memoryBudgetBytes: 1024, timeoutMs: 500 };
+    const first = client.execute({
+      request: generation("first"),
+      signal: controller.signal,
+      ...common,
+    });
+    const second = client.execute({ request: generation("second"), ...common });
+    controller.abort(new DOMException("stop", "AbortError"));
+    await expect(first).rejects.toMatchObject({ code: "cancelled" });
+    await expect(second).resolves.toMatchObject({ operation: "generate" });
     await expect(client.unload()).resolves.toBe(true);
   });
 });

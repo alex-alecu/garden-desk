@@ -119,6 +119,7 @@ export const ModelRuntimeStatusSchema = z.object({
   contextSizeTokens: z.number().int().positive().optional(),
   contextLimitTokens: z.number().int().positive().optional(),
   contextLimitReason: GenerationContextLimitReasonSchema.optional(),
+  sequenceCount: z.number().int().positive().optional(),
 });
 
 export type ModelRedistributionStatus = z.infer<typeof ModelRedistributionStatusSchema>;

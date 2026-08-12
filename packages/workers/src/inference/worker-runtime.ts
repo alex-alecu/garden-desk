@@ -4,19 +4,15 @@ import type {
   GenerationContextLimitReason,
   StructuredGenerationRequest,
 } from "@vault/shared";
-import type {
-  Llama,
-  LlamaChat,
-  LlamaChatSession,
-  LlamaEmbeddingContext,
-  LlamaModel,
-} from "node-llama-cpp";
+import type { Llama, LlamaChatSession, LlamaEmbeddingContext, LlamaModel } from "node-llama-cpp";
+import { ChatSequencePool } from "./chat-pool.js";
 import {
   combinedAllocationBytes,
   fitCombinedGenerationContext,
   resolveGenerationContextLimit,
   resolveGenerationContextSize,
   resolveRuntimeMemoryBudget,
+  resolveSequenceCount,
 } from "./memory.js";
 import { loadLlamaRuntime } from "./runtime-loader.js";
 
@@ -37,10 +33,13 @@ export interface LoadedRuntime {
     contextSize: number;
     contextLimitTokens: number;
     contextLimitReason: GenerationContextLimitReason;
-    chat: LlamaChat;
+    pool: ChatSequencePool;
+    sequenceCount: number;
   };
   embedding?: { contextSize: number; context: LlamaEmbeddingContext };
 }
+
+type ChatRuntime = NonNullable<LoadedRuntime["chat"]>;
 
 function argument(name: string): string | undefined {
   const index = process.argv.indexOf(name);
@@ -101,6 +100,7 @@ async function automaticMacContextSize(
 async function createGenerationContext(
   request: StructuredGenerationRequest | ChatGenerationRequest,
   runtime: LoadedRuntime,
+  sequences = 1,
 ) {
   const contextLimit = resolveGenerationContextLimit(
     process.platform,
@@ -111,7 +111,7 @@ async function createGenerationContext(
     request.contextSize === "auto" && process.platform === "darwin"
       ? await automaticMacContextSize(runtime, contextLimit.maximumContextTokens)
       : resolveGenerationContextSize(request.contextSize, contextLimit.maximumContextTokens);
-  const context = await runtime.model.createContext({ contextSize });
+  const context = await runtime.model.createContext({ contextSize, sequences });
   if (process.platform === "darwin") {
     const memory = await runtime.llama.getLlamaMemoryUsage();
     if (
@@ -125,27 +125,92 @@ async function createGenerationContext(
   return { context, contextLimit };
 }
 
+/**
+ * Estimates how many parallel chat sequences fit the memory budget by measuring the marginal
+ * cost of one additional sequence: it builds a single-sequence context, reads the combined
+ * model-plus-context allocation, and asks {@link resolveSequenceCount} how many extra sequences
+ * that per-sequence cost allows without exceeding the budget. Non-Darwin platforms cannot read a
+ * post-creation allocation the same way, so they stay single-sequence for now.
+ */
+async function resolveChatSequenceCount(
+  context: Awaited<ReturnType<LlamaModel["createContext"]>>,
+  runtime: LoadedRuntime,
+): Promise<number> {
+  if (process.platform !== "darwin") return 1;
+  const modelMemory = await runtime.llama.getLlamaMemoryUsage();
+  const combined = combinedAllocationBytes({
+    cpuRamBytes: modelMemory.cpuRam,
+    gpuVramBytes: modelMemory.gpuVram,
+  });
+  const perSequenceBytes = await perSequenceContextBytes(context, runtime);
+  const modelOnlyBytes = Math.max(0, combined - perSequenceBytes);
+  return resolveSequenceCount(runtime.budget, modelOnlyBytes, perSequenceBytes);
+}
+
+async function perSequenceContextBytes(
+  context: Awaited<ReturnType<LlamaModel["createContext"]>>,
+  runtime: LoadedRuntime,
+): Promise<number> {
+  const estimate = await runtime.model.fileInsights.estimateContextResourceRequirementsV2({
+    contextSize: context.contextSize,
+    modelGpuLayers: runtime.model.gpuLayers,
+    flashAttention: runtime.model.defaultContextFlashAttention,
+    swaFullCache: runtime.model.defaultContextSwaFullCache,
+    useMmap: runtime.model.useMmap,
+  });
+  return combinedAllocationBytes({ cpuRamBytes: estimate.cpuRam, gpuVramBytes: estimate.gpuVram });
+}
+
+let pendingChatRuntime: Promise<ChatRuntime> | undefined;
+
 export async function chatSession(request: ChatGenerationRequest, runtime: LoadedRuntime) {
   if (runtime.chat === undefined) {
-    const { Gemma4ChatWrapper, LlamaChat } = await import("node-llama-cpp");
-    const { context, contextLimit } = await createGenerationContext(request, runtime);
-    runtime.chat = {
-      requestedContextSize: request.contextSize,
-      contextSize: context.contextSize,
-      contextLimitTokens: contextLimit.maximumContextTokens,
-      contextLimitReason: contextLimit.reason,
-      chat: new LlamaChat({
-        contextSequence: context.getSequence(),
-        ...(request.modelId.startsWith("gemma-4")
-          ? { chatWrapper: new Gemma4ChatWrapper({ reasoning: true }) }
-          : {}),
-      }),
-    };
+    pendingChatRuntime ??= buildChatPool(request, runtime).then((built) => {
+      runtime.chat = built;
+      return built;
+    });
+    runtime.chat = await pendingChatRuntime;
   }
   if (runtime.chat.requestedContextSize !== request.contextSize) {
     throw new Error("worker_context_size_change_unsupported");
   }
   return runtime.chat;
+}
+
+async function buildChatPool(request: ChatGenerationRequest, runtime: LoadedRuntime) {
+  const { Gemma4ChatWrapper, LlamaChat } = await import("node-llama-cpp");
+  const probe = await createGenerationContext(request, runtime);
+  const sequenceCount = await resolveChatSequenceCount(probe.context, runtime);
+  const context =
+    sequenceCount === 1
+      ? probe.context
+      : await recreateContextWithSequences(probe.context, request, runtime, sequenceCount);
+  const wrapper = request.modelId.startsWith("gemma-4")
+    ? { chatWrapper: new Gemma4ChatWrapper({ reasoning: true }) }
+    : {};
+  const chats = Array.from(
+    { length: context.totalSequences },
+    () => new LlamaChat({ contextSequence: context.getSequence(), ...wrapper }),
+  );
+  return {
+    requestedContextSize: request.contextSize,
+    contextSize: context.contextSize,
+    contextLimitTokens: probe.contextLimit.maximumContextTokens,
+    contextLimitReason: probe.contextLimit.reason,
+    pool: new ChatSequencePool(chats),
+    sequenceCount: context.totalSequences,
+  };
+}
+
+async function recreateContextWithSequences(
+  probeContext: Awaited<ReturnType<LlamaModel["createContext"]>>,
+  request: ChatGenerationRequest,
+  runtime: LoadedRuntime,
+  sequences: number,
+) {
+  await probeContext.dispose();
+  const { context } = await createGenerationContext(request, runtime, sequences);
+  return context;
 }
 
 export async function generationSession(

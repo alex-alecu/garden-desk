@@ -42,10 +42,15 @@ describe("structuredValue", () => {
       },
     } as unknown as LlamaChatSession;
 
-    const value = await structuredValue(request, {} as never, session, {
-      onResponseChunk: () => undefined,
-      onToken: () => {
-        tokenChunks += 1;
+    const value = await structuredValue({
+      request,
+      llama: {} as never,
+      session,
+      callbacks: {
+        onResponseChunk: () => undefined,
+        onToken: () => {
+          tokenChunks += 1;
+        },
       },
     });
 
@@ -69,9 +74,14 @@ describe("structuredValue limits", () => {
     } as unknown as LlamaChatSession;
 
     await expect(
-      structuredValue(request, {} as never, session, {
-        onResponseChunk: () => undefined,
-        onToken: () => undefined,
+      structuredValue({
+        request,
+        llama: {} as never,
+        session,
+        callbacks: {
+          onResponseChunk: () => undefined,
+          onToken: () => undefined,
+        },
       }),
     ).rejects.toThrow("generation_token_limit");
   });
@@ -91,9 +101,14 @@ describe("structuredValue plain responses", () => {
     } as unknown as LlamaChatSession;
 
     await expect(
-      structuredValue(request, {} as never, session, {
-        onResponseChunk: () => undefined,
-        onToken: () => undefined,
+      structuredValue({
+        request,
+        llama: {} as never,
+        session,
+        callbacks: {
+          onResponseChunk: () => undefined,
+          onToken: () => undefined,
+        },
       }),
     ).resolves.toEqual({
       action: "respond",
@@ -128,9 +143,11 @@ describe("structuredValue empty artifact declarations", () => {
     } satisfies StructuredGenerationRequest;
 
     await expect(
-      structuredValue(emptyArtifactsRequest, {} as never, session, {
-        onResponseChunk: () => undefined,
-        onToken: () => undefined,
+      structuredValue({
+        request: emptyArtifactsRequest,
+        llama: {} as never,
+        session,
+        callbacks: { onResponseChunk: () => undefined, onToken: () => undefined },
       }),
     ).resolves.toEqual({ action: "respond", response: ["Done."], artifacts: [] });
   });
@@ -166,9 +183,11 @@ describe("structuredValue deliverable declaration boundary", () => {
     } satisfies StructuredGenerationRequest;
 
     await expect(
-      structuredValue(deliverableRequest, {} as never, session, {
-        onResponseChunk: () => undefined,
-        onToken: () => undefined,
+      structuredValue({
+        request: deliverableRequest,
+        llama: {} as never,
+        session,
+        callbacks: { onResponseChunk: () => undefined, onToken: () => undefined },
       }),
     ).rejects.toThrow("structured_tool_call_required");
   });
@@ -201,9 +220,11 @@ describe("structuredValue plain response boundary", () => {
     } as unknown as LlamaChatSession;
 
     await expect(
-      structuredValue(executeRequest, {} as never, session, {
-        onResponseChunk: () => undefined,
-        onToken: () => undefined,
+      structuredValue({
+        request: executeRequest,
+        llama: {} as never,
+        session,
+        callbacks: { onResponseChunk: () => undefined, onToken: () => undefined },
       }),
     ).rejects.toThrow("structured_tool_call_required");
   });

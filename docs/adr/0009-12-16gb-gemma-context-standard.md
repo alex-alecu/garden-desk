@@ -76,6 +76,15 @@ This ADR does not decide:
 - Validate context compaction through long-running folder workflows.
 - Keep future profile docs aligned with this ADR unless a later ADR supersedes it.
 
+## Parallel Sequences
+
+The runtime may allocate additional parallel context sequences on the single loaded model for
+concurrent turns such as sub-agents. Extra sequences never reduce the primary sequence's certified
+context: sequence 0 always receives the full context this ADR selects, and additional sequences are
+added only when their per-sequence KV cache fits within the memory budget alongside it. On hardware
+where that headroom is zero, the runtime degrades to a single sequence and the certified context is
+unchanged.
+
 ## References
 
 - [MODEL_STRATEGY.md](../MODEL_STRATEGY.md)
@@ -90,3 +99,4 @@ This ADR does not decide:
 | 2026-07-22 | Replaced the fixed 8K implementation and manually selected product profile with automatic macOS memory tiers, full Windows GPU VRAM use, and runtime-fitted context up to 256K. |
 | 2026-08-01 | Replaced the 256K ceiling with 64K and 128K caps using a higher threshold for shared Mac memory than discrete Windows VRAM. |
 | 2026-08-04 | Required one Windows device's dedicated VRAM and rejected multi-device aggregates or unified and shared memory readings. |
+| 2026-08-12 | Recorded that optional parallel context sequences never reduce the primary certified context. |

@@ -7,6 +7,7 @@ const CONTEXT_ALIGNMENT = 256;
 const GiB = 1024 * 1024 * 1024;
 const MAC_HIGH_MEMORY_THRESHOLD_BYTES = 32 * GiB;
 const WINDOWS_HIGH_MEMORY_THRESHOLD_BYTES = 24 * GiB;
+const MAXIMUM_EXTRA_SEQUENCES = 2;
 
 export interface InferenceAllocation {
   cpuRamBytes: number;
@@ -90,6 +91,25 @@ export function resolveGenerationContextSize(requested: "auto" | number, maximum
 
 export function combinedAllocationBytes(allocation: InferenceAllocation): number {
   return allocation.cpuRamBytes + allocation.gpuVramBytes;
+}
+
+/**
+ * Resolves how many parallel generation sequences fit in the memory budget. The primary
+ * sequence always keeps its full certified context, so extra sequences are added only while
+ * their additional per-sequence KV cache keeps the combined allocation inside the budget,
+ * capped at {@link MAXIMUM_EXTRA_SEQUENCES}. Hardware without headroom yields 1, matching the
+ * prior single-stream behavior.
+ */
+export function resolveSequenceCount(
+  budgetBytes: number,
+  modelAllocationBytes: number,
+  perSequenceContextBytes: number,
+): number {
+  if (perSequenceContextBytes <= 0) return 1;
+  const headroom = budgetBytes - modelAllocationBytes - perSequenceContextBytes;
+  if (headroom <= 0) return 1;
+  const extra = Math.min(MAXIMUM_EXTRA_SEQUENCES, Math.floor(headroom / perSequenceContextBytes));
+  return 1 + Math.max(0, extra);
 }
 
 export async function fitCombinedGenerationContext(

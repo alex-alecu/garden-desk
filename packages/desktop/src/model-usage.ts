@@ -66,3 +66,33 @@ export function modelUsage(model: ModelRuntimeStatus) {
     contextExplanation: contextExplanation(model.contextLimitReason),
   };
 }
+
+/**
+ * Collapses the memory panel to one value: the combined model-plus-context allocation against the
+ * budget, e.g. "10.2 GiB of 16 GiB". On macOS this is unified memory. Sequence count, when the
+ * runtime reports more than one, is surfaced so the panel can note parallel sequences.
+ */
+export function vramUsage(
+  model: ModelRuntimeStatus,
+): { used: string; budget: string | undefined; sequences: number | undefined } | undefined {
+  if (model.state !== "ready" && model.state !== "busy") return undefined;
+  const used = totalAllocation(model);
+  if (used === undefined) return undefined;
+  return {
+    used,
+    budget: optionalMemory(model.memoryBudgetBytes),
+    sequences: model.sequenceCount,
+  };
+}
+
+export function contextMeter(
+  usedTokens: number | null,
+  allocatedTokens: number | null,
+  model: ModelRuntimeStatus,
+): { used: number; allocated: number; percent: number; warning: boolean } | undefined {
+  const allocated = allocatedTokens ?? model.contextSizeTokens ?? null;
+  if (allocated === null || allocated <= 0 || usedTokens === null) return undefined;
+  const used = Math.min(usedTokens, allocated);
+  const percent = Math.round((used / allocated) * 100);
+  return { used, allocated, percent, warning: percent >= 80 };
+}

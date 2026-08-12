@@ -4,4 +4,6 @@ export interface ActiveRun {
   runId: string;
   sessionId: string;
   thinking: string | null;
+  contextUsedTokens?: number | null;
+  contextAllocatedTokens?: number | null;
 }

@@ -97,11 +97,26 @@ export const NativeWorkerProbeRequestSchema = RequestBaseSchema.extend({
   outOfScopeWritePath: z.string().min(1),
 });
 
+export const InferenceWorkerCancelRequestSchema = z.object({
+  protocolVersion: z.literal(1),
+  operation: z.literal("cancel"),
+  requestId: RequestIdSchema,
+  code: z.enum(["cancelled", "timeout"]),
+});
+
 export const InferenceWorkerRequestSchema = z.discriminatedUnion("operation", [
   StructuredGenerationRequestSchema,
   ChatGenerationRequestSchema,
   EmbeddingRequestSchema,
   NativeWorkerProbeRequestSchema,
+]);
+
+export const InferenceWorkerFrameSchema = z.discriminatedUnion("operation", [
+  StructuredGenerationRequestSchema,
+  ChatGenerationRequestSchema,
+  EmbeddingRequestSchema,
+  NativeWorkerProbeRequestSchema,
+  InferenceWorkerCancelRequestSchema,
 ]);
 
 export const InferenceMemoryReportSchema = z.object({
@@ -112,6 +127,7 @@ export const InferenceMemoryReportSchema = z.object({
   contextSizeTokens: z.number().int().positive().optional(),
   contextLimitTokens: z.number().int().positive().optional(),
   contextLimitReason: GenerationContextLimitReasonSchema.optional(),
+  sequenceCount: z.number().int().positive().optional(),
 });
 
 export const InferencePerformanceSchema = z.object({
@@ -201,6 +217,7 @@ export type ChatToolDefinition = z.infer<typeof ChatToolDefinitionSchema>;
 export type EmbeddingRequest = z.infer<typeof EmbeddingRequestSchema>;
 export type NativeWorkerProbeRequest = z.infer<typeof NativeWorkerProbeRequestSchema>;
 export type InferenceWorkerRequest = z.infer<typeof InferenceWorkerRequestSchema>;
+export type InferenceWorkerFrame = z.infer<typeof InferenceWorkerFrameSchema>;
 export type InferenceWorkerResponse = z.infer<typeof InferenceWorkerResponseSchema>;
 export type InferenceWorkerMessage = z.infer<typeof InferenceWorkerMessageSchema>;
 export type InferencePerformance = z.infer<typeof InferencePerformanceSchema>;
