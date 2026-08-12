@@ -7,7 +7,7 @@
       name="description"
       content="Vault Desk is an AI desktop that runs entirely on your computer. No cloud, no account, no settings, and zero tracking."
     />
-    <meta name="theme-color" content="#05131a" />
+    <meta name="theme-color" content="#f3f1ec" />
     <meta name="robots" content="index,follow" />
     <link rel="canonical" href="https://alex-alecu.github.io/vault-desk/" />
     <link rel="icon" href="./assets/favicon.svg" type="image/svg+xml" />
@@ -16,7 +16,7 @@
     <script type="module" src="./demo-embed.ts"></script>
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Vault Desk" />
-    <meta property="og:title" content="Vault Desk — Nobody sees your work. Not even us." />
+    <meta property="og:title" content="Vault Desk - The AI cowork that tracks nothing" />
     <meta
       property="og:description"
       content="An AI desktop that runs 100% on your computer. No cloud. No account. No settings. No tracking."
@@ -42,7 +42,7 @@
         "license": "https://www.apache.org/licenses/LICENSE-2.0"
       }
     </script>
-    <title>Vault Desk — Nobody sees your work. Not even us.</title>
+    <title>Vault Desk - The AI cowork that tracks nothing</title>
   </head>
   <body class="home">
     <a class="skip-link" href="#main">Skip to content</a>
@@ -57,11 +57,14 @@
         Vault Desk
       </a>
       <nav aria-label="Main navigation" class="site-nav">
-        <a href="#problem">The problem</a>
         <a href="#difference">Why it's different</a>
         <a href="#privacy">Privacy</a>
         <a href="#requirements">Requirements</a>
-        <a class="nav-button" data-magnetic href="#demo"><span>Try it free</span></a>
+        <a href="./downloads/">Downloads</a>
+        <a class="nav-button" href="./demo/">
+          <svg class="button-icon" aria-hidden="true" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>
+          <span>Try it free</span>
+        </a>
       </nav>
     </header>
     <main id="main">
@@ -77,11 +80,12 @@
             settings. No tracking. And the code is public — you don’t have to believe us.
           </p>
           <div class="hero-actions" data-reveal data-reveal-delay="240">
-            <a class="button button-primary" data-magnetic href="#demo"
-              ><span>Try the live demo</span></a
-            >
-            <a class="button button-ghost" href="https://github.com/alex-alecu/vault-desk"
-              >Read the code</a
+            <a class="button button-primary" href="#demo">
+              <svg class="button-icon" aria-hidden="true" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>
+              <span>Try the live demo</span>
+            </a>
+            <a class="button button-secondary" href="https://github.com/alex-alecu/vault-desk"
+              ><svg class="button-icon" aria-hidden="true" viewBox="0 0 24 24" fill="currentColor"><path d="M12 .7a11.5 11.5 0 0 0-3.64 22.4c.58.11.79-.25.79-.56v-2.02c-3.2.7-3.88-1.36-3.88-1.36-.52-1.34-1.28-1.7-1.28-1.7-1.05-.72.08-.71.08-.71 1.16.08 1.77 1.2 1.77 1.2 1.03 1.77 2.7 1.26 3.36.96.1-.75.4-1.26.73-1.55-2.56-.29-5.25-1.28-5.25-5.69 0-1.26.45-2.29 1.2-3.09-.12-.29-.52-1.46.11-3.04 0 0 .98-.31 3.16 1.18A11 11 0 0 1 12 6.91c.98 0 1.94.13 2.85.38 2.18-1.49 3.16-1.18 3.16-1.18.63 1.58.23 2.75.11 3.04.75.8 1.2 1.83 1.2 3.09 0 4.42-2.69 5.4-5.26 5.69.41.36.78 1.06.78 2.14v2.47c0 .31.21.67.79.56A11.5 11.5 0 0 0 12 .7Z" /></svg><span>Read the code</span></a
             >
           </div>
           <p class="availability" data-reveal data-reveal-delay="300">
@@ -123,123 +127,48 @@
         </div>
       </section>
 
-      <section class="scoreboard" aria-label="What Vault Desk collects and requires">
-        <div class="scoreboard-inner">
-          <article class="score" data-reveal>
-            <strong data-count="0" data-count-suffix=" bytes">0 bytes</strong>
-            <span>collected about you. The pipeline doesn’t exist.</span>
-          </article>
-          <article class="score" data-reveal data-reveal-delay="90">
-            <strong data-count="0">0</strong>
-            <span>accounts, keys, or settings. Open it and ask.</span>
-          </article>
-          <article class="score" data-reveal data-reveal-delay="180">
-            <strong data-count="100" data-count-suffix="%">100%</strong>
-            <span>on your machine. Verifiable — the source is public.</span>
-          </article>
-        </div>
-      </section>
-
-      <div class="ticker" aria-hidden="true">
-        <div class="ticker-track">
-          <span>No telemetry</span><i>✦</i><span>No cloud fallback</span><i>✦</i>
-          <span>No account</span><i>✦</i><span>No API keys</span><i>✦</i>
-          <span>No subscription</span><i>✦</i><span>No model admin</span><i>✦</i>
-          <span>Open source</span><i>✦</i><span>No telemetry</span><i>✦</i>
-          <span>No cloud fallback</span><i>✦</i><span>No account</span><i>✦</i>
-          <span>No API keys</span><i>✦</i><span>No subscription</span><i>✦</i>
-          <span>No model admin</span><i>✦</i><span>Open source</span><i>✦</i>
-        </div>
-      </div>
-
-      <section class="section problem-section" id="problem">
-        <div class="section-inner">
-          <div class="section-heading">
-            <div>
-              <p class="eyebrow" data-reveal>The part nobody says out loud</p>
-              <h2 data-reveal data-reveal-delay="70">
-                Paste it in the cloud. It’s not yours anymore.
-              </h2>
-            </div>
-            <p data-reveal data-reveal-delay="140">
-              You can’t un-send a contract. You can’t audit a server you don’t own.
-            </p>
-          </div>
-          <div class="problem-grid">
-            <article class="problem-card" data-reveal>
-              <span class="problem-mark" aria-hidden="true">01</span>
-              <h3>You lose the receipt</h3>
-              <p>
-                Once the file leaves your machine, the proof of what happened to it is somebody
-                else’s dashboard.
-              </p>
-            </article>
-            <article class="problem-card" data-reveal data-reveal-delay="90">
-              <span class="problem-mark" aria-hidden="true">02</span>
-              <h3>The terms can change</h3>
-              <p>
-                Retention and training are policies. Policies get updated. Your file was already
-                sent.
-              </p>
-            </article>
-            <article class="problem-card" data-reveal data-reveal-delay="180">
-              <span class="problem-mark" aria-hidden="true">03</span>
-              <h3>Local? Now you’re the admin</h3>
-              <p>
-                Model files, quantization, context sizes, a server to babysit. That’s a second job.
-              </p>
-            </article>
-          </div>
-          <p class="problem-punch" data-reveal>
-            <em>Useful</em> or <em>private</em> is a false choice. We deleted it.
-          </p>
-        </div>
-      </section>
-
       <section class="format-strip" aria-labelledby="format-strip-title">
-        <div class="format-strip-inner">
-          <p id="format-strip-title">Familiar files, handled locally</p>
-          <ul class="format-list" aria-label="Common supported file formats">
-            <li class="format-item format-docx" data-reveal>
-              <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <path d="M6 3h8l4 4v14H6z" />
-                <path d="M14 3v5h5" />
-              </svg>
-              <span><strong>Word</strong><small>DOCX</small></span>
-            </li>
-            <li class="format-item format-xlsx" data-reveal data-reveal-delay="60">
-              <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <path d="M6 3h8l4 4v14H6z" />
-                <path d="M14 3v5h5" />
-              </svg>
-              <span><strong>Excel</strong><small>XLSX</small></span>
-            </li>
-            <li class="format-item format-pdf" data-reveal data-reveal-delay="120">
-              <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <path d="M6 3h8l4 4v14H6z" />
-                <path d="M14 3v5h5" />
-              </svg>
-              <span><strong>PDF</strong><small>PDF</small></span>
-            </li>
-            <li class="format-item format-image" data-reveal data-reveal-delay="180">
-              <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <rect x="4" y="5" width="16" height="14" rx="2" />
-                <path d="m6 16 4-4 3 3 2-2 3 3M15.5 9h.01" />
-              </svg>
-              <span><strong>Images</strong><small>JPG</small></span>
-            </li>
-            <li class="format-item format-csv" data-reveal data-reveal-delay="240">
-              <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <rect x="4" y="5" width="16" height="14" rx="2" />
-                <path d="M4 10h16M9 5v14M15 5v14" />
-              </svg>
-              <span><strong>Data</strong><small>CSV</small></span>
-            </li>
-          </ul>
-        </div>
+        <p id="format-strip-title">Familiar files, handled locally</p>
+        <ul class="format-list" aria-label="Common supported file formats">
+          <li class="format-item format-docx">
+            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path d="M6 3h8l4 4v14H6z" />
+              <path d="M14 3v5h5" />
+            </svg>
+            <span><strong>Word</strong><small>DOCX</small></span>
+          </li>
+          <li class="format-item format-xlsx">
+            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path d="M6 3h8l4 4v14H6z" />
+              <path d="M14 3v5h5" />
+            </svg>
+            <span><strong>Excel</strong><small>XLSX</small></span>
+          </li>
+          <li class="format-item format-pdf">
+            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path d="M6 3h8l4 4v14H6z" />
+              <path d="M14 3v5h5" />
+            </svg>
+            <span><strong>PDF</strong><small>PDF</small></span>
+          </li>
+          <li class="format-item format-image">
+            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <rect x="4" y="5" width="16" height="14" rx="2" />
+              <path d="m6 16 4-4 3 3 2-2 3 3M15.5 9h.01" />
+            </svg>
+            <span><strong>Images</strong><small>JPG</small></span>
+          </li>
+          <li class="format-item format-csv">
+            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <rect x="4" y="5" width="16" height="14" rx="2" />
+              <path d="M4 10h16M9 5v14M15 5v14" />
+            </svg>
+            <span><strong>Data</strong><small>CSV</small></span>
+          </li>
+        </ul>
       </section>
 
-      <section class="section dark benefit-section" id="difference">
+      <section class="section dark benefit-section">
         <div class="section-inner">
           <div class="section-heading">
             <div>
@@ -255,11 +184,7 @@
             <article class="benefit-card" data-reveal data-tilt>
               <span>01</span>
               <h3>Zero application telemetry</h3>
-              <p>
-                No analytics. No crash reports. No metrics. Not “off by default” —
-                <strong>absent</strong>.
-              </p>
-              <p class="benefit-proof">Don’t believe us. The source is public — go look.</p>
+              <p>No analytics. No crash reports. No metrics. Not “off by default” — <strong>absent</strong>.</p>
             </article>
             <article class="benefit-card" data-reveal data-reveal-delay="90" data-tilt>
               <span>02</span>
@@ -268,7 +193,6 @@
                 The model runs on your hardware. Hard task? It still runs on your hardware. There is
                 no “then it uploads your file” step.
               </p>
-              <p class="benefit-proof">The agent sandbox has no network interface at all.</p>
             </article>
             <article class="benefit-card" data-reveal data-reveal-delay="180" data-tilt>
               <span>03</span>
@@ -277,13 +201,12 @@
                 No providers, endpoints, model files, or sliders. It reads your hardware and
                 decides. You point at a folder and ask.
               </p>
-              <p class="benefit-proof">Install to first real answer: one step.</p>
             </article>
           </div>
         </div>
       </section>
 
-      <section class="section difference-section">
+      <section class="section difference-section" id="difference">
         <div class="section-inner">
           <div class="section-heading">
             <div>
@@ -308,56 +231,56 @@
               <tr class="comparison-row">
                 <th scope="row">Data collection</th>
                 <td class="comparison-common">
-                  <small>Common AI products</small>
-                  Feature analytics, crash reporting, or usage metrics may be enabled.
+                <small>Common AI products</small>
+                Feature analytics, crash reporting, or usage metrics may be enabled.
                 </td>
                 <td class="comparison-vault">
-                  <small>Vault Desk</small>
-                  No application telemetry — ever.
+                <small>Vault Desk</small>
+                No application telemetry — ever.
                 </td>
               </tr>
               <tr class="comparison-row">
                 <th scope="row">Where work runs</th>
                 <td class="comparison-common">
-                  <small>Common AI products</small>
-                  Cloud or hybrid workflows often depend on remote services.
+                <small>Common AI products</small>
+                Cloud or hybrid workflows often depend on remote services.
                 </td>
                 <td class="comparison-vault">
-                  <small>Vault Desk</small>
-                  Fully local and offline, with no silent cloud fallback.
+                <small>Vault Desk</small>
+                Fully local and offline, with no silent cloud fallback.
                 </td>
               </tr>
               <tr class="comparison-row">
                 <th scope="row">Setup</th>
                 <td class="comparison-common">
-                  <small>Common AI products</small>
-                  Choose providers, model files, servers, endpoints, and memory settings.
+                <small>Common AI products</small>
+                Choose providers, model files, servers, endpoints, and memory settings.
                 </td>
                 <td class="comparison-vault">
-                  <small>Vault Desk</small>
-                  No runtime configuration. Hardware-aware defaults are automatic.
+                <small>Vault Desk</small>
+                No runtime configuration. Hardware-aware defaults are automatic.
                 </td>
               </tr>
               <tr class="comparison-row">
                 <th scope="row">Who it is for</th>
                 <td class="comparison-common">
-                  <small>Common AI products</small>
-                  Interfaces are often organized around models and developer controls.
+                <small>Common AI products</small>
+                Interfaces are often organized around models and developer controls.
                 </td>
                 <td class="comparison-vault">
-                  <small>Vault Desk</small>
-                  An outcome-first workspace for ordinary, sensitive work.
+                <small>Vault Desk</small>
+                An outcome-first workspace for ordinary, sensitive work.
                 </td>
               </tr>
               <tr class="comparison-row">
                 <th scope="row">If the company disappears</th>
                 <td class="comparison-common">
-                  <small>Common AI products</small>
-                  Access usually ends with the subscription or the hosted service.
+                <small>Common AI products</small>
+                Access usually ends with the subscription or the hosted service.
                 </td>
                 <td class="comparison-vault">
-                  <small>Vault Desk</small>
-                  It keeps working. It never needed us to be online.
+                <small>Vault Desk</small>
+                It keeps working. It never needed us to be online.
                 </td>
               </tr>
             </tbody>
@@ -369,6 +292,43 @@
         </div>
       </section>
 
+      <section class="section example-section">
+        <div class="section-inner">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow" data-reveal>Everyday examples</p>
+              <h2 data-reveal data-reveal-delay="70">Sensitive tasks deserve a private workspace.</h2>
+            </div>
+            <p data-reveal data-reveal-delay="140">
+              These are illustrative uses, not professional advice or automated decisions. Every
+              generated result requires human review.
+            </p>
+          </div>
+          <div class="example-grid">
+            <article class="example-card" data-reveal>
+              <small>Financial records</small>
+              <h3>Find entries that deserve a second look</h3>
+              <p>Review invented transaction data and prepare a clear checklist for a person to verify.</p>
+            </article>
+            <article class="example-card" data-reveal data-reveal-delay="60">
+              <small>Agreements</small>
+              <h3>Pull out dates and obligations</h3>
+              <p>Summarize renewal and termination language without presenting legal advice.</p>
+            </article>
+            <article class="example-card" data-reveal data-reveal-delay="120">
+              <small>Health administration</small>
+              <h3>Organize administrative records</h3>
+              <p>Summarize appointments and form status without diagnosis or clinical recommendations.</p>
+            </article>
+            <article class="example-card" data-reveal data-reveal-delay="180">
+              <small>CV preparation</small>
+              <h3>Standardize experience and skills</h3>
+              <p>Format stated experience without ranking people or making hiring recommendations.</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
       <section class="section process-section" id="how-it-works">
         <div class="section-inner">
           <div class="section-heading">
@@ -376,9 +336,7 @@
               <p class="eyebrow" data-reveal>No setup ritual</p>
               <h2 data-reveal data-reveal-delay="70">Open it. Point it. Ask it.</h2>
             </div>
-            <p data-reveal data-reveal-delay="140">
-              That’s the whole onboarding. There is no step four.
-            </p>
+            <p data-reveal data-reveal-delay="140">That’s the whole onboarding. There is no step four.</p>
           </div>
           <div class="step-grid">
             <article class="step-card" data-reveal>
@@ -514,49 +472,13 @@
                   The interface uses the desktop app’s real 760 × 600 minimum canvas. Open it in its
                   own window for the complete product tour.
                 </p>
-                <a class="button button-primary" href="./demo/"><span>Open full demo</span></a>
+                <a class="button button-primary" href="./demo/">
+                  <svg class="button-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 5h5v5M19 5l-9 9M17 13v6H5V7h6" /></svg>
+                  <span>Open full demo</span>
+                </a>
               </div>
             </div>
           </div>
-        </div>
-      </section>
-
-      <section class="section stack-section">
-        <div class="section-inner">
-          <div class="section-heading">
-            <div>
-              <p class="eyebrow" data-reveal>What you actually get</p>
-              <h2 data-reveal data-reveal-delay="70">All of it. For free.</h2>
-            </div>
-            <p data-reveal data-reveal-delay="140">
-              No gates, no limits, no trial clock. The free version is the real version.
-            </p>
-          </div>
-          <ul class="stack-list">
-            <li data-reveal>
-              <strong>The full app, open source</strong> — Apache 2.0. Inspect it, fork it, audit
-              it.
-            </li>
-            <li data-reveal data-reveal-delay="60">
-              <strong>A capable model, pre-installed</strong> — pinned, offline, zero setup.
-            </li>
-            <li data-reveal data-reveal-delay="120">
-              <strong>A real agent, not a chat box</strong> — writes and runs code to finish the
-              job.
-            </li>
-            <li data-reveal data-reveal-delay="180">
-              <strong>A sealed sandbox</strong> — no network, read-only view of your folder.
-            </li>
-            <li data-reveal data-reveal-delay="240">
-              <strong>Receipts for every step</strong> — files, output, local audit records.
-            </li>
-            <li data-reveal data-reveal-delay="300">
-              <strong>Permanence</strong> — no subscription keeps it alive. It just works.
-            </li>
-          </ul>
-          <p class="stack-catch" data-reveal>
-            The catch: you need a capable machine, and installers aren’t public yet.
-          </p>
         </div>
       </section>
 
@@ -617,16 +539,12 @@
               find the telemetry. There is none.
             </p>
             <div class="section-actions">
-              <a
-                class="button button-primary"
-                data-magnetic
-                href="https://github.com/alex-alecu/vault-desk"
-                ><span>Browse on GitHub</span></a
-              >
-              <a
-                class="button button-ghost"
-                href="https://github.com/alex-alecu/vault-desk/blob/main/LICENSE"
-                >Read the license</a
+              <a class="button button-primary" href="https://github.com/alex-alecu/vault-desk">
+                <svg class="button-icon" aria-hidden="true" viewBox="0 0 24 24" fill="currentColor"><path d="M12 .7a11.5 11.5 0 0 0-3.64 22.4c.58.11.79-.25.79-.56v-2.02c-3.2.7-3.88-1.36-3.88-1.36-.52-1.34-1.28-1.7-1.28-1.7-1.05-.72.08-.71.08-.71 1.16.08 1.77 1.2 1.77 1.2 1.03 1.77 2.7 1.26 3.36.96.1-.75.4-1.26.73-1.55-2.56-.29-5.25-1.28-5.25-5.69 0-1.26.45-2.29 1.2-3.09-.12-.29-.52-1.46.11-3.04 0 0 .98-.31 3.16 1.18A11 11 0 0 1 12 6.91c.98 0 1.94.13 2.85.38 2.18-1.49 3.16-1.18 3.16-1.18.63 1.58.23 2.75.11 3.04.75.8 1.2 1.83 1.2 3.09 0 4.42-2.69 5.4-5.26 5.69.41.36.78 1.06.78 2.14v2.47c0 .31.21.67.79.56A11.5 11.5 0 0 0 12 .7Z" /></svg>
+                <span>Browse on GitHub</span>
+              </a>
+              <a class="button button-secondary" href="https://github.com/alex-alecu/vault-desk/blob/main/LICENSE"
+                ><svg class="button-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 3h8l4 4v14H6zM14 3v5h5M9 13h6M9 17h6" /></svg><span>Read the license</span></a
               >
             </div>
           </div>
@@ -642,14 +560,16 @@
         <div class="section-inner" data-reveal data-cipher>
           <p class="eyebrow">No tracking. No cloud. No configuration.</p>
           <h2>Try the one AI that cannot talk about you.</h2>
-          <p>
-            The demo is open right now. Signed installers land when certification is done.
-          </p>
+          <p>The demo is open right now. Signed installers land when certification is done.</p>
           <div class="section-actions">
-            <a class="button button-primary" data-magnetic href="./demo/"
-              ><span>Try the interactive demo</span></a
-            >
-            <a class="button button-ghost" href="./downloads/">Check download availability</a>
+            <a class="button button-primary" href="./demo/">
+              <svg class="button-icon" aria-hidden="true" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>
+              <span>Try the interactive demo</span>
+            </a>
+            <a class="button button-secondary" href="./downloads/">
+              <svg class="button-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0 5-5m-5 5-5-5M4 20h16" /></svg>
+              <span>Check download availability</span>
+            </a>
           </div>
         </div>
       </section>

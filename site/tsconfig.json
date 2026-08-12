@@ -18,6 +18,6 @@
     "types": ["react", "react-dom"],
     "typeRoots": ["../packages/desktop/node_modules/@types"]
   },
-  "include": ["assets/**/*.ts", "demo/**/*.ts", "demo/**/*.tsx", "demo-embed.ts", "env.d.ts"],
+  "include": ["assets/**/*.ts", "demo/**/*.ts", "demo/**/*.tsx", "env.d.ts"],
   "exclude": ["demo/**/*.test.ts", "demo/**/*.test.tsx"]
 }

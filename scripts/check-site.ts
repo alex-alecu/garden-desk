@@ -124,7 +124,6 @@ requireText(home, "No cloud fallback", "home differentiation");
 requireText(home, 'class="principle-cloud"', "home principle animation");
 requireText(home, 'class="format-strip"', "home static format strip");
 requireText(home, "data-reveal", "home scroll motion");
-requireText(home, 'class="ticker"', "home differentiation ticker");
 requireText(home, "data-cipher", "home cipher background animation");
 requireText(home, "Gemma 4 12B QAT", "home model");
 requireText(home, "16 GB unified memory", "home macOS requirement");

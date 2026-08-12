@@ -42,7 +42,7 @@ function drawFrame(context: CanvasRenderingContext2D, cells: CipherCell[], time:
     const flicker = 0.5 + 0.5 * Math.sin(time / 1400 + cell.phase);
     const alpha = 0.09 + 0.08 * flicker + glow * 0.4;
     context.fillStyle =
-      glow > 0.4 ? `rgb(79 214 192 / ${alpha})` : `rgb(159 182 187 / ${alpha * 0.7})`;
+      glow > 0.4 ? `rgb(66 111 134 / ${alpha})` : `rgb(112 132 145 / ${alpha * 0.7})`;
     context.fillText(cell.glyph, cell.x, cell.y);
   }
 }

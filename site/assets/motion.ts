@@ -65,15 +65,6 @@ function trackPointer(element: HTMLElement, onMove: (x: number, y: number) => vo
   element.addEventListener("blur", reset);
 }
 
-function enableMagnetic(): void {
-  for (const element of document.querySelectorAll<HTMLElement>("[data-magnetic]")) {
-    trackPointer(element, (x, y) => {
-      element.style.setProperty("--magnet-x", `${(x * 14).toFixed(2)}px`);
-      element.style.setProperty("--magnet-y", `${(y * 10).toFixed(2)}px`);
-    });
-  }
-}
-
 function enableTilt(): void {
   for (const element of document.querySelectorAll<HTMLElement>("[data-tilt]")) {
     trackPointer(element, (x, y) => {
@@ -125,7 +116,6 @@ function start(): void {
   observeReveals();
   observeScroll();
   if (reducedMotion.matches) return;
-  enableMagnetic();
   enableTilt();
   enableCipherFields();
 }
