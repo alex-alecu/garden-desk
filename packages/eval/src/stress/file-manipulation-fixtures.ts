@@ -116,3 +116,25 @@ export async function createPdfMergeInputs(source: string): Promise<FixtureEvide
   ]);
   return { bytes: cover + appendix, files: 2, expected: {} };
 }
+
+/**
+ * Reads the per-page text markers from a fixture PDF without a host Python
+ * runtime so the fixtures verify identically on macOS and Windows CI. It parses
+ * the uncompressed `BT ... (marker) Tj ET` content streams these fixtures emit;
+ * it is not a general PDF parser.
+ */
+export async function fixturePdfPageTexts(path: string): Promise<string[]> {
+  const file = await open(path, "r");
+  try {
+    const pdf = (await file.readFile()).toString("latin1");
+    const texts: string[] = [];
+    for (const stream of pdf.matchAll(/stream\r?\n([\s\S]*?)\r?\nendstream/gu)) {
+      const body = stream[1] ?? "";
+      const markers = [...body.matchAll(/\((.*?)\)\s*Tj/gu)].map((match) => match[1] ?? "");
+      if (markers.length > 0) texts.push(markers.join(""));
+    }
+    return texts;
+  } finally {
+    await file.close();
+  }
+}

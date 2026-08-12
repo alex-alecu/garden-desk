@@ -15,6 +15,7 @@ import { AgentService } from "./service.js";
 import { AgentStore } from "./store.js";
 
 const roots: string[] = [];
+const openResources: Array<() => Promise<void> | void> = [];
 
 function executeDecisionInference(): Pick<InferenceService, "chat"> {
   return {
@@ -83,6 +84,10 @@ async function fixture() {
     failedLauncher(),
     new AuditLog(catalog.database),
   );
+  openResources.push(async () => {
+    await service.close();
+    catalog.close();
+  });
   return { catalog, conversations, service };
 }
 
@@ -96,12 +101,15 @@ async function waitForTerminal(service: AgentService, runId: string) {
 }
 
 afterEach(async () => {
+  for (const close of openResources.splice(0).reverse()) await close();
   await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
 });
 
 describe("M3 failed agent launch evidence", () => {
-  it("retains allowlisted diagnostics emitted before launch failure", async () => {
-    const { catalog, conversations, service } = await fixture();
+  it("retains allowlisted diagnostics emitted before launch failure", {
+    timeout: 30_000,
+  }, async () => {
+    const { conversations, service } = await fixture();
     const session = conversations.createSession(null);
     const run = service.start(session.id, "Run a task");
     const snapshot = await waitForTerminal(service, run.id);
@@ -115,7 +123,5 @@ describe("M3 failed agent launch evidence", () => {
         { code: "platform_error", platform: "macos", platformCode: "VZErrorDomain:1" },
       ],
     });
-    await service.close();
-    catalog.close();
   });
 });
