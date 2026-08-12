@@ -60,7 +60,7 @@ describe("agent question lifecycle", () => {
   });
 });
 
-describe("agent question answers", () => {
+describe("agent question answer shape", () => {
   it("validates direct facade answers before settling", async () => {
     const current = activeRun();
     const created = createPendingQuestion(runId, questions);
@@ -87,8 +87,10 @@ describe("agent question answers", () => {
     ).toBe(true);
     await expect(created.answered).resolves.toEqual({ dismissed: false, answers: [["Full"]] });
   });
+});
 
-  it("accepts five options plus a custom answer for a multiple-choice question", async () => {
+describe("agent multiple-choice answers", () => {
+  it("accepts five options plus a custom answer", async () => {
     const multi = [
       {
         ...questions[0],
@@ -112,5 +114,43 @@ describe("agent question answers", () => {
       }),
     ).toBe(true);
     await expect(created.answered).resolves.toEqual({ dismissed: false, answers });
+  });
+});
+
+describe("agent multiple-choice answer validation", () => {
+  it("accepts displayed recommended labels and rejects invalid multi-select matrices", () => {
+    const multi = [
+      {
+        ...questions[0],
+        multiple: true,
+        options: [
+          { label: "One (Recommended)", description: "" },
+          { label: "Two", description: "" },
+        ],
+      },
+    ] as AgentQuestion[];
+    const current = activeRun();
+    const created = createPendingQuestion(runId, multi);
+    current.question = created.pending;
+    const active = new Map([[jobId, current]]);
+
+    expect(
+      settleRunQuestion(active, runId, created.pending.request.id, {
+        dismissed: false,
+        answers: [["One", "Custom", "Another custom"]],
+      }),
+    ).toBe(false);
+    expect(
+      settleRunQuestion(active, runId, created.pending.request.id, {
+        dismissed: false,
+        answers: [["Two", "Two"]],
+      }),
+    ).toBe(false);
+    expect(
+      settleRunQuestion(active, runId, created.pending.request.id, {
+        dismissed: false,
+        answers: [["One", "Custom"]],
+      }),
+    ).toBe(true);
   });
 });

@@ -100,10 +100,16 @@ export function settleRunQuestion(
     .safeParse(outcome.answers);
   if (!parsed.success) return false;
   if (
-    parsed.data.some(
-      (answer, index) =>
-        run.question?.request.questions[index]?.multiple !== true && answer.length > 1,
-    )
+    parsed.data.some((answer, index) => {
+      const question = run.question?.request.questions[index];
+      if (question === undefined) return true;
+      if (question.multiple !== true && answer.length > 1) return true;
+      if (new Set(answer).size !== answer.length) return true;
+      const offered = new Set(
+        question.options.map((option) => option.label.replace(/\s*\(Recommended\)$/u, "")),
+      );
+      return answer.filter((label) => !offered.has(label)).length > 1;
+    })
   ) {
     return false;
   }

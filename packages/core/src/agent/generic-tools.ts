@@ -29,7 +29,7 @@ function codeTool(language: "python" | "node"): ToolSpec {
   return {
     definition: {
       name: language,
-      description: `Run a complete ${language} program inside the no-network guest. Programs start in /workspace; read the selected folder through absolute /source paths.`,
+      description: `Run a complete ${language} program directly inside the no-network guest. Do not stage it with shell or wrap it in a child process that captures output. Programs start in /workspace; read the selected folder through absolute /source paths.`,
       params: objectSchema(
         { source: { type: "string", description: "Complete runnable source code." } },
         ["source"],

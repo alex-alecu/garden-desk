@@ -33,6 +33,7 @@ interface AgentEvidenceInput {
   cancel?: boolean;
   expectedError?: string;
   expectLiveOutput?: boolean;
+  expectStdoutTruncated?: boolean;
 }
 
 async function prepareModelStore(): Promise<void> {
@@ -108,10 +109,14 @@ function requireAgentEvidence(
   result: { snapshot: AgentRunSnapshot; live: boolean },
   input: AgentEvidenceInput,
 ) {
-  const execution = result.snapshot.executions.find((item) => item.stdout.length > 0);
+  const execution = result.snapshot.executions.find(
+    (item) =>
+      item.stdout.length > 0 && (!(input.expectStdoutTruncated ?? false) || item.stdoutTruncated),
+  );
   const terminalState = expectedTerminalState(result.snapshot, input.expectedError);
   const hasFinishToken =
-    input.finishToken === undefined || execution?.stdout.includes(input.finishToken) === true;
+    input.finishToken === undefined ||
+    result.snapshot.executions.some((item) => item.stdout.includes(input.finishToken as string));
   if (
     ((input.expectLiveOutput ?? true) && !result.live) ||
     execution === undefined ||
@@ -204,8 +209,8 @@ async function runWindowsEvidence(root: string, artifacts: WindowsArtifacts) {
     liveToken: "limit-start",
     finishToken: "limit-start",
     expectLiveOutput: false,
+    expectStdoutTruncated: true,
   });
-  if (!limits.stdoutTruncated) throw new Error("Windows stdout truncation proof failed.");
   if (limits.runState !== "succeeded") {
     throw new Error(`Windows bounded-observation proof failed: ${limits.runState}`);
   }

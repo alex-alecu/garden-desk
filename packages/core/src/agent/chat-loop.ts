@@ -13,6 +13,7 @@ import { artifactCandidateNames } from "./artifact-results.js";
 import { compactChatHistory } from "./chat-compaction.js";
 import { initialChatMessages } from "./chat-initial-messages.js";
 import type { ChatAgentInput } from "./chat-loop-input.js";
+import { containsProtocolFragment } from "./chat-protocol.js";
 import {
   type ChatToolState,
   executeToolCalls,
@@ -28,14 +29,11 @@ const HARD_TURN_LIMIT = 40;
 const COMPACTION_RATIO = 0.8;
 const CHAT_OUTPUT_TOKENS = 2_048;
 const MAX_CHAT_OUTPUT_TOKENS = 8_192;
-const PROTOCOL_FRAGMENT = /<\|?(?:tool_call|function_call)|<\/?tool_call\|?>/iu;
-
 function currentArtifacts(executions: readonly AgentExecutionResult[]): string[] {
   return artifactCandidateNames(executions).filter(
     (path) => !path.startsWith(".vault-tools/") && !path.startsWith(".vault-output/"),
   );
 }
-
 function outputTokens(
   contextTokens: number,
   tools: readonly unknown[],
@@ -46,7 +44,6 @@ function outputTokens(
   const dynamic = Math.min(MAX_CHAT_OUTPUT_TOKENS, scaled);
   return tools.length === 0 ? Math.max(4_096, dynamic) : dynamic;
 }
-
 export class ChatAgentLoop {
   private contextTokens: number;
   private requestedContextSize: number | "auto";
@@ -54,7 +51,6 @@ export class ChatAgentLoop {
     this.contextTokens = 8_192;
     this.requestedContextSize = "auto";
   }
-
   private record(
     input: ChatAgentInput,
     turnId: string | undefined,
@@ -153,9 +149,18 @@ export class ChatAgentLoop {
   ): AgentRunResult | undefined {
     if (generated.result.toolCalls.length > 0) return undefined;
     const response = generated.result.text.trim();
-    if (response.length === 0) throw new Error("agent_empty_response");
-    if (PROTOCOL_FRAGMENT.test(response)) {
+    if (response.length === 0) {
+      this.record(input, generated.turnId, "invalid_response");
+      state.messages.pop();
+      state.messages.push({
+        role: "system",
+        text: "The previous answer was empty and was rejected. Return the completed result using the retained execution evidence.",
+      });
+      return undefined;
+    }
+    if (containsProtocolFragment(response)) {
       this.record(input, generated.turnId, "rejected_unbacked_response");
+      state.responseOnly = false;
       state.messages.pop();
       state.messages.push({
         role: "system",
@@ -223,6 +228,16 @@ export class ChatAgentLoop {
       text: generated.result.text,
       toolCalls: generated.result.toolCalls,
     });
+    if (generated.result.toolCalls.some((call) => containsProtocolFragment(call.params))) {
+      this.record(input, generated.turnId, "rejected_unbacked_response");
+      state.responseOnly = false;
+      state.messages.pop();
+      state.messages.push({
+        role: "system",
+        text: "The previous function call contained raw protocol-control text inside its arguments and was rejected without execution. Issue one clean typed function call with only the intended arguments.",
+      });
+      return undefined;
+    }
     if (generated.result.stopReason === "maxTokens" && generated.result.toolCalls.length === 0) {
       this.record(input, generated.turnId, "invalid_response");
       state.messages.pop();
