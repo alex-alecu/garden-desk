@@ -2,6 +2,21 @@ import { describe, expect, it } from "vitest";
 import type { InferenceService } from "../runtime/inference.js";
 import { ChatAgentLoop } from "./chat-loop.js";
 import { execution, generated, input, model, source, tool } from "./chat-loop-test-support.js";
+import type { AgentTraceStore } from "./trace-store.js";
+
+function outcomeTrace(outcomes: string[]): AgentTraceStore {
+  let sequence = 0;
+  return {
+    async begin() {
+      sequence += 1;
+      return `turn-${sequence}`;
+    },
+    async captureResponse() {},
+    recordOutcome(_turnId: string, outcome: string) {
+      outcomes.push(outcome);
+    },
+  } as unknown as AgentTraceStore;
+}
 
 describe("ChatAgentLoop tool conversation", () => {
   it("returns a tool result as history to the next model turn", async () => {
@@ -159,6 +174,49 @@ describe("ChatAgentLoop bounded final response", () => {
         }),
       ]),
     );
+  });
+});
+
+describe("ChatAgentLoop protocol-text rejection", () => {
+  it("rejects raw tool markup and retries with a real tool call", async () => {
+    const requests: Parameters<InferenceService["chat"]>[0][] = [];
+    const outcomes: string[] = [];
+    const trace = outcomeTrace(outcomes);
+    const loop = new ChatAgentLoop(
+      model(
+        [
+          generated('<|tool_call>call:python{source:"print(2)"}<tool_call|>'),
+          generated("", [tool("python", "call-1", { source: "print(2)" })]),
+          generated("Two."),
+        ],
+        requests,
+      ),
+    );
+    const result = await loop.run(
+      input(
+        {
+          async execute(run) {
+            return execution(source(run));
+          },
+        },
+        ["python"],
+        { trace: { runId: "11111111-1111-4111-8111-111111111111", store: trace } },
+      ),
+    );
+    expect(result.response).toBe("Two.");
+    expect(requests[1]?.messages).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          role: "system",
+          text: expect.stringContaining("raw function-call protocol text"),
+        }),
+      ]),
+    );
+    expect(outcomes).toEqual([
+      "rejected_unbacked_response",
+      "accepted_tool_calls",
+      "accepted_response",
+    ]);
   });
 });
 

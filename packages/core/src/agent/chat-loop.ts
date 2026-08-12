@@ -1,7 +1,5 @@
 import { randomUUID } from "node:crypto";
 import {
-  type AgentEventDetail,
-  type AgentEventType,
   type AgentExecutionResult,
   type AgentInferenceOutcome,
   type AgentRunResult,
@@ -11,50 +9,26 @@ import {
   JobIdSchema,
 } from "@vault/shared";
 import type { InferenceService } from "../runtime/inference.js";
-import type { AgentExecutor } from "./agent-executor.js";
 import { artifactCandidateNames } from "./artifact-results.js";
 import { compactChatHistory } from "./chat-compaction.js";
 import { initialChatMessages } from "./chat-initial-messages.js";
+import type { ChatAgentInput } from "./chat-loop-input.js";
 import {
   type ChatToolState,
   executeToolCalls,
   initialToolState,
   rollbackFailedDirection,
 } from "./chat-tool-turn.js";
-import { GenericToolRegistry, type SkillReader, type SubagentRequest } from "./generic-tools.js";
+import { GenericToolRegistry } from "./generic-tools.js";
 import { addPerformance, emptyPerformance } from "./inference-performance.js";
-import type { AgentDefinition } from "./markdown-definition-library.js";
-import type { AgentTraceStore } from "./trace-store.js";
+
+export type { ChatAgentInput } from "./chat-loop-input.js";
 
 const HARD_TURN_LIMIT = 40;
 const COMPACTION_RATIO = 0.8;
 const CHAT_OUTPUT_TOKENS = 2_048;
 const MAX_CHAT_OUTPUT_TOKENS = 8_192;
-
-interface ConversationItem {
-  role: "user" | "assistant";
-  content: string;
-}
-
-export interface ChatAgentInput {
-  agent: AgentDefinition;
-  contextTokens: number | "auto";
-  executor: AgentExecutor;
-  history?: { messages: ConversationItem[]; summary?: string };
-  inputNames?: string[];
-  modelId: string;
-  onEvent?(type: AgentEventType, summary: string, detail?: Partial<AgentEventDetail>): void;
-  onThinking?(text: string | null): void;
-  onContext?(used: number, allocated: number): void;
-  savedScripts?: string[];
-  signal?: AbortSignal;
-  skills: SkillReader;
-  inferencePriority?: "primary" | "secondary";
-  spawnTask?(request: SubagentRequest): Promise<string>;
-  systemPrompt(name: string): string;
-  task: string;
-  trace?: { runId: string; store: AgentTraceStore };
-}
+const PROTOCOL_FRAGMENT = /<\|?(?:tool_call|function_call)|<\/?tool_call\|?>/iu;
 
 function currentArtifacts(executions: readonly AgentExecutionResult[]): string[] {
   return artifactCandidateNames(executions).filter(
@@ -180,6 +154,15 @@ export class ChatAgentLoop {
     if (generated.result.toolCalls.length > 0) return undefined;
     const response = generated.result.text.trim();
     if (response.length === 0) throw new Error("agent_empty_response");
+    if (PROTOCOL_FRAGMENT.test(response)) {
+      this.record(input, generated.turnId, "rejected_unbacked_response");
+      state.messages.pop();
+      state.messages.push({
+        role: "system",
+        text: "The previous output contained raw function-call protocol text and was rejected. Use an available tool through a real function call, or return a plain final answer without protocol markers.",
+      });
+      return undefined;
+    }
     this.record(input, generated.turnId, "accepted_response");
     input.onEvent?.("assistant.completed", "Response completed.");
     return AgentRunResultSchema.parse({
@@ -254,6 +237,7 @@ export class ChatAgentLoop {
     }
     const result = this.finish(input, generated, state, performance);
     if (result !== undefined) return result;
+    if (generated.result.toolCalls.length === 0) return undefined;
     this.record(input, generated.turnId, "accepted_tool_calls");
     await executeToolCalls(
       {
@@ -274,6 +258,7 @@ export class ChatAgentLoop {
       executor: input.executor,
       skills: input.skills,
       ...(input.spawnTask === undefined ? {} : { spawnTask: input.spawnTask }),
+      ...(input.askQuestion === undefined ? {} : { askQuestion: input.askQuestion }),
       ...(input.signal === undefined ? {} : { signal: input.signal }),
     });
     const performance = emptyPerformance();

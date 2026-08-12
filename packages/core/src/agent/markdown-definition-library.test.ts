@@ -30,7 +30,7 @@ function expectApprovedAgents(library: MarkdownDefinitionLibrary): void {
   expect(library.agent("primary")).toMatchObject({
     steps: 40,
     temperature: 0,
-    tools: ["bash", "python", "node", "read", "glob", "grep", "list", "skill", "task"],
+    tools: ["bash", "python", "node", "read", "glob", "grep", "list", "skill", "task", "question"],
   });
   expect(library.agent("explore")).toMatchObject({
     steps: 16,

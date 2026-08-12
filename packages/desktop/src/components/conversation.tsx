@@ -26,11 +26,15 @@ interface ConversationProps {
   activeRunState?: string | undefined;
 }
 
+const HIDDEN_CONVERSATION_EVENTS = new Set([
+  "run.started",
+  "assistant.completed",
+  "question.asked",
+  "question.answered",
+]);
+
 function showsInConversation(item: TimelineItem): boolean {
-  return (
-    item.kind !== "activity" ||
-    (item.eventType !== "run.started" && item.eventType !== "assistant.completed")
-  );
+  return item.kind !== "activity" || !HIDDEN_CONVERSATION_EVENTS.has(item.eventType ?? "");
 }
 
 function conversationEntries(timeline: TimelineItem[]): OrderedEntry[] {

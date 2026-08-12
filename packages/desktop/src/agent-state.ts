@@ -18,6 +18,7 @@ export function applyAgentSnapshot(state: DesktopState, snapshot: AgentRunSnapsh
     workingSessionIds,
     activeRun: snapshot.run,
     thinking: snapshot.thinking,
+    question: working ? snapshot.question : null,
     contextUsedTokens: snapshot.contextUsedTokens ?? state.contextUsedTokens,
     contextAllocatedTokens: snapshot.contextAllocatedTokens ?? state.contextAllocatedTokens,
     artifacts: [

@@ -1,8 +1,14 @@
-import type { AgentRunResult, AgentRunSummary, ConversationMessage } from "@vault/shared";
+import type {
+  AgentQuestion,
+  AgentRunResult,
+  AgentRunSummary,
+  ConversationMessage,
+} from "@vault/shared";
 import type { JobStore } from "../jobs/jobs.js";
 import type { InferenceService } from "../runtime/inference.js";
 import type { DatabasePort } from "../workspace/database.js";
 import { ChatAgentLoop } from "./chat-loop.js";
+import type { AgentQuestionOutcome } from "./generic-tool-support.js";
 import { AGENT_MODEL_ID } from "./limits.js";
 import type { MarkdownDefinitionLibrary } from "./markdown-definition-library.js";
 import { createRunExecutor } from "./service-executor.js";
@@ -24,6 +30,7 @@ interface PrimaryRunInput {
   chat: InferenceService["chat"];
   onThinking(thinking: string | null): void;
   onContext(used: number, allocated: number): void;
+  askQuestion(questions: AgentQuestion[]): Promise<AgentQuestionOutcome>;
 }
 
 export async function runPrimaryAgent(input: PrimaryRunInput): Promise<AgentRunResult> {
@@ -43,6 +50,7 @@ export async function runPrimaryAgent(input: PrimaryRunInput): Promise<AgentRunR
     onEvent: (type, summary, detail) => store.appendEvent(run.id, type, summary, detail),
     onThinking: input.onThinking,
     onContext: input.onContext,
+    askQuestion: input.askQuestion,
     savedScripts: store.execution
       .listSessionScriptPaths(run.sessionId)
       .map((path) => `/workspace/${path}`),
@@ -51,26 +59,31 @@ export async function runPrimaryAgent(input: PrimaryRunInput): Promise<AgentRunR
       metadata: () => [...definitions.skills],
       read: (name) => definitions.skill(name).body,
     },
-    spawnTask: async (request) => {
-      return await runSubagent(
-        {
-          contextTokens: input.contextTokens,
-          database: input.database,
-          inference: { chat: input.chat },
-          jobs: input.jobs,
-          library: definitions,
-          modelId: AGENT_MODEL_ID,
-          parentRunId: run.id,
-          sessionId: run.sessionId,
-          sessions: input.sessions,
-          signal: input.signal,
-          store,
-        },
-        request,
-      );
-    },
+    spawnTask: (request) => runPrimarySubagent(input, request),
     systemPrompt: (name) => definitions.system(name),
     task: input.task,
     trace: { runId: run.id, store: store.trace },
   });
+}
+
+async function runPrimarySubagent(
+  input: PrimaryRunInput,
+  request: Parameters<typeof runSubagent>[1],
+): Promise<string> {
+  return await runSubagent(
+    {
+      contextTokens: input.contextTokens,
+      database: input.database,
+      inference: { chat: input.chat },
+      jobs: input.jobs,
+      library: input.definitions,
+      modelId: AGENT_MODEL_ID,
+      parentRunId: input.run.id,
+      sessionId: input.run.sessionId,
+      sessions: input.sessions,
+      signal: input.signal,
+      store: input.store,
+    },
+    request,
+  );
 }

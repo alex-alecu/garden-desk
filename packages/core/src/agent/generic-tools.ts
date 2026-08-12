@@ -11,9 +11,15 @@ import {
   type ToolSpec,
   textParam,
 } from "./generic-tool-support.js";
+import { questionTool } from "./question-tool.js";
 import { boundedToolOutput } from "./tool-output.js";
 
-export type { AgentToolResult, SkillReader, SubagentRequest } from "./generic-tool-support.js";
+export type {
+  AgentQuestionOutcome,
+  AgentToolResult,
+  SkillReader,
+  SubagentRequest,
+} from "./generic-tool-support.js";
 
 function codeParams(value: unknown): { source: string } {
   return { source: textParam(object(value), "source") };
@@ -135,6 +141,7 @@ function specs(skills: SkillReader): ToolSpec[] {
     ...inspectionTools(),
     skillTool(skills),
     taskTool(),
+    questionTool(),
   ];
 }
 

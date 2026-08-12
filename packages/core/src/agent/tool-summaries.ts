@@ -73,6 +73,8 @@ function verbObject(call: ChatToolCall): VerbObject {
       const object = subagentTitle(call);
       return { running: object, done: object };
     }
+    case "question":
+      return { running: "Asking a question", done: "Question answered" };
     default:
       return { running: `Using ${call.name}`, done: `${call.name} completed` };
   }

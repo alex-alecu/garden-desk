@@ -102,6 +102,14 @@ const timeline: TimelineItem[] = [
     runId,
     text: "Response completed.",
   },
+  {
+    createdAt: timestamp,
+    eventType: "question.answered",
+    id: "question-evidence",
+    kind: "activity",
+    runId,
+    text: "Question answered.",
+  },
 ];
 
 function trace(executionSequence: number | null) {

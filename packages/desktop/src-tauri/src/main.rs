@@ -2,8 +2,7 @@ use serde_json::{Value, json};
 use std::fs;
 use std::io::{Read, Write};
 use std::path::Path;
-use std::sync::Mutex;
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::{Mutex, atomic::AtomicU64, atomic::Ordering};
 use std::time::{Duration, Instant};
 use tauri::{AppHandle, Manager, RunEvent};
 use tauri_plugin_shell::ShellExt;
@@ -15,11 +14,10 @@ mod commands;
 mod diagnostics;
 mod drop_commands;
 mod package_integrity;
+mod question_commands;
 mod windows_setup;
 #[cfg(windows)]
 mod windows_setup_windows;
-
-const MAX_RESPONSE_BYTES: u64 = 192 * 1024 * 1024;
 
 #[cfg(windows)]
 fn add_platform_arguments(
@@ -217,6 +215,7 @@ fn connect(endpoint: &str) -> std::io::Result<std::fs::File> {
 }
 
 fn exchange(endpoint: &str, request: &str) -> Result<Vec<u8>, String> {
+    const MAX_RESPONSE_BYTES: u64 = 192 * 1024 * 1024;
     let mut stream = connect(endpoint).map_err(|error| error.to_string())?;
     #[cfg(unix)]
     {
@@ -257,7 +256,9 @@ fn main() {
             artifact_commands::open_artifact,
             artifact_commands::save_artifact,
             commands::add_dropped_folders,
-            commands::cancel_agent,
+            question_commands::cancel_agent,
+            question_commands::answer_agent_question,
+            question_commands::dismiss_agent_question,
             commands::choose_folder,
             commands::choose_files,
             commands::create_session,

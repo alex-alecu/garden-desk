@@ -52,6 +52,8 @@ export interface VaultCorePorts extends InferenceService {
   getAgentRun(runId: string): Promise<AgentRunSnapshot>;
   getAgentTrace(runId: string): Promise<AgentTrace>;
   cancelAgent(jobId: string): Promise<boolean>;
+  answerQuestion(runId: string, questionId: string, answers: string[][]): Promise<boolean>;
+  dismissQuestion(runId: string, questionId: string): Promise<boolean>;
   cancelJob(jobId: string): Promise<boolean>;
   verifyAudit(): Promise<boolean>;
   close(): Promise<void>;
@@ -116,6 +118,9 @@ export function createFacade(ports: VaultCorePorts): VaultCore {
     getAgentRun: (runId) => ports.getAgentRun(runId),
     getAgentTrace: (runId) => ports.getAgentTrace(runId),
     cancelAgent: (jobId) => ports.cancelAgent(jobId),
+    answerQuestion: (runId, questionId, answers) =>
+      ports.answerQuestion(runId, questionId, answers),
+    dismissQuestion: (runId, questionId) => ports.dismissQuestion(runId, questionId),
     cancelJob: (jobId) => ports.cancelJob(jobId),
     verifyAudit: () => ports.verifyAudit(),
     ...inferencePorts(ports),

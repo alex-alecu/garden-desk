@@ -186,6 +186,12 @@ function assembleVaultCore(services: CoreServices): VaultCore {
     async cancelAgent(jobId) {
       return agent?.cancel(jobId) ?? false;
     },
+    async answerQuestion(runId, questionId, answers) {
+      return agent?.settleQuestion(runId, questionId, answers) ?? false;
+    },
+    async dismissQuestion(runId, questionId) {
+      return agent?.settleQuestion(runId, questionId, undefined) ?? false;
+    },
     async cancelJob(jobId) {
       const cancelled = agent?.cancel(jobId) ?? jobs.cancel(jobId) !== undefined;
       audit.append({
