@@ -36,13 +36,8 @@ function targetTriple(): string {
 }
 
 function compileSharedRuntime(): void {
-  const tsc = join(
-    repositoryRoot,
-    "node_modules",
-    ".bin",
-    process.platform === "win32" ? "tsc.cmd" : "tsc",
-  );
-  run(tsc, ["-b", join(repositoryRoot, "packages", "shared")]);
+  const tsc = join(repositoryRoot, "node_modules", "typescript", "bin", "tsc");
+  run(process.execPath, [tsc, "-b", join(repositoryRoot, "packages", "shared")]);
 }
 
 async function sha256(path: string): Promise<string> {
