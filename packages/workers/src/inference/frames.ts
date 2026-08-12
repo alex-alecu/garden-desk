@@ -7,7 +7,9 @@ import {
 } from "@vault/shared";
 
 const HEADER_BYTES = 4;
-const MAX_FRAME_BYTES = 1024 * 1024;
+// Chat requests carry the full conversation history (system + user + every tool
+// call and its verbatim output), which can exceed a single megabyte.
+const MAX_FRAME_BYTES = 32 * 1024 * 1024;
 
 function encode(value: unknown): Buffer {
   const payload = Buffer.from(JSON.stringify(value));

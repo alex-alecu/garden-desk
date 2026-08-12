@@ -26,7 +26,7 @@ describe("M3 anchored session summary catalog", () => {
     const root = await mkdtemp(join(tmpdir(), "vault-summary-"));
     roots.push(root);
     const core = await openCore(root);
-    expect((await core.status()).catalogSchemaVersion).toBe(12);
+    expect((await core.status()).catalogSchemaVersion).toBe(13);
     await core.close();
   });
 

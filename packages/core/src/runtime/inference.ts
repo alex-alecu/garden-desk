@@ -1,5 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type {
+  ChatGenerationRequest,
+  ChatGenerationResult,
   EmbeddingRequest,
   EmbeddingResult,
   InferenceProfile,
@@ -16,6 +18,10 @@ import { gemmaFunctionCallSuffix } from "./prompt-instructions.js";
 
 export type GenerationInput = Omit<
   StructuredGenerationRequest,
+  "protocolVersion" | "requestId" | "jobId" | "operation"
+>;
+export type ChatInput = Omit<
+  ChatGenerationRequest,
   "protocolVersion" | "requestId" | "jobId" | "operation"
 >;
 export type EmbeddingInput = Omit<
@@ -71,6 +77,12 @@ export interface InferenceService {
     onThinkingDelta?: (text: string) => void,
     identity?: GenerationRequestIdentity,
   ): Promise<StructuredGenerationResult>;
+  chat(
+    input: ChatInput,
+    signal?: AbortSignal,
+    onThinkingDelta?: (text: string) => void,
+    identity?: GenerationRequestIdentity,
+  ): Promise<ChatGenerationResult>;
   embed(input: EmbeddingInput, signal?: AbortSignal): Promise<EmbeddingResult>;
   modelStatus(): Promise<ModelRuntimeStatus>;
   unloadModel(): Promise<boolean>;

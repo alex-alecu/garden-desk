@@ -10,14 +10,12 @@ import {
   AgentTraceSchema,
   FolderSummarySchema,
   ModelRuntimeStatusSchema,
-  parseWorkProgress,
   type RpcResponse,
   SessionSummarySchema,
-  workContinuationMessage,
 } from "@vault/shared";
 import { readCanonicalModelManifest, verifyModelFile } from "../models.js";
 import { verifyDeliverables } from "./deliverable-verification.js";
-import type { PreparedStressCase } from "./document-workloads.js";
+import type { ExpectedTableRow, PreparedStressCase } from "./document-workloads.js";
 import { createProgressReporter, stressResultFor, terminal } from "./m3-stress-reporting.js";
 import { stressPlatform } from "./stress-platform.js";
 
@@ -47,8 +45,10 @@ export interface StressCaseResult {
   executionMs: number;
   expectedTokens: string[];
   missingTokens: string[];
+  missingTableRows: ExpectedTableRow[];
   producedArtifacts: string[];
   error: string | null;
+  traceError: string | null;
   verifiedDeliverables: string[];
   verificationOutput: string;
   contextCompactions: number;
@@ -165,38 +165,6 @@ async function pollRun(endpoint: string, runId: string): Promise<AgentRunSnapsho
   return AgentRunSnapshotSchema.parse(await rpc(endpoint, "agent.get", { runId }));
 }
 
-function continuationProgress(snapshot: AgentRunSnapshot) {
-  if (snapshot.run.state !== "succeeded" || snapshot.run.response === null) return undefined;
-  const progress = snapshot.executions
-    .map((execution) => parseWorkProgress(execution.stdout))
-    .filter((item) => item !== undefined && !item.complete)
-    .at(-1);
-  return progress !== undefined && snapshot.run.response === workContinuationMessage(progress)
-    ? progress
-    : undefined;
-}
-
-async function continueCase(endpoint: string, active: ActiveCase, snapshot: AgentRunSnapshot) {
-  const progress = continuationProgress(snapshot);
-  if (progress === undefined) return false;
-  active.previousSnapshots.push(snapshot);
-  const run = AgentRunSummarySchema.parse(
-    await rpc(endpoint, "agent.start", { sessionId: active.sessionId, task: "Continue" }),
-  );
-  console.log(
-    JSON.stringify({
-      phase: "case.continue",
-      id: active.fixture.id,
-      previousRunId: active.runId,
-      runId: run.id,
-      done: progress.done,
-      total: progress.total,
-    }),
-  );
-  active.runId = run.id;
-  return true;
-}
-
 interface PolledCase {
   item: ActiveCase;
   snapshot: AgentRunSnapshot;
@@ -208,15 +176,13 @@ async function pollCases(endpoint: string, cases: ActiveCase[]): Promise<PolledC
   );
 }
 
-async function recordPoll(
-  endpoint: string,
+function recordPoll(
   polled: PolledCase[],
   report: (active: ActiveCase, snapshot: AgentRunSnapshot) => void,
   snapshots: Map<string, AgentRunSnapshot>,
-): Promise<void> {
+): void {
   for (const { item, snapshot } of polled) {
     report(item, snapshot);
-    if (await continueCase(endpoint, item, snapshot)) continue;
     if (terminal(snapshot)) snapshots.set(item.runId, snapshot);
   }
 }
@@ -236,7 +202,7 @@ export async function awaitCases(
       maximumRunning,
       polled.filter(({ snapshot }) => snapshot.run.state === "running").length,
     );
-    await recordPoll(endpoint, polled, report, snapshots);
+    recordPoll(polled, report, snapshots);
     if (snapshots.size < cases.length) await new Promise((accept) => setTimeout(accept, 1_000));
   }
   if (snapshots.size !== cases.length) {

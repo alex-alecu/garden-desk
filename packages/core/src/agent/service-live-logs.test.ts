@@ -15,22 +15,26 @@ import { AgentService } from "./service.js";
 import { AgentStore } from "./store.js";
 
 const roots: string[] = [];
+const openResources: Array<() => Promise<void> | void> = [];
 
-function executeDecisionInference(): Pick<InferenceService, "generate"> {
+function executeDecisionInference(): Pick<InferenceService, "chat"> {
   return {
-    async generate() {
+    async chat() {
       return {
         protocolVersion: 1,
         requestId: "agent-launch-failure-test",
         status: "ok",
-        operation: "generate",
-        value: {
-          action: "execute",
-          language: "python",
-          source: "print('partial')",
-          summary: "Run Python",
+        operation: "chat",
+        text: "",
+        toolCalls: [{ id: "call-1", name: "python", params: { source: "print('partial')" } }],
+        stopReason: "toolCalls",
+        memory: {
+          cpuRamBytes: 1,
+          gpuVramBytes: 1,
+          budgetBytes: 1,
+          detectedGpuVramBytes: 1,
+          contextSizeTokens: 16_384,
         },
-        memory: { cpuRamBytes: 1, gpuVramBytes: 1, budgetBytes: 1, detectedGpuVramBytes: 1 },
         performance: {
           promptTokens: 1,
           outputTokens: 1,
@@ -80,11 +84,15 @@ async function fixture() {
     failedLauncher(),
     new AuditLog(catalog.database),
   );
+  openResources.push(async () => {
+    await service.close();
+    catalog.close();
+  });
   return { catalog, conversations, service };
 }
 
 async function waitForTerminal(service: AgentService, runId: string) {
-  for (let attempt = 0; attempt < 100; attempt += 1) {
+  for (let attempt = 0; attempt < 1_000; attempt += 1) {
     const snapshot = service.snapshot(runId);
     if (snapshot.run.state !== "queued" && snapshot.run.state !== "running") return snapshot;
     await new Promise((accept) => setTimeout(accept, 2));
@@ -93,12 +101,15 @@ async function waitForTerminal(service: AgentService, runId: string) {
 }
 
 afterEach(async () => {
+  for (const close of openResources.splice(0).reverse()) await close();
   await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
 });
 
 describe("M3 failed agent launch evidence", () => {
-  it("retains allowlisted diagnostics emitted before launch failure", async () => {
-    const { catalog, conversations, service } = await fixture();
+  it("retains allowlisted diagnostics emitted before launch failure", {
+    timeout: 30_000,
+  }, async () => {
+    const { conversations, service } = await fixture();
     const session = conversations.createSession(null);
     const run = service.start(session.id, "Run a task");
     const snapshot = await waitForTerminal(service, run.id);
@@ -112,7 +123,5 @@ describe("M3 failed agent launch evidence", () => {
         { code: "platform_error", platform: "macos", platformCode: "VZErrorDomain:1" },
       ],
     });
-    await service.close();
-    catalog.close();
   });
 });

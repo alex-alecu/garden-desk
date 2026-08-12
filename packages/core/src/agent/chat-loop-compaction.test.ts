@@ -1,0 +1,178 @@
+import { describe, expect, it } from "vitest";
+import type { InferenceService } from "../runtime/inference.js";
+import { ChatAgentLoop } from "./chat-loop.js";
+import { execution, generated, input, model, source, tool } from "./chat-loop-test-support.js";
+
+describe("ChatAgentLoop compaction", () => {
+  it("compacts at 80 percent while retaining the current request and last two assistant turns", async () => {
+    const requests: Parameters<InferenceService["chat"]>[0][] = [];
+    const loop = new ChatAgentLoop(
+      model(
+        [
+          generated("", [tool("list", "call-1", { path: "/source" })], 6_554),
+          generated("Older work is complete."),
+          generated("Done."),
+        ],
+        requests,
+      ),
+    );
+    const history = {
+      messages: [
+        { role: "user" as const, content: "oldest user turn" },
+        { role: "assistant" as const, content: "oldest assistant turn" },
+        { role: "user" as const, content: "older user turn" },
+        { role: "assistant" as const, content: "older assistant turn" },
+        { role: "user" as const, content: "recent user turn" },
+        { role: "assistant" as const, content: "recent assistant turn" },
+      ],
+    };
+
+    await loop.run(
+      input(
+        {
+          async execute(run) {
+            return execution(source(run));
+          },
+          async inspect(run) {
+            return execution(source(run));
+          },
+        },
+        ["list"],
+        { history, task: "current user turn" },
+      ),
+    );
+
+    expect(requests[1]?.messages[1]).toMatchObject({
+      role: "user",
+      text: expect.stringContaining("oldest user turn"),
+    });
+    expect(requests[2]?.messages).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          role: "user",
+          text: expect.stringContaining("<anchored-summary>"),
+        }),
+        expect.objectContaining({ role: "user", text: "current user turn" }),
+        expect.objectContaining({ role: "assistant", text: "recent assistant turn" }),
+        expect.objectContaining({ role: "assistant", toolCalls: expect.any(Array) }),
+      ]),
+    );
+  });
+});
+
+describe("ChatAgentLoop failed-direction rollback", () => {
+  it("discards three failed tool attempts and keeps one deterministic failure note", async () => {
+    const requests: Parameters<InferenceService["chat"]>[0][] = [];
+    const failures = ["call-1", "call-2", "call-3"].map((id) =>
+      generated("", [tool("list", id, { path: `/source/${id}` })]),
+    );
+    const loop = new ChatAgentLoop(model([...failures, generated("New approach.")], requests));
+    const failedExecutor = {
+      async inspect(run: Parameters<typeof source>[0]) {
+        return execution(source(run), "permission denied", 1);
+      },
+      async execute(run: Parameters<typeof source>[0]) {
+        return execution(source(run), "permission denied", 1);
+      },
+    };
+
+    await loop.run(input(failedExecutor, ["list"]));
+
+    const messages = requests[3]?.messages ?? [];
+    expect(messages).toEqual([
+      expect.objectContaining({ role: "system" }),
+      expect.objectContaining({ role: "user", text: "Complete the task." }),
+      expect.objectContaining({
+        role: "system",
+        text: expect.stringContaining("permission denied"),
+      }),
+    ]);
+    expect(messages.some((message) => message.role === "tool")).toBe(false);
+  });
+});
+
+describe("ChatAgentLoop rollback checkpoint", () => {
+  it("restores the last working step so earlier successful evidence survives the rollback", async () => {
+    const requests: Parameters<InferenceService["chat"]>[0][] = [];
+    const replies = [
+      generated("", [tool("python", "good-1", { source: "print('extract')" })]),
+      ...["bad-1", "bad-2", "bad-3"].map((id) =>
+        generated("", [tool("python", id, { source: `raise SystemExit('${id}')` })]),
+      ),
+      generated("Recovered."),
+    ];
+    const loop = new ChatAgentLoop(model(replies, requests));
+    const executor = {
+      async execute(run: Parameters<typeof source>[0]) {
+        const failing = source(run).startsWith("raise");
+        return execution(source(run), failing ? "boom" : "", failing ? 1 : 0);
+      },
+    };
+
+    await loop.run(input(executor, ["python"]));
+
+    const messages = requests[4]?.messages ?? [];
+    expect(messages).toEqual([
+      expect.objectContaining({ role: "system" }),
+      expect.objectContaining({ role: "user", text: "Complete the task." }),
+      expect.objectContaining({
+        role: "assistant",
+        toolCalls: [tool("python", "good-1", { source: "print('extract')" })],
+      }),
+      expect.objectContaining({ role: "tool", toolCallId: "good-1" }),
+      expect.objectContaining({ role: "system", text: expect.stringContaining("boom") }),
+    ]);
+  });
+});
+
+describe("ChatAgentLoop inference recovery", () => {
+  it("compacts established history and retries once after an inference failure", async () => {
+    const requests: Parameters<InferenceService["chat"]>[0][] = [];
+    const replies = [
+      generated("", [tool("list", "call-1", { path: "/source" })]),
+      generated("Recovered context."),
+      generated("Done after retry."),
+    ];
+    let call = 0;
+    const loop = new ChatAgentLoop({
+      async chat(request) {
+        requests.push(structuredClone(request));
+        call += 1;
+        if (call === 2) throw new Error("context window exceeded");
+        return replies.shift() as ReturnType<typeof generated>;
+      },
+    });
+    const executor = {
+      async execute(run: Parameters<typeof source>[0]) {
+        return execution(source(run));
+      },
+      async inspect(run: Parameters<typeof source>[0]) {
+        return execution(source(run));
+      },
+    };
+
+    const result = await loop.run(
+      input(executor, ["list"], {
+        history: {
+          messages: [
+            { role: "user", content: "old question" },
+            { role: "assistant", content: "old answer" },
+            { role: "user", content: "recent question" },
+            { role: "assistant", content: "recent answer" },
+          ],
+        },
+      }),
+    );
+
+    expect(result.response).toBe("Done after retry.");
+    expect(requests[2]?.tools).toEqual([]);
+    expect(requests[3]?.messages).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          role: "user",
+          text: expect.stringContaining("<anchored-summary>"),
+        }),
+      ]),
+    );
+  });
+});

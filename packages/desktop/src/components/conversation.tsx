@@ -1,11 +1,9 @@
 import type { AgentArtifactSummary, AgentRunPerformance, AttachmentSummary } from "@vault/shared";
 import { useLayoutEffect, useRef } from "react";
 import type { ArtifactSaveResult } from "../artifact-actions.js";
-import type { ContinuationQuestion } from "../continuation.js";
 import type { TimelineItem } from "../state.js";
 import { EmptyConversation } from "./empty-conversation.js";
 import { attachmentsByUserMessage } from "./message-attachments.js";
-import { QuestionTool } from "./question-tool.js";
 import { RunProgress } from "./run-progress.js";
 import { type OrderedEntry, TimelineEntries } from "./timeline-entries.js";
 
@@ -26,9 +24,6 @@ interface ConversationProps {
   runId: string | undefined;
   thinking: string | null;
   working?: boolean | undefined;
-  continuation?: ContinuationQuestion | undefined;
-  onContinue?: (() => void) | undefined;
-  onDismissContinuation?: (() => void) | undefined;
 }
 
 function showsInConversation(item: TimelineItem): boolean {
@@ -55,30 +50,6 @@ export function isNearConversationBottom(
   return scrollHeight - scrollTop - clientHeight <= 48;
 }
 
-function ContinuationPrompt({
-  continuation,
-  onContinue,
-  onDismissContinuation,
-  ready,
-}: Pick<ConversationProps, "continuation" | "onContinue" | "onDismissContinuation" | "ready">) {
-  if (
-    continuation === undefined ||
-    onContinue === undefined ||
-    onDismissContinuation === undefined
-  ) {
-    return null;
-  }
-  return (
-    <QuestionTool
-      disabled={!ready}
-      done={continuation.done}
-      total={continuation.total}
-      onContinue={onContinue}
-      onDismiss={onDismissContinuation}
-    />
-  );
-}
-
 // biome-ignore lint/complexity/noExcessiveLinesPerFunction: one conversation composition boundary; entries and metrics live in timeline-entries.
 export function Conversation({
   artifacts,
@@ -97,9 +68,6 @@ export function Conversation({
   runId,
   thinking,
   working = false,
-  continuation,
-  onContinue,
-  onDismissContinuation,
 }: ConversationProps) {
   const entries = conversationEntries(timeline);
   const scrollContainer = useRef<HTMLElement>(null);
@@ -154,12 +122,6 @@ export function Conversation({
         {working && (thinking === null || thinking.length === 0) ? (
           <RunProgress runId={runId} timeline={timeline} />
         ) : null}
-        <ContinuationPrompt
-          continuation={continuation}
-          onContinue={onContinue}
-          onDismissContinuation={onDismissContinuation}
-          ready={ready}
-        />
       </div>
     </section>
   );

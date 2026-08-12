@@ -4,10 +4,7 @@ import { readSourceFiles } from "../prompt-files.js";
 
 const FORBIDDEN =
   /\b(?:xlsx|docx|pdf|openpyxl|pypdf|python-docx|reportlab|avans|salari|tranzac)\b/iu;
-const ALLOWED = new Set([
-  resolve(process.cwd(), "packages/core/src/agent/records.ts"),
-  resolve(process.cwd(), "packages/core/src/agent/prompt-compaction.test.ts"),
-]);
+const ALLOWED = new Set([resolve(process.cwd(), "packages/core/src/agent/records.ts")]);
 
 describe("generic agent architecture boundary", () => {
   it("keeps document-format policy out of core and shared implementation sources", () => {

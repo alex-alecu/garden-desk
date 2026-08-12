@@ -79,7 +79,10 @@ async function runSmallSuite(
           deadlineMs: CONCURRENT_DEADLINE_MS,
         })
       : { maximumRunning: 0, wallMs: 0, evidence: [] };
-  const modelAfter = await requireRealModel(runtime.endpoint);
+  const inferenceRan = [...sequential, ...concurrent.evidence].some(
+    (item) => item.trace.captureVersion === 1 && item.trace.turns.length > 0,
+  );
+  const modelAfter = await requireRealModel(runtime.endpoint, inferenceRan);
   return { policyCases, modelBefore, modelAfter, sequential, concurrent };
 }
 

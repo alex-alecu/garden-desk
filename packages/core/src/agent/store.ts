@@ -134,12 +134,12 @@ export class AgentStore {
   async materializeAttachment(sessionId: string, attachmentId: string): Promise<string> {
     return await materializeAttachment(this.database, this.artifacts, sessionId, attachmentId);
   }
-
-  createRun(sessionId: string, jobId: string): AgentRunSummary {
+  createRun(sessionId: string, jobId: string, parentRunId?: string): AgentRunSummary {
     const now = new Date().toISOString();
     const result = AgentRunSummarySchema.parse({
       id: randomUUID(),
       sessionId,
+      parentRunId: parentRunId ?? null,
       jobId,
       state: "queued",
       response: null,
@@ -149,11 +149,12 @@ export class AgentStore {
     });
     this.database
       .prepare(
-        "INSERT INTO agent_runs (id, session_id, job_id, state, response, error, created_at, updated_at, performance_json, trace_version) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1)",
+        "INSERT INTO agent_runs (id, session_id, parent_run_id, job_id, state, response, error, created_at, updated_at, performance_json, trace_version) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)",
       )
       .run(
         result.id,
         result.sessionId,
+        result.parentRunId,
         result.jobId,
         result.state,
         null,
@@ -164,7 +165,6 @@ export class AgentStore {
       );
     return result;
   }
-
   transitionRun(id: string, transition: RunTransition): void {
     const updatedAt = new Date().toISOString();
     const update = this.database
@@ -181,7 +181,6 @@ export class AgentStore {
       );
     if (update.changes !== 1) throw new Error("run_not_found");
   }
-
   appendEvent(
     runId: string,
     type: AgentEventType,
@@ -194,20 +193,12 @@ export class AgentStore {
       sequence: nextEventSequence(this.database, runId),
       type,
       summary,
-      language: detail.language ?? null,
-      path: detail.path ?? null,
-      source: detail.source ?? null,
-      command: detail.command ?? null,
-      exitCode: detail.exitCode ?? null,
-      stdout: detail.stdout ?? null,
-      stderr: detail.stderr ?? null,
-      durationMs: detail.durationMs ?? null,
-      termination: detail.termination ?? null,
+      ...detail,
       createdAt: new Date().toISOString(),
     });
     this.database
       .prepare(
-        "INSERT INTO agent_events (id, run_id, sequence, event_type, summary, language, code, stdout, stderr, termination, created_at, workspace_path, command, exit_code, duration_ms) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        "INSERT INTO agent_events (id, run_id, sequence, event_type, summary, tool_name, tool_call_id, language, code, stdout, stderr, termination, created_at, workspace_path, command, exit_code, duration_ms) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
       )
       .run(
         item.id,
@@ -215,6 +206,8 @@ export class AgentStore {
         item.sequence,
         item.type,
         item.summary,
+        item.toolName,
+        item.toolCallId,
         item.language,
         item.source,
         item.stdout,
@@ -228,7 +221,6 @@ export class AgentStore {
       );
     return item;
   }
-
   addArtifact(
     runId: string,
     input: Omit<AgentArtifactSummary, "id" | "runId" | "createdAt">,
@@ -280,7 +272,7 @@ export class AgentStore {
   listRuns(sessionId: string): AgentRunSummary[] {
     const rows = this.database
       .prepare(
-        "SELECT * FROM (SELECT * FROM agent_runs WHERE session_id = ? ORDER BY created_at DESC, id DESC LIMIT 100) ORDER BY created_at, id",
+        "SELECT * FROM (SELECT * FROM agent_runs WHERE session_id = ? AND parent_run_id IS NULL ORDER BY created_at DESC, id DESC LIMIT 100) ORDER BY created_at, id",
       )
       .all(sessionId) as RunRow[];
     return rows.map(runFromRow);

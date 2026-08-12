@@ -1,29 +1,18 @@
+import { randomUUID } from "node:crypto";
 import {
   type AgentSessionSummary,
   type ConversationMessage,
+  JobIdSchema,
   MAX_ANCHORED_SUMMARY_CHARACTERS,
 } from "@vault/shared";
 import type { InferenceService } from "../runtime/inference.js";
-import { createGenerationRequest } from "../runtime/inference.js";
-import type { PromptLibrary } from "./prompt-library.js";
+import type { MarkdownDefinitionLibrary } from "./markdown-definition-library.js";
+import type { AgentTraceStore } from "./trace-store.js";
 
-const SUMMARY_OUTPUT_TOKENS = 1_024;
-const MINIMUM_CONTEXT_TOKENS = 16_384;
+const SUMMARY_OUTPUT_TOKENS = 2_048;
+const MINIMUM_CONTEXT_TOKENS = 8_192;
 const MINIMUM_SUMMARIZED_MESSAGES = 4;
-const MAX_MESSAGE_CHARACTERS = 2_000;
-const SUMMARY_SCHEMA = {
-  type: "object",
-  properties: {
-    summary: {
-      type: "array",
-      items: { type: "string", maxLength: 512 },
-      minItems: 1,
-      maxItems: 40,
-    },
-  },
-  required: ["summary"],
-  additionalProperties: false,
-} as const;
+const MAX_MESSAGE_CHARACTERS = 4_000;
 
 function truncate(value: string): string {
   return value.length <= MAX_MESSAGE_CHARACTERS
@@ -40,57 +29,28 @@ function conversationText(messages: readonly ConversationMessage[]): string {
     .join("\n\n");
 }
 
-function anchorInstruction(previous: string | undefined): string {
-  return previous === undefined
-    ? "Create a new anchored summary from the conversation history."
-    : `Update the anchored summary below using the conversation history. Preserve still-true details, remove stale details, and merge in new facts.\n\n<previous-summary>\n${previous}\n</previous-summary>`;
+function prompt(input: SessionSummaryInput, messages: readonly ConversationMessage[]): string {
+  const anchor = input.previous?.text
+    ? `Update this existing anchored summary and preserve facts that remain true:\n<previous-summary>\n${input.previous.text}\n</previous-summary>`
+    : "Create a new anchored summary.";
+  return input.library
+    .system("session-summary")
+    .replace("{{anchor_instruction}}", anchor)
+    .replace("{{conversation}}", conversationText(messages));
 }
 
-function summaryPrompt(input: SessionSummaryInput, messages: readonly ConversationMessage[]) {
-  return input.library.system("session-summary", {
-    anchor_instruction: anchorInstruction(input.previous?.text),
-    conversation: conversationText(messages),
-  });
-}
-
-function summaryRetryPrompt(input: SessionSummaryInput, prompt: string): string {
-  return `${prompt}\n\n${input.library.recovery("session-summary-call")}`;
-}
-
-function summaryRequestTokens(
-  input: SessionSummaryInput,
-  messages: readonly ConversationMessage[],
-) {
-  return Math.ceil(
-    JSON.stringify({
-      modelId: input.modelId,
-      prompt: summaryRetryPrompt(input, summaryPrompt(input, messages)),
-      jsonSchema: SUMMARY_SCHEMA,
-      contextSize: "auto",
-      maxTokens: SUMMARY_OUTPUT_TOKENS,
-    }).length / 4,
-  );
-}
-
-function summaryFromValue(value: unknown): string | undefined {
-  if (typeof value !== "object" || value === null || !("summary" in value)) return undefined;
-  const lines = (value as { summary: unknown }).summary;
-  if (!Array.isArray(lines)) return undefined;
-  const text = lines
-    .filter((line): line is string => typeof line === "string")
-    .join("\n")
-    .trim()
-    .slice(0, MAX_ANCHORED_SUMMARY_CHARACTERS);
-  return text.length === 0 ? undefined : text;
+function estimatedTokens(value: string): number {
+  return Math.ceil(value.length / 4);
 }
 
 export interface SessionSummaryInput {
   messages: readonly ConversationMessage[];
   modelId: string;
   contextTokens: number;
-  previous?: AgentSessionSummary | undefined;
-  library: PromptLibrary;
-  signal?: AbortSignal | undefined;
+  previous?: AgentSessionSummary;
+  library: MarkdownDefinitionLibrary;
+  signal?: AbortSignal;
+  trace?: { runId: string; store: AgentTraceStore };
 }
 
 export interface SessionSummaryResult {
@@ -99,17 +59,11 @@ export interface SessionSummaryResult {
   coveredMessageCount: number;
 }
 
-export interface SessionSummaryRefresh {
+export interface SessionSummaryRefresh extends SessionSummaryInput {
   sessionId: string;
   runId: string;
-  contextTokens: number;
-  /**
-   * Read lazily inside this module's failure boundary so a conversation-read failure
-   * can never escape into an already-finalized run's error handling.
-   */
   loadMessages: () => readonly ConversationMessage[];
-  modelId: string;
-  library: PromptLibrary;
+  messages: readonly ConversationMessage[];
   store: {
     load(sessionId: string): AgentSessionSummary | undefined;
     save(input: {
@@ -120,119 +74,105 @@ export interface SessionSummaryRefresh {
       coveredMessageCount: number;
     }): AgentSessionSummary;
   };
-  signal?: AbortSignal | undefined;
 }
 
-/**
- * Refreshes one session's anchored summary after a run reaches terminal state. It runs
- * outside the run transaction and swallows its own failures, so continuity prose can
- * never change a completed run's persisted outcome.
- */
-export async function refreshSessionSummary(
-  inference: Pick<InferenceService, "generate">,
-  refresh: SessionSummaryRefresh,
-): Promise<AgentSessionSummary | undefined> {
-  if (refresh.signal?.aborted === true) return undefined;
-  try {
-    const summarized = await summarizeSession(inference, {
-      messages: refresh.loadMessages(),
-      modelId: refresh.modelId,
-      contextTokens: refresh.contextTokens,
-      previous: refresh.store.load(refresh.sessionId),
-      library: refresh.library,
-      signal: refresh.signal,
-    });
-    if (summarized === undefined) return undefined;
-    return refresh.store.save({
-      sessionId: refresh.sessionId,
-      runId: refresh.runId,
-      ...summarized,
-    });
-  } catch {
-    return undefined;
-  }
-}
-
-/**
- * Returns the messages this summary would newly cover. Summarizing is skipped while a
- * session is short enough for the existing history budget to carry it verbatim.
- */
 export function summarizableMessages(
   messages: readonly ConversationMessage[],
   previous: AgentSessionSummary | undefined,
 ): readonly ConversationMessage[] {
-  const anchored =
+  const covered =
     previous === undefined
       ? -1
       : messages.findIndex((message) => message.id === previous.coveredMessageId);
-  return messages.slice(anchored + 1);
+  return messages.slice(covered + 1);
 }
 
-/** Selects the largest pending prefix that fits the machine's current allocation. */
 export function fittedSummaryMessages(
   input: SessionSummaryInput,
   pending: readonly ConversationMessage[],
 ): readonly ConversationMessage[] {
-  const requestBudget = input.contextTokens - SUMMARY_OUTPUT_TOKENS;
-  let low = MINIMUM_SUMMARIZED_MESSAGES;
-  let high = pending.length;
-  let selected = 0;
-  while (low <= high) {
-    const candidate = Math.floor((low + high) / 2);
-    if (summaryRequestTokens(input, pending.slice(0, candidate)) <= requestBudget) {
-      selected = candidate;
-      low = candidate + 1;
-    } else {
-      high = candidate - 1;
+  const budget = input.contextTokens - SUMMARY_OUTPUT_TOKENS;
+  let selected = pending.length;
+  while (selected >= MINIMUM_SUMMARIZED_MESSAGES) {
+    if (estimatedTokens(prompt(input, pending.slice(0, selected))) <= budget) {
+      return pending.slice(0, selected);
     }
+    selected -= 1;
   }
-  return pending.slice(0, selected);
+  return [];
 }
 
-/**
- * Produces one anchored conversation summary. The summary is untrusted continuity
- * prose: it never carries authoritative values and never decides completion. Any
- * failure returns undefined so the caller keeps its deterministic history fallback.
- */
-export async function summarizeSession(
-  inference: Pick<InferenceService, "generate">,
-  input: SessionSummaryInput,
-): Promise<SessionSummaryResult | undefined> {
+function summaryCandidate(input: SessionSummaryInput) {
   if (input.contextTokens < MINIMUM_CONTEXT_TOKENS) return undefined;
   const pending = summarizableMessages(input.messages, input.previous);
   if (pending.length < MINIMUM_SUMMARIZED_MESSAGES) return undefined;
   const selected = fittedSummaryMessages(input, pending);
-  if (selected.length < MINIMUM_SUMMARIZED_MESSAGES) return undefined;
   const last = selected.at(-1);
-  if (last === undefined) return undefined;
-  const prompt = summaryPrompt(input, selected);
+  return last === undefined ? undefined : { last, selected };
+}
+
+export async function summarizeSession(
+  inference: Pick<InferenceService, "chat">,
+  input: SessionSummaryInput,
+): Promise<SessionSummaryResult | undefined> {
+  const candidate = summaryCandidate(input);
+  if (candidate === undefined) return undefined;
+  const { last, selected } = candidate;
+  const identity = { requestId: randomUUID(), jobId: JobIdSchema.parse(randomUUID()) };
+  const request = {
+    modelId: input.modelId,
+    messages: [
+      { role: "system" as const, text: "Produce only the requested anchored summary." },
+      { role: "user" as const, text: prompt(input, selected) },
+    ],
+    tools: [],
+    contextSize: "auto" as const,
+    maxTokens: SUMMARY_OUTPUT_TOKENS,
+    temperature: 0,
+  };
+  const turnId = await input.trace?.store.begin(input.trace.runId, "compaction", {
+    input: request,
+    ...identity,
+  });
   try {
-    const generate = async (effectivePrompt: string) => {
-      const request = createGenerationRequest({
-        modelId: input.modelId,
-        prompt: effectivePrompt,
-        jsonSchema: SUMMARY_SCHEMA as unknown as Record<string, unknown>,
-        contextSize: "auto",
-        maxTokens: SUMMARY_OUTPUT_TOKENS,
-      });
-      return await inference.generate(request.input, input.signal, undefined, request.identity);
-    };
-    let generated: Awaited<ReturnType<InferenceService["generate"]>>;
-    try {
-      generated = await generate(prompt);
-    } catch (error) {
-      if (!String(error).includes("structured_tool_call_required")) throw error;
-      generated = await generate(summaryRetryPrompt(input, prompt));
+    const generated = await inference.chat(request, input.signal, undefined, identity);
+    const text = generated.text.trim().slice(0, MAX_ANCHORED_SUMMARY_CHARACTERS);
+    if (text.length === 0) return undefined;
+    if (turnId !== undefined) {
+      await input.trace?.store.captureResponse(
+        turnId,
+        { text },
+        generated.memory.contextSizeTokens,
+      );
+      input.trace?.store.recordOutcome(turnId, "accepted_compaction");
     }
-    const text = summaryFromValue(generated.value);
-    if (text === undefined) return undefined;
     return {
       text,
       coveredMessageId: last.id,
       coveredMessageCount: input.messages.findIndex((message) => message.id === last.id) + 1,
     };
   } catch {
-    // A failed summary is never fatal: history falls back to its deterministic excerpts.
+    if (turnId !== undefined)
+      input.trace?.store.recordOutcome(
+        turnId,
+        input.signal?.aborted ? "cancelled" : "inference_failed",
+      );
     return undefined;
   }
+}
+
+export async function refreshSessionSummary(
+  inference: Pick<InferenceService, "chat">,
+  refresh: Omit<SessionSummaryRefresh, "messages" | "previous">,
+): Promise<AgentSessionSummary | undefined> {
+  if (refresh.signal?.aborted) return undefined;
+  const previous = refresh.store.load(refresh.sessionId);
+  const summarized = await summarizeSession(inference, {
+    ...refresh,
+    messages: refresh.loadMessages(),
+    ...(previous === undefined ? {} : { previous }),
+  });
+  return summarized === undefined
+    ? undefined
+    : refresh.store.save({ sessionId: refresh.sessionId, runId: refresh.runId, ...summarized });
 }

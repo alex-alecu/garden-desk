@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { resolve } from "node:path";
 import type {
   AgentRunSnapshot,
   AgentRunSummary,
@@ -13,18 +14,15 @@ import type { JobStore } from "../jobs/jobs.js";
 import type { InferenceService } from "../runtime/inference.js";
 import type { ArtifactStore } from "../workspace/artifacts.js";
 import type { DatabasePort } from "../workspace/database.js";
-import { prepareDeclaredArtifacts } from "./artifact-declarations.js";
 import { ArtifactMaterializer } from "./artifact-materialization.js";
+import { prepareArtifacts } from "./artifact-results.js";
 import { materializeAndAuditAttachment } from "./attachment-materialization.js";
-import { resolveAgentTask } from "./continuation.js";
-import { historyForSession } from "./history.js";
 import { AgentInputResolver } from "./inputs.js";
 import { AGENT_MODEL_ID, AGENT_WORKER_LIMITS } from "./limits.js";
-import { AgentLoop } from "./loop.js";
-import { defaultPromptLibrary, type PromptLibrary } from "./prompt-library.js";
+import { MarkdownDefinitionLibrary } from "./markdown-definition-library.js";
+import { runPrimaryAgent } from "./primary-run.js";
 import { AgentRunCapacity } from "./run-capacity.js";
 import type { ActiveRun } from "./service-active.js";
-import { createRunExecutor } from "./service-executor.js";
 import { agentFailureEvent, agentFailureText, runPerformance } from "./service-results.js";
 import { AgentSessionManager } from "./session-manager.js";
 import { refreshSessionSummary } from "./session-summary.js";
@@ -46,12 +44,13 @@ export class AgentService {
     private readonly conversations: ConversationStore,
     private readonly jobs: JobStore,
     private readonly artifacts: ArtifactStore,
-    private readonly inference: Pick<InferenceService, "generate"> &
-      Partial<Pick<InferenceService, "modelStatus">>,
+    private readonly inference: Partial<
+      Pick<InferenceService, "chat" | "generate" | "modelStatus">
+    >,
     launcher: CodeAgentLauncher,
     private readonly audit: AuditLog,
     maximumConcurrentRuns = 1,
-    private readonly promptLibrary: PromptLibrary = defaultPromptLibrary(),
+    private readonly definitions = new MarkdownDefinitionLibrary(resolve(process.cwd(), "prompts")),
   ) {
     this.artifactMaterializer = new ArtifactMaterializer(database, artifacts, audit);
     this.summaries = new SessionSummaryStore(database);
@@ -150,11 +149,11 @@ export class AgentService {
   async trace(runId: string): Promise<AgentTrace> {
     return await this.store.trace.get(runId);
   }
-  private async contextTokens(): Promise<number> {
+  private async contextTokens(): Promise<number | "auto"> {
     try {
-      return (await this.inference.modelStatus?.())?.contextSizeTokens ?? 8_192;
+      return (await this.inference.modelStatus?.())?.contextSizeTokens ?? "auto";
     } catch {
-      return 8_192;
+      return "auto";
     }
   }
   warmSession(sessionId: string): Promise<void> {
@@ -177,6 +176,25 @@ export class AgentService {
     active?.controller.abort(new DOMException("Agent run cancelled.", "AbortError"));
     return cancelled;
   }
+  private failRun(run: AgentRunSummary, signal: AbortSignal, error: unknown): void {
+    const cancelled = signal.aborted || this.jobs.isCancellationRequested(run.jobId);
+    const state = cancelled ? "cancelled" : "failed";
+    const detail = cancelled ? "cancelled" : agentFailureText(error);
+    const event = agentFailureEvent(cancelled, detail);
+    const active = this.active.get(run.jobId);
+    if (active !== undefined) active.thinking = null;
+    this.database.transaction(() => {
+      this.store.execution.failIncomplete(run.id, cancelled);
+      this.store.transitionRun(run.id, { state, error: detail });
+      if (!cancelled) this.jobs.transition(run.jobId, "failed");
+      this.store.appendEvent(run.id, event.type, event.summary, event.detail);
+    })();
+    this.audit.append({
+      type: "agent.completed",
+      outcome: "failed",
+      metadata: { runId: run.id, jobId: run.jobId, code: detail },
+    });
+  }
   // biome-ignore lint/complexity/noExcessiveLinesPerFunction: the run lifecycle stays linear so cleanup and terminal persistence remain paired.
   private async execute(run: AgentRunSummary, task: string, signal: AbortSignal): Promise<void> {
     let releaseCapacity: (() => void) | undefined;
@@ -189,47 +207,42 @@ export class AgentService {
         this.store.appendEvent(
           run.id,
           "run.started",
-          "Offline limits: live read-only source, 6 executions, 120 seconds each, 4 CPUs, 4 GiB memory, and a persistent 128 MiB workspace.",
+          "Offline limits: live read-only source, 40 model turns, 24 guest executions, 120 seconds each, 4 CPUs, 4 GiB memory, and a persistent 128 MiB workspace.",
         );
       })();
       const messages = this.conversations.listMessages(run.sessionId);
       const anchored = this.summaries.load(run.sessionId);
       const history = {
-        messages: messages.slice(0, -1),
-        runs: historyForSession(this.database, run.sessionId, run.id),
-        summary: anchored?.text,
+        messages:
+          anchored === undefined
+            ? messages.slice(0, -1)
+            : messages.slice(anchored.coveredMessageCount, -1),
+        ...(anchored === undefined ? {} : { summary: anchored.text }),
       };
-      const resolvedTask = resolveAgentTask(task, history);
-      const contextTokens = await this.contextTokens();
-      const loop = new AgentLoop(
-        this.inference,
-        createRunExecutor({
-          runId: run.id,
-          sessionId: run.sessionId,
-          store: this.store,
-          sessions: this.sessions,
-        }),
+      const contextTokens = "auto" as const;
+      if (this.inference.chat === undefined) throw new Error("agent_chat_unavailable");
+      const chat = this.inference.chat.bind(this.inference);
+      const result = await runPrimaryAgent({
+        chat,
         contextTokens,
-      );
-      const result = await loop.run({
-        task: resolvedTask.task,
-        continuation: resolvedTask.continuation,
-        modelId: AGENT_MODEL_ID,
-        inputNames: this.store.listAttachments(run.sessionId).map((item) => item.name),
+        database: this.database,
+        definitions: this.definitions,
         history,
-        promptLibrary: this.promptLibrary,
-        signal,
+        jobs: this.jobs,
         onThinking: (thinking) => {
           const active = this.active.get(run.jobId);
           if (active !== undefined) active.thinking = thinking;
         },
-        trace: { runId: run.id, store: this.store.trace },
-        onEvent: (type, summary, detail) => this.store.appendEvent(run.id, type, summary, detail),
+        run,
+        sessions: this.sessions,
+        signal,
+        store: this.store,
+        task,
       });
       const performance = runPerformance(result, run.createdAt);
       const active = this.active.get(run.jobId);
       if (active !== undefined) active.thinking = null;
-      const deliverables = await prepareDeclaredArtifacts(
+      const deliverables = await prepareArtifacts(
         result.artifacts,
         result.executions,
         this.artifacts,
@@ -249,34 +262,23 @@ export class AgentService {
         outcome: "succeeded",
         metadata: { runId: run.id, jobId: run.jobId, executions: result.executions.length },
       });
-      await refreshSessionSummary(this.inference, {
-        sessionId: run.sessionId,
-        runId: run.id,
-        contextTokens,
-        loadMessages: () => this.conversations.listMessages(run.sessionId),
-        modelId: AGENT_MODEL_ID,
-        library: this.promptLibrary,
-        store: this.summaries,
-        signal,
-      });
+      const summaryContextTokens = await this.contextTokens();
+      await refreshSessionSummary(
+        { chat },
+        {
+          sessionId: run.sessionId,
+          runId: run.id,
+          contextTokens: summaryContextTokens === "auto" ? 8_192 : summaryContextTokens,
+          loadMessages: () => this.conversations.listMessages(run.sessionId),
+          modelId: AGENT_MODEL_ID,
+          library: this.definitions,
+          store: this.summaries,
+          signal,
+          trace: { runId: run.id, store: this.store.trace },
+        },
+      );
     } catch (error) {
-      const cancelled = signal.aborted || this.jobs.isCancellationRequested(run.jobId);
-      const state = cancelled ? "cancelled" : "failed";
-      const detail = cancelled ? "cancelled" : agentFailureText(error);
-      const event = agentFailureEvent(cancelled, detail);
-      const active = this.active.get(run.jobId);
-      if (active !== undefined) active.thinking = null;
-      this.database.transaction(() => {
-        this.store.execution.failIncomplete(run.id, cancelled);
-        this.store.transitionRun(run.id, { state, error: detail });
-        if (!cancelled) this.jobs.transition(run.jobId, "failed");
-        this.store.appendEvent(run.id, event.type, event.summary, event.detail);
-      })();
-      this.audit.append({
-        type: "agent.completed",
-        outcome: "failed",
-        metadata: { runId: run.id, jobId: run.jobId, code: detail },
-      });
+      this.failRun(run, signal, error);
     } finally {
       releaseCapacity?.();
     }

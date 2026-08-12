@@ -12,6 +12,79 @@ function memoryReport(request: { contextSize: number | "auto" }, budgetBytes: nu
   };
 }
 
+function probeResponse(request: InferenceWorkerRequest): InferenceWorkerResponse {
+  return {
+    protocolVersion: 1,
+    requestId: request.requestId,
+    status: "ok",
+    operation: "probe",
+    networkDenied: true,
+    credentialEnvironmentAbsent: true,
+    shellEnvironmentAbsent: true,
+    workspaceDenied: true,
+    outOfScopeReadDenied: true,
+    outOfScopeWriteDenied: true,
+    executableToolsDenied: true,
+    nodeReexecDenied: true,
+  };
+}
+
+function embedResponse(
+  request: Extract<InferenceWorkerRequest, { operation: "embed" }>,
+  memoryBudgetBytes: number,
+): InferenceWorkerResponse {
+  return {
+    protocolVersion: 1,
+    requestId: request.requestId,
+    status: "ok",
+    operation: "embed",
+    vector: [request.input.length, 1],
+    memory: memoryReport(request, memoryBudgetBytes),
+  };
+}
+
+function fakePerformance() {
+  return {
+    promptTokens: 2,
+    outputTokens: 1,
+    promptDurationMs: 2,
+    generationDurationMs: 1,
+    totalDurationMs: 3,
+  };
+}
+
+function chatResponse(
+  request: Extract<InferenceWorkerRequest, { operation: "chat" }>,
+  memoryBudgetBytes: number,
+): InferenceWorkerResponse {
+  return {
+    protocolVersion: 1,
+    requestId: request.requestId,
+    status: "ok",
+    operation: "chat",
+    text: "",
+    toolCalls: [],
+    stopReason: "text",
+    memory: memoryReport(request, memoryBudgetBytes),
+    performance: fakePerformance(),
+  };
+}
+
+function generateResponse(
+  request: Exclude<InferenceWorkerRequest, { operation: "probe" | "embed" | "chat" }>,
+  memoryBudgetBytes: number,
+): InferenceWorkerResponse {
+  return {
+    protocolVersion: 1,
+    requestId: request.requestId,
+    status: "ok",
+    operation: "generate",
+    value: { result: request.prompt },
+    memory: memoryReport(request, memoryBudgetBytes),
+    performance: fakePerformance(),
+  };
+}
+
 export class FakeInferenceWorker {
   async unload(): Promise<boolean> {
     return true;
@@ -22,47 +95,15 @@ export class FakeInferenceWorker {
     memoryBudgetBytes: number;
   }): Promise<InferenceWorkerResponse> {
     const { request, memoryBudgetBytes } = input;
-    if (request.operation === "probe") {
-      return {
-        protocolVersion: 1,
-        requestId: request.requestId,
-        status: "ok",
-        operation: "probe",
-        networkDenied: true,
-        credentialEnvironmentAbsent: true,
-        shellEnvironmentAbsent: true,
-        workspaceDenied: true,
-        outOfScopeReadDenied: true,
-        outOfScopeWriteDenied: true,
-        executableToolsDenied: true,
-        nodeReexecDenied: true,
-      };
+    switch (request.operation) {
+      case "probe":
+        return probeResponse(request);
+      case "embed":
+        return embedResponse(request, memoryBudgetBytes);
+      case "chat":
+        return chatResponse(request, memoryBudgetBytes);
+      case "generate":
+        return generateResponse(request, memoryBudgetBytes);
     }
-    const memory = memoryReport(request, memoryBudgetBytes);
-    if (request.operation === "embed") {
-      return {
-        protocolVersion: 1,
-        requestId: request.requestId,
-        status: "ok",
-        operation: "embed",
-        vector: [request.input.length, 1],
-        memory,
-      };
-    }
-    return {
-      protocolVersion: 1,
-      requestId: request.requestId,
-      status: "ok",
-      operation: "generate",
-      value: { result: request.prompt },
-      memory,
-      performance: {
-        promptTokens: 2,
-        outputTokens: 1,
-        promptDurationMs: 2,
-        generationDurationMs: 1,
-        totalDurationMs: 3,
-      },
-    };
   }
 }

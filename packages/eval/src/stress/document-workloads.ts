@@ -3,11 +3,22 @@ import { join } from "node:path";
 import type { FixtureEvidence } from "./document-fixtures.js";
 
 export interface DeliverableExpectation {
+  archiveFacts?: string[];
+  archiveForbiddenFacts?: string[];
   deterministic?: boolean;
   extension?: string;
+  factAlternatives?: string[][];
   facts: string[];
   forbiddenFacts?: string[];
   name?: string;
+  orderedFacts?: string[];
+  pdfMetadata?: Record<string, string>;
+  pdfRotations?: number[];
+}
+
+export interface ExpectedTableRow {
+  marker: string;
+  amount: number;
 }
 
 export interface PreparedStressCase<Id extends string = string> {
@@ -17,9 +28,11 @@ export interface PreparedStressCase<Id extends string = string> {
   fixtureMs: number;
   evidence: FixtureEvidence;
   expectedTokens: string[];
+  expectedTableRows?: ExpectedTableRow[];
   deliverables?: DeliverableExpectation[];
   forbidArtifacts?: boolean;
   maxExecutions?: number;
+  requiresDirectXlsxSource?: boolean;
   requiresContextCompaction?: boolean;
   minimumContextCompactions?: number;
 }
@@ -29,9 +42,11 @@ export interface StressCaseDefinition<Id extends string = string> {
   task: string;
   create(source: string): Promise<FixtureEvidence>;
   expected(evidence: FixtureEvidence): string[];
+  expectedTableRows?(evidence: FixtureEvidence): ExpectedTableRow[];
   deliverables?(evidence: FixtureEvidence): DeliverableExpectation[];
   forbidArtifacts?: boolean;
   maxExecutions?: number;
+  requiresDirectXlsxSource?: boolean;
   requiresContextCompaction?: boolean;
   minimumContextCompactions?: number;
 }
@@ -103,11 +118,15 @@ export async function prepareStressCase<Id extends string>(
     fixtureMs: Math.round(performance.now() - startedAt),
     evidence,
     expectedTokens: definition.expected(evidence),
+    ...(definition.expectedTableRows === undefined
+      ? {}
+      : { expectedTableRows: definition.expectedTableRows(evidence) }),
     ...(definition.deliverables === undefined
       ? {}
       : { deliverables: definition.deliverables(evidence) }),
     ...(definition.forbidArtifacts === true ? { forbidArtifacts: true } : {}),
     ...(definition.maxExecutions === undefined ? {} : { maxExecutions: definition.maxExecutions }),
+    ...(definition.requiresDirectXlsxSource === true ? { requiresDirectXlsxSource: true } : {}),
     ...(definition.requiresContextCompaction === true ? { requiresContextCompaction: true } : {}),
     ...(definition.minimumContextCompactions === undefined
       ? {}

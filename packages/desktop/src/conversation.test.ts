@@ -251,29 +251,6 @@ describe("conversation activity presentation", () => {
   });
 });
 
-describe("continuation question presentation", () => {
-  it("shows saved progress with continue and dismiss actions", () => {
-    const markup = renderToStaticMarkup(
-      createElement(Conversation, {
-        artifacts: [],
-        ready: true,
-        timeline: restoredActivity,
-        onSuggestion: () => undefined,
-        performance: null,
-        runId,
-        thinking: null,
-        continuation: { runId, done: 18, total: 50 },
-        onContinue: () => undefined,
-        onDismissContinuation: () => undefined,
-      }),
-    );
-    expect(markup).toContain("Continue this task?");
-    expect(markup).toContain("Processed 18 of 50 items");
-    expect(markup).toContain("Continue from saved progress");
-    expect(markup).toContain('aria-label="Dismiss continuation question"');
-  });
-});
-
 describe("conversation step selection", () => {
   it("exposes each activity step as a labelled button and marks the selected one", () => {
     const markup = renderToStaticMarkup(

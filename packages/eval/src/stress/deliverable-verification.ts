@@ -1,7 +1,11 @@
 import { rm } from "node:fs/promises";
 import { dirname } from "node:path";
 import { type AgentRunSnapshot, AgentRunSummarySchema, SessionSummarySchema } from "@vault/shared";
-import { extractedArtifactText } from "./artifact-text.js";
+import {
+  extractedArchiveText,
+  extractedArtifactText,
+  pdfArtifactEvidence,
+} from "./artifact-text.js";
 import type { PreparedStressCase } from "./document-workloads.js";
 
 interface VerificationCase {
@@ -67,20 +71,77 @@ async function materialize(
   return paths;
 }
 
+type DeliverableExpectation = NonNullable<PreparedStressCase["deliverables"]>[number];
+
+function missingOrderedFacts(extracted: string, facts: string[]): string[] {
+  let offset = -1;
+  return facts.filter((fact) => {
+    const next = extracted.indexOf(fact, offset + 1);
+    if (next === -1) return true;
+    offset = next;
+    return false;
+  });
+}
+
+export function missingFactAlternatives(extracted: string, groups: string[][]): string[] {
+  return groups
+    .filter((alternatives) => !alternatives.some((fact) => extracted.includes(fact)))
+    .map((alternatives) => alternatives.join("|"));
+}
+
+async function archiveMismatches(item: DeliverableExpectation, path: string): Promise<string[]> {
+  if (item.archiveFacts === undefined && item.archiveForbiddenFacts === undefined) return ["", ""];
+  const archive = await extractedArchiveText(path);
+  return [
+    (item.archiveFacts ?? []).filter((fact) => !archive.includes(fact)).join(","),
+    (item.archiveForbiddenFacts ?? []).filter((fact) => archive.includes(fact)).join(","),
+  ];
+}
+
+async function pdfMismatches(item: DeliverableExpectation, path: string): Promise<string[]> {
+  if (item.pdfMetadata === undefined && item.pdfRotations === undefined) return ["", ""];
+  const pdf = await pdfArtifactEvidence(path);
+  const metadata = Object.entries(item.pdfMetadata ?? {})
+    .filter(([key, value]) => pdf.metadata[key] !== value)
+    .map(([key]) => key)
+    .join(",");
+  const rotations =
+    item.pdfRotations === undefined ||
+    JSON.stringify(pdf.rotations) === JSON.stringify(item.pdfRotations)
+      ? ""
+      : JSON.stringify(pdf.rotations);
+  return [metadata, rotations];
+}
+
+async function deterministicMismatches(
+  item: DeliverableExpectation,
+  path: string,
+): Promise<string[]> {
+  const extracted = await extractedArtifactText(path);
+  const [archive, archiveForbidden] = await archiveMismatches(item, path);
+  const [metadata, rotations] = await pdfMismatches(item, path);
+  return [
+    `missing:${item.facts.filter((fact) => !extracted.includes(fact)).join(",")}`,
+    `alternatives:${missingFactAlternatives(extracted, item.factAlternatives ?? []).join(",")}`,
+    `forbidden:${(item.forbiddenFacts ?? []).filter((fact) => extracted.includes(fact)).join(",")}`,
+    `order:${missingOrderedFacts(extracted, item.orderedFacts ?? []).join(",")}`,
+    `archive:${archive}`,
+    `archive-forbidden:${archiveForbidden}`,
+    `metadata:${metadata}`,
+    `rotations:${rotations}`,
+  ];
+}
+
 async function verifyOneDeterministically(
-  item: NonNullable<PreparedStressCase["deliverables"]>[number],
+  item: DeliverableExpectation,
   artifact: { name: string; path: string },
   index: number,
 ): Promise<{ output: string; verified?: string }> {
   try {
-    const extracted = await extractedArtifactText(artifact.path);
-    const missing = item.facts.filter((fact) => !extracted.includes(fact));
-    const forbidden = (item.forbiddenFacts ?? []).filter((fact) => extracted.includes(fact));
-    return missing.length === 0 && forbidden.length === 0
+    const mismatches = await deterministicMismatches(item, artifact.path);
+    return mismatches.every((value) => value.endsWith(":"))
       ? { output: `VERIFIED_${index + 1}=${artifact.name}`, verified: artifact.name }
-      : {
-          output: `INVALID_${index + 1}=missing:${missing.join(",")};forbidden:${forbidden.join(",")}`,
-        };
+      : { output: `INVALID_${index + 1}=${mismatches.join(";")}` };
   } catch (error) {
     return { output: `INVALID_${index + 1}=extraction:${String(error)}` };
   }

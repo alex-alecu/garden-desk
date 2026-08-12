@@ -7,7 +7,16 @@ interface RunProgressProps {
 
 export function RunProgress({ runId, timeline }: RunProgressProps) {
   const current = timeline.filter((item) => item.kind === "activity" && item.runId === runId);
-  const completed = current.filter((item) => item.eventType === "execution.completed").length;
+  const completedTools = current.filter((item) => item.eventType === "tool.completed").length;
+  const completedExecutions = current.filter(
+    (item) => item.eventType === "execution.completed",
+  ).length;
+  const progress =
+    completedTools > 0
+      ? `${completedTools} tool call${completedTools === 1 ? "" : "s"} completed`
+      : completedExecutions > 0
+        ? `${completedExecutions} execution${completedExecutions === 1 ? "" : "s"} completed`
+        : "Planning the first tool call";
   return (
     <article className="thinking-stream run-progress">
       <header>
@@ -15,11 +24,7 @@ export function RunProgress({ runId, timeline }: RunProgressProps) {
         Working locally
       </header>
       <p>{current.at(-1)?.text ?? "Starting the task…"}</p>
-      <small>
-        {completed === 0
-          ? "Planning the first execution"
-          : `${completed} execution${completed === 1 ? "" : "s"} completed`}
-      </small>
+      <small>{progress}</small>
     </article>
   );
 }

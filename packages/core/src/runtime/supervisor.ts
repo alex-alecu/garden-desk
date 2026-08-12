@@ -1,20 +1,12 @@
-import { randomUUID } from "node:crypto";
+import type { AuditEventInput, InferenceOperation, InferenceWorkerRequest } from "@vault/shared";
 import type {
-  AuditEventInput,
-  EmbeddingResult,
-  InferenceOperation,
-  InferenceWorkerRequest,
-  StructuredGenerationResult,
-} from "@vault/shared";
-import { JobIdSchema } from "@vault/shared";
-import type {
+  ChatInput,
   EmbeddingInput,
   GenerationInput,
   GenerationRequestIdentity,
   InferencePort,
   InferenceService,
 } from "./inference.js";
-import { createGenerationRequest } from "./inference.js";
 import { recordInferenceAudit } from "./inference-audit.js";
 import {
   InferenceFailure,
@@ -31,6 +23,14 @@ import {
 import type { ModelResolver } from "./models.js";
 import type { ResourceScheduler } from "./scheduler.js";
 import { AsyncSerial } from "./serial.js";
+import {
+  createChatWorkerRequest,
+  createEmbedWorkerRequest,
+  createGenerateWorkerRequest,
+  expectChatResponse,
+  expectEmbedResponse,
+  expectGenerateResponse,
+} from "./supervisor-requests.js";
 
 type AuditAppender = (event: AuditEventInput) => void;
 type ResourceLease = ReturnType<ResourceScheduler["reserve"]>;
@@ -113,7 +113,7 @@ export class InferenceSupervisor implements InferenceService {
         "Inference response operation mismatch.",
       );
     }
-    if (response.operation === "generate") {
+    if (response.operation === "generate" || response.operation === "chat") {
       this.measurements = generationMeasurements(response.memory);
     }
     recordInferenceAudit(this.audit, {
@@ -258,39 +258,31 @@ export class InferenceSupervisor implements InferenceService {
     signal?: AbortSignal,
     onThinkingDelta?: (text: string) => void,
     identity?: GenerationRequestIdentity,
-  ): Promise<StructuredGenerationResult> {
-    const request = createGenerationRequest(input, identity);
+  ) {
     const response = await this.run(
-      {
-        protocolVersion: 1,
-        requestId: request.identity.requestId,
-        jobId: request.identity.jobId,
-        operation: "generate",
-        ...request.input,
-      },
+      createGenerateWorkerRequest(input, identity),
       signal,
       onThinkingDelta,
     );
-    if (response.status !== "ok" || response.operation !== "generate") {
-      throw new Error("unexpected_inference_response");
-    }
-    return response;
+    return expectGenerateResponse(response);
   }
 
-  async embed(input: EmbeddingInput, signal?: AbortSignal): Promise<EmbeddingResult> {
+  async chat(
+    input: ChatInput,
+    signal?: AbortSignal,
+    onThinkingDelta?: (text: string) => void,
+    identity?: GenerationRequestIdentity,
+  ) {
     const response = await this.run(
-      {
-        protocolVersion: 1,
-        requestId: randomUUID(),
-        jobId: JobIdSchema.parse(randomUUID()),
-        operation: "embed",
-        ...input,
-      },
+      createChatWorkerRequest(input, identity),
       signal,
+      onThinkingDelta,
     );
-    if (response.status !== "ok" || response.operation !== "embed") {
-      throw new Error("unexpected_inference_response");
-    }
-    return response;
+    return expectChatResponse(response);
+  }
+
+  async embed(input: EmbeddingInput, signal?: AbortSignal) {
+    const response = await this.run(createEmbedWorkerRequest(input), signal);
+    return expectEmbedResponse(response);
   }
 }

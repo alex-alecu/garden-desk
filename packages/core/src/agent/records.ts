@@ -30,6 +30,7 @@ export function nextEventSequence(database: DatabasePort, runId: string): number
 export interface RunRow {
   id: string;
   session_id: string;
+  parent_run_id: string | null;
   job_id: string;
   state: string;
   response: string | null;
@@ -45,6 +46,8 @@ export interface EventRow {
   sequence: number;
   event_type: string;
   summary: string;
+  tool_name: string | null;
+  tool_call_id: string | null;
   language: string | null;
   code: string | null;
   workspace_path: string | null;
@@ -108,6 +111,7 @@ export function runFromRow(row: RunRow): AgentRunSummary {
   return AgentRunSummarySchema.parse({
     id: row.id,
     sessionId: row.session_id,
+    parentRunId: row.parent_run_id,
     jobId: row.job_id,
     state: row.state,
     response: row.response,
@@ -125,6 +129,8 @@ export function eventFromRow(row: EventRow): AgentEvent {
     sequence: row.sequence,
     type: row.event_type,
     summary: row.summary,
+    toolName: row.tool_name,
+    toolCallId: row.tool_call_id,
     language: row.language,
     path: row.workspace_path,
     source: row.code,
