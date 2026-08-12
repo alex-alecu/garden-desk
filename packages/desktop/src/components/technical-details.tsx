@@ -17,7 +17,9 @@ import { DrawerResizeHandle, useDrawerResize } from "./drawer-resize.js";
 import { Icon } from "./icons.js";
 import { StepList } from "./step-list.js";
 import { selectAdjacentTab } from "./tab-keyboard.js";
+import { sessionTitle } from "./technical-details-title.js";
 import { TechnicalModelUsage } from "./technical-model-usage.js";
+import { TranscriptCopy } from "./transcript-copy.js";
 
 export { shouldFollowLog } from "./technical-logs.js";
 
@@ -140,6 +142,7 @@ function Overview({
   timeline,
   contextUsedTokens,
   contextAllocatedTokens,
+  artifacts,
 }: TechnicalDetailsProps) {
   const limits = timeline.find((item) => item.eventType === "run.started")?.text;
   return (
@@ -162,6 +165,14 @@ function Overview({
             key={sessionId}
             nativeActionMessage={nativeActionMessage}
             sessionId={sessionId}
+          />
+          <TranscriptCopy
+            artifacts={artifacts}
+            executions={executions}
+            nativeActionMessage={nativeActionMessage}
+            sessionId={sessionId}
+            timeline={timeline}
+            title={sessionTitle(timeline, sessionId)}
           />
         </article>
       )}

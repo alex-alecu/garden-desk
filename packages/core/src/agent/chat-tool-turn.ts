@@ -71,7 +71,7 @@ function beforeExecution(input: ToolTurnInput, call: ChatToolCall, repeated: boo
   input.onEvent?.("tool.started", toolStartedSummary(call), detail);
   if (call.name === "task") input.onEvent?.("subagent.started", subagentTitle(call), detail);
   if (CODE_TOOLS.has(call.name) && !repeated) {
-    input.onEvent?.("execution.started", `Running ${call.name}.`, detail);
+    input.onEvent?.("execution.started", "Running code.", detail);
   }
 }
 

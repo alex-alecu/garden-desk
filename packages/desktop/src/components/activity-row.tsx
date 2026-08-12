@@ -37,20 +37,24 @@ function iconFor(row: ActivityRow): IconName {
 export function ActivityRowView({
   row,
   onOpenDetails,
+  live,
 }: {
   row: ActivityRow;
   onOpenDetails(row: ActivityRow): void;
+  live: boolean;
 }) {
   const [expanded, setExpanded] = useState(false);
   const hasDetail = row.detail !== undefined && row.detail.length > 0;
+  const shimmering = live && row.status === "running";
+  const visualStatus = shimmering ? "running" : row.status === "running" ? "done" : row.status;
   return (
-    <div className={`activity-row activity-row-${row.status}`} data-kind={row.kind}>
+    <div className={`activity-row activity-row-${visualStatus}`} data-kind={row.kind}>
       <span aria-hidden="true" className="activity-row-icon">
         <Icon name={iconFor(row)} />
       </span>
       <button
         aria-expanded={hasDetail ? expanded : undefined}
-        className={`activity-row-label${row.status === "running" ? " activity-row-shimmer" : ""}`}
+        className={`activity-row-label${shimmering ? " activity-row-shimmer" : ""}`}
         disabled={!hasDetail}
         onClick={() => hasDetail && setExpanded((open) => !open)}
         type="button"
