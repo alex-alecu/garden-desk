@@ -111,10 +111,10 @@ export function ActivityCluster(props: ClusterProps) {
           {display.hiddenCount > 0 ? (
             <p className="activity-cluster-earlier">{display.hiddenCount} earlier steps</p>
           ) : null}
-          {display.visible.map((row) => (
+          {display.visible.map((row, index) => (
             <ActivityRowView
               key={row.id}
-              live={props.working}
+              live={props.working && index === display.visible.length - 1}
               onOpenDetails={props.onOpenDetails}
               row={row}
             />

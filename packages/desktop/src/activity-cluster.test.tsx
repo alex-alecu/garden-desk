@@ -41,6 +41,17 @@ function renderCluster(props: {
   );
 }
 
+const settledRows = [row({ id: "a" }), row({ id: "b", status: "running" })];
+const liveRows: ActivityRow[] = [
+  row({ id: "p1", kind: "thinking", status: "running", title: "Choosing the next action." }),
+  row({ id: "t1", title: "Listed /workspace." }),
+  row({ id: "p2", kind: "thinking", status: "running", title: "Choosing the next action." }),
+];
+const restoredRows: ActivityRow[] = [
+  row({ id: "p", kind: "thinking", status: "running", title: "Choosing the next action." }),
+  row({ id: "t", title: "Listed /workspace." }),
+];
+
 describe("openStateOnFinish", () => {
   it("collapses a clean finish and keeps a failed run expanded", () => {
     expect(openStateOnFinish(false)).toBe(false);
@@ -49,11 +60,9 @@ describe("openStateOnFinish", () => {
 });
 
 describe("ActivityCluster rendering", () => {
-  const rows = [row({ id: "a" }), row({ id: "b", status: "running" })];
-
   it("stays expanded and non-toggleable while working", () => {
     const markup = renderCluster({
-      rows,
+      rows: settledRows,
       working: true,
       failed: false,
       finishedDurationMs: undefined,
@@ -65,7 +74,7 @@ describe("ActivityCluster rendering", () => {
 
   it("mounts a failed run expanded so the failing row is visible", () => {
     const markup = renderCluster({
-      rows,
+      rows: settledRows,
       working: false,
       failed: true,
       finishedDurationMs: 4_000,
@@ -74,25 +83,21 @@ describe("ActivityCluster rendering", () => {
     expect(markup).toContain("failed");
   });
 
-  it("only shimmers the running row", () => {
+  it("shimmers only the last row of a live run, even with earlier running rows", () => {
     const markup = renderCluster({
-      rows,
+      rows: liveRows,
       working: true,
       failed: false,
       finishedDurationMs: undefined,
     });
     expect(markup.match(/activity-row-shimmer/gu) ?? []).toHaveLength(1);
-    expect(markup).toContain("activity-row activity-row-running");
-    expect(markup).toContain("activity-row activity-row-done");
+    expect(markup.match(/activity-row activity-row-running/gu) ?? []).toHaveLength(1);
+    expect(markup.match(/activity-row activity-row-done/gu) ?? []).toHaveLength(2);
   });
 
   it("never shimmers a restored run whose planning rows never settled", () => {
-    const planning: ActivityRow[] = [
-      row({ id: "p", kind: "thinking", status: "running", title: "Choosing the next action." }),
-      row({ id: "t", title: "Listed /workspace." }),
-    ];
     const markup = renderCluster({
-      rows: planning,
+      rows: restoredRows,
       working: false,
       failed: false,
       finishedDurationMs: 4_000,
