@@ -70,6 +70,8 @@ export function App({ api, capabilities }: { api: DesktopApi; capabilities: Desk
   )?.name;
   const running =
     submitting || state.activeRun?.state === "queued" || state.activeRun?.state === "running";
+  const sessionLoading = state.pendingSessionId !== undefined;
+  const desktopReady = state.loaded && !sessionLoading;
   const tasksAllowed = secureWorkspaceAllowsTasks(secureWorkspace.status);
   const draftPersistence = useDraftPersistence(api, setDesktopError);
   useNativeDrop({
@@ -78,7 +80,7 @@ export function App({ api, capabilities }: { api: DesktopApi; capabilities: Desk
       activeSessionId: state.activeSessionId,
       draft: state.draft,
       newSessionFolderId: state.newSessionFolderId,
-      running,
+      running: running || sessionLoading,
     },
     dispatch,
     enabled: capabilities.nativeActions,
@@ -129,7 +131,7 @@ export function App({ api, capabilities }: { api: DesktopApi; capabilities: Desk
         setError={setDesktopError}
         state={state}
       />
-      <main aria-busy={!state.loaded} className="workspace">
+      <main aria-busy={!desktopReady} className="workspace">
         <div aria-hidden="true" className="window-drag-region" data-tauri-drag-region="" />
         <ChatHeader
           appearance={appearance.preference}
@@ -158,7 +160,7 @@ export function App({ api, capabilities }: { api: DesktopApi; capabilities: Desk
           status={secureWorkspace.status}
         />
         <GuidedExamples
-          disabled={!state.loaded || running || !tasksAllowed}
+          disabled={!desktopReady || running || !tasksAllowed}
           examples={capabilities.guidedExamples ?? []}
           onRun={runTask}
         />
@@ -214,7 +216,7 @@ export function App({ api, capabilities }: { api: DesktopApi; capabilities: Desk
             )}
             dropActive={dropIntent === "files" || dropIntent === "mixed"}
             draft={state.draft}
-            disabled={!state.loaded || model.state === "unsupported" || !tasksAllowed}
+            disabled={!desktopReady || model.state === "unsupported" || !tasksAllowed}
             nativeActionMessage={nativeUnavailable}
             onAttach={() =>
               void attach({

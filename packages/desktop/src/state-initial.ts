@@ -5,6 +5,7 @@ export const initialDesktopState: DesktopState = {
   folders: [],
   globalSessions: [],
   activeSessionId: undefined,
+  pendingSessionId: undefined,
   newSessionFolderId: undefined,
   draft: "",
   timeline: [],
@@ -26,6 +27,7 @@ export const initialDesktopState: DesktopState = {
 export function emptyConversation(newSessionFolderId: string | null | undefined) {
   return {
     activeSessionId: undefined,
+    pendingSessionId: undefined,
     newSessionFolderId,
     draft: "",
     timeline: [],

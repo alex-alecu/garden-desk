@@ -14,6 +14,7 @@ import type {
 import { applyAgentSnapshot } from "./agent-state.js";
 import type { DesktopBootstrap } from "./api.js";
 import { appendMessage } from "./message-state.js";
+import { loadMessages, loadSession } from "./session-state.js";
 import { emptyConversation } from "./state-initial.js";
 import type { FolderGroup, TimelineItem } from "./state-types.js";
 
@@ -25,6 +26,7 @@ export interface DesktopState {
   folders: FolderGroup[];
   globalSessions: SessionSummary[];
   activeSessionId: string | undefined;
+  pendingSessionId: string | undefined;
   newSessionFolderId: string | null | undefined;
   draft: string;
   timeline: TimelineItem[];
@@ -55,6 +57,16 @@ export type DesktopAction =
   | { type: "session.deleted"; sessionId: string }
   | { type: "session.new"; folderId: string | null }
   | { type: "session.select"; sessionId: string }
+  | {
+      type: "session.loaded";
+      sessionId: string;
+      messages: ConversationMessage[];
+      attachments: AttachmentSummary[];
+      removableIds: string[];
+      draft: string;
+      snapshots: AgentRunSnapshot[];
+    }
+  | { type: "session.load.failed"; sessionId: string }
   | { type: "messages.load"; sessionId: string; messages: ConversationMessage[] }
   | { type: "message.append"; message: ConversationMessage }
   | {
@@ -155,10 +167,14 @@ export function desktopReducer(state: DesktopState, action: DesktopAction): Desk
   if (action.type === "folder.revoked") {
     const removed = state.folders.find((folder) => folder.id === action.folderId);
     const activeRemoved = removed?.sessions.some((session) => session.id === state.activeSessionId);
+    const pendingRemoved = removed?.sessions.some(
+      (session) => session.id === state.pendingSessionId,
+    );
     return {
       ...state,
       folders: state.folders.filter((folder) => folder.id !== action.folderId),
       ...(activeRemoved ? emptyConversation(undefined) : {}),
+      ...(pendingRemoved ? { pendingSessionId: undefined } : {}),
       ...(state.newSessionFolderId === action.folderId ? { newSessionFolderId: null } : {}),
     };
   }
@@ -204,46 +220,23 @@ export function desktopReducer(state: DesktopState, action: DesktopAction): Desk
       })),
       workingSessionIds: state.workingSessionIds.filter((id) => id !== action.sessionId),
       ...(activeDeleted ? emptyConversation(null) : {}),
+      ...(state.pendingSessionId === action.sessionId ? { pendingSessionId: undefined } : {}),
     };
   }
   if (action.type === "session.new") {
     return { ...state, ...emptyConversation(action.folderId) };
   }
   if (action.type === "session.select") {
-    return {
-      ...state,
-      ...emptyConversation(undefined),
-      activeSessionId: action.sessionId,
-    };
+    return { ...state, pendingSessionId: action.sessionId };
+  }
+  if (action.type === "session.loaded") return loadSession(state, action);
+  if (action.type === "session.load.failed") {
+    return state.pendingSessionId === action.sessionId
+      ? { ...state, pendingSessionId: undefined }
+      : state;
   }
   if (action.type === "messages.load") {
-    if (state.activeSessionId !== action.sessionId) return state;
-    const title = action.messages
-      .find((message) => message.role === "user")
-      ?.content.replaceAll(/\s+/gu, " ")
-      .slice(0, 60);
-    return {
-      ...state,
-      timeline: [
-        ...action.messages.map((message) => ({
-          createdAt: message.createdAt,
-          id: message.id,
-          kind: message.role,
-          text: message.content,
-          runId: message.runId,
-        })),
-        ...state.timeline.filter((item) => item.kind === "activity"),
-      ],
-      globalSessions: state.globalSessions.map((session) =>
-        session.id === action.sessionId && title !== undefined ? { ...session, title } : session,
-      ),
-      folders: state.folders.map((folder) => ({
-        ...folder,
-        sessions: folder.sessions.map((session) =>
-          session.id === action.sessionId && title !== undefined ? { ...session, title } : session,
-        ),
-      })),
-    };
+    return loadMessages(state, action.sessionId, action.messages);
   }
   if (action.type === "message.append") return appendMessage(state, action.message);
   if (action.type === "attachments.load") {

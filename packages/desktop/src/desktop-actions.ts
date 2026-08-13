@@ -101,22 +101,21 @@ export async function selectSession(
       api.listAgentRuns(sessionId),
     ]);
     const lastUserMessage = messages.filter((message) => message.role === "user").at(-1);
-    dispatch({ type: "messages.load", sessionId, messages });
     dispatch({
-      type: "attachments.load",
+      type: "session.loaded",
       sessionId,
+      messages,
       attachments,
       removableIds: attachments
         .filter(
           (item) => lastUserMessage === undefined || item.createdAt > lastUserMessage.createdAt,
         )
         .map((item) => item.id),
+      draft: draft?.content ?? "",
+      snapshots: await Promise.all(runs.map((run) => api.getAgentRun(run.id))),
     });
-    dispatch({ type: "draft.load", sessionId, draft: draft?.content ?? "" });
-    for (const snapshot of await Promise.all(runs.map((run) => api.getAgentRun(run.id)))) {
-      dispatch({ type: "agent.snapshot", snapshot });
-    }
   } catch {
+    dispatch({ type: "session.load.failed", sessionId });
     setError("The conversation could not be loaded.");
   }
 }
