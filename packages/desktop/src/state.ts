@@ -1,6 +1,7 @@
 import type {
   AgentArtifactSummary,
   AgentExecutionSnapshot,
+  AgentQuestionRequest,
   AgentRunSnapshot,
   AgentRunSummary,
   AgentTrace,
@@ -34,6 +35,7 @@ export interface DesktopState {
   artifacts: AgentArtifactSummary[];
   executions: AgentExecutionSnapshot[];
   thinking: string | null;
+  question: AgentQuestionRequest | null;
   loaded: boolean;
   selectedStepId: string | undefined;
   traces: AgentTrace[];
@@ -278,6 +280,7 @@ export function desktopReducer(state: DesktopState, action: DesktopAction): Desk
       activeRun: action.run,
       workingSessionIds: [...new Set([...state.workingSessionIds, action.run.sessionId])],
       thinking: null,
+      question: null,
       draft: "",
       removableAttachmentIds: [],
     };

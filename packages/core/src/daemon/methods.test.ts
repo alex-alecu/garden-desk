@@ -28,6 +28,58 @@ describe("agent trace RPC", () => {
   });
 });
 
+describe("agent question RPC", () => {
+  const runId = "44444444-4444-4444-8444-444444444444";
+  const questionId = "55555555-5555-4555-8555-555555555555";
+
+  it("routes an answer to the run and reports it answered", async () => {
+    const answerQuestion = vi.fn(async () => true);
+    const core = { answerQuestion } as unknown as VaultCore;
+
+    const response = await dispatchRpc(core, {
+      jsonrpc: "2.0",
+      id: "answer",
+      method: "agent.answerQuestion",
+      params: { runId, questionId, answers: [["Full report"]] },
+      protocolVersion: 1,
+    });
+
+    expect(response).toMatchObject({ id: "answer", result: { answered: true } });
+    expect(answerQuestion).toHaveBeenCalledExactlyOnceWith(runId, questionId, [["Full report"]]);
+  });
+
+  it("maps an unknown or stale question to not_found", async () => {
+    const dismissQuestion = vi.fn(async () => false);
+    const core = { dismissQuestion } as unknown as VaultCore;
+
+    const response = await dispatchRpc(core, {
+      jsonrpc: "2.0",
+      id: "dismiss",
+      method: "agent.dismissQuestion",
+      params: { runId, questionId },
+      protocolVersion: 1,
+    });
+
+    expect(response).toMatchObject({ id: "dismiss", error: { code: "not_found" } });
+  });
+
+  it("rejects an answer with an invalid run id", async () => {
+    const answerQuestion = vi.fn(async () => true);
+    const core = { answerQuestion } as unknown as VaultCore;
+
+    const response = await dispatchRpc(core, {
+      jsonrpc: "2.0",
+      id: "bad",
+      method: "agent.answerQuestion",
+      params: { runId: "not-a-uuid", questionId, answers: [[]] },
+      protocolVersion: 1,
+    });
+
+    expect(response).toMatchObject({ id: "bad", error: { code: "invalid_request" } });
+    expect(answerQuestion).not.toHaveBeenCalled();
+  });
+});
+
 describe("artifact RPC", () => {
   it("routes verified materialization and export through typed methods", async () => {
     const sessionId = "22222222-2222-4222-8222-222222222222";

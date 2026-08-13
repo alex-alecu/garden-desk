@@ -1,6 +1,6 @@
 # Desktop Design
 
-Updated: 2026-08-04
+Updated: 2026-08-12
 
 Vault Desk V1 is a calm, conversation-centered desktop agent inspired by the structural clarity of the Codex app without copying its branding or visual assets. The interface exposes work and context, not model infrastructure.
 
@@ -98,6 +98,7 @@ The composer is multiline and anchored to the bottom of the conversation pane.
 - Switching conversations does not stop a run. Other conversations may start work up to the RAM-derived VM capacity; additional work stays queued without booting another guest.
 - Drafts survive session and folder switching, daemon reconnect, and application restart.
 - Submitting without a folder or attachment remains valid for conversational tasks.
+- When the running agent asks a clarifying question, a question panel replaces the composer in the same bounded bottom slot without adding another workspace row. It shows the question, `N of M` paging for multi-question requests, numbered options with an optional Recommended badge, single-line descriptions that reveal full text on hover, a typed custom-answer row, and Skip. The panel keeps a Stop control so the blocked run stays cancellable while the composer is hidden. Arrow keys move between options, Enter selects, Command-Enter or Control-Enter advances or submits, and Escape dismisses. Answering or skipping returns the composer with its draft intact.
 
 ## Model Presentation
 
@@ -151,3 +152,4 @@ Runtime, quantization, context-window, endpoint, and model-file vocabulary stays
 | 2026-07-28 | Added clickable attachment transfer, whole-window file and folder drop routing with an animated affordance, and persistent accessible folder ordering. |
 | 2026-08-01 | Added separate live RAM and VRAM or unified-memory allocations plus the allocated context, hardware cap, and hardware-derived rationale to Technical details. |
 | 2026-08-04 | Grouped declared generated files beneath their assistant response with accessible Open and Save As actions, and removed file metadata from Technical details. |
+| 2026-08-12 | Added the in-composer clarifying-question picker with paging, recommended and custom answers, hover text, Skip, Stop, keyboard control, and draft preservation. |

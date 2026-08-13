@@ -14,18 +14,43 @@ interface OutputChunk {
   signal?: AbortSignal;
 }
 
-function preview(text: string): string | undefined {
+function takePrefix(text: string, maximumBytes: number): string {
+  let bytes = 0;
+  let result = "";
+  for (const character of text) {
+    const size = Buffer.byteLength(character);
+    if (bytes + size > maximumBytes) break;
+    result += character;
+    bytes += size;
+  }
+  return result;
+}
+
+function takeSuffix(text: string, maximumBytes: number): string {
+  let bytes = 0;
+  const result: string[] = [];
+  for (const character of Array.from(text).toReversed()) {
+    const size = Buffer.byteLength(character);
+    if (bytes + size > maximumBytes) break;
+    result.unshift(character);
+    bytes += size;
+  }
+  return result.join("");
+}
+
+function preview(text: string, marker: string): string | undefined {
   const lines = text.split("\n");
   if (lines.length <= MAX_LINES && Buffer.byteLength(text) <= MAX_BYTES) return undefined;
-  let bytes = 0;
-  const kept: string[] = [];
-  for (const line of lines.slice(0, MAX_LINES)) {
-    const next = Buffer.byteLength(`${line}\n`);
-    if (bytes + next > MAX_BYTES) break;
-    kept.push(line);
-    bytes += next;
+  const availableBytes = MAX_BYTES - Buffer.byteLength(marker) - 4;
+  const headLines = Math.ceil((MAX_LINES - 4) / 2);
+  const tailLines = Math.floor((MAX_LINES - 4) / 2);
+  let head = lines.length <= MAX_LINES ? text : lines.slice(0, headLines).join("\n");
+  let tail = lines.length <= MAX_LINES ? text : lines.slice(-tailLines).join("\n");
+  if (Buffer.byteLength(head) + Buffer.byteLength(tail) > availableBytes) {
+    head = takePrefix(head, Math.ceil(availableBytes / 2));
+    tail = takeSuffix(tail, Math.floor(availableBytes / 2));
   }
-  return kept.join("\n");
+  return `${head}\n\n${marker}\n\n${tail}`;
 }
 
 async function writeChunk(chunk: OutputChunk): Promise<void> {
@@ -68,8 +93,8 @@ export async function boundedToolOutput(
   text: string,
   signal?: AbortSignal,
 ): Promise<string> {
-  const head = preview(text);
-  if (head === undefined) return text;
+  if (text.split("\n").length <= MAX_LINES && Buffer.byteLength(text) <= MAX_BYTES) return text;
   const path = await spill(executor, text, signal);
-  return `${head}\n\n[Output truncated. Full output saved to ${path}. Use grep or read with offset/limit.]`;
+  const marker = `[Output truncated. Full output saved to ${path}. Use grep or read with offset/limit.]`;
+  return preview(text, marker) ?? text;
 }

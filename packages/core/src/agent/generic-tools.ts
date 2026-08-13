@@ -11,9 +11,15 @@ import {
   type ToolSpec,
   textParam,
 } from "./generic-tool-support.js";
+import { questionTool } from "./question-tool.js";
 import { boundedToolOutput } from "./tool-output.js";
 
-export type { AgentToolResult, SkillReader, SubagentRequest } from "./generic-tool-support.js";
+export type {
+  AgentQuestionOutcome,
+  AgentToolResult,
+  SkillReader,
+  SubagentRequest,
+} from "./generic-tool-support.js";
 
 function codeParams(value: unknown): { source: string } {
   return { source: textParam(object(value), "source") };
@@ -82,11 +88,11 @@ function skillTool(skills: SkillReader): ToolSpec {
 function taskParams(value: unknown): {
   description: string;
   prompt: string;
-  subagent_type: "explore" | "probe";
+  subagent_type: "explore" | "general" | "probe";
 } {
   const params = object(value);
   const subagentType = textParam(params, "subagent_type", 16);
-  if (subagentType !== "explore" && subagentType !== "probe") {
+  if (subagentType !== "explore" && subagentType !== "general" && subagentType !== "probe") {
     throw new Error("invalid_subagent_type");
   }
   return {
@@ -101,12 +107,12 @@ function taskTool(): ToolSpec {
     definition: {
       name: "task",
       description:
-        "Delegate isolated exploration or trial-and-error work. Only the final report returns to this context.",
+        "Delegate isolated exploration, a focused trial, or one independent multi-step work unit. Only the final report returns to this context; verify child outputs before final use.",
       params: objectSchema(
         {
           description: { type: "string" },
           prompt: { type: "string" },
-          subagent_type: { type: "string", enum: ["explore", "probe"] },
+          subagent_type: { type: "string", enum: ["explore", "general", "probe"] },
         },
         ["description", "prompt", "subagent_type"],
       ),
@@ -135,6 +141,7 @@ function specs(skills: SkillReader): ToolSpec[] {
     ...inspectionTools(),
     skillTool(skills),
     taskTool(),
+    questionTool(),
   ];
 }
 
@@ -152,9 +159,21 @@ export class GenericToolRegistry {
   }
   async execute(name: string, params: unknown): Promise<AgentToolResult> {
     const tool = this.tools.get(name);
-    if (tool === undefined) return { content: `Unknown tool: ${name}`, failed: true };
+    if (tool === undefined) {
+      return { content: `Unknown tool: ${name}`, failed: true, invalidInput: true };
+    }
+    let parsed: unknown;
     try {
-      const result = await tool.execute(tool.parse(params), this.context);
+      parsed = tool.parse(params);
+    } catch (error) {
+      return {
+        content: error instanceof Error ? `${error.name}: ${error.message}` : String(error),
+        failed: true,
+        invalidInput: true,
+      };
+    }
+    try {
+      const result = await tool.execute(parsed, this.context);
       const content = await boundedToolOutput(
         this.context.executor,
         result.content,

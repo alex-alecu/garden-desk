@@ -44,3 +44,23 @@ export function Confirmation({ request, onCancel, onConfirm }: ConfirmationProps
     </div>
   );
 }
+
+export function ActiveConfirmation({
+  request,
+  clear,
+}: {
+  request: ConfirmationRequest | undefined;
+  clear(): void;
+}) {
+  return (
+    <Confirmation
+      onCancel={clear}
+      onConfirm={() => {
+        const action = request?.onConfirm;
+        clear();
+        action?.();
+      }}
+      request={request}
+    />
+  );
+}

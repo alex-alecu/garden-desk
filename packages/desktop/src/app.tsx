@@ -6,10 +6,11 @@ import type { DesktopCapabilities } from "./capabilities.js";
 import { AppSidebar } from "./components/app-sidebar.js";
 import { ChatHeader } from "./components/chat-header.js";
 import { Composer } from "./components/composer.js";
-import { Confirmation, type ConfirmationRequest } from "./components/confirmation.js";
+import { ActiveConfirmation, type ConfirmationRequest } from "./components/confirmation.js";
 import { Conversation } from "./components/conversation.js";
 import { DropOverlay } from "./components/drop-overlay.js";
 import { GuidedExamples } from "./components/guided-examples.js";
+import { PendingQuestion } from "./components/pending-question.js";
 import { SecureWorkspaceBanner } from "./components/secure-workspace-banner.js";
 import { TechnicalDetails } from "./components/technical-details.js";
 import { attach, openAttachment, remove, selectSession, send } from "./desktop-actions.js";
@@ -22,8 +23,8 @@ import { desktopReducer, initialDesktopState } from "./state.js";
 import { selectStep } from "./step-selection.js";
 import { activeThinkingStepId, agentSteps } from "./steps.js";
 import { useSecureWorkspace } from "./use-secure-workspace.js";
-// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: this is the single view-composition boundary for explicit desktop capabilities.
-// biome-ignore lint/complexity/noExcessiveLinesPerFunction: this is the single view-composition boundary; workflow logic remains in the small helpers above.
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: single desktop composition boundary.
+// biome-ignore lint/complexity/noExcessiveLinesPerFunction: single desktop composition boundary.
 export function App({ api, capabilities }: { api: DesktopApi; capabilities: DesktopCapabilities }) {
   const appearance = useAppearance();
   const [state, dispatch] = useReducer(desktopReducer, initialDesktopState);
@@ -199,66 +200,75 @@ export function App({ api, capabilities }: { api: DesktopApi; capabilities: Desk
           working={state.activeRun?.state === "queued" || state.activeRun?.state === "running"}
           activeRunState={state.activeRun?.state}
         />
-        <Composer
-          attachments={state.attachments.filter((attachment) =>
-            state.removableAttachmentIds.includes(attachment.id),
-          )}
-          dropActive={dropIntent === "files" || dropIntent === "mixed"}
-          draft={state.draft}
-          disabled={!state.loaded || model.state === "unsupported" || !tasksAllowed}
-          nativeActionMessage={nativeUnavailable}
-          onAttach={() =>
-            void attach({
-              api,
-              activeSessionId: state.activeSessionId,
-              newSessionFolderId: state.newSessionFolderId,
-              dispatch,
-              draft: state.draft,
-              setError: setDesktopError,
-            })
-          }
-          onCancel={() => {
-            if (state.activeRun !== undefined) {
-              void api
-                .cancelAgent(state.activeRun.jobId)
-                .catch(() => setDesktopError("The task could not be cancelled."));
+        {state.question !== null ? (
+          <PendingQuestion
+            api={api}
+            request={state.question}
+            run={state.activeRun}
+            setError={setDesktopError}
+          />
+        ) : (
+          <Composer
+            attachments={state.attachments.filter((attachment) =>
+              state.removableAttachmentIds.includes(attachment.id),
+            )}
+            dropActive={dropIntent === "files" || dropIntent === "mixed"}
+            draft={state.draft}
+            disabled={!state.loaded || model.state === "unsupported" || !tasksAllowed}
+            nativeActionMessage={nativeUnavailable}
+            onAttach={() =>
+              void attach({
+                api,
+                activeSessionId: state.activeSessionId,
+                newSessionFolderId: state.newSessionFolderId,
+                dispatch,
+                draft: state.draft,
+                setError: setDesktopError,
+              })
             }
-          }}
-          onChange={(draft) => {
-            dispatch({ type: "draft.change", draft });
-            draftPersistence.schedule(state.activeSessionId, draft);
-          }}
-          onOpenAttachment={(attachmentId) => {
-            if (state.activeSessionId !== undefined) {
-              void openAttachment(api, state.activeSessionId, attachmentId, setDesktopError);
-            }
-          }}
-          onRemoveAttachment={(attachmentId) => {
-            if (state.activeSessionId !== undefined) {
-              const attachmentName = state.attachments.find(
-                (attachment) => attachment.id === attachmentId,
-              )?.name;
-              const sessionId = state.activeSessionId;
-              setConfirmation({
-                title: `Remove “${attachmentName ?? "this attachment"}”?`,
-                description:
-                  "This removes the attachment from the conversation. The original file on your computer is unchanged.",
-                confirmLabel: "Remove attachment",
-                onConfirm: () =>
-                  void remove({
-                    api,
-                    sessionId,
-                    attachmentId,
-                    dispatch,
-                    setError: setDesktopError,
-                  }),
-              });
-            }
-          }}
-          onSend={runTask}
-          removableAttachmentIds={state.removableAttachmentIds}
-          running={running}
-        />
+            onCancel={() => {
+              if (state.activeRun !== undefined) {
+                void api
+                  .cancelAgent(state.activeRun.jobId)
+                  .catch(() => setDesktopError("The task could not be cancelled."));
+              }
+            }}
+            onChange={(draft) => {
+              dispatch({ type: "draft.change", draft });
+              draftPersistence.schedule(state.activeSessionId, draft);
+            }}
+            onOpenAttachment={(attachmentId) => {
+              if (state.activeSessionId !== undefined) {
+                void openAttachment(api, state.activeSessionId, attachmentId, setDesktopError);
+              }
+            }}
+            onRemoveAttachment={(attachmentId) => {
+              if (state.activeSessionId !== undefined) {
+                const attachmentName = state.attachments.find(
+                  (attachment) => attachment.id === attachmentId,
+                )?.name;
+                const sessionId = state.activeSessionId;
+                setConfirmation({
+                  title: `Remove “${attachmentName ?? "this attachment"}”?`,
+                  description:
+                    "This removes the attachment from the conversation. The original file on your computer is unchanged.",
+                  confirmLabel: "Remove attachment",
+                  onConfirm: () =>
+                    void remove({
+                      api,
+                      sessionId,
+                      attachmentId,
+                      dispatch,
+                      setError: setDesktopError,
+                    }),
+                });
+              }
+            }}
+            onSend={runTask}
+            removableAttachmentIds={state.removableAttachmentIds}
+            running={running}
+          />
+        )}
       </main>
       <TechnicalDetails
         artifacts={state.artifacts}
@@ -280,15 +290,7 @@ export function App({ api, capabilities }: { api: DesktopApi; capabilities: Desk
         thinkingStepId={thinkingStepId}
         timeline={state.timeline}
       />
-      <Confirmation
-        onCancel={() => setConfirmation(undefined)}
-        onConfirm={() => {
-          const action = confirmation?.onConfirm;
-          setConfirmation(undefined);
-          action?.();
-        }}
-        request={confirmation}
-      />
+      <ActiveConfirmation clear={() => setConfirmation(undefined)} request={confirmation} />
       <DropOverlay intent={dropIntent} />
     </div>
   );

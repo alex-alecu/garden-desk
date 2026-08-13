@@ -22,27 +22,54 @@ function source(run: Parameters<AgentExecutor["execute"]>[0]): string {
   return run.language === "shell" ? run.command : run.source;
 }
 
+function executor(writes?: string[]): AgentExecutor {
+  return {
+    async inspect(run) {
+      writes?.push(source(run));
+      return completed(source(run));
+    },
+    async execute(run) {
+      return completed(source(run));
+    },
+  };
+}
+
 describe("bounded tool output", () => {
   it("spills oversized output and gives grep/read recovery guidance", async () => {
     const writes: string[] = [];
-    const executor: AgentExecutor = {
-      async inspect(run) {
-        writes.push(source(run));
-        return completed(source(run));
-      },
-      async execute(run) {
-        return completed(source(run));
-      },
-    };
     const output = Array.from({ length: 2_001 }, (_, index) => `line ${index}`).join("\n");
 
-    const result = await boundedToolOutput(executor, output);
+    const result = await boundedToolOutput(executor(writes), output);
 
     expect(writes).toHaveLength(1);
     expect(writes[0]).toContain("/workspace/.vault-output/");
     expect(result).toContain("[Output truncated. Full output saved to /workspace/.vault-output/");
     expect(result).toContain("Use grep or read with offset/limit.");
-    expect(result).toContain("line 1999");
-    expect(result).not.toContain("line 2000");
+    expect(result).toContain("line 0");
+    expect(result).toContain("line 2000");
+    expect(result).not.toContain("line 1000");
+    expect(result.match(/line 0(?:\n|$)/gu)).toHaveLength(1);
+    expect(result.match(/line 2000(?:\n|$)/gu)).toHaveLength(1);
+  });
+
+  it("keeps the preview within its byte limit for multibyte text", async () => {
+    const output = `${"ă".repeat(30_000)}\nFINAL_SUMMARY=kept`;
+
+    const result = await boundedToolOutput(executor(), output);
+
+    expect(Buffer.byteLength(result)).toBeLessThanOrEqual(50 * 1_024);
+    expect(result).toContain("FINAL_SUMMARY=kept");
+  });
+
+  it("keeps both ends of a short output that exceeds only the byte limit", async () => {
+    const output = Array.from({ length: 1_000 }, (_, index) => `${index}:${"x".repeat(80)}`).join(
+      "\n",
+    );
+
+    const result = await boundedToolOutput(executor(), output);
+
+    expect(result.match(/100:/gu)).toHaveLength(1);
+    expect(result.match(/900:/gu)).toHaveLength(1);
+    expect(result).not.toContain("500:");
   });
 });

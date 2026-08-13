@@ -1,15 +1,7 @@
 import { describe, expect, it } from "vitest";
-import {
-  CONTEXT_COMPACTION_PLAN,
-  OVERSIZED_TABLE_PLAN,
-  REPEATED_COMPACTION_PLAN,
-} from "../stress/context-compaction-fixture.js";
+import { OVERSIZED_TABLE_PLAN } from "../stress/context-compaction-fixture.js";
 import { SCALED_CASES, SCALED_WORKLOAD_PLAN } from "../stress/scaled-profile.js";
-import {
-  SMALL_CONCURRENT_CASES,
-  SMALL_FOCUSED_REPORT_CASES,
-  SMALL_SEQUENTIAL_CASES,
-} from "../stress/small-profile.js";
+import { SMALL_CASE_IDS, SMALL_GATE_CASES } from "../stress/small-profile.js";
 import {
   XLSX_PATH_LIST_ACCOUNTS,
   XLSX_PATH_LIST_MONTHS,
@@ -56,40 +48,26 @@ describe("M3 XLSX path-list regression workload", () => {
   });
 });
 
-describe("M3 context turnover regressions", () => {
-  it("keeps enough records to exceed the bounded observation stream", () => {
-    expect(CONTEXT_COMPACTION_PLAN).toEqual({ records: 6_000, shards: 3 });
-    expect(REPEATED_COMPACTION_PLAN).toEqual({ stages: 3, recordsPerStage: 2_000 });
-  });
-
+describe("M3 bounded result regressions", () => {
   it("keeps the complete table too large for the response contract", () => {
     expect(OVERSIZED_TABLE_PLAN).toEqual({ rows: 2_000, sheetsPerWorkbook: 2, workbooks: 4 });
   });
 });
 
 describe("M3 small stress sweep", () => {
-  it("sweeps realistic file work while keeping the largest reports focused", () => {
-    expect(SMALL_FOCUSED_REPORT_CASES).toEqual([
-      "pdf-report",
-      "excel-report",
-      "large-corpus-continuation",
+  it("keeps the V1 gate small and leaves large model workloads optional", () => {
+    expect(SMALL_GATE_CASES).toEqual([
+      "terminal-discovery",
+      "xlsx-edit",
+      "docx-edit",
+      "invalid-document",
     ]);
-    expect(SMALL_SEQUENTIAL_CASES).toEqual(
-      expect.arrayContaining([
-        "context-compaction",
-        "repeated-context-compaction",
-        "oversized-table-result",
-        "excel-row-filter",
-        "excel-chat-path-list",
-        "terminal-discovery",
-        "word-report",
-      ]),
+    expect(SMALL_CASE_IDS).toEqual(
+      expect.arrayContaining(["oversized-table-result", "excel-chat-path-list", "word-report"]),
     );
-    expect(SMALL_FOCUSED_REPORT_CASES).not.toContain("excel-chat-path-list");
-    expect(SMALL_CONCURRENT_CASES).not.toContain("excel-chat-path-list");
-    expect(SMALL_SEQUENTIAL_CASES).toEqual(
-      expect.arrayContaining(["xlsx-edit", "docx-edit", "pdf-merge"]),
-    );
-    expect(SMALL_CONCURRENT_CASES).toEqual(["xlsx-edit", "docx-edit", "pdf-merge"]);
+    expect(SMALL_GATE_CASES).not.toContain("oversized-table-result");
+    expect(SMALL_GATE_CASES).not.toContain("large-corpus-continuation");
+    expect(SMALL_GATE_CASES).not.toContain("excel-chat-path-list");
+    expect(SMALL_GATE_CASES).not.toContain("pdf-merge");
   });
 });

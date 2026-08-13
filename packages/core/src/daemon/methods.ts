@@ -13,6 +13,7 @@ import {
 } from "@vault/shared";
 import type { VaultCore } from "../facade.js";
 import { dispatchArtifactMethod } from "./artifact-methods.js";
+import { dispatchQuestionMethod } from "./question-methods.js";
 
 function failure(request: RpcRequest | undefined, code: ErrorCode, message: string): RpcResponse {
   return {
@@ -195,6 +196,15 @@ async function cancelAgent(core: VaultCore, request: RpcRequest): Promise<RpcRes
   return success(request, { cancelled: await core.cancelAgent(jobId.data) });
 }
 
+async function questionMethod(core: VaultCore, request: RpcRequest): Promise<RpcResponse> {
+  const result = await dispatchQuestionMethod(core, request);
+  if (result.ok) return success(request, result.value);
+  if (result.reason === "not_found") {
+    return failure(request, "not_found", "The question is no longer open.");
+  }
+  return failure(request, "invalid_request", "Invalid question request.");
+}
+
 async function cancelJob(core: VaultCore, request: RpcRequest): Promise<RpcResponse> {
   const jobId = JobIdSchema.safeParse(request.params.jobId);
   if (!jobId.success) return failure(request, "invalid_request", "Invalid job id.");
@@ -252,6 +262,10 @@ async function dispatchMethod(core: VaultCore, request: RpcRequest): Promise<Rpc
       return getAgentTrace(core, request);
     case "agent.cancel":
       return cancelAgent(core, request);
+    case "agent.answerQuestion":
+      return questionMethod(core, request);
+    case "agent.dismissQuestion":
+      return questionMethod(core, request);
     case "model.status":
       return success(request, await core.modelStatus());
     case "model.unload":

@@ -67,6 +67,14 @@ const restoredActivity = [
     runId,
     text: "Response completed.",
   },
+  {
+    createdAt: "2026-07-20T12:00:05.600Z",
+    eventType: "question.answered",
+    id: "question-evidence",
+    kind: "activity",
+    runId,
+    text: "Question answered.",
+  },
 ] satisfies TimelineItem[];
 
 function renderRestoredActivity(): string {
@@ -117,6 +125,7 @@ describe("conversation scrolling", () => {
     expect(markup).toMatch(
       /<section[^>]*class="conversation-scroll"[^>]*>\s*<div class="timeline">/,
     );
+    expect(markup).not.toContain("Question answered.");
   });
 });
 

@@ -3,6 +3,7 @@ import {
   AgentArtifactIdSchema,
   AgentEventIdSchema,
   AgentExecutionIdSchema,
+  AgentQuestionIdSchema,
   AgentRunIdSchema,
   ContentHashSchema,
   JobIdSchema,
@@ -169,6 +170,8 @@ export const AgentEventTypeSchema = z.enum([
   "assistant.completed",
   "run.failed",
   "run.cancelled",
+  "question.asked",
+  "question.answered",
 ]);
 
 export const AgentEventSchema = z.object({
@@ -208,6 +211,28 @@ export const AgentArtifactSummarySchema = z.object({
   createdAt: z.iso.datetime(),
 });
 
+export const AgentQuestionOptionSchema = z.object({
+  label: z.string().min(1).max(80),
+  description: z.string().max(300).default(""),
+});
+
+export const AgentQuestionSchema = z.object({
+  header: z.string().min(1).max(30),
+  question: z.string().min(1).max(500),
+  options: z.array(AgentQuestionOptionSchema).min(2).max(5),
+  multiple: z.boolean().optional(),
+});
+
+export const AgentQuestionRequestSchema = z.object({
+  id: AgentQuestionIdSchema,
+  runId: AgentRunIdSchema,
+  questions: z.array(AgentQuestionSchema).min(1).max(3),
+  createdAt: z.iso.datetime(),
+});
+
+// Five offered options plus one typed custom answer for a multiple-choice question.
+export const AgentQuestionAnswerSchema = z.array(z.string().min(1).max(300)).max(6);
+
 export const AgentRunSnapshotSchema = z.object({
   run: AgentRunSummarySchema,
   events: z.array(AgentEventSchema).max(1_000),
@@ -216,6 +241,7 @@ export const AgentRunSnapshotSchema = z.object({
   thinking: z.string().max(64_000).nullable().default(null),
   contextUsedTokens: z.number().int().nonnegative().nullable().default(null),
   contextAllocatedTokens: z.number().int().positive().nullable().default(null),
+  question: AgentQuestionRequestSchema.nullable().default(null),
 });
 
 export type AgentLanguage = z.infer<typeof AgentLanguageSchema>;
@@ -246,3 +272,7 @@ export type AgentEventDetail = Pick<
 >;
 export type AgentArtifactSummary = z.infer<typeof AgentArtifactSummarySchema>;
 export type AgentRunSnapshot = z.infer<typeof AgentRunSnapshotSchema>;
+export type AgentQuestionOption = z.infer<typeof AgentQuestionOptionSchema>;
+export type AgentQuestion = z.infer<typeof AgentQuestionSchema>;
+export type AgentQuestionRequest = z.infer<typeof AgentQuestionRequestSchema>;
+export type AgentQuestionAnswer = z.infer<typeof AgentQuestionAnswerSchema>;

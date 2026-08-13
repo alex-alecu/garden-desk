@@ -273,11 +273,3 @@ pub(crate) async fn remove_attachment(
         json!({ "sessionId": session_id, "attachmentId": attachment_id }),
     )
 }
-
-#[tauri::command]
-pub(crate) async fn cancel_agent(
-    core: State<'_, CoreBridge>,
-    job_id: String,
-) -> Result<Value, String> {
-    core.call("agent.cancel", json!({ "jobId": job_id }))
-}

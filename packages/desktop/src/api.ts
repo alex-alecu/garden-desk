@@ -81,6 +81,8 @@ export interface DesktopApi {
   getAgentTrace(runId: string): Promise<AgentTrace>;
   listAgentRuns(sessionId: string): Promise<AgentRunSummary[]>;
   cancelAgent(jobId: string): Promise<boolean>;
+  answerQuestion(runId: string, questionId: string, answers: string[][]): Promise<boolean>;
+  dismissQuestion(runId: string, questionId: string): Promise<boolean>;
   createDebugSnapshot(sessionId: string): Promise<string>;
   revealDebugSnapshot(sessionId: string): Promise<void>;
   listenForDroppedPaths?(listener: (event: NativeDropEvent) => void): Promise<() => void>;

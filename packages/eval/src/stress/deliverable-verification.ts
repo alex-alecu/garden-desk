@@ -1,5 +1,5 @@
-import { rm } from "node:fs/promises";
-import { dirname } from "node:path";
+import { copyFile, mkdir, rm } from "node:fs/promises";
+import { basename, dirname, join } from "node:path";
 import { type AgentRunSnapshot, AgentRunSummarySchema, SessionSummarySchema } from "@vault/shared";
 import {
   extractedArchiveText,
@@ -40,7 +40,24 @@ function verifiedFactLine(output: string, index: number): string | undefined {
 
 export interface DeliverableVerification {
   output: string;
+  retained: string[];
   verified: string[];
+}
+
+async function retainArtifacts(
+  active: VerificationCase,
+  paths: Array<{ name: string; path: string }>,
+): Promise<string[]> {
+  if (process.env.VAULT_STRESS_RETAIN_ARTIFACTS !== "1") return [];
+  const directory = join(process.cwd(), "packages/eval/.generated/stress/artifacts", active.runId);
+  await mkdir(directory, { recursive: true });
+  return await Promise.all(
+    paths.map(async (item, index) => {
+      const destination = join(directory, `${index + 1}-${basename(item.name)}`);
+      await copyFile(item.path, destination);
+      return destination;
+    }),
+  );
 }
 
 async function materialize(
@@ -89,6 +106,18 @@ export function missingFactAlternatives(extracted: string, groups: string[][]): 
     .map((alternatives) => alternatives.join("|"));
 }
 
+export function missingVisibleLabelValues(
+  extracted: string,
+  groups: Array<{ label: string; values: string[] }>,
+): string[] {
+  return groups.flatMap(({ label, values }) => {
+    const labelAt = extracted.indexOf(label);
+    if (labelAt === -1) return [label];
+    const nearby = extracted.slice(labelAt + label.length, labelAt + label.length + 256);
+    return values.some((value) => nearby.includes(value)) ? [] : [`${label}=${values.join("|")}`];
+  });
+}
+
 async function archiveMismatches(item: DeliverableExpectation, path: string): Promise<string[]> {
   if (item.archiveFacts === undefined && item.archiveForbiddenFacts === undefined) return ["", ""];
   const archive = await extractedArchiveText(path);
@@ -123,6 +152,7 @@ async function deterministicMismatches(
   return [
     `missing:${item.facts.filter((fact) => !extracted.includes(fact)).join(",")}`,
     `alternatives:${missingFactAlternatives(extracted, item.factAlternatives ?? []).join(",")}`,
+    `labels:${missingVisibleLabelValues(extracted, item.visibleLabelValues ?? []).join(",")}`,
     `forbidden:${(item.forbiddenFacts ?? []).filter((fact) => extracted.includes(fact)).join(",")}`,
     `order:${missingOrderedFacts(extracted, item.orderedFacts ?? []).join(",")}`,
     `archive:${archive}`,
@@ -150,7 +180,7 @@ async function verifyOneDeterministically(
 async function verifyDeterministically(
   expectations: NonNullable<PreparedStressCase["deliverables"]>,
   paths: Array<{ name: string; path: string }>,
-): Promise<DeliverableVerification> {
+): Promise<Omit<DeliverableVerification, "retained">> {
   const results = await Promise.all(
     expectations.map(async (item, index) => {
       const artifact = paths[index];
@@ -170,12 +200,13 @@ export async function verifyDeliverables(
   awaitRun: (item: VerificationCase) => Promise<AgentRunSnapshot | undefined>,
 ): Promise<DeliverableVerification> {
   const expectations = active.fixture.deliverables ?? [];
-  if (expectations.length === 0) return { output: "", verified: [] };
+  if (expectations.length === 0) return { output: "", retained: [], verified: [] };
   const paths = await materialize(rpc, active, snapshot);
-  if (paths.length !== expectations.length) return { output: "", verified: [] };
+  const retained = await retainArtifacts(active, paths);
+  if (paths.length !== expectations.length) return { output: "", retained, verified: [] };
   if (expectations.every((item) => item.deterministic === true)) {
     try {
-      return await verifyDeterministically(expectations, paths);
+      return { ...(await verifyDeterministically(expectations, paths)), retained };
     } finally {
       await Promise.all(
         paths.map(async (item) => rm(dirname(item.path), { recursive: true, force: true })),
@@ -196,7 +227,7 @@ export async function verifyDeliverables(
       runId: run.id,
       startedAt: performance.now(),
     });
-    if (result?.run.state !== "succeeded") return { output: "", verified: [] };
+    if (result?.run.state !== "succeeded") return { output: "", retained, verified: [] };
     const output = [
       result.run.response ?? "",
       ...result.executions.map((item) => item.stdout),
@@ -208,7 +239,7 @@ export async function verifyDeliverables(
       })
       .map((item, index) => item.name ?? paths[index]?.name)
       .filter((name): name is string => name !== undefined);
-    return { output, verified };
+    return { output, retained, verified };
   } finally {
     await rpc("sessions.delete", { sessionId: session.id });
     await Promise.all(

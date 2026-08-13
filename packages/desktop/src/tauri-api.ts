@@ -188,6 +188,15 @@ export const tauriDesktopApi: DesktopApi = {
   async cancelAgent(jobId) {
     return record(await invoke("cancel_agent", { jobId })).cancelled === true;
   },
+  async answerQuestion(runId, questionId, answers) {
+    return (
+      record(await invoke("answer_agent_question", { runId, questionId, answers })).answered ===
+      true
+    );
+  },
+  async dismissQuestion(runId, questionId) {
+    return record(await invoke("dismiss_agent_question", { runId, questionId })).dismissed === true;
+  },
   async createDebugSnapshot(sessionId) {
     const value = record(await invoke("create_debug_snapshot", { sessionId }));
     if (typeof value.path !== "string" || value.path.length === 0) {

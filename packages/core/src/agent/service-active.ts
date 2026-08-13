@@ -1,3 +1,6 @@
+import type { AgentRunSnapshot } from "@vault/shared";
+import type { PendingQuestion } from "./agent-questions.js";
+
 export interface ActiveRun {
   controller: AbortController;
   finished: Promise<void>;
@@ -6,4 +9,15 @@ export interface ActiveRun {
   thinking: string | null;
   contextUsedTokens?: number | null;
   contextAllocatedTokens?: number | null;
+  question?: PendingQuestion | null;
+}
+
+export function withActiveRun(snapshot: AgentRunSnapshot, active: ActiveRun | undefined) {
+  return {
+    ...snapshot,
+    thinking: active?.thinking ?? null,
+    contextUsedTokens: active?.contextUsedTokens ?? snapshot.contextUsedTokens,
+    contextAllocatedTokens: active?.contextAllocatedTokens ?? snapshot.contextAllocatedTokens,
+    question: active?.question?.request ?? null,
+  };
 }

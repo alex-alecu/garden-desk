@@ -87,6 +87,8 @@ export class DemoDesktopApi implements DesktopApi {
   openArtifact = demoUnavailable;
   saveArtifact = demoUnavailable;
   removeAttachment = demoUnavailable;
+  answerQuestion = demoUnavailable;
+  dismissQuestion = demoUnavailable;
   createDebugSnapshot = demoUnavailable;
   revealDebugSnapshot = demoUnavailable;
 

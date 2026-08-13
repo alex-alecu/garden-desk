@@ -42,13 +42,15 @@ export interface StressCaseResult {
   runMs: number;
   state: string;
   executions: number;
+  failedExecutions: number;
   executionMs: number;
+  inferenceFailures: number;
   expectedTokens: string[];
   missingTokens: string[];
   missingTableRows: ExpectedTableRow[];
   producedArtifacts: string[];
   error: string | null;
-  traceError: string | null;
+  retainedArtifacts: string[];
   verifiedDeliverables: string[];
   verificationOutput: string;
   contextCompactions: number;
@@ -237,6 +239,7 @@ export async function collectEvidence(
     result: stressResultFor(active, snapshot, {
       verified: verification.verified,
       output: verification.output,
+      retained: verification.retained,
       trace,
     }),
     snapshot,

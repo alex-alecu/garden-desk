@@ -33,6 +33,7 @@ interface AgentEvidenceInput {
   cancel?: boolean;
   expectedError?: string;
   expectLiveOutput?: boolean;
+  expectStdoutTruncated?: boolean;
 }
 
 async function prepareModelStore(): Promise<void> {
@@ -90,10 +91,15 @@ async function awaitRun(
     const snapshot = await core.getAgentRun(runId);
     const execution = snapshot.executions.find((item) => item.stdout.includes(liveToken));
     const runningLive = execution?.state === "running" && snapshot.run.state === "running";
+    const runningExecution = snapshot.executions.some(
+      (item) =>
+        item.state === "running" &&
+        item.vmDiagnostics.some((diagnostic) => diagnostic.code === "process_start"),
+    );
     if (runningLive) {
       live = true;
     }
-    if (runningLive && cancel && !cancelled) {
+    if (runningExecution && cancel && !cancelled) {
       cancelled = await core.cancelAgent(snapshot.run.jobId);
     }
     if (snapshot.run.state !== "queued" && snapshot.run.state !== "running") {
@@ -108,10 +114,15 @@ function requireAgentEvidence(
   result: { snapshot: AgentRunSnapshot; live: boolean },
   input: AgentEvidenceInput,
 ) {
-  const execution = result.snapshot.executions.find((item) => item.stdout.length > 0);
+  const execution = result.snapshot.executions.find(
+    (item) =>
+      (input.cancel ? item.state === "cancelled" : item.stdout.length > 0) &&
+      (!(input.expectStdoutTruncated ?? false) || item.stdoutTruncated),
+  );
   const terminalState = expectedTerminalState(result.snapshot, input.expectedError);
   const hasFinishToken =
-    input.finishToken === undefined || execution?.stdout.includes(input.finishToken) === true;
+    input.finishToken === undefined ||
+    result.snapshot.executions.some((item) => item.stdout.includes(input.finishToken as string));
   if (
     ((input.expectLiveOutput ?? true) && !result.live) ||
     execution === undefined ||
@@ -195,6 +206,7 @@ async function runWindowsEvidence(root: string, artifacts: WindowsArtifacts) {
       "Execute exactly one Python source file. Print 'cancel-start' with flush=True, then sleep for 60 seconds.",
     liveToken: "cancel-start",
     cancel: true,
+    expectLiveOutput: false,
   });
   const limits = await runAgentEvidence({
     root,
@@ -204,8 +216,8 @@ async function runWindowsEvidence(root: string, artifacts: WindowsArtifacts) {
     liveToken: "limit-start",
     finishToken: "limit-start",
     expectLiveOutput: false,
+    expectStdoutTruncated: true,
   });
-  if (!limits.stdoutTruncated) throw new Error("Windows stdout truncation proof failed.");
   if (limits.runState !== "succeeded") {
     throw new Error(`Windows bounded-observation proof failed: ${limits.runState}`);
   }

@@ -14,6 +14,7 @@ import type { JobStore } from "../jobs/jobs.js";
 import type { InferenceService } from "../runtime/inference.js";
 import type { ArtifactStore } from "../workspace/artifacts.js";
 import type { DatabasePort } from "../workspace/database.js";
+import { askRunQuestion, settleActiveQuestion } from "./agent-questions.js";
 import { ArtifactMaterializer } from "./artifact-materialization.js";
 import { prepareArtifacts } from "./artifact-results.js";
 import { materializeAndAuditAttachment } from "./attachment-materialization.js";
@@ -22,7 +23,7 @@ import { AGENT_MODEL_ID, AGENT_WORKER_LIMITS } from "./limits.js";
 import { MarkdownDefinitionLibrary } from "./markdown-definition-library.js";
 import { runPrimaryAgent } from "./primary-run.js";
 import { AgentRunCapacity } from "./run-capacity.js";
-import type { ActiveRun } from "./service-active.js";
+import { type ActiveRun, withActiveRun } from "./service-active.js";
 import { agentFailureEvent, agentFailureText, runPerformance } from "./service-results.js";
 import { AgentSessionManager } from "./session-manager.js";
 import { refreshSessionSummary } from "./session-summary.js";
@@ -141,13 +142,10 @@ export class AgentService {
   snapshot(runId: string): AgentRunSnapshot {
     const snapshot = this.store.snapshot(runId);
     const active = [...this.active.values()].find((run) => run.runId === runId);
-    return {
-      ...snapshot,
-      thinking: active?.thinking ?? null,
-      contextUsedTokens: active?.contextUsedTokens ?? snapshot.contextUsedTokens,
-      contextAllocatedTokens: active?.contextAllocatedTokens ?? snapshot.contextAllocatedTokens,
-    };
+    return withActiveRun(snapshot, active);
   }
+  settleQuestion = (runId: string, questionId: string, answers?: string[][]): boolean =>
+    settleActiveQuestion(this.active, runId, questionId, answers);
   private updateActive(jobId: string, patch: Partial<ActiveRun>): void {
     const run = this.active.get(jobId);
     if (run !== undefined) Object.assign(run, patch);
@@ -240,6 +238,8 @@ export class AgentService {
         onThinking: (thinking) => this.updateActive(run.jobId, { thinking }),
         onContext: (contextUsedTokens, contextAllocatedTokens) =>
           this.updateActive(run.jobId, { contextUsedTokens, contextAllocatedTokens }),
+        askQuestion: (questions) =>
+          askRunQuestion({ active: this.active, store: this.store, run, signal, questions }),
         run,
         sessions: this.sessions,
         signal,

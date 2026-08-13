@@ -12,7 +12,13 @@ export interface AgentStep {
   turn?: AgentInferenceTurn;
 }
 
-const HIDDEN_EVENTS = new Set(["run.started", "assistant.completed"]);
+// Question lifecycle events remain durable evidence; paired tool events own their visible activity.
+const HIDDEN_EVENTS = new Set([
+  "run.started",
+  "assistant.completed",
+  "question.asked",
+  "question.answered",
+]);
 
 function stepKind(item: TimelineItem): AgentStep["kind"] {
   if (item.eventType === "inference.started") return "planning";

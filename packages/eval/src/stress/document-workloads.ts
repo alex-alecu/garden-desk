@@ -14,11 +14,12 @@ export interface DeliverableExpectation {
   orderedFacts?: string[];
   pdfMetadata?: Record<string, string>;
   pdfRotations?: number[];
+  visibleLabelValues?: Array<{ label: string; values: string[] }>;
 }
 
 export interface ExpectedTableRow {
-  marker: string;
   amount: number;
+  marker?: string;
 }
 
 export interface PreparedStressCase<Id extends string = string> {
@@ -31,10 +32,6 @@ export interface PreparedStressCase<Id extends string = string> {
   expectedTableRows?: ExpectedTableRow[];
   deliverables?: DeliverableExpectation[];
   forbidArtifacts?: boolean;
-  maxExecutions?: number;
-  requiresDirectXlsxSource?: boolean;
-  requiresContextCompaction?: boolean;
-  minimumContextCompactions?: number;
 }
 
 export interface StressCaseDefinition<Id extends string = string> {
@@ -45,10 +42,6 @@ export interface StressCaseDefinition<Id extends string = string> {
   expectedTableRows?(evidence: FixtureEvidence): ExpectedTableRow[];
   deliverables?(evidence: FixtureEvidence): DeliverableExpectation[];
   forbidArtifacts?: boolean;
-  maxExecutions?: number;
-  requiresDirectXlsxSource?: boolean;
-  requiresContextCompaction?: boolean;
-  minimumContextCompactions?: number;
 }
 
 function value(evidence: FixtureEvidence, name: string): number | string {
@@ -125,11 +118,5 @@ export async function prepareStressCase<Id extends string>(
       ? {}
       : { deliverables: definition.deliverables(evidence) }),
     ...(definition.forbidArtifacts === true ? { forbidArtifacts: true } : {}),
-    ...(definition.maxExecutions === undefined ? {} : { maxExecutions: definition.maxExecutions }),
-    ...(definition.requiresDirectXlsxSource === true ? { requiresDirectXlsxSource: true } : {}),
-    ...(definition.requiresContextCompaction === true ? { requiresContextCompaction: true } : {}),
-    ...(definition.minimumContextCompactions === undefined
-      ? {}
-      : { minimumContextCompactions: definition.minimumContextCompactions }),
   };
 }

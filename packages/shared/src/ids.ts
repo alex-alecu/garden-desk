@@ -13,6 +13,7 @@ export const AgentExecutionIdSchema = z.uuid().brand<"AgentExecutionId">();
 export const AgentInferenceTurnIdSchema = z.uuid().brand<"AgentInferenceTurnId">();
 export const AgentArtifactIdSchema = z.uuid().brand<"AgentArtifactId">();
 export const RequestIdSchema = z.union([z.string().min(1).max(128), z.number().int()]);
+export const AgentQuestionIdSchema = z.uuid().brand<"AgentQuestionId">();
 
 export type ContentHash = z.infer<typeof ContentHashSchema>;
 export type WorkspaceId = z.infer<typeof WorkspaceIdSchema>;
@@ -27,3 +28,4 @@ export type AgentExecutionId = z.infer<typeof AgentExecutionIdSchema>;
 export type AgentInferenceTurnId = z.infer<typeof AgentInferenceTurnIdSchema>;
 export type AgentArtifactId = z.infer<typeof AgentArtifactIdSchema>;
 export type RequestId = z.infer<typeof RequestIdSchema>;
+export type AgentQuestionId = z.infer<typeof AgentQuestionIdSchema>;

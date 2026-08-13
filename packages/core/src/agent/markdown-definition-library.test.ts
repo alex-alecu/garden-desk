@@ -24,17 +24,22 @@ function fixture(): { root: string; remove: () => void } {
 function expectApprovedAgents(library: MarkdownDefinitionLibrary): void {
   expect(library.agents.map(({ mode, name }) => ({ mode, name }))).toEqual([
     { mode: "subagent", name: "explore" },
+    { mode: "subagent", name: "general" },
     { mode: "primary", name: "primary" },
     { mode: "subagent", name: "probe" },
   ]);
   expect(library.agent("primary")).toMatchObject({
     steps: 40,
     temperature: 0,
-    tools: ["bash", "python", "node", "read", "glob", "grep", "list", "skill", "task"],
+    tools: ["bash", "python", "node", "read", "glob", "grep", "list", "skill", "task", "question"],
   });
   expect(library.agent("explore")).toMatchObject({
     steps: 16,
     tools: ["read", "glob", "grep", "list", "skill"],
+  });
+  expect(library.agent("general")).toMatchObject({
+    steps: 24,
+    tools: ["bash", "python", "node", "read", "glob", "grep", "list", "skill"],
   });
   expect(library.agent("probe")).toMatchObject({
     steps: 16,

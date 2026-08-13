@@ -1,7 +1,5 @@
 import { randomUUID } from "node:crypto";
 import {
-  type AgentEventDetail,
-  type AgentEventType,
   type AgentExecutionResult,
   type AgentInferenceOutcome,
   type AgentRunResult,
@@ -11,57 +9,32 @@ import {
   JobIdSchema,
 } from "@vault/shared";
 import type { InferenceService } from "../runtime/inference.js";
-import type { AgentExecutor } from "./agent-executor.js";
 import { artifactCandidateNames } from "./artifact-results.js";
 import { compactChatHistory } from "./chat-compaction.js";
+import { generateWithInferenceRecovery } from "./chat-inference-recovery.js";
 import { initialChatMessages } from "./chat-initial-messages.js";
+import type { ChatAgentInput, ChatRecoveryState } from "./chat-loop-input.js";
+import { containsRawProtocolCall } from "./chat-protocol.js";
 import {
   type ChatToolState,
   executeToolCalls,
   initialToolState,
   rollbackFailedDirection,
 } from "./chat-tool-turn.js";
-import { GenericToolRegistry, type SkillReader, type SubagentRequest } from "./generic-tools.js";
+import { GenericToolRegistry } from "./generic-tools.js";
 import { addPerformance, emptyPerformance } from "./inference-performance.js";
-import type { AgentDefinition } from "./markdown-definition-library.js";
-import type { AgentTraceStore } from "./trace-store.js";
+
+export type { ChatAgentInput } from "./chat-loop-input.js";
 
 const HARD_TURN_LIMIT = 40;
 const COMPACTION_RATIO = 0.8;
 const CHAT_OUTPUT_TOKENS = 2_048;
 const MAX_CHAT_OUTPUT_TOKENS = 8_192;
-
-interface ConversationItem {
-  role: "user" | "assistant";
-  content: string;
-}
-
-export interface ChatAgentInput {
-  agent: AgentDefinition;
-  contextTokens: number | "auto";
-  executor: AgentExecutor;
-  history?: { messages: ConversationItem[]; summary?: string };
-  inputNames?: string[];
-  modelId: string;
-  onEvent?(type: AgentEventType, summary: string, detail?: Partial<AgentEventDetail>): void;
-  onThinking?(text: string | null): void;
-  onContext?(used: number, allocated: number): void;
-  savedScripts?: string[];
-  signal?: AbortSignal;
-  skills: SkillReader;
-  inferencePriority?: "primary" | "secondary";
-  spawnTask?(request: SubagentRequest): Promise<string>;
-  systemPrompt(name: string): string;
-  task: string;
-  trace?: { runId: string; store: AgentTraceStore };
-}
-
 function currentArtifacts(executions: readonly AgentExecutionResult[]): string[] {
   return artifactCandidateNames(executions).filter(
     (path) => !path.startsWith(".vault-tools/") && !path.startsWith(".vault-output/"),
   );
 }
-
 function outputTokens(
   contextTokens: number,
   tools: readonly unknown[],
@@ -72,7 +45,6 @@ function outputTokens(
   const dynamic = Math.min(MAX_CHAT_OUTPUT_TOKENS, scaled);
   return tools.length === 0 ? Math.max(4_096, dynamic) : dynamic;
 }
-
 export class ChatAgentLoop {
   private contextTokens: number;
   private requestedContextSize: number | "auto";
@@ -80,7 +52,6 @@ export class ChatAgentLoop {
     this.contextTokens = 8_192;
     this.requestedContextSize = "auto";
   }
-
   private record(
     input: ChatAgentInput,
     turnId: string | undefined,
@@ -88,7 +59,6 @@ export class ChatAgentLoop {
   ): void {
     if (turnId !== undefined) input.trace?.store.recordOutcome(turnId, outcome);
   }
-
   private async generate(
     input: ChatAgentInput,
     messages: ChatMessage[],
@@ -175,11 +145,36 @@ export class ChatAgentLoop {
     input: ChatAgentInput,
     generated: { result: ChatGenerationResult; turnId?: string },
     state: ChatToolState,
-    performance: ReturnType<typeof emptyPerformance>,
+    options: {
+      recovery: ChatRecoveryState;
+      performance: ReturnType<typeof emptyPerformance>;
+      finalTurn: boolean;
+    },
   ): AgentRunResult | undefined {
+    const { recovery, performance, finalTurn } = options;
     if (generated.result.toolCalls.length > 0) return undefined;
     const response = generated.result.text.trim();
-    if (response.length === 0) throw new Error("agent_empty_response");
+    if (response.length === 0) {
+      this.record(input, generated.turnId, "invalid_response");
+      if (recovery.emptyResponsePending || finalTurn) throw new Error("agent_empty_response");
+      recovery.emptyResponsePending = true;
+      state.messages.pop();
+      state.messages.push({
+        role: "system",
+        text: "The previous answer was empty and was rejected. Return the completed result using the retained execution evidence.",
+      });
+      return undefined;
+    }
+    if (containsRawProtocolCall(response)) {
+      this.record(input, generated.turnId, "rejected_unbacked_response");
+      state.responseOnly = false;
+      state.messages.pop();
+      state.messages.push({
+        role: "system",
+        text: "The previous output contained raw function-call protocol text and was rejected. Use an available tool through a real function call, or return a plain final answer without protocol markers.",
+      });
+      return undefined;
+    }
     this.record(input, generated.turnId, "accepted_response");
     input.onEvent?.("assistant.completed", "Response completed.");
     return AgentRunResultSchema.parse({
@@ -208,32 +203,28 @@ export class ChatAgentLoop {
     }
   }
 
-  private async generateWithRecovery(
-    input: ChatAgentInput,
-    state: ChatToolState,
-    tools: ReturnType<GenericToolRegistry["definitions"]>,
-    performance: ReturnType<typeof emptyPerformance>,
-  ) {
-    try {
-      return await this.generate(input, state.messages, tools, "chat");
-    } catch (error) {
-      if (state.messages.length < 4) throw error;
-      state.messages = await this.compact(input, state.messages, 2, performance);
-      state.checkpoint = state.messages.length;
-      state.failedTools = 0;
-      return await this.generate(input, state.messages, tools, "chat");
-    }
-  }
   private async turn(options: {
     input: ChatAgentInput;
     state: ChatToolState;
     registry: GenericToolRegistry;
+    recovery: ChatRecoveryState;
     performance: ReturnType<typeof emptyPerformance>;
     finalTurn: boolean;
   }): Promise<AgentRunResult | undefined> {
-    const { input, state, registry, performance, finalTurn } = options;
+    const { input, state, registry, recovery, performance, finalTurn } = options;
     const tools = finalTurn || state.responseOnly ? [] : registry.definitions(input.agent.tools);
-    const generated = await this.generateWithRecovery(input, state, tools, performance);
+    const generated = await generateWithInferenceRecovery({
+      generate: async () => await this.generate(input, state.messages, tools, "chat"),
+      recover: async () => {
+        if (state.messages.length < 4) return;
+        state.messages = await this.compact(input, state.messages, 2, performance);
+        state.checkpoint = state.messages.length;
+        state.failedTools = 0;
+      },
+      recovery,
+      ...(input.signal === undefined ? {} : { signal: input.signal }),
+      onRetry: () => input.onEvent?.("inference.started", "Retrying the local model once."),
+    });
     addPerformance(performance, generated.result.performance);
     state.messages.push({
       role: "assistant",
@@ -252,10 +243,11 @@ export class ChatAgentLoop {
       state.responseOnly = true;
       return undefined;
     }
-    const result = this.finish(input, generated, state, performance);
+    const result = this.finish(input, generated, state, { recovery, performance, finalTurn });
     if (result !== undefined) return result;
+    if (generated.result.toolCalls.length === 0) return undefined;
     this.record(input, generated.turnId, "accepted_tool_calls");
-    await executeToolCalls(
+    const validToolInput = await executeToolCalls(
       {
         registry,
         state,
@@ -263,6 +255,7 @@ export class ChatAgentLoop {
       },
       generated.result.toolCalls,
     );
+    if (validToolInput) recovery.emptyResponsePending = false;
     await this.recoverContext(input, state, performance, generated.result.performance.promptTokens);
     return undefined;
   }
@@ -274,10 +267,15 @@ export class ChatAgentLoop {
       executor: input.executor,
       skills: input.skills,
       ...(input.spawnTask === undefined ? {} : { spawnTask: input.spawnTask }),
+      ...(input.askQuestion === undefined ? {} : { askQuestion: input.askQuestion }),
       ...(input.signal === undefined ? {} : { signal: input.signal }),
     });
     const performance = emptyPerformance();
     const state = initialToolState(initialChatMessages(input));
+    const recovery: ChatRecoveryState = {
+      emptyResponsePending: false,
+      inferenceRetryUsed: false,
+    };
     const turns = Math.min(HARD_TURN_LIMIT, input.agent.steps);
     for (let turn = 0; turn < turns; turn += 1) {
       input.signal?.throwIfAborted();
@@ -289,6 +287,7 @@ export class ChatAgentLoop {
         input,
         state,
         registry,
+        recovery,
         performance,
         finalTurn: turn === turns - 1,
       });
