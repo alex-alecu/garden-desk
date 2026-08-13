@@ -2,7 +2,7 @@ import { AgentEventSchema } from "@vault/shared";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { RunProgress } from "./components/run-progress.js";
-import { StepDetails } from "./components/step-details.js";
+import { copyStepText, StepDetails } from "./components/step-details.js";
 import { agentSteps } from "./steps.js";
 import { eventItems } from "./timeline.js";
 
@@ -81,9 +81,11 @@ describe("tool activity timeline", () => {
     expect(items[0]?.detail).toContain("Result:\nNo inconsistencies found.");
     expect(step?.kind).toBe("subagent");
     if (step === undefined) throw new Error("Expected a sub-agent step.");
-    expect(renderToStaticMarkup(<StepDetails step={step} thinking={null} />)).toContain(
-      "No inconsistencies found.",
-    );
+    const markup = renderToStaticMarkup(<StepDetails step={step} thinking={null} />);
+    expect(markup).toContain("No inconsistencies found.");
+    expect(markup).toContain('type="checkbox"');
+    expect(markup).toContain("Wrap text");
+    expect(markup).toContain('aria-label="Copy Details"');
   });
 
   it("counts completed tool calls in live progress", () => {
@@ -92,5 +94,18 @@ describe("tool activity timeline", () => {
     );
 
     expect(markup).toContain("1 tool call completed");
+  });
+
+  it("copies exact step evidence", async () => {
+    let copied = "";
+
+    await copyStepText("First line\nSecond line", {
+      writeText(text) {
+        copied = text;
+        return Promise.resolve();
+      },
+    });
+
+    expect(copied).toBe("First line\nSecond line");
   });
 });

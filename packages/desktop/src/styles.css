@@ -2142,6 +2142,66 @@ textarea:focus-visible {
   resize: vertical;
 }
 
+.step-detail-block .technical-log-viewer textarea {
+  max-height: min(70vh, 720px);
+}
+
+.technical-log-viewer textarea.step-detail-wrap {
+  overflow-x: hidden;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.step-detail-controls {
+  display: flex;
+  min-height: 30px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 6px;
+  color: var(--ink-soft);
+  font-size: 11px;
+}
+
+.step-detail-controls label,
+.step-detail-controls button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.step-detail-controls label {
+  cursor: pointer;
+}
+
+.step-detail-controls input {
+  width: 13px;
+  height: 13px;
+  margin: 0;
+  accent-color: var(--accent);
+}
+
+.step-detail-controls button {
+  min-height: 26px;
+  padding: 0 7px;
+  border: 1px solid var(--reading-border);
+  border-radius: 7px;
+  color: var(--ink-soft);
+  background: transparent;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.step-detail-controls button:hover {
+  color: var(--accent-strong);
+  background: var(--navigation-hover);
+}
+
+.step-detail-controls .icon {
+  width: 13px;
+  height: 13px;
+}
+
 .jump-to-latest {
   position: absolute;
   right: 18px;

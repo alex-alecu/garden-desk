@@ -1,13 +1,76 @@
+import { useEffect, useRef, useState } from "react";
 import type { AgentStep } from "../steps.js";
+import { Icon } from "./icons.js";
 import { SourceCode } from "./source-code.js";
 import { ExecutionStatus, StreamTabs } from "./technical-logs.js";
+import { copyUserMessage } from "./user-message.js";
 
-function TextBlock({ label, value }: { label: string; value: string }) {
+type CopyState = "copied" | "failed" | "idle";
+
+function copyLabel(state: CopyState): string {
+  if (state === "copied") return "Copied";
+  if (state === "failed") return "Copy failed";
+  return "Copy";
+}
+
+export async function copyStepText(
+  value: string,
+  clipboard?: Pick<Clipboard, "writeText">,
+): Promise<void> {
+  await copyUserMessage(value, clipboard ?? globalThis.navigator?.clipboard);
+}
+
+function StepTextBlock({ label, value }: { label: string; value: string }) {
+  const [wrap, setWrap] = useState(false);
+  const [copyState, setCopyState] = useState<CopyState>("idle");
+  const resetTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  useEffect(
+    () => () => {
+      if (resetTimer.current !== undefined) clearTimeout(resetTimer.current);
+    },
+    [],
+  );
+  const copy = async () => {
+    try {
+      await copyStepText(value);
+      setCopyState("copied");
+    } catch {
+      setCopyState("failed");
+    }
+    if (resetTimer.current !== undefined) clearTimeout(resetTimer.current);
+    resetTimer.current = setTimeout(() => setCopyState("idle"), 2_000);
+  };
+  const copyButtonLabel = copyLabel(copyState);
   return (
     <details className="step-detail-block">
       <summary>{label}</summary>
       <div className="technical-log-viewer">
-        <textarea aria-label={label} readOnly value={value} />
+        <textarea
+          className={wrap ? "step-detail-wrap" : undefined}
+          aria-label={label}
+          readOnly
+          value={value}
+        />
+        <footer className="step-detail-controls">
+          <label>
+            <input
+              aria-label={`Wrap text for ${label}`}
+              checked={wrap}
+              onChange={(event) => setWrap(event.currentTarget.checked)}
+              type="checkbox"
+            />
+            Wrap text
+          </label>
+          <button
+            aria-label={`${copyButtonLabel} ${label}`}
+            onClick={() => void copy()}
+            title={copyButtonLabel}
+            type="button"
+          >
+            <Icon name={copyState === "copied" ? "copy-check" : "copy"} />
+            <span aria-live="polite">{copyButtonLabel}</span>
+          </button>
+        </footer>
       </div>
     </details>
   );
@@ -51,11 +114,14 @@ function StepInference({ step, thinking }: { step: AgentStep; thinking: string |
         {turn.outcome ?? "in progress"}
       </p>
       {thinking === null || thinking.length === 0 ? null : (
-        <TextBlock label="Thinking (this step only, not retained)" value={thinking} />
+        <StepTextBlock label="Thinking (this step only, not retained)" value={thinking} />
       )}
-      <TextBlock label="Prompt sent to the model" value={turn.prompt} />
-      <TextBlock label="Requested result shape" value={JSON.stringify(turn.jsonSchema, null, 2)} />
-      <TextBlock
+      <StepTextBlock label="Prompt sent to the model" value={turn.prompt} />
+      <StepTextBlock
+        label="Requested result shape"
+        value={JSON.stringify(turn.jsonSchema, null, 2)}
+      />
+      <StepTextBlock
         label="Model decision"
         value={
           turn.structuredResponse === null
@@ -78,7 +144,7 @@ export function StepDetails({ step, thinking }: { step: AgentStep; thinking: str
       </div>
       <p className="step-detail-title">{step.title}</p>
       {step.execution === undefined && step.detail !== undefined ? (
-        <TextBlock label="Details" value={step.detail} />
+        <StepTextBlock label="Details" value={step.detail} />
       ) : null}
       <StepEvidence step={step} />
       <StepInference step={step} thinking={thinking} />
