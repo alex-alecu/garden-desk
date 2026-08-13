@@ -5,6 +5,7 @@ import type {
   ChatMessage,
   ChatToolCall,
 } from "@vault/shared";
+import { containsProtocolTransition } from "./chat-protocol.js";
 import type { AgentToolResult, GenericToolRegistry } from "./generic-tools.js";
 import { subagentTitle, toolCompletedSummary, toolStartedSummary } from "./tool-summaries.js";
 
@@ -66,11 +67,18 @@ function repeatedCall(state: ChatToolState, call: ChatToolCall): boolean {
   );
 }
 
-function beforeExecution(input: ToolTurnInput, call: ChatToolCall, repeated: boolean): void {
+function beforeExecution(
+  input: ToolTurnInput,
+  call: ChatToolCall,
+  repeated: boolean,
+  executable: boolean,
+): void {
   const detail = eventDetail(call);
   input.onEvent?.("tool.started", toolStartedSummary(call), detail);
-  if (call.name === "task") input.onEvent?.("subagent.started", subagentTitle(call), detail);
-  if (CODE_TOOLS.has(call.name) && !repeated) {
+  if (call.name === "task" && executable) {
+    input.onEvent?.("subagent.started", subagentTitle(call), detail);
+  }
+  if (CODE_TOOLS.has(call.name) && !repeated && executable) {
     input.onEvent?.("execution.started", "Running code.", detail);
   }
 }
@@ -112,6 +120,10 @@ function blockedResult(message: string): AgentToolResult {
   return { content: message, failed: true };
 }
 
+function invalidInputResult(message: string): AgentToolResult {
+  return { content: message, failed: true, invalidInput: true };
+}
+
 async function toolResult(
   input: ToolTurnInput,
   call: ChatToolCall,
@@ -133,11 +145,15 @@ async function toolResult(
   return await input.registry.execute(call.name, call.params);
 }
 
-async function executeToolCall(input: ToolTurnInput, call: ChatToolCall): Promise<void> {
-  const repeated = repeatedCall(input.state, call);
-  beforeExecution(input, call, repeated);
-  const result = await toolResult(input, call, repeated);
+async function executeToolCall(input: ToolTurnInput, call: ChatToolCall): Promise<boolean> {
+  const corrupt = containsProtocolTransition(call.params);
+  const repeated = corrupt ? false : repeatedCall(input.state, call);
+  beforeExecution(input, call, repeated, !corrupt);
+  const result = corrupt
+    ? invalidInputResult("Invalid tool input: protocol-control transition in arguments.")
+    : await toolResult(input, call, repeated);
   finalizeToolCall(input, call, repeated, result);
+  return result.invalidInput !== true;
 }
 
 /**
@@ -204,20 +220,22 @@ export function rollbackFailedDirection(state: ChatToolState): void {
 export async function executeToolCalls(
   input: Omit<ToolTurnInput, "state"> & { state: ChatToolState },
   calls: readonly ChatToolCall[],
-): Promise<void> {
+): Promise<boolean> {
+  let validInput = false;
   let index = 0;
   while (index < calls.length) {
     const call = calls[index];
     if (call === undefined) break;
     const group = consecutiveTaskGroup(calls, index);
     if (group.length > 1) {
-      await executeTaskGroup(input, group);
+      validInput = (await executeTaskGroup(input, group)) || validInput;
       index += group.length;
     } else {
-      await executeToolCall(input, call);
+      validInput = (await executeToolCall(input, call)) || validInput;
       index += 1;
     }
   }
+  return validInput;
 }
 
 /**
@@ -240,13 +258,23 @@ function consecutiveTaskGroup(calls: readonly ChatToolCall[], start: number): Ch
  * then folds their results into the conversation in the original call order so history and failure
  * counting stay deterministic regardless of which sub-agent finished first.
  */
-async function executeTaskGroup(input: ToolTurnInput, group: ChatToolCall[]): Promise<void> {
+async function executeTaskGroup(input: ToolTurnInput, group: ChatToolCall[]): Promise<boolean> {
   const started = group.map((call) => {
-    const repeated = repeatedCall(input.state, call);
-    beforeExecution(input, call, repeated);
-    return { call, repeated, result: toolResult(input, call, repeated) };
+    const corrupt = containsProtocolTransition(call.params);
+    const repeated = corrupt ? false : repeatedCall(input.state, call);
+    beforeExecution(input, call, repeated, !corrupt);
+    const result = corrupt
+      ? Promise.resolve(
+          invalidInputResult("Invalid tool input: protocol-control transition in arguments."),
+        )
+      : toolResult(input, call, repeated);
+    return { call, repeated, result };
   });
+  let validInput = false;
   for (const { call, repeated, result } of started) {
-    finalizeToolCall(input, call, repeated, await result);
+    const completed = await result;
+    finalizeToolCall(input, call, repeated, completed);
+    validInput = completed.invalidInput !== true || validInput;
   }
+  return validInput;
 }

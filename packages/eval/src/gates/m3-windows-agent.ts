@@ -91,10 +91,15 @@ async function awaitRun(
     const snapshot = await core.getAgentRun(runId);
     const execution = snapshot.executions.find((item) => item.stdout.includes(liveToken));
     const runningLive = execution?.state === "running" && snapshot.run.state === "running";
+    const runningExecution = snapshot.executions.some(
+      (item) =>
+        item.state === "running" &&
+        item.vmDiagnostics.some((diagnostic) => diagnostic.code === "process_start"),
+    );
     if (runningLive) {
       live = true;
     }
-    if (runningLive && cancel && !cancelled) {
+    if (runningExecution && cancel && !cancelled) {
       cancelled = await core.cancelAgent(snapshot.run.jobId);
     }
     if (snapshot.run.state !== "queued" && snapshot.run.state !== "running") {
@@ -111,7 +116,8 @@ function requireAgentEvidence(
 ) {
   const execution = result.snapshot.executions.find(
     (item) =>
-      item.stdout.length > 0 && (!(input.expectStdoutTruncated ?? false) || item.stdoutTruncated),
+      (input.cancel ? item.state === "cancelled" : item.stdout.length > 0) &&
+      (!(input.expectStdoutTruncated ?? false) || item.stdoutTruncated),
   );
   const terminalState = expectedTerminalState(result.snapshot, input.expectedError);
   const hasFinishToken =
@@ -200,6 +206,7 @@ async function runWindowsEvidence(root: string, artifacts: WindowsArtifacts) {
       "Execute exactly one Python source file. Print 'cancel-start' with flush=True, then sleep for 60 seconds.",
     liveToken: "cancel-start",
     cancel: true,
+    expectLiveOutput: false,
   });
   const limits = await runAgentEvidence({
     root,

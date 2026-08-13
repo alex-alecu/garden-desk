@@ -12,8 +12,8 @@ import type { InferenceService } from "../runtime/inference.js";
 import { artifactCandidateNames } from "./artifact-results.js";
 import { compactChatHistory } from "./chat-compaction.js";
 import { initialChatMessages } from "./chat-initial-messages.js";
-import type { ChatAgentInput } from "./chat-loop-input.js";
-import { containsProtocolFragment } from "./chat-protocol.js";
+import type { ChatAgentInput, ChatRecoveryState } from "./chat-loop-input.js";
+import { containsRawProtocolCall } from "./chat-protocol.js";
 import {
   type ChatToolState,
   executeToolCalls,
@@ -58,7 +58,6 @@ export class ChatAgentLoop {
   ): void {
     if (turnId !== undefined) input.trace?.store.recordOutcome(turnId, outcome);
   }
-
   private async generate(
     input: ChatAgentInput,
     messages: ChatMessage[],
@@ -145,12 +144,19 @@ export class ChatAgentLoop {
     input: ChatAgentInput,
     generated: { result: ChatGenerationResult; turnId?: string },
     state: ChatToolState,
-    performance: ReturnType<typeof emptyPerformance>,
+    options: {
+      recovery: ChatRecoveryState;
+      performance: ReturnType<typeof emptyPerformance>;
+      finalTurn: boolean;
+    },
   ): AgentRunResult | undefined {
+    const { recovery, performance, finalTurn } = options;
     if (generated.result.toolCalls.length > 0) return undefined;
     const response = generated.result.text.trim();
     if (response.length === 0) {
       this.record(input, generated.turnId, "invalid_response");
+      if (recovery.emptyResponsePending || finalTurn) throw new Error("agent_empty_response");
+      recovery.emptyResponsePending = true;
       state.messages.pop();
       state.messages.push({
         role: "system",
@@ -158,7 +164,7 @@ export class ChatAgentLoop {
       });
       return undefined;
     }
-    if (containsProtocolFragment(response)) {
+    if (containsRawProtocolCall(response)) {
       this.record(input, generated.turnId, "rejected_unbacked_response");
       state.responseOnly = false;
       state.messages.pop();
@@ -216,10 +222,11 @@ export class ChatAgentLoop {
     input: ChatAgentInput;
     state: ChatToolState;
     registry: GenericToolRegistry;
+    recovery: ChatRecoveryState;
     performance: ReturnType<typeof emptyPerformance>;
     finalTurn: boolean;
   }): Promise<AgentRunResult | undefined> {
-    const { input, state, registry, performance, finalTurn } = options;
+    const { input, state, registry, recovery, performance, finalTurn } = options;
     const tools = finalTurn || state.responseOnly ? [] : registry.definitions(input.agent.tools);
     const generated = await this.generateWithRecovery(input, state, tools, performance);
     addPerformance(performance, generated.result.performance);
@@ -228,16 +235,6 @@ export class ChatAgentLoop {
       text: generated.result.text,
       toolCalls: generated.result.toolCalls,
     });
-    if (generated.result.toolCalls.some((call) => containsProtocolFragment(call.params))) {
-      this.record(input, generated.turnId, "rejected_unbacked_response");
-      state.responseOnly = false;
-      state.messages.pop();
-      state.messages.push({
-        role: "system",
-        text: "The previous function call contained raw protocol-control text inside its arguments and was rejected without execution. Issue one clean typed function call with only the intended arguments.",
-      });
-      return undefined;
-    }
     if (generated.result.stopReason === "maxTokens" && generated.result.toolCalls.length === 0) {
       this.record(input, generated.turnId, "invalid_response");
       state.messages.pop();
@@ -250,11 +247,11 @@ export class ChatAgentLoop {
       state.responseOnly = true;
       return undefined;
     }
-    const result = this.finish(input, generated, state, performance);
+    const result = this.finish(input, generated, state, { recovery, performance, finalTurn });
     if (result !== undefined) return result;
     if (generated.result.toolCalls.length === 0) return undefined;
     this.record(input, generated.turnId, "accepted_tool_calls");
-    await executeToolCalls(
+    const validToolInput = await executeToolCalls(
       {
         registry,
         state,
@@ -262,6 +259,7 @@ export class ChatAgentLoop {
       },
       generated.result.toolCalls,
     );
+    if (validToolInput) recovery.emptyResponsePending = false;
     await this.recoverContext(input, state, performance, generated.result.performance.promptTokens);
     return undefined;
   }
@@ -278,6 +276,7 @@ export class ChatAgentLoop {
     });
     const performance = emptyPerformance();
     const state = initialToolState(initialChatMessages(input));
+    const recovery: ChatRecoveryState = { emptyResponsePending: false };
     const turns = Math.min(HARD_TURN_LIMIT, input.agent.steps);
     for (let turn = 0; turn < turns; turn += 1) {
       input.signal?.throwIfAborted();
@@ -289,6 +288,7 @@ export class ChatAgentLoop {
         input,
         state,
         registry,
+        recovery,
         performance,
         finalTurn: turn === turns - 1,
       });

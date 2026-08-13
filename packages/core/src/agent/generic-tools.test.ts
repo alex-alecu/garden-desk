@@ -173,20 +173,6 @@ describe("GenericToolRegistry task", () => {
 });
 
 describe("GenericToolRegistry resilient parameters", () => {
-  it("describes direct typed execution so live output and cancellation stay visible", () => {
-    const registry = new GenericToolRegistry({
-      executor: executorOnly,
-      skills: { metadata: () => [], read: () => "" },
-    });
-
-    for (const name of ["python", "node"]) {
-      const description = registry.definitions([name])[0]?.description;
-      expect(description).toContain(`Run a complete ${name} program directly`);
-      expect(description).toContain("Do not stage it with shell");
-      expect(description).toContain("captures output");
-    }
-  });
-
   it("assigns code paths internally and bounds oversized inspection ranges", async () => {
     const runs: Parameters<AgentExecutor["execute"]>[0][] = [];
     const registry = new GenericToolRegistry({
@@ -226,5 +212,30 @@ describe("GenericToolRegistry resilient parameters", () => {
     });
 
     expect(() => registry.definitions(["read", "unknown"])).toThrow("Unknown agent tool: unknown");
+  });
+});
+
+describe("GenericToolRegistry invalid input", () => {
+  it("distinguishes invalid input from a valid failed execution", async () => {
+    const registry = new GenericToolRegistry({
+      executor: {
+        async execute(run) {
+          return execution(source(run), "failed", 1);
+        },
+      },
+      skills: { metadata: () => [], read: () => "" },
+    });
+
+    await expect(registry.execute("unknown", {})).resolves.toMatchObject({
+      failed: true,
+      invalidInput: true,
+    });
+    await expect(registry.execute("python", {})).resolves.toMatchObject({
+      failed: true,
+      invalidInput: true,
+    });
+    const failedExecution = await registry.execute("python", { source: "raise SystemExit(1)" });
+    expect(failedExecution).toMatchObject({ failed: true });
+    expect(failedExecution).not.toHaveProperty("invalidInput");
   });
 });

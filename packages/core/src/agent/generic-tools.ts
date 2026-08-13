@@ -29,7 +29,7 @@ function codeTool(language: "python" | "node"): ToolSpec {
   return {
     definition: {
       name: language,
-      description: `Run a complete ${language} program directly inside the no-network guest. Do not stage it with shell or wrap it in a child process that captures output. Programs start in /workspace; read the selected folder through absolute /source paths.`,
+      description: `Run a complete ${language} program inside the no-network guest. Programs start in /workspace; read the selected folder through absolute /source paths.`,
       params: objectSchema(
         { source: { type: "string", description: "Complete runnable source code." } },
         ["source"],
@@ -159,9 +159,21 @@ export class GenericToolRegistry {
   }
   async execute(name: string, params: unknown): Promise<AgentToolResult> {
     const tool = this.tools.get(name);
-    if (tool === undefined) return { content: `Unknown tool: ${name}`, failed: true };
+    if (tool === undefined) {
+      return { content: `Unknown tool: ${name}`, failed: true, invalidInput: true };
+    }
+    let parsed: unknown;
     try {
-      const result = await tool.execute(tool.parse(params), this.context);
+      parsed = tool.parse(params);
+    } catch (error) {
+      return {
+        content: error instanceof Error ? `${error.name}: ${error.message}` : String(error),
+        failed: true,
+        invalidInput: true,
+      };
+    }
+    try {
+      const result = await tool.execute(parsed, this.context);
       const content = await boundedToolOutput(
         this.context.executor,
         result.content,

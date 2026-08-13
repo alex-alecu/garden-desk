@@ -24,6 +24,7 @@ export type AgentQuestionOutcome = { dismissed: false; answers: string[][] } | {
 export interface AgentToolResult {
   content: string;
   failed: boolean;
+  invalidInput?: boolean;
   execution?: AgentExecutionResult;
 }
 
