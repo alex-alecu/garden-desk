@@ -5,7 +5,10 @@ import type {
   ChatMessage,
   ChatToolCall,
 } from "@vault/shared";
-import { containsProtocolTransition } from "./chat-protocol.js";
+import {
+  containsProtocolTransition,
+  recoverJsonArrayBeforeProtocolTransition,
+} from "./chat-protocol.js";
 import type { AgentToolResult, GenericToolRegistry } from "./generic-tools.js";
 import { subagentTitle, toolCompletedSummary, toolStartedSummary } from "./tool-summaries.js";
 
@@ -145,7 +148,18 @@ async function toolResult(
   return await input.registry.execute(call.name, call.params);
 }
 
+function recoverQuestionCall(call: ChatToolCall): void {
+  if (call.name !== "question" || typeof call.params !== "object" || call.params === null) {
+    return;
+  }
+  const params = call.params as Record<string, unknown>;
+  if (typeof params.questions !== "string") return;
+  const questions = recoverJsonArrayBeforeProtocolTransition(params.questions);
+  if (questions !== undefined) call.params = { ...params, questions };
+}
+
 async function executeToolCall(input: ToolTurnInput, call: ChatToolCall): Promise<boolean> {
+  recoverQuestionCall(call);
   const corrupt = containsProtocolTransition(call.params);
   const repeated = corrupt ? false : repeatedCall(input.state, call);
   beforeExecution(input, call, repeated, !corrupt);
