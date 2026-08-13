@@ -2125,7 +2125,8 @@ textarea:focus-visible {
   min-height: 100px;
   margin: 0;
   padding: 10px;
-  overflow: auto;
+  overflow-x: scroll;
+  overflow-y: scroll;
   border-radius: 8px;
   background: #041519;
   color: #dfeae6;
@@ -2136,8 +2137,8 @@ textarea:focus-visible {
     Menlo,
     Consolas,
     monospace;
-  white-space: pre-wrap;
-  word-break: break-word;
+  white-space: pre;
+  word-break: normal;
   resize: vertical;
 }
 
@@ -2985,6 +2986,7 @@ textarea:focus-visible {
   padding: 8px 10px;
   overflow-x: auto;
   border-radius: 8px;
+  color: var(--ink);
   background: rgb(0 0 0 / 5%);
   font-family: "IBM Plex Mono", ui-monospace, monospace;
   font-size: 12px;
