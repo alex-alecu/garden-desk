@@ -1,33 +1,23 @@
 # M3 Document Stress Evaluation
 
 Created: 2026-07-26
+Updated: 2026-08-13
 
-This evaluation measures the M3 generic offline development agent with the real Gemma 4 12B QAT worker, current-user daemon, and no-NIC microVM. It does not add a product document parser. The small suite first exposed an XLSX agent-loop limitation and then verified the focused Core-owned repair described below.
+This evaluation measures the M3 generic offline development agent with the real Gemma 4 12B QAT worker, current-user daemon, and no-NIC microVM. It does not add a product document parser.
 
-The current cross-platform small profile also contains one single-turn and one three-turn context-compaction workload. The separate `pnpm test:stress:m3:context-session` command sizes synthetic conversation pressure from the worker's reported allocation, requires three distinct anchored-summary versions in later traced prompts, and verifies final recall of pre-compaction decisions. These runners record the actual allocation and must be executed independently on each physical tier; passing one tier is never evidence for another.
+The V1 release gate accepts the limits of the certified local model. It proves a few normal product paths. It does not require the model to solve large corpora, long context-turnover tasks, or several complex tasks at the same time. Model-quality limits from those optional tests are evidence. They are not V1 release failures.
 
-## Two-commit delivery
-
-The work is intentionally split into two commits in one pull request:
-
-1. **Small realistic suite:** prove the harness and file formats with reduced versions of every workload, unsafe-folder rejection, invalid input, sequential execution, and three simultaneous conversations.
-2. **Scaled suite:** add the requested 100-page PDF; 10-sheet, 1,000,000-row workbook; 50-workbook folder with 10,000,000 rows total; mixed 20-workbook plus 30-DOCX folder with 10,000,000 XLSX rows total; and three simultaneous scaled cases.
-
-## Small workload matrix
+## V1 small gate
 
 | Case | Generated input | Required proof |
 |---|---|---|
-| PDF | 1 PDF, 12 pages | Parse every page and sum embedded page checksums. |
-| Workbook | 1 XLSX, 2 sheets, 2,500 rows per sheet | Visit every row and aggregate target rows placed last in each sheet. |
-| XLSX folder | 3 XLSX, 2 sheets each, 2,500 rows per sheet | Traverse every workbook, sheet, and row. |
-| Mixed folder | 2 XLSX as above and 3 DOCX with 12 page-break-delimited pages each | Produce complete XLSX and DOCX counts and checksums. |
+| Source inspection | 1 small TypeScript file | Find and report one exact value. |
+| XLSX edit | 1 small workbook | Change two requested cells and preserve the workbook structure. |
+| DOCX edit | 1 small document | Change and add requested text while preserving document structure. |
 | Invalid document | 1 truncated PDF | Stop after bounded validation without creating an artifact. |
 | Invalid folder requests | the platform filesystem root, a missing path, a regular file, and an invalid session ID | Reject through daemon RPC before inference or VM work. |
-| Concurrent | PDF, XLSX-folder, and mixed-folder cases | Observe three runs in the running state while sharing the real resident model. |
 
-Every positive fixture stores its final target on each file's final page or worksheet row. A passing exact count and checksum therefore requires complete traversal rather than opening only the first page, sheet, or file.
-
-## Running phase 1
+## Running the V1 gate
 
 Prerequisites are the generated platform microVM helper, agent guest image, and canonical model used by `pnpm test:m3:macos` or `pnpm test:m3:windows`. On Windows the suite additionally uses the packaged inference worker, AppContainer launcher, and Node runtime so VRAM detection matches the desktop. Run on physical Apple silicon or Windows x64 outside a restricted shell:
 
@@ -38,6 +28,10 @@ pnpm test:stress:m3:small
 The command creates fixtures and workspace state under a short `/tmp` path on macOS and under the user temporary directory on Windows, calls only daemon RPC through the CLI client, and removes the temporary corpus after completion. A complete local report containing terminal snapshots, ordered events, execution output, and recorded inference traces is retained under `packages/eval/.generated/stress/`. That report can contain generated code and source-derived output and must remain local.
 
 The suite exits nonzero when it finds a limit. A nonzero result is evidence to record, not by itself authorization to change the agent. Agent changes require a separate owner-approved strategy and verification.
+
+Each V1 case has a five-minute deadline and runs in sequence. The small gate does not run concurrent model tasks. The canonical platform gate already proves process concurrency, Python and Node execution, cancellation, isolation, resource limits, and teardown.
+
+All other small-profile cases remain available through `--case` for focused diagnosis. The context-session and scaled commands are optional model-characterization tools. Do not run them for normal V1 acceptance, and do not make V1 depend on a larger or smarter model.
 
 ## Scaled workload matrix
 
@@ -57,7 +51,7 @@ pnpm test:stress:m3:scaled:sequential -- --case workbook
 pnpm test:stress:m3:scaled:concurrent
 ```
 
-These commands are intentionally explicit and pass the runner's `--confirm-scaled` guard. The corrected definitions were run on physical Apple silicon; the evidence is recorded below.
+These optional commands are intentionally explicit and pass the runner's `--confirm-scaled` guard. Run them only after an explicit owner request. The corrected definitions were run on physical Apple silicon; the historical evidence is recorded below.
 
 ## Scaled suite constraints
 
@@ -69,7 +63,7 @@ These commands are intentionally explicit and pass the runner's `--confirm-scale
 - Do not add scaled commands to the default M3 or repository verification gates.
 - Do not infer Windows behavior from macOS results.
 
-## Phase 1 physical evidence
+## Historical phase 1 physical evidence
 
 The small suite ran on 2026-07-26 on the physical 48 GB Apple-silicon Mac. The original baseline reproduced an XLSX-only limit: Gemma copied the inspection example with an uppercase target compared against lowercased cell values, produced no rows, then proposed the same exact program eleven more times. Core rejected every duplicate, but the final response incorrectly said execution capacity was exhausted after only one execution.
 

@@ -78,6 +78,33 @@ it("accepts a plain response that quotes one protocol marker", async () => {
 
   expect(result.response).toBe("The literal marker is `<|tool_call>`.");
 });
+it("rejects a raw tool-call terminator used as the complete response", async () => {
+  const requests: Parameters<InferenceService["chat"]>[0][] = [];
+  const loop = new ChatAgentLoop(
+    model([generated("<tool_call|>"), generated("Completed result.")], requests),
+  );
+
+  const result = await loop.run(
+    input(
+      {
+        async execute() {
+          throw new Error("unused");
+        },
+      },
+      [],
+    ),
+  );
+
+  expect(result.response).toBe("Completed result.");
+  expect(requests[1]?.messages).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({
+        role: "system",
+        text: expect.stringContaining("raw function-call protocol text"),
+      }),
+    ]),
+  );
+});
 it("restores typed tools after a response-only retry emits raw tool markup", async () => {
   const requests: Parameters<InferenceService["chat"]>[0][] = [];
   const limited = generated("unfinished");

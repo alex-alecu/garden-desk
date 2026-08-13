@@ -16,7 +16,7 @@ export interface SkillReader {
 export interface SubagentRequest {
   description: string;
   prompt: string;
-  subagentType: "explore" | "probe";
+  subagentType: "explore" | "general" | "probe";
 }
 
 export type AgentQuestionOutcome = { dismissed: false; answers: string[][] } | { dismissed: true };

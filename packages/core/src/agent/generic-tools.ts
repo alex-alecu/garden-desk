@@ -88,11 +88,11 @@ function skillTool(skills: SkillReader): ToolSpec {
 function taskParams(value: unknown): {
   description: string;
   prompt: string;
-  subagent_type: "explore" | "probe";
+  subagent_type: "explore" | "general" | "probe";
 } {
   const params = object(value);
   const subagentType = textParam(params, "subagent_type", 16);
-  if (subagentType !== "explore" && subagentType !== "probe") {
+  if (subagentType !== "explore" && subagentType !== "general" && subagentType !== "probe") {
     throw new Error("invalid_subagent_type");
   }
   return {
@@ -107,12 +107,12 @@ function taskTool(): ToolSpec {
     definition: {
       name: "task",
       description:
-        "Delegate isolated exploration or trial-and-error work. Only the final report returns to this context.",
+        "Delegate isolated exploration, a focused trial, or one independent multi-step work unit. Only the final report returns to this context; verify child outputs before final use.",
       params: objectSchema(
         {
           description: { type: "string" },
           prompt: { type: "string" },
-          subagent_type: { type: "string", enum: ["explore", "probe"] },
+          subagent_type: { type: "string", enum: ["explore", "general", "probe"] },
         },
         ["description", "prompt", "subagent_type"],
       ),

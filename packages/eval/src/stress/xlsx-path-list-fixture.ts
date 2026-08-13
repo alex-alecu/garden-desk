@@ -28,12 +28,13 @@ export function xlsxPathListFileName(account: string): string {
   return `SYNTHACC_${account}.XLSX`;
 }
 
-export const XLSX_PATH_LIST_ROWS: ExpectedTableRow[] = XLSX_PATH_LIST_MONTHS.flatMap((_, month) =>
-  XLSX_PATH_LIST_ACCOUNTS.map((_, account) => ({
-    marker: `SYNTH_REVENUE_M${String(month + 1).padStart(2, "0")}_A${account + 1}`,
-    amount: 10_000 + (month + 1) * 100 + account + 1,
-  })),
-);
+export const XLSX_PATH_LIST_ROWS: Array<ExpectedTableRow & { marker: string }> =
+  XLSX_PATH_LIST_MONTHS.flatMap((_, month) =>
+    XLSX_PATH_LIST_ACCOUNTS.map((_, account) => ({
+      marker: `SYNTH_REVENUE_M${String(month + 1).padStart(2, "0")}_A${account + 1}`,
+      amount: 10_000 + (month + 1) * 100 + account + 1,
+    })),
+  );
 
 const ROOT_RELS = `<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`;
 const CONTENT_TYPES = `<?xml version="1.0" encoding="UTF-8"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/></Types>`;

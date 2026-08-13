@@ -170,6 +170,33 @@ describe("GenericToolRegistry task", () => {
       content: "<task_result>\nOnly this final report returns.\n</task_result>",
     });
   });
+
+  it("accepts the general work sub-agent type", async () => {
+    const requests: unknown[] = [];
+    const registry = new GenericToolRegistry({
+      executor: executorOnly,
+      skills: { metadata: () => [], read: () => "" },
+      async spawnTask(request) {
+        requests.push(request);
+        return "Candidate checked.";
+      },
+    });
+
+    const result = await registry.execute("task", {
+      description: "Prepare candidate",
+      prompt: "Complete and verify one work unit.",
+      subagent_type: "general",
+    });
+
+    expect(requests).toEqual([
+      {
+        description: "Prepare candidate",
+        prompt: "Complete and verify one work unit.",
+        subagentType: "general",
+      },
+    ]);
+    expect(result.failed).toBe(false);
+  });
 });
 
 describe("GenericToolRegistry resilient parameters", () => {

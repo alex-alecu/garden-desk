@@ -5,7 +5,10 @@ import type { AgentDefinition } from "./markdown-definition-library.js";
 import type { AgentTraceStore } from "./trace-store.js";
 
 type ConversationItem = { role: "user" | "assistant"; content: string };
-export type ChatRecoveryState = { emptyResponsePending: boolean };
+export type ChatRecoveryState = {
+  emptyResponsePending: boolean;
+  inferenceRetryUsed: boolean;
+};
 
 export interface ChatAgentInput {
   agent: AgentDefinition;

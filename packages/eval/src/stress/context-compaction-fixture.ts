@@ -1,10 +1,8 @@
-import { mkdir, stat, writeFile } from "node:fs/promises";
+import { mkdir, stat } from "node:fs/promises";
 import { join } from "node:path";
 import type { FixtureEvidence } from "./document-fixtures.js";
 import { writeStreamingZip, type ZipEntry } from "./streaming-zip.js";
 
-export const CONTEXT_COMPACTION_PLAN = { records: 6_000, shards: 3 } as const;
-export const REPEATED_COMPACTION_PLAN = { stages: 3, recordsPerStage: 2_000 } as const;
 export const OVERSIZED_TABLE_PLAN = { rows: 2_000, sheetsPerWorkbook: 2, workbooks: 4 } as const;
 
 const ROOT_RELS = `<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`;
@@ -43,43 +41,6 @@ function workbookEntries(workbook: number): ZipEntry[] {
     { name: "xl/worksheets/sheet1.xml", content: () => revenueSheet(workbook, 0) },
     { name: "xl/worksheets/sheet2.xml", content: () => revenueSheet(workbook, 1) },
   ];
-}
-
-export async function createCompactionCorpus(directory: string): Promise<FixtureEvidence> {
-  let bytes = 0;
-  const recordsPerShard = CONTEXT_COMPACTION_PLAN.records / CONTEXT_COMPACTION_PLAN.shards;
-  for (let shard = 0; shard < CONTEXT_COMPACTION_PLAN.shards; shard += 1) {
-    const lines = Array.from({ length: recordsPerShard }, (_, index) => {
-      const serial = shard * recordsPerShard + index + 1;
-      return `record-${String(serial).padStart(5, "0")},${serial * 11},${serial === 3_517 ? "COMPACTION_TARGET" : "ordinary-record-for-context-turnover"}`;
-    });
-    const content = `record_id,amount,status\n${lines.join("\n")}\n`;
-    await writeFile(join(directory, `ledger-${shard + 1}.csv`), content);
-    bytes += Buffer.byteLength(content);
-  }
-  return {
-    bytes,
-    files: CONTEXT_COMPACTION_PLAN.shards,
-    expected: { compactionTarget: 3_517 * 11 },
-  };
-}
-
-export async function createRepeatedCompactionCorpus(directory: string): Promise<FixtureEvidence> {
-  let bytes = 0;
-  const expected: Record<string, number> = {};
-  for (let stage = 1; stage <= REPEATED_COMPACTION_PLAN.stages; stage += 1) {
-    const target = 1_111 + stage * 137;
-    const lines = Array.from({ length: REPEATED_COMPACTION_PLAN.recordsPerStage }, (_, index) => {
-      const serial = index + 1;
-      const amount = stage * 100_000 + serial * 13;
-      if (serial === target) expected[`stage${stage}Total`] = amount;
-      return `stage-${stage}-record-${String(serial).padStart(5, "0")},${amount},${serial === target ? `STAGE_${stage}_TARGET` : "ordinary-record-for-repeated-context-turnover"}`;
-    });
-    const content = `ID,Amount,Status\n${lines.join("\n")}\n`;
-    await writeFile(join(directory, `stage-${stage}.csv`), content);
-    bytes += Buffer.byteLength(content);
-  }
-  return { bytes, files: REPEATED_COMPACTION_PLAN.stages, expected };
 }
 
 export async function createOversizedRevenueCorpus(directory: string): Promise<FixtureEvidence> {

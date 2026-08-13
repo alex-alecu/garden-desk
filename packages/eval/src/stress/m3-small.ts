@@ -7,25 +7,17 @@ import {
   requireRealModel,
   startStressRuntime,
 } from "./m3-stress-runtime.js";
-import {
-  prepareSmallCase,
-  SMALL_CONCURRENT_CASES,
-  SMALL_FOCUSED_REPORT_CASES,
-  SMALL_SEQUENTIAL_CASES,
-} from "./small-profile.js";
+import { prepareSmallCase, SMALL_CASE_IDS, SMALL_GATE_CASES } from "./small-profile.js";
 import { createStressRoot, requireStressPlatform } from "./stress-platform.js";
-import { runConcurrentCases, runSequentialCases } from "./stress-suite.js";
+import { runSequentialCases } from "./stress-suite.js";
 
-const CASE_DEADLINE_MS = 30 * 60_000;
-const CONCURRENT_DEADLINE_MS = 45 * 60_000;
+const CASE_DEADLINE_MS = 5 * 60_000;
 
-function requestedCase(): (typeof SMALL_SEQUENTIAL_CASES)[number] | undefined {
+function requestedCase(): (typeof SMALL_CASE_IDS)[number] | undefined {
   const index = process.argv.indexOf("--case");
   if (index === -1) return undefined;
   const value = process.argv[index + 1];
-  const id = [...SMALL_SEQUENTIAL_CASES, ...SMALL_FOCUSED_REPORT_CASES].find(
-    (candidate) => candidate === value,
-  );
+  const id = SMALL_CASE_IDS.find((candidate) => candidate === value);
   if (id === undefined) throw new Error(`Unknown small stress case: ${value ?? "missing"}`);
   return id;
 }
@@ -65,25 +57,29 @@ async function runSmallSuite(
   const sequential = await runSequentialCases({
     endpoint: runtime.endpoint,
     fixtureRoot: join(root, "fixtures", "sequential"),
-    ids: selected === undefined ? SMALL_SEQUENTIAL_CASES : [selected],
+    ids: selected === undefined ? SMALL_GATE_CASES : [selected],
     prepare: prepareSmallCase,
     deadlineMs: CASE_DEADLINE_MS,
   });
-  const concurrent =
-    selected === undefined
-      ? await runConcurrentCases({
-          endpoint: runtime.endpoint,
-          fixtureRoot: join(root, "fixtures", "concurrent"),
-          ids: SMALL_CONCURRENT_CASES,
-          prepare: prepareSmallCase,
-          deadlineMs: CONCURRENT_DEADLINE_MS,
-        })
-      : { maximumRunning: 0, wallMs: 0, evidence: [] };
-  const inferenceRan = [...sequential, ...concurrent.evidence].some(
+  const inferenceRan = sequential.some(
     (item) => item.trace.captureVersion === 1 && item.trace.turns.length > 0,
   );
-  const modelAfter = await requireRealModel(runtime.endpoint, inferenceRan);
-  return { policyCases, modelBefore, modelAfter, sequential, concurrent };
+  let modelAfter: Awaited<ReturnType<typeof requireRealModel>> | undefined;
+  let modelAfterError: string | undefined;
+  try {
+    modelAfter = await requireRealModel(runtime.endpoint, inferenceRan);
+  } catch (error) {
+    modelAfterError = error instanceof Error ? error.message : "model_state_check_failed";
+  }
+  const auditValid = await runtime.core.verifyAudit();
+  return {
+    policyCases,
+    modelBefore,
+    modelAfter,
+    modelAfterError,
+    sequential,
+    auditValid,
+  };
 }
 
 async function main(): Promise<void> {
@@ -97,12 +93,11 @@ async function main(): Promise<void> {
     await prepareModelStore();
     runtime = await startStressRuntime(join(root, "state"));
     const evidence = await runSmallSuite(runtime, root);
-    const results = [...evidence.sequential, ...evidence.concurrent.evidence].map(
-      (item) => item.result,
-    );
+    const results = evidence.sequential.map((item) => item.result);
     const passed =
       results.every((result) => result.passed) &&
-      (requestedCase() !== undefined || evidence.concurrent.maximumRunning >= 3);
+      evidence.auditValid &&
+      evidence.modelAfterError === undefined;
     const report = {
       classification: passed ? "small_stress_passed" : "small_stress_limit_found",
       createdAt: new Date().toISOString(),

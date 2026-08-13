@@ -11,6 +11,7 @@ import {
 import type { InferenceService } from "../runtime/inference.js";
 import { artifactCandidateNames } from "./artifact-results.js";
 import { compactChatHistory } from "./chat-compaction.js";
+import { generateWithInferenceRecovery } from "./chat-inference-recovery.js";
 import { initialChatMessages } from "./chat-initial-messages.js";
 import type { ChatAgentInput, ChatRecoveryState } from "./chat-loop-input.js";
 import { containsRawProtocolCall } from "./chat-protocol.js";
@@ -202,22 +203,6 @@ export class ChatAgentLoop {
     }
   }
 
-  private async generateWithRecovery(
-    input: ChatAgentInput,
-    state: ChatToolState,
-    tools: ReturnType<GenericToolRegistry["definitions"]>,
-    performance: ReturnType<typeof emptyPerformance>,
-  ) {
-    try {
-      return await this.generate(input, state.messages, tools, "chat");
-    } catch (error) {
-      if (state.messages.length < 4) throw error;
-      state.messages = await this.compact(input, state.messages, 2, performance);
-      state.checkpoint = state.messages.length;
-      state.failedTools = 0;
-      return await this.generate(input, state.messages, tools, "chat");
-    }
-  }
   private async turn(options: {
     input: ChatAgentInput;
     state: ChatToolState;
@@ -228,7 +213,18 @@ export class ChatAgentLoop {
   }): Promise<AgentRunResult | undefined> {
     const { input, state, registry, recovery, performance, finalTurn } = options;
     const tools = finalTurn || state.responseOnly ? [] : registry.definitions(input.agent.tools);
-    const generated = await this.generateWithRecovery(input, state, tools, performance);
+    const generated = await generateWithInferenceRecovery({
+      generate: async () => await this.generate(input, state.messages, tools, "chat"),
+      recover: async () => {
+        if (state.messages.length < 4) return;
+        state.messages = await this.compact(input, state.messages, 2, performance);
+        state.checkpoint = state.messages.length;
+        state.failedTools = 0;
+      },
+      recovery,
+      ...(input.signal === undefined ? {} : { signal: input.signal }),
+      onRetry: () => input.onEvent?.("inference.started", "Retrying the local model once."),
+    });
     addPerformance(performance, generated.result.performance);
     state.messages.push({
       role: "assistant",
@@ -276,7 +272,10 @@ export class ChatAgentLoop {
     });
     const performance = emptyPerformance();
     const state = initialToolState(initialChatMessages(input));
-    const recovery: ChatRecoveryState = { emptyResponsePending: false };
+    const recovery: ChatRecoveryState = {
+      emptyResponsePending: false,
+      inferenceRetryUsed: false,
+    };
     const turns = Math.min(HARD_TURN_LIMIT, input.agent.steps);
     for (let turn = 0; turn < turns; turn += 1) {
       input.signal?.throwIfAborted();

@@ -35,7 +35,6 @@ export const FILE_MANIPULATION_CASES: StressCaseDefinition<FileManipulationCaseI
         ],
       },
     ],
-    maxExecutions: 3,
   },
   {
     id: "docx-edit",
@@ -67,7 +66,6 @@ export const FILE_MANIPULATION_CASES: StressCaseDefinition<FileManipulationCaseI
         archiveForbiddenFacts: ["Pending legal review"],
       },
     ],
-    maxExecutions: 3,
   },
   {
     id: "pdf-merge",
@@ -88,7 +86,6 @@ export const FILE_MANIPULATION_CASES: StressCaseDefinition<FileManipulationCaseI
         pdfRotations: [0, 0, 90],
       },
     ],
-    maxExecutions: 3,
   },
 ];
 
