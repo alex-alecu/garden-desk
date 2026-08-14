@@ -100,6 +100,26 @@ describe("M3 queued resident worker", () => {
 });
 
 describe("M3 queued resident worker cancellation", () => {
+  it("keeps the supervisor lifecycle signal when the caller supplies a signal", async () => {
+    let workerSignal: AbortSignal | undefined;
+    const port: InferencePort = {
+      async unload() {
+        return true;
+      },
+      async execute(execution) {
+        workerSignal = execution.signal;
+        return success(execution);
+      },
+    };
+    const inference = await supervisor(port, []);
+    const controller = new AbortController();
+
+    await inference.generate(generationInput, controller.signal);
+
+    expect(workerSignal).not.toBe(controller.signal);
+    expect(controller.signal.aborted).toBe(false);
+  });
+
   it("cancels without starting or overtaking the active worker", async () => {
     const started = deferred();
     const firstGenerationFinished = deferred();

@@ -210,12 +210,13 @@ export class InferenceSupervisor implements InferenceService {
       priority?: "primary" | "secondary";
     } = {},
   ) {
-    const execution = this.startExecution(options.signal);
+    const { signal, priority = "primary", ...streams } = options;
+    const execution = this.startExecution(signal);
     let lease: ResourceLease | undefined;
     try {
       const result = await this.slots.run(
-        async () => await this.executeOne(request, execution, options),
-        { signal: execution.signal, priority: options.priority ?? "primary" },
+        async () => await this.executeOne(request, execution, streams),
+        { signal: execution.signal, priority },
       );
       lease = result.lease;
       return result.response;
