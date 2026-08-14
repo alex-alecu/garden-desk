@@ -9,7 +9,6 @@ const emptyConversation = {
   performance: null,
   ready: true,
   runId: undefined,
-  thinking: null,
   timeline: [],
 };
 

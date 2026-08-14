@@ -21,7 +21,7 @@ import { secureWorkspaceAllowsTasks } from "./secure-workspace.js";
 import { type DesktopBootstrapRequest, desktopBootstrapRequest } from "./startup.js";
 import { desktopReducer, initialDesktopState } from "./state.js";
 import { selectStep } from "./step-selection.js";
-import { activeThinkingStepId, agentSteps } from "./steps.js";
+import { agentSteps, desktopThinking } from "./steps.js";
 import { useSecureWorkspace } from "./use-secure-workspace.js";
 // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: single desktop composition boundary.
 // biome-ignore lint/complexity/noExcessiveLinesPerFunction: single desktop composition boundary.
@@ -70,6 +70,8 @@ export function App({ api, capabilities }: { api: DesktopApi; capabilities: Desk
   )?.name;
   const running =
     submitting || state.activeRun?.state === "queued" || state.activeRun?.state === "running";
+  const sessionLoading = state.pendingSessionId !== undefined;
+  const desktopReady = state.loaded && !sessionLoading;
   const tasksAllowed = secureWorkspaceAllowsTasks(secureWorkspace.status);
   const draftPersistence = useDraftPersistence(api, setDesktopError);
   useNativeDrop({
@@ -78,7 +80,7 @@ export function App({ api, capabilities }: { api: DesktopApi; capabilities: Desk
       activeSessionId: state.activeSessionId,
       draft: state.draft,
       newSessionFolderId: state.newSessionFolderId,
-      running,
+      running: running || sessionLoading,
     },
     dispatch,
     enabled: capabilities.nativeActions,
@@ -102,7 +104,7 @@ export function App({ api, capabilities }: { api: DesktopApi; capabilities: Desk
     });
   };
   const steps = agentSteps(state.timeline, state.executions, state.traces);
-  const thinkingStepId = activeThinkingStepId(state.timeline, state.activeRun?.id, state.thinking);
+  const { thinkingByStep, thinkingStepId } = desktopThinking(state);
   const onSelectStep = (stepId: string | undefined) =>
     selectStep(
       {
@@ -129,7 +131,7 @@ export function App({ api, capabilities }: { api: DesktopApi; capabilities: Desk
         setError={setDesktopError}
         state={state}
       />
-      <main aria-busy={!state.loaded} className="workspace">
+      <main aria-busy={!desktopReady} className="workspace">
         <div aria-hidden="true" className="window-drag-region" data-tauri-drag-region="" />
         <ChatHeader
           appearance={appearance.preference}
@@ -158,7 +160,7 @@ export function App({ api, capabilities }: { api: DesktopApi; capabilities: Desk
           status={secureWorkspace.status}
         />
         <GuidedExamples
-          disabled={!state.loaded || running || !tasksAllowed}
+          disabled={!desktopReady || running || !tasksAllowed}
           examples={capabilities.guidedExamples ?? []}
           onRun={runTask}
         />
@@ -196,7 +198,7 @@ export function App({ api, capabilities }: { api: DesktopApi; capabilities: Desk
           timeline={state.timeline}
           performance={state.activeRun?.performance ?? null}
           runId={state.activeRun?.id}
-          thinking={state.thinking}
+          thinkingByStep={thinkingByStep}
           working={state.activeRun?.state === "queued" || state.activeRun?.state === "running"}
           activeRunState={state.activeRun?.state}
         />
@@ -214,7 +216,7 @@ export function App({ api, capabilities }: { api: DesktopApi; capabilities: Desk
             )}
             dropActive={dropIntent === "files" || dropIntent === "mixed"}
             draft={state.draft}
-            disabled={!state.loaded || model.state === "unsupported" || !tasksAllowed}
+            disabled={!desktopReady || model.state === "unsupported" || !tasksAllowed}
             nativeActionMessage={nativeUnavailable}
             onAttach={() =>
               void attach({
@@ -286,7 +288,7 @@ export function App({ api, capabilities }: { api: DesktopApi; capabilities: Desk
         selectedStepId={state.selectedStepId}
         sessionId={state.activeSessionId}
         steps={steps}
-        thinking={state.thinking}
+        thinkingByStep={thinkingByStep}
         thinkingStepId={thinkingStepId}
         timeline={state.timeline}
       />

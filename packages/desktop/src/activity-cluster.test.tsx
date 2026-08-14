@@ -2,6 +2,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import type { ActivityRow } from "./activity-rows.js";
 import { ActivityCluster, openStateOnFinish } from "./components/activity-cluster.js";
+import { followThinkingText } from "./thinking-scroll.js";
 
 const startedAt = "2026-08-12T12:00:00.000Z";
 
@@ -105,5 +106,47 @@ describe("ActivityCluster rendering", () => {
     });
     expect(markup).not.toContain("activity-row-shimmer");
     expect(markup).not.toContain("activity-row-running");
+  });
+});
+
+describe("thinking activity presentation", () => {
+  it("opens a live thinking row and leaves it collapsed after the run", () => {
+    const thinking = row({
+      id: "p",
+      detail: "First thought\nSecond thought",
+      kind: "thinking",
+      status: "running",
+      title: "Planning the task.",
+    });
+    const liveMarkup = renderCluster({
+      rows: [thinking],
+      working: true,
+      failed: false,
+      finishedDurationMs: undefined,
+    });
+    const finishedMarkup = renderCluster({
+      rows: [thinking],
+      working: false,
+      failed: false,
+      finishedDurationMs: 4_000,
+      forceExpandedRowId: "p",
+    });
+
+    expect(liveMarkup).toContain('aria-expanded="true"');
+    expect(liveMarkup).toContain('class="activity-row-label activity-row-shimmer" disabled=""');
+    expect(liveMarkup).toContain('class="thinking-log"');
+    expect(liveMarkup).toContain("Second thought");
+    expect(finishedMarkup).toContain('aria-expanded="false" class="activity-row-label"');
+    expect(finishedMarkup).not.toContain("Second thought");
+  });
+});
+
+describe("thinking text scrolling", () => {
+  it("moves a thinking box to its last text row", () => {
+    const viewer = { scrollHeight: 640, scrollTop: 0 };
+
+    followThinkingText(viewer);
+
+    expect(viewer.scrollTop).toBe(640);
   });
 });

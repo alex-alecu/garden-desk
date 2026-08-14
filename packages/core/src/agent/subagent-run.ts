@@ -12,6 +12,7 @@ import type { AgentStore } from "./store.js";
 
 interface SubagentPorts {
   contextTokens: number | "auto";
+  knownContextTokens?: number;
   database: DatabasePort;
   inference: Pick<InferenceService, "chat">;
   jobs: JobStore;
@@ -76,6 +77,9 @@ export async function runSubagent(ports: SubagentPorts, request: SubagentRequest
     const result = await new ChatAgentLoop(ports.inference).run({
       agent: ports.library.agent(request.subagentType),
       contextTokens: ports.contextTokens,
+      ...(ports.knownContextTokens === undefined
+        ? {}
+        : { knownContextTokens: ports.knownContextTokens }),
       executor: createRunExecutor({
         runId: child.id,
         sessionId: ports.sessionId,

@@ -171,7 +171,7 @@ it("does not grant another empty retry after invalid tool input", async () => {
 
 it("keeps empty-answer recovery bounded after a max-token retry", async () => {
   const requests: Parameters<InferenceService["chat"]>[0][] = [];
-  const limited = generated("unfinished");
+  const limited = generated("unfinished", [], 7_000);
   limited.stopReason = "maxTokens";
   const loop = new ChatAgentLoop(
     model([limited, generated("Compacted context."), generated(""), generated("")], requests),

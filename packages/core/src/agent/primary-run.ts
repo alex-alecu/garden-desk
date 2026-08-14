@@ -18,6 +18,7 @@ import { runSubagent } from "./subagent-run.js";
 
 interface PrimaryRunInput {
   contextTokens: number | "auto";
+  knownContextTokens?: number;
   database: DatabasePort;
   definitions: MarkdownDefinitionLibrary;
   history: { messages: ConversationMessage[]; summary?: string };
@@ -38,6 +39,9 @@ export async function runPrimaryAgent(input: PrimaryRunInput): Promise<AgentRunR
   return await new ChatAgentLoop({ chat: input.chat }).run({
     agent: definitions.agent("primary"),
     contextTokens: input.contextTokens,
+    ...(input.knownContextTokens === undefined
+      ? {}
+      : { knownContextTokens: input.knownContextTokens }),
     executor: createRunExecutor({
       runId: run.id,
       sessionId: run.sessionId,
@@ -73,6 +77,9 @@ async function runPrimarySubagent(
   return await runSubagent(
     {
       contextTokens: input.contextTokens,
+      ...(input.knownContextTokens === undefined
+        ? {}
+        : { knownContextTokens: input.knownContextTokens }),
       database: input.database,
       inference: { chat: input.chat },
       jobs: input.jobs,

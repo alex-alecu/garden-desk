@@ -165,6 +165,7 @@ describe("M3 resident worker recovery", () => {
   });
 
   it("allows a 32K generation enough bounded time to reach its token limit", async () => {
+    vi.useFakeTimers();
     let timeoutMs = 0;
     const inference = await supervisor(
       {

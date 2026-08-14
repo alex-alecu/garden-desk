@@ -33,6 +33,9 @@ function expectApprovedAgents(library: MarkdownDefinitionLibrary): void {
     temperature: 0,
     tools: ["bash", "python", "node", "read", "glob", "grep", "list", "skill", "task", "question"],
   });
+  expect(library.agent("primary").body).toContain(
+    "first turn must contain only one `question` tool call",
+  );
   expect(library.agent("explore")).toMatchObject({
     steps: 16,
     tools: ["read", "glob", "grep", "list", "skill"],

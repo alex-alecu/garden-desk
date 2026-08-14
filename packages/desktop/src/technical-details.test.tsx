@@ -142,7 +142,7 @@ function renderTechnicalDetails(selectedStepId?: string, nativeActionMessage?: s
       selectedStepId={selectedStepId}
       sessionId="da911f87-ff26-46d8-9a58-bad222a584ab"
       steps={steps}
-      thinking={null}
+      thinkingByStep={{}}
       thinkingStepId={undefined}
       timeline={timeline}
     />,

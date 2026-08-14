@@ -27,7 +27,6 @@ describe("conversation attachment presentation", () => {
         onSuggestion: () => undefined,
         performance: null,
         runId: undefined,
-        thinking: null,
       }),
     );
 

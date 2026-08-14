@@ -86,7 +86,6 @@ function renderRestoredActivity(): string {
       onSuggestion: () => undefined,
       performance: null,
       runId,
-      thinking: null,
     }),
   );
 }
@@ -102,7 +101,6 @@ describe("empty conversation presentation", () => {
         onSuggestion: () => undefined,
         performance: null,
         runId: undefined,
-        thinking: null,
       }),
     );
 
@@ -138,6 +136,14 @@ describe("conversation performance presentation", () => {
         timeline: [
           { createdAt: timestamp, id: "user", kind: "user", text: "Hello" },
           {
+            createdAt: "2026-07-20T12:00:00.500Z",
+            eventType: "inference.started",
+            id: "planning",
+            kind: "activity",
+            runId: "run",
+            text: "Planning the response.",
+          },
+          {
             createdAt: "2026-07-20T12:00:01.000Z",
             id: "assistant",
             kind: "assistant",
@@ -154,7 +160,8 @@ describe("conversation performance presentation", () => {
           totalDurationMs: 4_250,
         },
         runId: "run",
-        thinking: "I am checking the local context.",
+        thinkingByStep: { planning: "I am checking the local context." },
+        working: true,
       }),
     );
 
@@ -164,7 +171,9 @@ describe("conversation performance presentation", () => {
       /98.8<\/strong> prompt tok\/s.*12.3<\/strong> generation tok\/s.*4.3s<\/strong> total/s,
     );
     expect(markup).toContain("4.3s</strong> total");
-    expect(markup).toContain("Thinking locally");
+    expect(markup).toContain("Planning the response.");
+    expect(markup).toContain('class="thinking-log"');
+    expect(markup).toContain('aria-expanded="true"');
     expect(markup).toContain("I am checking the local context.");
   });
 });
@@ -188,7 +197,6 @@ describe("conversation Markdown presentation", () => {
         onSuggestion: () => undefined,
         performance: null,
         runId: "run",
-        thinking: null,
       }),
     );
 
@@ -247,7 +255,6 @@ describe("conversation activity presentation", () => {
         onSuggestion: () => undefined,
         performance: null,
         runId,
-        thinking: null,
         working: true,
       }),
     );
@@ -269,7 +276,6 @@ describe("conversation step selection", () => {
         selectedStepId: "completed",
         performance: null,
         runId,
-        thinking: null,
       }),
     );
 

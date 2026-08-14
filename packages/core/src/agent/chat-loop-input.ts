@@ -8,11 +8,13 @@ type ConversationItem = { role: "user" | "assistant"; content: string };
 export type ChatRecoveryState = {
   emptyResponsePending: boolean;
   inferenceRetryUsed: boolean;
+  outputLimitRetryUsed: boolean;
 };
 
 export interface ChatAgentInput {
   agent: AgentDefinition;
   contextTokens: number | "auto";
+  knownContextTokens?: number;
   executor: AgentExecutor;
   history?: { messages: ConversationItem[]; summary?: string };
   inputNames?: string[];

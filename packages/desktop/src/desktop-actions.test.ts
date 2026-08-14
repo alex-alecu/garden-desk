@@ -7,7 +7,7 @@ import {
 import { describe, expect, it, vi } from "vitest";
 import type { DesktopApi } from "./api.js";
 import { openArtifact, saveArtifact } from "./artifact-actions.js";
-import { addDroppedFolders, attach } from "./desktop-actions.js";
+import { addDroppedFolders, attach, selectSession } from "./desktop-actions.js";
 import type { DesktopAction } from "./state.js";
 
 const session = SessionSummarySchema.parse({
@@ -85,6 +85,38 @@ describe("desktop attachment actions", () => {
       "session.created",
       "draft.change",
       "attachments.add",
+    ]);
+  });
+});
+
+describe("desktop session selection", () => {
+  it("replaces the selected conversation with one atomic loaded action", async () => {
+    const actions: DesktopAction[] = [];
+    const api = {
+      listMessages: vi.fn(async () => []),
+      listAttachments: vi.fn(async () => []),
+      loadDraft: vi.fn(async () => undefined),
+      listAgentRuns: vi.fn(async () => []),
+    } as unknown as DesktopApi;
+
+    await selectSession(
+      api,
+      session.id,
+      (action) => actions.push(action),
+      () => undefined,
+    );
+
+    expect(actions).toEqual([
+      { type: "session.select", sessionId: session.id },
+      {
+        type: "session.loaded",
+        sessionId: session.id,
+        messages: [],
+        attachments: [],
+        removableIds: [],
+        draft: "",
+        snapshots: [],
+      },
     ]);
   });
 });

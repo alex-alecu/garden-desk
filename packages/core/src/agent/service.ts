@@ -225,16 +225,16 @@ export class AgentService {
             : messages.slice(anchored.coveredMessageCount, -1),
         ...(anchored === undefined ? {} : { summary: anchored.text }),
       };
-      const contextTokens = "auto" as const;
       if (this.inference.chat === undefined) throw new Error("agent_chat_unavailable");
-      const chat = this.inference.chat.bind(this.inference);
+      const knownContextTokens = await this.contextTokens();
       const result = await runPrimaryAgent({
-        chat,
-        contextTokens,
+        chat: this.inference.chat.bind(this.inference),
+        contextTokens: "auto",
         database: this.database,
         definitions: this.definitions,
         history,
         jobs: this.jobs,
+        ...(knownContextTokens === "auto" ? {} : { knownContextTokens }),
         onThinking: (thinking) => this.updateActive(run.jobId, { thinking }),
         onContext: (contextUsedTokens, contextAllocatedTokens) =>
           this.updateActive(run.jobId, { contextUsedTokens, contextAllocatedTokens }),
@@ -270,7 +270,7 @@ export class AgentService {
       });
       const summaryContextTokens = await this.contextTokens();
       await refreshSessionSummary(
-        { chat },
+        { chat: this.inference.chat.bind(this.inference) },
         {
           sessionId: run.sessionId,
           runId: run.id,

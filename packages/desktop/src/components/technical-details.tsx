@@ -34,7 +34,7 @@ interface TechnicalDetailsProps {
   timeline: TimelineItem[];
   steps: AgentStep[];
   selectedStepId: string | undefined;
-  thinking: string | null;
+  thinkingByStep: Readonly<Record<string, string>>;
   thinkingStepId: string | undefined;
   nativeActionMessage?: string | undefined;
   contextUsedTokens?: number | null;
@@ -197,7 +197,7 @@ function Steps({
   onSelectStep,
   selectedStepId,
   steps,
-  thinking,
+  thinkingByStep,
   thinkingStepId,
 }: TechnicalDetailsProps) {
   return (
@@ -206,7 +206,7 @@ function Steps({
         onSelectStep={onSelectStep}
         selectedStepId={selectedStepId}
         steps={steps}
-        thinking={thinking}
+        thinkingByStep={thinkingByStep}
         thinkingStepId={thinkingStepId}
       />
     </div>

@@ -58,7 +58,10 @@ function failedText(item: TimelineItem): boolean {
  * turns become "Thinking" rows; sub-agent events become lane rows. Detail from every merged event
  * is concatenated so the inline preview shows command, output, and termination together.
  */
-export function activityRows(items: readonly TimelineItem[]): ActivityRow[] {
+export function activityRows(
+  items: readonly TimelineItem[],
+  thinkingByStep: Readonly<Record<string, string>> = {},
+): ActivityRow[] {
   const byKey = new Map<string, ActivityRow>();
   const order: string[] = [];
   for (const item of items) {
@@ -66,7 +69,7 @@ export function activityRows(items: readonly TimelineItem[]): ActivityRow[] {
     const key = rowKey(item);
     const existing = byKey.get(key);
     if (existing === undefined) {
-      const row = newRow(key, item);
+      const row = newRow(key, item, thinkingByStep[item.id]);
       byKey.set(key, row);
       order.push(key);
     } else {
@@ -83,7 +86,7 @@ function rowKey(item: TimelineItem): string {
   return `event:${item.id}`;
 }
 
-function newRow(key: string, item: TimelineItem): ActivityRow {
+function newRow(key: string, item: TimelineItem, thinking: string | undefined): ActivityRow {
   const kind = isSubagent(item)
     ? "subagent"
     : PLANNING_EVENTS.has(item.eventType ?? "")
@@ -96,7 +99,7 @@ function newRow(key: string, item: TimelineItem): ActivityRow {
     status: statusFor(item.eventType, failedText(item)),
     toolName: item.toolName,
     toolCallId: item.toolCallId,
-    detail: item.detail,
+    detail: thinking ?? item.detail,
     createdAt: item.createdAt,
     stepId: item.id,
   };
@@ -123,7 +126,10 @@ export type ClusterEntry =
  * timeline item (user, assistant, other-run activity) as a standalone entry, so responses,
  * confirmations, and generated files always render outside the collapsed cluster.
  */
-export function clusterEntries(items: readonly TimelineItem[]): ClusterEntry[] {
+export function clusterEntries(
+  items: readonly TimelineItem[],
+  thinkingByStep: Readonly<Record<string, string>> = {},
+): ClusterEntry[] {
   const entries: ClusterEntry[] = [];
   let bucket: TimelineItem[] = [];
   let runId: string | undefined;
@@ -132,7 +138,7 @@ export function clusterEntries(items: readonly TimelineItem[]): ClusterEntry[] {
     entries.push({
       kind: "cluster",
       runId,
-      rows: activityRows(bucket),
+      rows: activityRows(bucket, thinkingByStep),
       parallel: hasParallelSubagents(bucket),
       createdAt: bucket[0]?.createdAt ?? "",
     });

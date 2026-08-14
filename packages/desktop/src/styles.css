@@ -2125,7 +2125,8 @@ textarea:focus-visible {
   min-height: 100px;
   margin: 0;
   padding: 10px;
-  overflow: auto;
+  overflow-x: scroll;
+  overflow-y: scroll;
   border-radius: 8px;
   background: #041519;
   color: #dfeae6;
@@ -2136,9 +2137,69 @@ textarea:focus-visible {
     Menlo,
     Consolas,
     monospace;
+  white-space: pre;
+  word-break: normal;
+  resize: vertical;
+}
+
+.step-detail-block .technical-log-viewer textarea {
+  max-height: min(70vh, 720px);
+}
+
+.technical-log-viewer textarea.step-detail-wrap {
+  overflow-x: hidden;
   white-space: pre-wrap;
   word-break: break-word;
-  resize: vertical;
+}
+
+.step-detail-controls {
+  display: flex;
+  min-height: 30px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 6px;
+  color: var(--ink-soft);
+  font-size: 11px;
+}
+
+.step-detail-controls label,
+.step-detail-controls button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.step-detail-controls label {
+  cursor: pointer;
+}
+
+.step-detail-controls input {
+  width: 13px;
+  height: 13px;
+  margin: 0;
+  accent-color: var(--accent);
+}
+
+.step-detail-controls button {
+  min-height: 26px;
+  padding: 0 7px;
+  border: 1px solid var(--reading-border);
+  border-radius: 7px;
+  color: var(--ink-soft);
+  background: transparent;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.step-detail-controls button:hover {
+  color: var(--accent-strong);
+  background: var(--navigation-hover);
+}
+
+.step-detail-controls .icon {
+  width: 13px;
+  height: 13px;
 }
 
 .jump-to-latest {
@@ -2985,10 +3046,16 @@ textarea:focus-visible {
   padding: 8px 10px;
   overflow-x: auto;
   border-radius: 8px;
+  color: var(--ink);
   background: rgb(0 0 0 / 5%);
   font-family: "IBM Plex Mono", ui-monospace, monospace;
   font-size: 12px;
   white-space: pre-wrap;
+}
+
+.activity-row-detail pre.thinking-log {
+  max-height: 190px;
+  overflow-y: auto;
 }
 
 .activity-row-open {
