@@ -1,5 +1,6 @@
 import { writeFile } from "node:fs/promises";
 import { join } from "node:path";
+import { createLegacyDocFixture } from "../fixtures/legacy-doc.js";
 import {
   createOversizedRevenueCorpus,
   OVERSIZED_TABLE_PLAN,
@@ -36,6 +37,7 @@ export type SmallCaseId =
   | "excel-chat-path-list"
   | "large-corpus-continuation"
   | "invalid-document"
+  | "legacy-doc-read"
   | "romanian-task"
   | "no-skill-direct"
   | "terminal-discovery"
@@ -165,6 +167,27 @@ const CASES: StressCaseDefinition<SmallCaseId>[] = [
     deliverables: deliverables(["large-corpus-report.xlsx"]),
   },
   {
+    id: "legacy-doc-read",
+    task: [
+      "Read legacy-sample.doc as plain text.",
+      "Report its first complete sentence as LEGACY_DOC_TITLE=<value>.",
+      "Report the publisher name in the sentence about the PNG book as LEGACY_DOC_PUBLISHER=<value>.",
+      "Do not create or modify a file.",
+    ].join(" "),
+    create: async (source) => ({
+      bytes: await createLegacyDocFixture(source),
+      files: 1,
+      expected: {},
+    }),
+    expected: () => [
+      "LEGACY_DOC_TITLE=This is just a small test document.",
+      "LEGACY_DOC_PUBLISHER=O’Reilly",
+    ],
+    requiredExecutionText: ["/usr/bin/antiword", "UTF-8.txt"],
+    requiredSkills: ["word-documents"],
+    forbidArtifacts: true,
+  },
+  {
     id: "invalid-document",
     task: INVALID_TASK,
     create: async (source) => {
@@ -232,6 +255,7 @@ export const SMALL_CASE_IDS: SmallCaseId[] = CASES.map(({ id }) => id);
 
 export const SMALL_GATE_CASES: SmallCaseId[] = [
   "terminal-discovery",
+  "legacy-doc-read",
   "xlsx-edit",
   "docx-edit",
   "invalid-document",

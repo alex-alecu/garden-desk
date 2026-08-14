@@ -23,6 +23,18 @@ async function fixture(): Promise<{ external: string; guest: string; resources: 
   return { external, guest, resources };
 }
 
+const antiword = {
+  name: "Antiword",
+  version: "0.37-17",
+  license: "GPL-2.0-or-later",
+  source: { file: "antiword.tar.gz", url: "https://example.test/antiword", sha256: "a".repeat(64) },
+  patches: { file: "patches.tar.xz", url: "https://example.test/patches", sha256: "b".repeat(64) },
+  notice: "/usr/share/licenses/antiword/COPYING",
+  installedBytes: { aarch64: 123, x86_64: 124 },
+  runtimeBytes: { aarch64: 100, x86_64: 101 },
+  purpose: "legacy DOC plain-text reading",
+};
+
 describe("package compliance", () => {
   it("records an external model at its packaged path", async () => {
     const { external, guest, resources } = await fixture();
@@ -46,5 +58,25 @@ describe("package compliance", () => {
     await expect(
       writePackageCompliance(resources, guest, [{ source: external, path: "models/model.gguf" }]),
     ).rejects.toThrow("duplicate models/model.gguf");
+  });
+
+  it("records guest source, patches, notice, size, and purpose", async () => {
+    const { guest, resources } = await fixture();
+    await writeFile(guest, JSON.stringify({ contents: [antiword] }));
+    await writePackageCompliance(resources, guest);
+    const notices = JSON.parse(
+      await readFile(join(resources, "THIRD_PARTY_NOTICES.json"), "utf8"),
+    ) as { packages: unknown[] };
+    const sbom = JSON.parse(await readFile(join(resources, "sbom.spdx.json"), "utf8")) as {
+      packages: Array<{ name: string; comment: string; downloadLocation: string }>;
+    };
+    expect(notices.packages).toContainEqual(antiword);
+    expect(sbom.packages.find(({ name }) => name === "Antiword")).toMatchObject({
+      downloadLocation: antiword.source.url,
+      comment: expect.stringContaining('"installedBytes":{"aarch64":123'),
+    });
+    expect(sbom.packages.find(({ name }) => name === "Antiword")?.comment).toContain(
+      '"runtimeBytes":{"aarch64":100',
+    );
   });
 });

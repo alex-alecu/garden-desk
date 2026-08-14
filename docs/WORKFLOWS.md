@@ -1,6 +1,6 @@
 # Workflows
 
-Updated: 2026-08-04
+Updated: 2026-08-14
 
 Vault Desk V1 is a general-purpose local file agent rather than a collection of predefined professional workflows.
 
@@ -49,7 +49,7 @@ The V1 workflow suite covers:
 - Restart, reconnect, cancellation, timeout, and guest crash.
 - Traversal, escaping links, host-write attempts, credential access, package installation, network access, process storms, and resource exhaustion.
 - Bounded generated source, commands, stdout, stderr, artifacts, observations, model turns, time, memory, CPU, and persistent workspace. The live read-only source folder is not copied or size-limited.
-- Trusted task text, attachment names, and typed workflow state route product-owned DOCX, XLSX, and PDF skills without exposing a skill picker or routing from file contents, logs, or model output.
+- Trusted task text, attachment names, and typed workflow state route product-owned Word, XLSX, and PDF skills without exposing a skill picker or routing from file contents, logs, or model output. The Word skill reads legacy DOC files as plain text through guest Antiword, but it creates and edits only DOCX files.
 - Packaged macOS and Windows behavior with zero-download first launch.
 
 Task-quality cases use deterministic development and held-out inputs. Security invariants require complete detection; general answer quality is reported honestly rather than hidden behind one aggregate score.
@@ -62,3 +62,4 @@ Task-quality cases use deterministic development and held-out inputs. Security i
 | 2026-07-20 | Replaced the pre-V1 vertical workflow sequence with the generic offline dev-agent interaction. |
 | 2026-07-23 | Added the live read-only folder, guest shell tools, session VM, and persistent bounded workspace workflow. |
 | 2026-08-04 | Added declared generated-file deliverables, explicit Open and Save As actions, and invisible DOCX, XLSX, and PDF skill routing. |
+| 2026-08-14 | Replaced the DOCX-only skill with one Word skill and added legacy DOC plain-text input through guest Antiword. |

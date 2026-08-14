@@ -103,6 +103,34 @@
       "purpose": "DOCX reading and writing"
     },
     {
+      "name": "Antiword",
+      "version": "0.37-17",
+      "license": "GPL-2.0-or-later",
+      "source": {
+        "file": "antiword_0.37.orig.tar.gz",
+        "url": "https://deb.debian.org/debian/pool/main/a/antiword/antiword_0.37.orig.tar.gz",
+        "sha256": "4415e79d9f4c8d282a1cffbdaffe7ec0178982b9608e79bfd18561234a43e0cc"
+      },
+      "patches": {
+        "file": "antiword_0.37-17.debian.tar.xz",
+        "url": "https://deb.debian.org/debian/pool/main/a/antiword/antiword_0.37-17.debian.tar.xz",
+        "sha256": "e3bdff1911b4ccbf45bc977c6a1b79800f3ee8fdd11ec861cbfd60258176492b",
+        "set": "complete Debian 0.37-17 series",
+        "series": [
+          "10_fix_buffer_overflow_wordole_c.patch",
+          "50_antiword-manpage-hyphen-to-minus.patch",
+          "docx.patch",
+          "remove-dead-upstream-links.patch",
+          "use-snprintf.patch",
+          "stop-parsing-documentsummary.patch"
+        ]
+      },
+      "notice": "/usr/share/licenses/antiword/COPYING",
+      "installedBytes": { "aarch64": 254284, "x86_64": 258548 },
+      "runtimeBytes": { "aarch64": 236299, "x86_64": 240563 },
+      "purpose": "legacy DOC plain-text reading"
+    },
+    {
       "name": "ReportLab",
       "version": "5.0.0",
       "license": "BSD-3-Clause",
@@ -136,13 +164,13 @@
       "kernelFile": "Image",
       "kernelSha256": "211d283fafe9e094e614629ef21f8616cdce24c5e4b43b936c4c73a3e447e7bd",
       "initramfsFile": "rootfs.cpio",
-      "initramfsSha256": "2eeea44b843349e73e0444d4ec15b1cf5c1f2ae4694bd85043bfebf599f4c826"
+      "initramfsSha256": "dc9bd05be64c9654f155acf04666852873c88f946e9295be03884aebcaa276bf"
     },
     "x86_64": {
       "kernelFile": "bzImage",
       "kernelSha256": "9fabee42a89b8128aa9f16dee4d43289c113f8b2aea398cabc904b6911a41dea",
       "initramfsFile": "rootfs.cpio",
-      "initramfsSha256": "a733b3b7ac572207ad96c67752ee3253596cf230217de98513f0de0d2f5875f2"
+      "initramfsSha256": "d34e36ae06a8b7a2febc1e6f06761bc51e01cde3fa8ada73793c63877f629f59"
     }
   }
 }

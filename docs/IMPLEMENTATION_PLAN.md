@@ -1,8 +1,8 @@
 # Implementation Plan
 
-Updated: 2026-08-08
+Updated: 2026-08-14
 
-This is the authoritative implementation sequence for the first Vault Desk release. M0, cross-platform M1, and cross-platform M2 are complete. The repository owner activated M3 on 2026-07-20 as the first full product milestone. The macOS stage and Windows headless, refreshed-guest, and installed-product integration are physically certified; generated-file packaged-app evidence, dedicated-standard-user setup, macOS lower-tier context, and release-signing evidence remain before M3 or Community Desktop V1 can close.
+This is the authoritative implementation sequence for the first Vault Desk release. M0, cross-platform M1, and cross-platform M2 are complete. The repository owner activated M3 on 2026-07-20 as the first full product milestone. The macOS stage and prior Windows headless, guest, and installed-product integration are physically certified. The new Antiword x86_64 guest still requires its physical Windows gate; generated-file packaged-app evidence, dedicated-standard-user setup, macOS lower-tier context, and release-signing evidence also remain before M3 or Community Desktop V1 can close.
 
 The shortest path to V1 is a generic offline desktop agent, not a format-specific document pipeline. The agent may write and run Python or Node.js programs and installed guest commands inside a session-scoped no-NIC microVM. It sees the selected folder live and read-only at `/source` and works in a persistent bounded `/workspace`. It cannot write to the selected host folder, install packages, reach a network, inherit credentials, or call an unrestricted host service.
 
@@ -59,7 +59,7 @@ The V1 image contains only a reviewed, pinned offline toolset:
 
 - Python 3 and Node.js matching the product runtime major.
 - Python standard-library support for text, JSON, CSV, SQLite, archives, and subprocess-free data work.
-- A minimal reviewed set for PDF, DOCX, XLSX, and image work, including pypdf, python-docx, openpyxl, and the pure-Python ReportLab wheel.
+- A minimal reviewed set for PDF, DOCX, XLSX, legacy DOC text reading, and image work, including pypdf, python-docx, openpyxl, Antiword, and the pure-Python ReportLab wheel.
 - A tiny guest agent entrypoint and typed IPC codec.
 - BusyBox and every executable named in `packages/workers/images/agent/capabilities.json`; Git, ripgrep, compilers, pip, npm, package managers, and downloadable libraries remain absent.
 
@@ -231,3 +231,4 @@ AI assistants, models, coding agents, and tools are never commit authors or co-a
 | 2026-08-04 | Added declared generated-file deliverables, verified Open and atomic Save As flows, and product-owned DOCX, XLSX, and PDF skills with pinned ReportLab. |
 | 2026-08-12 | Recorded that the resident worker exposes multiple parallel context sequences for concurrent turns (bounded sub-agent parallelism in V1) with overflow queued, and added a flat worked/working activity timeline with a live context meter. |
 | 2026-08-14 | Kept supported typed thought segments in session-scoped desktop memory until application close, with live last-row following and completed-step collapse. |
+| 2026-08-14 | Added the guest Antiword reader and one Word skill for DOCX work and legacy DOC plain-text input. |

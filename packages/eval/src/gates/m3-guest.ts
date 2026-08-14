@@ -2,6 +2,7 @@ import { mkdir, open, truncate, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { WorkerLimits } from "@vault/shared";
 import type { CodeAgentLauncher, CodeAgentSession, MicroVmAgentRequest } from "@vault/workers";
+import { createLegacyDocFixture } from "../fixtures/legacy-doc.js";
 import { documentLibraryProbe } from "./m3-guest-documents.js";
 import { requireGuestSuccess } from "./m3-guest-execution.js";
 import { requireIsolationProof, runGuestSecurityEvidence } from "./m3-guest-security.js";
@@ -42,6 +43,7 @@ async function prepareSource(root: string): Promise<string> {
   await (await open(sparse, "wx")).close();
   await truncate(sparse, 513 * 1024 * 1024);
   await writeFile(join(source, "input.txt"), "read-only evidence");
+  await createLegacyDocFixture(source);
   return source;
 }
 

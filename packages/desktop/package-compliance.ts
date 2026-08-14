@@ -3,15 +3,26 @@ import { createReadStream } from "node:fs";
 import { readdir, readFile, stat, writeFile } from "node:fs/promises";
 import { join, relative, sep } from "node:path";
 
-interface GuestManifest {
-  contents: Array<{ name: string; version: string; license: string; purpose: string }>;
+interface DependencyOrigin {
+  file: string;
+  sha256: string;
+  url: string;
 }
 
 interface NoticePackage {
-  name: string;
-  version: string;
+  installedBytes?: Record<string, number | string>;
   license: string;
+  name: string;
+  notice?: string;
+  patches?: DependencyOrigin & { series?: string[]; set?: string };
   purpose: string;
+  runtimeBytes?: Record<string, number | string>;
+  source?: DependencyOrigin;
+  version: string;
+}
+
+interface GuestManifest {
+  contents: NoticePackage[];
 }
 
 export interface ExternalPackageFile {
@@ -65,6 +76,36 @@ function platformIdentity(): { name: string; slug: string } {
   return process.platform === "win32"
     ? { name: "Windows", slug: "windows" }
     : { name: "macOS", slug: "macos" };
+}
+
+function spdxComment(item: NoticePackage): string {
+  return JSON.stringify({
+    purpose: item.purpose,
+    ...(item.notice === undefined ? {} : { notice: item.notice }),
+    ...(item.installedBytes === undefined ? {} : { installedBytes: item.installedBytes }),
+    ...(item.runtimeBytes === undefined ? {} : { runtimeBytes: item.runtimeBytes }),
+    ...(item.patches === undefined ? {} : { patches: item.patches }),
+  });
+}
+
+function spdxPackage(item: NoticePackage, index: number) {
+  return {
+    SPDXID: `SPDXRef-Package-${index + 1}`,
+    name: item.name,
+    versionInfo: item.version,
+    downloadLocation: item.source?.url ?? "NOASSERTION",
+    ...(item.source === undefined
+      ? {}
+      : {
+          packageFileName: item.source.file,
+          checksums: [{ algorithm: "SHA256", checksumValue: item.source.sha256 }],
+        }),
+    filesAnalyzed: false,
+    licenseConcluded: "NOASSERTION",
+    licenseDeclared: item.license,
+    summary: item.purpose,
+    comment: spdxComment(item),
+  };
 }
 
 async function runtimePackages(resourcesRoot: string): Promise<NoticePackage[]> {
@@ -127,15 +168,7 @@ export async function writePackageCompliance(
         name: `Vault-Desk-M3-${platform.name}`,
         documentNamespace: `https://vaultdesk.local/spdx/v1/m3-${platform.slug}`,
         creationInfo: { created: "2026-07-20T00:00:00Z", creators: ["Organization: Vault Desk"] },
-        packages: packages.map((item, index) => ({
-          SPDXID: `SPDXRef-Package-${index + 1}`,
-          name: item.name,
-          versionInfo: item.version,
-          downloadLocation: "NOASSERTION",
-          filesAnalyzed: false,
-          licenseConcluded: "NOASSERTION",
-          licenseDeclared: item.license,
-        })),
+        packages: packages.map(spdxPackage),
         relationships: packages.map((_, index) => ({
           spdxElementId: "SPDXRef-DOCUMENT",
           relationshipType: "DESCRIBES",
