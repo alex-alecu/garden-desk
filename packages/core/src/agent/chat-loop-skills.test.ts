@@ -76,6 +76,49 @@ describe("ChatAgentLoop duplicate skill state", () => {
   });
 });
 
+describe("ChatAgentLoop repeated loaded skills", () => {
+  it("counts stale calls and backtracks after the repeated-call limit", async () => {
+    const requests: Parameters<InferenceService["chat"]>[0][] = [];
+    const reads: string[] = [];
+    const events: string[] = [];
+    const skillTurn = (id: string) => generated("", [tool("skill", id, { name: "documents-a" })]);
+    const loop = new ChatAgentLoop(
+      model(
+        [
+          skillTurn("skill-1"),
+          skillTurn("skill-2"),
+          skillTurn("skill-3"),
+          skillTurn("skill-4"),
+          skillTurn("skill-5"),
+          generated("Done."),
+        ],
+        requests,
+      ),
+    );
+
+    const result = await loop.run(
+      input(unusedExecutor, ["skill"], {
+        onEvent: (_type, summary) => events.push(summary),
+        skills: {
+          metadata: documentSkills.metadata,
+          read(name) {
+            reads.push(name);
+            return "Skill body.";
+          },
+        },
+      }),
+    );
+
+    expect(result.response).toBe("Done.");
+    expect(reads).toEqual(["documents-a"]);
+    expect(events.filter((item) => item === "documents-a skill was already loaded.")).toHaveLength(
+      1,
+    );
+    expect(events.filter((item) => item === "Loading documents-a skill failed.")).toHaveLength(3);
+    expect(events).toContain("Backtracking to the last working step.");
+  });
+});
+
 describe("ChatAgentLoop available skills", () => {
   it("keeps other skill names available after a load", async () => {
     const requests: Parameters<InferenceService["chat"]>[0][] = [];

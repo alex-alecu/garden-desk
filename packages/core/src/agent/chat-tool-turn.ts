@@ -158,11 +158,11 @@ async function executeToolCall(input: ToolTurnInput, call: ChatToolCall): Promis
   const skillName = requestedSkillName(call);
   const loaded = liveLoadedSkillNames(input.state.loadedSkills, input.state.messages);
   const alreadyLoaded = skillName !== undefined && loaded.has(skillName);
-  const repeated = corrupt || alreadyLoaded ? false : repeatedCall(input.state, call);
+  const repeated = corrupt ? false : repeatedCall(input.state, call);
   beforeExecution(input, call, repeated, !corrupt);
   const result = corrupt
     ? invalidToolInputResult("Invalid tool input: protocol-control transition in arguments.")
-    : alreadyLoaded
+    : alreadyLoaded && !repeated
       ? alreadyLoadedSkillResult(skillName)
       : await toolResult(input, call, repeated);
   finalizeToolCall(input, call, repeated, result);
