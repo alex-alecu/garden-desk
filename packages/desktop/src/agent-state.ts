@@ -10,7 +10,12 @@ function runTimeline(state: DesktopState, snapshot: AgentRunSnapshot, working: b
   );
   const events = eventItems(snapshot.events);
   const response = snapshot.run.response;
-  if (response === null || response.length === 0) return [...unchanged, ...events];
+  const hasPersistedResponse =
+    !working &&
+    unchanged.some((item) => item.kind === "assistant" && item.runId === snapshot.run.id);
+  if (response === null || response.length === 0 || hasPersistedResponse) {
+    return [...unchanged, ...events];
+  }
   return [
     ...unchanged,
     ...events,
