@@ -105,7 +105,7 @@ it("rejects a raw tool-call terminator used as the complete response", async () 
     ]),
   );
 });
-it("restores typed tools after a response-only retry emits raw tool markup", async () => {
+it("keeps typed tools after an output-limit retry emits raw tool markup", async () => {
   const requests: Parameters<InferenceService["chat"]>[0][] = [];
   const limited = generated("unfinished");
   limited.stopReason = "maxTokens";
@@ -113,7 +113,6 @@ it("restores typed tools after a response-only retry emits raw tool markup", asy
     model(
       [
         limited,
-        generated("Retained evidence."),
         generated('<|tool_call>call:python{source:"print(2)"}<tool_call|>'),
         generated("", [tool("python", "call-1", { source: "print(2)" })]),
         generated("Two."),
@@ -134,8 +133,8 @@ it("restores typed tools after a response-only retry emits raw tool markup", asy
   );
 
   expect(result.response).toBe("Two.");
-  expect(requests[2]?.tools).toEqual([]);
-  expect(requests[3]?.tools).toHaveLength(1);
+  expect(requests[1]?.tools).toHaveLength(1);
+  expect(requests[2]?.tools).toHaveLength(1);
 });
 it("fails a corrupt call but runs a valid sibling from the same turn", async () => {
   const executed: string[] = [];

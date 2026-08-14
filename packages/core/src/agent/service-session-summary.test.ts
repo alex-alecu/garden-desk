@@ -126,6 +126,7 @@ describe("anchored session summary lifecycle", () => {
       const run = await startWhenIdle(service, session.id, task);
       await terminal(service, run.id);
     }
+    expect(requests[0]).toMatchObject({ contextSize: "auto", maxTokens: 16_384 });
     const anchor = catalog.database
       .prepare("SELECT text FROM agent_session_summaries WHERE session_id = ?")
       .get(session.id) as { text: string } | undefined;

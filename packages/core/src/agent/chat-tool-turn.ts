@@ -24,7 +24,6 @@ export interface ChatToolState {
   failedTools: number;
   guestExecutions: number;
   messages: ChatMessage[];
-  responseOnly: boolean;
   signatures: string[];
 }
 
@@ -206,7 +205,6 @@ export function initialToolState(messages: ChatMessage[]): ChatToolState {
     failedTools: 0,
     guestExecutions: 0,
     messages,
-    responseOnly: false,
     signatures: [],
   };
 }

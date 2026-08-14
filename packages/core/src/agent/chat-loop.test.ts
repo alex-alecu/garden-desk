@@ -25,7 +25,7 @@ describe("ChatAgentLoop tool conversation", () => {
     );
 
     expect(result.response).toBe("Two.");
-    expect(requests[0]?.maxTokens).toBe(2_048);
+    expect(requests[0]?.maxTokens).toBe(4_096);
     expect(requests[1]?.messages).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -121,45 +121,87 @@ describe("ChatAgentLoop doom loop", () => {
   });
 });
 
-describe("ChatAgentLoop bounded final response", () => {
-  it("discards a max-token response and regenerates one complete response without tools", async () => {
-    const requests: Parameters<InferenceService["chat"]>[0][] = [];
-    const limited = { ...generated("partial table"), stopReason: "maxTokens" as const };
-    const loop = new ChatAgentLoop(
-      model(
-        [
-          generated("", [tool("python", "call-1", { source: "print('evidence')" })]),
-          limited,
-          generated("Compact evidence."),
-          generated("Complete table."),
-        ],
-        requests,
-      ),
-    );
+it("retries an output limit without compacting or removing tools", async () => {
+  const requests: Parameters<InferenceService["chat"]>[0][] = [];
+  const limited = { ...generated("partial table"), stopReason: "maxTokens" as const };
+  const loop = new ChatAgentLoop(
+    model(
+      [
+        generated("", [tool("python", "call-1", { source: "print('evidence')" })]),
+        limited,
+        generated("Complete table."),
+      ],
+      requests,
+    ),
+  );
 
-    const result = await loop.run(
+  const result = await loop.run(
+    input(
+      {
+        async execute(run) {
+          return execution(source(run));
+        },
+      },
+      ["python"],
+    ),
+  );
+
+  expect(result.response).toBe("Complete table.");
+  expect(requests).toHaveLength(3);
+  expect(requests[2]?.tools).toHaveLength(1);
+  expect(requests[2]?.maxTokens).toBe(4_096);
+  expect(requests[2]?.messages).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({
+        role: "system",
+        text: expect.stringContaining("previous turn reached its output limit"),
+      }),
+    ]),
+  );
+});
+
+it("compacts output-limit recovery only under real context pressure", async () => {
+  const requests: Parameters<InferenceService["chat"]>[0][] = [];
+  const limited = { ...generated("partial", [], 7_000), stopReason: "maxTokens" as const };
+  const loop = new ChatAgentLoop(
+    model([limited, generated("Retained facts."), generated("Complete answer.")], requests),
+  );
+
+  const result = await loop.run(
+    input(
+      {
+        async execute() {
+          throw new Error("unused");
+        },
+      },
+      ["question"],
+    ),
+  );
+
+  expect(result.response).toBe("Complete answer.");
+  expect(requests[1]).toMatchObject({ tools: [], maxTokens: 2_048 });
+  expect(requests[2]?.tools).toHaveLength(1);
+});
+
+it("stops after a second output-limit failure", async () => {
+  const requests: Parameters<InferenceService["chat"]>[0][] = [];
+  const limited = { ...generated("partial"), stopReason: "maxTokens" as const };
+  const loop = new ChatAgentLoop(model([limited, limited], requests));
+
+  await expect(
+    loop.run(
       input(
         {
-          async execute(run) {
-            return execution(source(run));
+          async execute() {
+            throw new Error("unused");
           },
         },
-        ["python"],
+        ["question"],
       ),
-    );
-
-    expect(result.response).toBe("Complete table.");
-    expect(requests[2]).toMatchObject({ tools: [], maxTokens: 2_048 });
-    expect(requests[3]).toMatchObject({ tools: [], maxTokens: 4_096 });
-    expect(requests[3]?.messages).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          role: "system",
-          text: expect.stringContaining("previous answer hit its output limit"),
-        }),
-      ]),
-    );
-  });
+    ),
+  ).rejects.toThrow("agent_generation_limit");
+  expect(requests).toHaveLength(2);
+  expect(requests[1]?.tools).toHaveLength(1);
 });
 
 describe("ChatAgentLoop automatic context", () => {
@@ -184,7 +226,7 @@ describe("ChatAgentLoop automatic context", () => {
       ),
     );
 
-    expect(requests[0]).toMatchObject({ contextSize: "auto", maxTokens: 2_048 });
-    expect(requests[1]).toMatchObject({ contextSize: "auto", maxTokens: 8_192 });
+    expect(requests[0]).toMatchObject({ contextSize: "auto", maxTokens: 4_096 });
+    expect(requests[1]).toMatchObject({ contextSize: "auto", maxTokens: 16_384 });
   });
 });

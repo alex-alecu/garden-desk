@@ -14,6 +14,8 @@ import { compactChatHistory } from "./chat-compaction.js";
 import { generateWithInferenceRecovery } from "./chat-inference-recovery.js";
 import { initialChatMessages } from "./chat-initial-messages.js";
 import type { ChatAgentInput, ChatRecoveryState } from "./chat-loop-input.js";
+import { chatOutputTokens } from "./chat-output-budget.js";
+import { recoverOutputLimit } from "./chat-output-recovery.js";
 import { containsRawProtocolCall } from "./chat-protocol.js";
 import {
   type ChatToolState,
@@ -28,22 +30,10 @@ export type { ChatAgentInput } from "./chat-loop-input.js";
 
 const HARD_TURN_LIMIT = 40;
 const COMPACTION_RATIO = 0.8;
-const CHAT_OUTPUT_TOKENS = 2_048;
-const MAX_CHAT_OUTPUT_TOKENS = 8_192;
 function currentArtifacts(executions: readonly AgentExecutionResult[]): string[] {
   return artifactCandidateNames(executions).filter(
     (path) => !path.startsWith(".vault-tools/") && !path.startsWith(".vault-output/"),
   );
-}
-function outputTokens(
-  contextTokens: number,
-  tools: readonly unknown[],
-  phase: "chat" | "compaction",
-) {
-  if (phase === "compaction") return CHAT_OUTPUT_TOKENS;
-  const scaled = Math.max(CHAT_OUTPUT_TOKENS, Math.floor(contextTokens / 8));
-  const dynamic = Math.min(MAX_CHAT_OUTPUT_TOKENS, scaled);
-  return tools.length === 0 ? Math.max(4_096, dynamic) : dynamic;
 }
 export class ChatAgentLoop {
   private contextTokens: number;
@@ -75,7 +65,7 @@ export class ChatAgentLoop {
       messages,
       tools,
       contextSize: this.requestedContextSize,
-      maxTokens: outputTokens(this.contextTokens, tools, phase),
+      maxTokens: chatOutputTokens(this.contextTokens, phase === "compaction"),
       temperature: phase === "compaction" ? 0 : input.agent.temperature,
     } as const;
     const turnId = await input.trace?.store.begin(input.trace.runId, phase, {
@@ -167,7 +157,6 @@ export class ChatAgentLoop {
     }
     if (containsRawProtocolCall(response)) {
       this.record(input, generated.turnId, "rejected_unbacked_response");
-      state.responseOnly = false;
       state.messages.pop();
       state.messages.push({
         role: "system",
@@ -212,7 +201,7 @@ export class ChatAgentLoop {
     finalTurn: boolean;
   }): Promise<AgentRunResult | undefined> {
     const { input, state, registry, recovery, performance, finalTurn } = options;
-    const tools = finalTurn || state.responseOnly ? [] : registry.definitions(input.agent.tools);
+    const tools = finalTurn ? [] : registry.definitions(input.agent.tools);
     const generated = await generateWithInferenceRecovery({
       generate: async () => await this.generate(input, state.messages, tools, "chat"),
       recover: async () => {
@@ -231,18 +220,16 @@ export class ChatAgentLoop {
       text: generated.result.text,
       toolCalls: generated.result.toolCalls,
     });
-    if (generated.result.stopReason === "maxTokens" && generated.result.toolCalls.length === 0) {
-      this.record(input, generated.turnId, "invalid_response");
-      state.messages.pop();
-      state.messages = await this.compact(input, state.messages, 1, performance);
-      state.checkpoint = state.messages.length;
-      state.messages.push({
-        role: "system",
-        text: "The previous answer hit its output limit and was discarded. Return the complete answer once, using the retained evidence, without preamble or omitted rows.",
-      });
-      state.responseOnly = true;
-      return undefined;
-    }
+    const recovered = await recoverOutputLimit({
+      compact: async () => await this.compact(input, state.messages, 1, performance),
+      contextTokens: this.contextTokens,
+      finalTurn,
+      record: () => this.record(input, generated.turnId, "invalid_response"),
+      recovery,
+      result: generated.result,
+      state,
+    });
+    if (recovered) return undefined;
     const result = this.finish(input, generated, state, { recovery, performance, finalTurn });
     if (result !== undefined) return result;
     if (generated.result.toolCalls.length === 0) return undefined;
@@ -262,7 +249,8 @@ export class ChatAgentLoop {
   async run(input: ChatAgentInput): Promise<AgentRunResult> {
     this.requestedContextSize = input.contextTokens;
     this.contextTokens =
-      input.contextTokens === "auto" ? 8_192 : Math.max(8_192, input.contextTokens);
+      input.knownContextTokens ??
+      (input.contextTokens === "auto" ? 8_192 : Math.max(8_192, input.contextTokens));
     const registry = new GenericToolRegistry({
       executor: input.executor,
       skills: input.skills,
@@ -275,6 +263,7 @@ export class ChatAgentLoop {
     const recovery: ChatRecoveryState = {
       emptyResponsePending: false,
       inferenceRetryUsed: false,
+      outputLimitRetryUsed: false,
     };
     const turns = Math.min(HARD_TURN_LIMIT, input.agent.steps);
     for (let turn = 0; turn < turns; turn += 1) {
