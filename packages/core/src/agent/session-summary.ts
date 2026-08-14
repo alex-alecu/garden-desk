@@ -6,6 +6,7 @@ import {
   MAX_ANCHORED_SUMMARY_CHARACTERS,
 } from "@vault/shared";
 import type { InferenceService } from "../runtime/inference.js";
+import { withCurrentTimeContext } from "./chat-current-time.js";
 import type { MarkdownDefinitionLibrary } from "./markdown-definition-library.js";
 import type { AgentTraceStore } from "./trace-store.js";
 
@@ -121,10 +122,10 @@ export async function summarizeSession(
   const identity = { requestId: randomUUID(), jobId: JobIdSchema.parse(randomUUID()) };
   const request = {
     modelId: input.modelId,
-    messages: [
-      { role: "system" as const, text: "Produce only the requested anchored summary." },
-      { role: "user" as const, text: prompt(input, selected) },
-    ],
+    messages: withCurrentTimeContext([
+      { role: "system", text: "Produce only the requested anchored summary." },
+      { role: "user", text: prompt(input, selected) },
+    ]),
     tools: [],
     contextSize: "auto" as const,
     maxTokens: SUMMARY_OUTPUT_TOKENS,
