@@ -4,7 +4,7 @@ import { StepDetails } from "./step-details.js";
 interface StepListProps {
   steps: AgentStep[];
   selectedStepId: string | undefined;
-  thinking: string | null;
+  thinkingByStep: Readonly<Record<string, string>>;
   thinkingStepId: string | undefined;
   onSelectStep(stepId: string | undefined): void;
 }
@@ -13,11 +13,13 @@ function StepRow({
   step,
   selected,
   thinking,
+  thinkingLive,
   onSelectStep,
 }: {
   step: AgentStep;
   selected: boolean;
   thinking: string | null;
+  thinkingLive: boolean;
   onSelectStep(stepId: string | undefined): void;
 }) {
   return (
@@ -35,7 +37,7 @@ function StepRow({
       </button>
       {selected ? (
         <div id={`step-${step.id}-details`}>
-          <StepDetails step={step} thinking={thinking} />
+          <StepDetails step={step} thinking={thinking} thinkingLive={thinkingLive} />
         </div>
       ) : null}
     </article>
@@ -45,7 +47,7 @@ function StepRow({
 export function StepList({
   steps,
   selectedStepId,
-  thinking,
+  thinkingByStep,
   thinkingStepId,
   onSelectStep,
 }: StepListProps) {
@@ -60,7 +62,8 @@ export function StepList({
           onSelectStep={onSelectStep}
           selected={step.id === selectedStepId}
           step={step}
-          thinking={step.id === selectedStepId && step.id === thinkingStepId ? thinking : null}
+          thinking={step.id === selectedStepId ? (thinkingByStep[step.id] ?? null) : null}
+          thinkingLive={step.id === thinkingStepId}
         />
       ))}
     </>

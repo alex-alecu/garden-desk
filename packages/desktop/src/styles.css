@@ -3053,6 +3053,11 @@ textarea:focus-visible {
   white-space: pre-wrap;
 }
 
+.activity-row-detail pre.thinking-log {
+  max-height: 190px;
+  overflow-y: auto;
+}
+
 .activity-row-open {
   margin-top: 6px;
   padding: 0;

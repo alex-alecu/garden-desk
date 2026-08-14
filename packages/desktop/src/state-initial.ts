@@ -16,6 +16,7 @@ export const initialDesktopState: DesktopState = {
   artifacts: [],
   executions: [],
   thinking: null,
+  thinkingBySession: {},
   question: null,
   contextUsedTokens: null,
   contextAllocatedTokens: null,

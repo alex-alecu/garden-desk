@@ -21,7 +21,7 @@ import { secureWorkspaceAllowsTasks } from "./secure-workspace.js";
 import { type DesktopBootstrapRequest, desktopBootstrapRequest } from "./startup.js";
 import { desktopReducer, initialDesktopState } from "./state.js";
 import { selectStep } from "./step-selection.js";
-import { activeThinkingStepId, agentSteps } from "./steps.js";
+import { agentSteps, desktopThinking } from "./steps.js";
 import { useSecureWorkspace } from "./use-secure-workspace.js";
 // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: single desktop composition boundary.
 // biome-ignore lint/complexity/noExcessiveLinesPerFunction: single desktop composition boundary.
@@ -104,7 +104,7 @@ export function App({ api, capabilities }: { api: DesktopApi; capabilities: Desk
     });
   };
   const steps = agentSteps(state.timeline, state.executions, state.traces);
-  const thinkingStepId = activeThinkingStepId(state.timeline, state.activeRun?.id, state.thinking);
+  const { thinkingByStep, thinkingStepId } = desktopThinking(state);
   const onSelectStep = (stepId: string | undefined) =>
     selectStep(
       {
@@ -198,7 +198,7 @@ export function App({ api, capabilities }: { api: DesktopApi; capabilities: Desk
           timeline={state.timeline}
           performance={state.activeRun?.performance ?? null}
           runId={state.activeRun?.id}
-          thinking={state.thinking}
+          thinkingByStep={thinkingByStep}
           working={state.activeRun?.state === "queued" || state.activeRun?.state === "running"}
           activeRunState={state.activeRun?.state}
         />
@@ -288,7 +288,7 @@ export function App({ api, capabilities }: { api: DesktopApi; capabilities: Desk
         selectedStepId={state.selectedStepId}
         sessionId={state.activeSessionId}
         steps={steps}
-        thinking={state.thinking}
+        thinkingByStep={thinkingByStep}
         thinkingStepId={thinkingStepId}
         timeline={state.timeline}
       />

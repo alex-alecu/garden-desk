@@ -1,5 +1,5 @@
 import type { AgentExecutionSnapshot, AgentInferenceTurn, AgentTrace } from "@vault/shared";
-import type { TimelineItem } from "./state.js";
+import type { DesktopState, TimelineItem } from "./state.js";
 
 export interface AgentStep {
   id: string;
@@ -152,4 +152,19 @@ export function activeThinkingStepId(
   if (runId === undefined || thinking === null || thinking.length === 0) return undefined;
   return timeline.findLast((item) => item.runId === runId && item.eventType === "inference.started")
     ?.id;
+}
+
+export function desktopThinking(
+  state: Pick<
+    DesktopState,
+    "activeRun" | "activeSessionId" | "thinking" | "thinkingBySession" | "timeline"
+  >,
+) {
+  return {
+    thinkingByStep:
+      state.activeSessionId === undefined
+        ? {}
+        : (state.thinkingBySession[state.activeSessionId] ?? {}),
+    thinkingStepId: activeThinkingStepId(state.timeline, state.activeRun?.id, state.thinking),
+  };
 }

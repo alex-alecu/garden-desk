@@ -50,6 +50,16 @@ describe("activityRows", () => {
     ]);
     expect(rows[0]?.status).toBe("running");
   });
+
+  it("adds transient thinking to its planning row", () => {
+    const rows = activityRows(
+      [activity({ id: "plan", eventType: "inference.started", text: "Planning the task." })],
+      { plan: "First thought\nSecond thought" },
+    );
+
+    expect(rows[0]?.kind).toBe("thinking");
+    expect(rows[0]?.detail).toBe("First thought\nSecond thought");
+  });
 });
 
 describe("clusterEntries", () => {

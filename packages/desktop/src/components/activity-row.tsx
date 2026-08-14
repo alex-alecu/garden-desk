@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { type RefObject, useLayoutEffect, useRef, useState } from "react";
 import type { ActivityRow } from "../activity-rows.js";
+import { followThinkingText } from "../thinking-scroll.js";
 import { Icon } from "./icons.js";
 
 type IconName = Parameters<typeof Icon>[0]["name"];
@@ -43,32 +44,72 @@ export function ActivityRowView({
   onOpenDetails(row: ActivityRow): void;
   live: boolean;
 }) {
-  const [expanded, setExpanded] = useState(false);
-  const hasDetail = row.detail !== undefined && row.detail.length > 0;
-  const shimmering = live && row.status === "running";
-  const visualStatus = shimmering ? "running" : row.status === "running" ? "done" : row.status;
+  const [opened, setOpened] = useState(false);
+  const detailViewer = useRef<HTMLPreElement>(null);
+  const view = activityRowState(row, live, opened);
+  useLayoutEffect(() => {
+    if (view.liveThinking && detailViewer.current !== null)
+      followThinkingText(detailViewer.current);
+  });
   return (
-    <div className={`activity-row activity-row-${visualStatus}`} data-kind={row.kind}>
+    <div className={`activity-row activity-row-${view.visualStatus}`} data-kind={row.kind}>
       <span aria-hidden="true" className="activity-row-icon">
         <Icon name={iconFor(row)} />
       </span>
       <button
-        aria-expanded={hasDetail ? expanded : undefined}
-        className={`activity-row-label${shimmering ? " activity-row-shimmer" : ""}`}
-        disabled={!hasDetail}
-        onClick={() => hasDetail && setExpanded((open) => !open)}
+        aria-expanded={view.hasDetail ? view.expanded : undefined}
+        className={`activity-row-label${view.shimmering ? " activity-row-shimmer" : ""}`}
+        disabled={!view.canToggle}
+        onClick={() => view.canToggle && setOpened((open) => !open)}
         type="button"
       >
         {row.title}
       </button>
-      {expanded && hasDetail ? (
-        <div className="activity-row-detail">
-          <pre>{row.detail}</pre>
-          <button className="activity-row-open" onClick={() => onOpenDetails(row)} type="button">
-            View in Technical details
-          </button>
-        </div>
+      {view.expanded && view.hasDetail ? (
+        <ActivityDetail
+          liveThinking={view.liveThinking}
+          onOpenDetails={onOpenDetails}
+          row={row}
+          viewer={detailViewer}
+        />
       ) : null}
+    </div>
+  );
+}
+
+function activityRowState(row: ActivityRow, live: boolean, opened: boolean) {
+  const hasDetail = row.detail !== undefined && row.detail.length > 0;
+  const shimmering = live && row.status === "running";
+  const liveThinking = live && row.kind === "thinking" && hasDetail;
+  return {
+    canToggle: hasDetail && !liveThinking,
+    expanded: liveThinking || opened,
+    hasDetail,
+    liveThinking,
+    shimmering,
+    visualStatus: shimmering ? "running" : row.status === "running" ? "done" : row.status,
+  };
+}
+
+function ActivityDetail({
+  liveThinking,
+  onOpenDetails,
+  row,
+  viewer,
+}: {
+  liveThinking: boolean;
+  onOpenDetails(row: ActivityRow): void;
+  row: ActivityRow;
+  viewer: RefObject<HTMLPreElement | null>;
+}) {
+  return (
+    <div className="activity-row-detail">
+      <pre className={liveThinking ? "thinking-log" : undefined} ref={viewer}>
+        {row.detail}
+      </pre>
+      <button className="activity-row-open" onClick={() => onOpenDetails(row)} type="button">
+        View in Technical details
+      </button>
     </div>
   );
 }

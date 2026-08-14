@@ -84,6 +84,7 @@ interface TimelineEntriesProps {
   working: boolean;
   activeRunState: string | undefined;
   activeRunDurationMs: number | undefined;
+  thinkingByStep: Readonly<Record<string, string>>;
 }
 
 function ResponseCopyButton({ text }: { text: string }) {
@@ -173,8 +174,12 @@ export function TimelineEntries({
   working,
   activeRunState,
   activeRunDurationMs,
+  thinkingByStep,
 }: TimelineEntriesProps) {
-  return clusterEntries(entries.map((entry) => entry.item)).map((entry) => (
+  return clusterEntries(
+    entries.map((entry) => entry.item),
+    thinkingByStep,
+  ).map((entry) => (
     <TimelineEntry
       entry={entry}
       key={entry.kind === "cluster" ? `cluster-${entry.runId}-${entry.rows[0]?.id}` : entry.item.id}
@@ -193,6 +198,7 @@ export function TimelineEntries({
         working,
         activeRunState,
         activeRunDurationMs,
+        thinkingByStep,
       }}
     />
   ));

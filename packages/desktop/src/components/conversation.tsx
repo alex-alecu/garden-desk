@@ -21,7 +21,7 @@ interface ConversationProps {
   selectedStepId?: string | undefined;
   performance: AgentRunPerformance | null;
   runId: string | undefined;
-  thinking: string | null;
+  thinkingByStep?: Readonly<Record<string, string>> | undefined;
   working?: boolean | undefined;
   activeRunState?: string | undefined;
 }
@@ -70,7 +70,7 @@ export function Conversation({
   selectedStepId,
   performance,
   runId,
-  thinking,
+  thinkingByStep = {},
   working = false,
   activeRunState,
 }: ConversationProps) {
@@ -117,16 +117,8 @@ export function Conversation({
           working={working}
           activeRunState={activeRunState}
           activeRunDurationMs={performance?.totalDurationMs}
+          thinkingByStep={thinkingByStep}
         />
-        {thinking === null || thinking.length === 0 ? null : (
-          <article className="thinking-stream">
-            <header>
-              <span aria-hidden="true" className="thinking-pulse" />
-              Thinking locally
-            </header>
-            <p>{thinking}</p>
-          </article>
-        )}
       </div>
     </section>
   );

@@ -37,6 +37,7 @@ export interface DesktopState {
   artifacts: AgentArtifactSummary[];
   executions: AgentExecutionSnapshot[];
   thinking: string | null;
+  thinkingBySession: Record<string, Record<string, string>>;
   question: AgentQuestionRequest | null;
   loaded: boolean;
   selectedStepId: string | undefined;
@@ -219,6 +220,11 @@ export function desktopReducer(state: DesktopState, action: DesktopAction): Desk
         sessions: folder.sessions.filter((session) => session.id !== action.sessionId),
       })),
       workingSessionIds: state.workingSessionIds.filter((id) => id !== action.sessionId),
+      thinkingBySession: Object.fromEntries(
+        Object.entries(state.thinkingBySession).filter(
+          ([sessionId]) => sessionId !== action.sessionId,
+        ),
+      ),
       ...(activeDeleted ? emptyConversation(null) : {}),
       ...(state.pendingSessionId === action.sessionId ? { pendingSessionId: undefined } : {}),
     };
