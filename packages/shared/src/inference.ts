@@ -193,6 +193,14 @@ export const InferenceWorkerThinkingEventSchema = z.object({
   text: z.string().min(1).max(4_096),
 });
 
+export const InferenceWorkerResponseDeltaEventSchema = z.object({
+  protocolVersion: z.literal(1),
+  requestId: RequestIdSchema,
+  status: z.literal("stream"),
+  event: z.literal("response.delta"),
+  text: z.string().min(1).max(4_096),
+});
+
 export const InferenceWorkerResponseSchema = z.union([
   StructuredGenerationResultSchema,
   ChatGenerationResultSchema,
@@ -204,6 +212,7 @@ export const InferenceWorkerResponseSchema = z.union([
 export const InferenceWorkerMessageSchema = z.union([
   InferenceWorkerResponseSchema,
   InferenceWorkerThinkingEventSchema,
+  InferenceWorkerResponseDeltaEventSchema,
 ]);
 
 export type InferenceProfile = z.infer<typeof InferenceProfileSchema>;

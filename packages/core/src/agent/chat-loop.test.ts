@@ -3,6 +3,38 @@ import type { InferenceService } from "../runtime/inference.js";
 import { ChatAgentLoop } from "./chat-loop.js";
 import { execution, generated, input, model, source, tool } from "./chat-loop-test-support.js";
 
+describe("ChatAgentLoop response streaming", () => {
+  it("replaces intermediate text before streaming the accepted answer", async () => {
+    const responses: Array<string | null> = [];
+    const results = [
+      generated("I will inspect it.", [tool("python", "call-1", { source: "print(2)" })]),
+      generated("Two."),
+    ];
+    const loop = new ChatAgentLoop({
+      async chat(_request, _signal, streams) {
+        const result = results.shift();
+        if (result === undefined) throw new Error("Missing chat result.");
+        streams?.onResponseDelta?.(result.text);
+        return result;
+      },
+    });
+
+    await loop.run(
+      input(
+        {
+          async execute(run) {
+            return execution(source(run));
+          },
+        },
+        ["python"],
+        { onResponse: (response) => responses.push(response) },
+      ),
+    );
+
+    expect(responses).toEqual([null, "I will inspect it.", null, null, "Two.", "Two."]);
+  });
+});
+
 describe("ChatAgentLoop tool conversation", () => {
   it("returns a tool result as history to the next model turn", async () => {
     const requests: Parameters<InferenceService["chat"]>[0][] = [];

@@ -5,6 +5,7 @@ import remarkGfm from "remark-gfm";
 import { type ActivityRow, clusterEntries } from "../activity-rows.js";
 import type { ArtifactSaveResult } from "../artifact-actions.js";
 import type { TimelineItem } from "../state.js";
+import { stableStreamingMarkdown } from "../streaming-markdown.js";
 import { ActivityCluster } from "./activity-cluster.js";
 import { GeneratedFiles } from "./generated-files.js";
 import { Icon } from "./icons.js";
@@ -52,9 +53,9 @@ const assistantMarkdownComponents: Components = {
 };
 // biome-ignore-end lint/a11y/noNoninteractiveTabindex: Overflowing response content needs a keyboard scroll target.
 
-function AssistantResponse({ children }: { children: string }) {
+function AssistantResponse({ children, streaming }: { children: string; streaming: boolean }) {
   return (
-    <div className="assistant-markdown">
+    <div className={`assistant-markdown${streaming ? " assistant-markdown-streaming" : ""}`}>
       <Markdown
         components={assistantMarkdownComponents}
         disallowedElements={["a", "img"]}
@@ -62,7 +63,7 @@ function AssistantResponse({ children }: { children: string }) {
         skipHtml
         unwrapDisallowed
       >
-        {children}
+        {streaming ? stableStreamingMarkdown(children) : children}
       </Markdown>
     </div>
   );
@@ -152,14 +153,16 @@ function TimelineMessage({
   }
   return (
     <article className={`timeline-item timeline-${item.kind}`}>
-      <AssistantResponse>{item.text}</AssistantResponse>
+      <AssistantResponse streaming={item.streaming === true}>{item.text}</AssistantResponse>
       <GeneratedFiles
         artifacts={artifacts}
         disabledReason={nativeActionMessage}
         onOpen={onOpenArtifact}
         onSave={onSaveArtifact}
       />
-      {item.kind === "assistant" ? <ResponseCopyButton text={item.text} /> : null}
+      {item.kind === "assistant" && item.streaming !== true ? (
+        <ResponseCopyButton text={item.text} />
+      ) : null}
       {showMetrics && performance !== null ? <ResponseMetrics performance={performance} /> : null}
     </article>
   );

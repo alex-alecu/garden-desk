@@ -45,6 +45,7 @@ process.stdin.on("data", (chunk) => {
     const request = JSON.parse(pending.subarray(4, 4 + length));
     pending = pending.subarray(4 + length);
     send({protocolVersion: 1, requestId: request.requestId, status: "stream", event: "thinking.delta", text: "Checking locally. "});
+    send({protocolVersion: 1, requestId: request.requestId, status: "stream", event: "response.delta", text: "Answering locally. "});
     send({
       protocolVersion: 1,
       requestId: request.requestId,
@@ -185,16 +186,18 @@ describe("M2 inference worker containment", () => {
 });
 
 describe("resident inference worker", () => {
-  it("reuses one process, streams supported thinking, and unloads explicitly", async () => {
+  it("reuses one process, routes both text streams, and unloads explicitly", async () => {
     const launcher = new ScriptLauncher(residentWorkerScript);
     const client = new InferenceWorkerClient(launcher, "unused");
     const thinking: string[] = [];
+    const responses: string[] = [];
     const execution = {
       request: largeGeneration,
       modelPath: "/approved/model.gguf",
       memoryBudgetBytes: 1024,
       timeoutMs: 500,
       onThinkingDelta: (text: string) => thinking.push(text),
+      onResponseDelta: (text: string) => responses.push(text),
     };
 
     await expect(client.execute(execution)).resolves.toMatchObject({ operation: "generate" });
@@ -202,6 +205,7 @@ describe("resident inference worker", () => {
 
     expect(launcher.launches).toBe(1);
     expect(thinking).toEqual(["Checking locally. ", "Checking locally. "]);
+    expect(responses).toEqual(["Answering locally. ", "Answering locally. "]);
     await expect(client.unload()).resolves.toBe(true);
   });
 

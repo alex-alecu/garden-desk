@@ -27,6 +27,7 @@ export interface ChatAgentInput {
   modelId: string;
   onEvent?(type: AgentEventType, summary: string, detail?: Partial<AgentEventDetail>): void;
   onThinking?(text: string | null): void;
+  onResponse?(text: string | null): void;
   onContext?(used: number, allocated: number): void;
   savedScripts?: string[];
   signal?: AbortSignal;

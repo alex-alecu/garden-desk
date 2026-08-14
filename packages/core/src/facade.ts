@@ -83,9 +83,9 @@ function inferencePorts(ports: VaultCorePorts) {
     chat: (
       input: ChatInput,
       signal?: AbortSignal,
-      onThinkingDelta?: (text: string) => void,
+      streams?: Parameters<InferenceService["chat"]>[2],
       identity?: Parameters<InferenceService["chat"]>[3],
-    ) => ports.chat(input, signal, onThinkingDelta, identity),
+    ) => ports.chat(input, signal, streams, identity),
     embed: (input: EmbeddingInput, signal?: AbortSignal) => ports.embed(input, signal),
     modelStatus: () => ports.modelStatus(),
     unloadModel: () => ports.unloadModel(),

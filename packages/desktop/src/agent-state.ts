@@ -2,6 +2,29 @@ import type { AgentRunSnapshot } from "@vault/shared";
 import type { DesktopState } from "./state.js";
 import { eventItems } from "./timeline.js";
 
+function runTimeline(state: DesktopState, snapshot: AgentRunSnapshot, working: boolean) {
+  const responseId = `streaming-response-${snapshot.run.id}`;
+  const unchanged = state.timeline.filter(
+    (item) =>
+      item.id !== responseId && (item.kind !== "activity" || item.runId !== snapshot.run.id),
+  );
+  const events = eventItems(snapshot.events);
+  const response = snapshot.run.response;
+  if (response === null || response.length === 0) return [...unchanged, ...events];
+  return [
+    ...unchanged,
+    ...events,
+    {
+      createdAt: events.at(-1)?.createdAt ?? snapshot.run.updatedAt,
+      id: responseId,
+      kind: "assistant" as const,
+      text: response,
+      runId: snapshot.run.id,
+      streaming: working,
+    },
+  ];
+}
+
 export function applyAgentSnapshot(state: DesktopState, snapshot: AgentRunSnapshot): DesktopState {
   const working = snapshot.run.state === "queued" || snapshot.run.state === "running";
   const workingSessionIds = working
@@ -12,11 +35,7 @@ export function applyAgentSnapshot(state: DesktopState, snapshot: AgentRunSnapsh
     return { ...state, workingSessionIds, thinkingBySession };
   }
   const knownArtifacts = new Set(state.artifacts.map((item) => item.id));
-  const otherTimeline = state.timeline.filter(
-    (item) => item.kind !== "activity" || item.runId !== snapshot.run.id,
-  );
   const otherExecutions = state.executions.filter((item) => item.runId !== snapshot.run.id);
-  const timeline = [...otherTimeline, ...eventItems(snapshot.events)];
   return {
     ...state,
     workingSessionIds,
@@ -31,7 +50,7 @@ export function applyAgentSnapshot(state: DesktopState, snapshot: AgentRunSnapsh
       ...snapshot.artifacts.filter((item) => !knownArtifacts.has(item.id)),
     ],
     executions: [...otherExecutions, ...snapshot.executions],
-    timeline,
+    timeline: runTimeline(state, snapshot, working),
   };
 }
 

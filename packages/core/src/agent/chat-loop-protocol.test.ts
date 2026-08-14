@@ -2,6 +2,7 @@ import { expect, it } from "vitest";
 import type { InferenceService } from "../runtime/inference.js";
 import { ChatAgentLoop } from "./chat-loop.js";
 import { execution, generated, input, model, source, tool } from "./chat-loop-test-support.js";
+import { visibleResponseText } from "./chat-protocol.js";
 import type { AgentTraceStore } from "./trace-store.js";
 
 function outcomeTrace(outcomes: string[]): AgentTraceStore {
@@ -17,6 +18,16 @@ function outcomeTrace(outcomes: string[]): AgentTraceStore {
     },
   } as unknown as AgentTraceStore;
 }
+
+it("removes only a leading model channel prelude from visible response text", () => {
+  expect(visibleResponseText('<|"|>thought\n<channel|>Visible answer.')).toBe("Visible answer.");
+  expect(visibleResponseText("<|channel|>analysis<|message|>Visible answer.")).toBe(
+    "Visible answer.",
+  );
+  expect(visibleResponseText("The literal marker is `<|channel|>`.")).toBe(
+    "The literal marker is `<|channel|>`.",
+  );
+});
 
 it("rejects raw tool markup and retries with a real tool call", async () => {
   const requests: Parameters<InferenceService["chat"]>[0][] = [];

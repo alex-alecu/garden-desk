@@ -204,8 +204,7 @@ function assembleVaultCore(services: CoreServices): VaultCore {
     verifyAudit: async () => audit.verify(),
     generate: (input, signal, onThinkingDelta, identity) =>
       inference.generate(input, signal, onThinkingDelta, identity),
-    chat: (input, signal, onThinkingDelta, identity) =>
-      inference.chat(input, signal, onThinkingDelta, identity),
+    chat: (input, signal, streams, identity) => inference.chat(input, signal, streams, identity),
     embed: (input, signal) => inference.embed(input, signal),
     modelStatus: () => inference.modelStatus(),
     unloadModel: () => inference.unloadModel(),

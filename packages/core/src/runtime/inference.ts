@@ -64,11 +64,17 @@ export interface InferenceExecution {
   timeoutMs: number;
   signal?: AbortSignal;
   onThinkingDelta?(text: string): void;
+  onResponseDelta?(text: string): void;
 }
 
 export interface InferencePort {
   execute(execution: InferenceExecution): Promise<InferenceWorkerResponse>;
   unload(): Promise<boolean>;
+}
+
+export interface InferenceStreamCallbacks {
+  onThinkingDelta?(text: string): void;
+  onResponseDelta?(text: string): void;
 }
 
 export interface InferenceService {
@@ -81,7 +87,7 @@ export interface InferenceService {
   chat(
     input: ChatInput,
     signal?: AbortSignal,
-    onThinkingDelta?: (text: string) => void,
+    streams?: InferenceStreamCallbacks,
     identity?: GenerationRequestIdentity,
   ): Promise<ChatGenerationResult>;
   embed(input: EmbeddingInput, signal?: AbortSignal): Promise<EmbeddingResult>;
