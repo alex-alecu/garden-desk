@@ -112,7 +112,6 @@ export class AgentService {
     });
     return removed;
   }
-
   start(sessionId: string, task: string): AgentRunSummary {
     if (this.closed) throw new Error("agent_service_closed");
     if ([...this.active.values()].some((run) => run.sessionId === sessionId))
@@ -135,10 +134,10 @@ export class AgentService {
       runId: run.id,
       sessionId: run.sessionId,
       thinking: null,
+      response: null,
     });
     return run;
   }
-
   snapshot(runId: string): AgentRunSnapshot {
     const snapshot = this.store.snapshot(runId);
     const active = [...this.active.values()].find((run) => run.runId === runId);
@@ -188,7 +187,7 @@ export class AgentService {
     const state = cancelled ? "cancelled" : "failed";
     const detail = cancelled ? "cancelled" : agentFailureText(error);
     const event = agentFailureEvent(cancelled, detail);
-    this.updateActive(run.jobId, { thinking: null });
+    this.updateActive(run.jobId, { thinking: null, response: null });
     this.database.transaction(() => {
       this.store.execution.failIncomplete(run.id, cancelled);
       this.store.transitionRun(run.id, { state, error: detail });
@@ -236,6 +235,7 @@ export class AgentService {
         jobs: this.jobs,
         ...(knownContextTokens === "auto" ? {} : { knownContextTokens }),
         onThinking: (thinking) => this.updateActive(run.jobId, { thinking }),
+        onResponse: (response) => this.updateActive(run.jobId, { response }),
         onContext: (contextUsedTokens, contextAllocatedTokens) =>
           this.updateActive(run.jobId, { contextUsedTokens, contextAllocatedTokens }),
         askQuestion: (questions) =>

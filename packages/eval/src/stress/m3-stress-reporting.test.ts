@@ -4,6 +4,7 @@ import {
   AgentExecutionSnapshotSchema,
   type AgentRunSnapshot,
   AgentRunSnapshotSchema,
+  AgentTraceSchema,
 } from "@vault/shared";
 import { describe, expect, it } from "vitest";
 import { stressResultFor } from "./m3-stress-reporting.js";
@@ -11,14 +12,14 @@ import type { ActiveCase } from "./m3-stress-runtime.js";
 
 const timestamp = "2026-07-27T08:00:00.000Z";
 
-function execution(stdout: string): AgentExecutionSnapshot {
+function execution(stdout: string, source = "print('result')"): AgentExecutionSnapshot {
   return AgentExecutionSnapshotSchema.parse({
     id: "8ba23ef5-400e-49e6-9bb6-3e82cb9075bc",
     runId: "77ff5b22-555d-4ef2-9170-fdd7118738f1",
     sequence: 0,
     language: "python",
     path: "steps/0001.py",
-    source: "print('result')",
+    source,
     command: null,
     state: "completed",
     exitCode: 0,
@@ -55,6 +56,7 @@ function snapshot(
   response: string,
   stdout = "",
   artifacts: AgentRunSnapshot["artifacts"] = [],
+  source?: string,
 ): AgentRunSnapshot {
   return AgentRunSnapshotSchema.parse({
     run: {
@@ -69,11 +71,63 @@ function snapshot(
       updatedAt: timestamp,
     },
     events: [],
-    executions: stdout.length === 0 ? [] : [execution(stdout)],
+    executions: stdout.length === 0 ? [] : [execution(stdout, source)],
     artifacts,
     thinking: null,
   });
 }
+
+const wordSkillActive: ActiveCase = {
+  fixture: {
+    id: "legacy-doc-read",
+    source: "/tmp/legacy-doc-read",
+    task: "Read the legacy Word file.",
+    fixtureMs: 1,
+    evidence: { bytes: 1, files: 1, expected: {} },
+    expectedTokens: [],
+    requiredSkills: ["word-documents"],
+  },
+  folderId: "folder",
+  previousSnapshots: [],
+  sessionId: "session",
+  runId: "run",
+  startedAt: performance.now(),
+};
+
+const wordSkillTrace = AgentTraceSchema.parse({
+  captureVersion: 1,
+  status: "recorded",
+  runId: "77ff5b22-555d-4ef2-9170-fdd7118738f1",
+  turns: [
+    {
+      id: "33e6c437-ce41-40d2-99b6-2c8d119c50ee",
+      runId: "77ff5b22-555d-4ef2-9170-fdd7118738f1",
+      sequence: 0,
+      phase: "chat",
+      requestId: "8ba23ef5-400e-49e6-9bb6-3e82cb9075bc",
+      jobId: "ea31a359-3b01-4d54-9950-e3d46e807381",
+      modelId: "model",
+      contextSize: "auto",
+      maxTokens: 8192,
+      allocatedContextTokens: 8192,
+      promptHash: `sha256:${"1".repeat(64)}`,
+      schemaHash: `sha256:${"2".repeat(64)}`,
+      responseHash: `sha256:${"3".repeat(64)}`,
+      prompt: "prompt",
+      jsonSchema: {},
+      structuredResponse: {
+        text: "",
+        toolCalls: [{ id: "skill-1", name: "skill", params: { name: "word-documents" } }],
+        stopReason: "toolCalls",
+      },
+      outcome: "accepted_tool_calls",
+      executionSequence: null,
+      createdAt: timestamp,
+      responseCapturedAt: timestamp,
+      completedAt: timestamp,
+    },
+  ],
+});
 
 describe("M3 stress result evidence", () => {
   it("does not accept an expected token found only in tool output", () => {
@@ -121,6 +175,35 @@ describe("M3 stress result evidence", () => {
     expect(stressResultFor(active, snapshot("Done."), { verified: ["report.pdf"] }).passed).toBe(
       true,
     );
+  });
+});
+
+describe("skill-call stress evidence", () => {
+  it("requires the named skill call when a case declares one", () => {
+    expect(stressResultFor(wordSkillActive, snapshot("Done.")).missingSkills).toEqual([
+      "word-documents",
+    ]);
+    expect(
+      stressResultFor(wordSkillActive, snapshot("Done."), { trace: wordSkillTrace }),
+    ).toMatchObject({ passed: true, missingSkills: [] });
+  });
+
+  it("requires declared guest execution text", () => {
+    const active = {
+      ...wordSkillActive,
+      fixture: {
+        ...wordSkillActive.fixture,
+        requiredSkills: [],
+        requiredExecutionText: ["antiword"],
+      },
+    };
+    expect(stressResultFor(active, snapshot("Done.")).missingExecutionText).toEqual(["antiword"]);
+    expect(
+      stressResultFor(active, snapshot("Done.", "read", [], "antiword legacy.doc")),
+    ).toMatchObject({
+      passed: true,
+      missingExecutionText: [],
+    });
   });
 });
 

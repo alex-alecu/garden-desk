@@ -6,6 +6,7 @@ import type {
   GenerationRequestIdentity,
   InferencePort,
   InferenceService,
+  InferenceStreamCallbacks,
 } from "./inference.js";
 import { recordInferenceAudit } from "./inference-audit.js";
 import {
@@ -91,20 +92,16 @@ export class InferenceSupervisor implements InferenceService {
     request: InferenceWorkerRequest,
     execution: ActiveInferenceExecution,
     lease: ResourceLease,
-    options: {
-      stagedModel?: StagedModel;
-      onThinkingDelta?: (text: string) => void;
-    },
+    options: InferenceStreamCallbacks & { stagedModel?: StagedModel },
   ) {
+    const { stagedModel, ...streams } = options;
     const response = await this.port.execute({
       request,
-      ...(options.stagedModel === undefined ? {} : { modelPath: options.stagedModel.path }),
+      ...(stagedModel === undefined ? {} : { modelPath: stagedModel.path }),
       memoryBudgetBytes: lease.memoryBudgetBytes,
       timeoutMs: Math.max(1, execution.timeoutMs - (Date.now() - execution.startedAt)),
       signal: execution.signal,
-      ...(options.onThinkingDelta === undefined
-        ? {}
-        : { onThinkingDelta: options.onThinkingDelta }),
+      ...streams,
     });
     if (response.status === "error") {
       throw new InferenceFailure(response.error.code, response.error.message);
@@ -179,7 +176,7 @@ export class InferenceSupervisor implements InferenceService {
   private async executeOne(
     request: InferenceWorkerRequest,
     execution: ActiveInferenceExecution,
-    onThinkingDelta?: (text: string) => void,
+    streams: InferenceStreamCallbacks = {},
   ) {
     let resourcesPrepared = false;
     let lease: ResourceLease | undefined;
@@ -191,7 +188,7 @@ export class InferenceSupervisor implements InferenceService {
       execution.signal.throwIfAborted();
       const response = await this.execute(request, execution, resources.lease, {
         ...(resources.stagedModel === undefined ? {} : { stagedModel: resources.stagedModel }),
-        ...(onThinkingDelta === undefined ? {} : { onThinkingDelta }),
+        ...streams,
       });
       return { response, lease: resources.lease };
     } catch (error) {
@@ -208,15 +205,17 @@ export class InferenceSupervisor implements InferenceService {
 
   private async run(
     request: InferenceWorkerRequest,
-    signal?: AbortSignal,
-    onThinkingDelta?: (text: string) => void,
-    priority: "primary" | "secondary" = "primary",
+    options: InferenceStreamCallbacks & {
+      signal?: AbortSignal;
+      priority?: "primary" | "secondary";
+    } = {},
   ) {
+    const { signal, priority = "primary", ...streams } = options;
     const execution = this.startExecution(signal);
     let lease: ResourceLease | undefined;
     try {
       const result = await this.slots.run(
-        async () => await this.executeOne(request, execution, onThinkingDelta),
+        async () => await this.executeOne(request, execution, streams),
         { signal: execution.signal, priority },
       );
       lease = result.lease;
@@ -269,31 +268,31 @@ export class InferenceSupervisor implements InferenceService {
     onThinkingDelta?: (text: string) => void,
     identity?: GenerationRequestIdentity,
   ) {
-    const response = await this.run(
-      createGenerateWorkerRequest(input, identity),
-      signal,
-      onThinkingDelta,
-    );
+    const response = await this.run(createGenerateWorkerRequest(input, identity), {
+      ...(signal === undefined ? {} : { signal }),
+      ...(onThinkingDelta === undefined ? {} : { onThinkingDelta }),
+    });
     return expectGenerateResponse(response);
   }
 
   async chat(
     input: ChatInput,
     signal?: AbortSignal,
-    onThinkingDelta?: (text: string) => void,
+    streams?: InferenceStreamCallbacks,
     identity?: GenerationRequestIdentity,
   ) {
-    const response = await this.run(
-      createChatWorkerRequest(input, identity),
-      signal,
-      onThinkingDelta,
-      identity?.priority ?? "primary",
-    );
+    const response = await this.run(createChatWorkerRequest(input, identity), {
+      ...(signal === undefined ? {} : { signal }),
+      ...streams,
+      priority: identity?.priority ?? "primary",
+    });
     return expectChatResponse(response);
   }
 
   async embed(input: EmbeddingInput, signal?: AbortSignal) {
-    const response = await this.run(createEmbedWorkerRequest(input), signal);
+    const response = await this.run(createEmbedWorkerRequest(input), {
+      ...(signal === undefined ? {} : { signal }),
+    });
     return expectEmbedResponse(response);
   }
 }

@@ -34,9 +34,10 @@ function performanceReport(input: {
   };
 }
 
-function generationCallbacks(
+export function generationCallbacks(
   requestId: RequestId,
   emit: (message: InferenceWorkerMessage) => void,
+  streamResponseText = false,
 ) {
   let firstTokenAt: number | undefined;
   return {
@@ -47,6 +48,15 @@ function generationCallbacks(
           requestId,
           status: "stream",
           event: "thinking.delta",
+          text: chunk.text,
+        });
+      }
+      if (streamResponseText && chunk.type === undefined && chunk.text.length > 0) {
+        emit({
+          protocolVersion: 1,
+          requestId,
+          status: "stream",
+          event: "response.delta",
           text: chunk.text,
         });
       }
@@ -130,7 +140,7 @@ export async function chat(
   return await session.pool.use(async (chat) => {
     const initialMeter = chat.sequence.tokenMeter.getState();
     const startedAt = performance.now();
-    const callbacks = generationCallbacks(request.requestId, emit);
+    const callbacks = generationCallbacks(request.requestId, emit, true);
     const turn = await generateChatTurn(request, chat, callbacks, signal);
     const completedAt = performance.now();
     const finalMeter = chat.sequence.tokenMeter.getState();

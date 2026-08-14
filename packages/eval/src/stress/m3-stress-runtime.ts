@@ -46,6 +46,10 @@ export interface StressCaseResult {
   executionMs: number;
   inferenceFailures: number;
   expectedTokens: string[];
+  requiredExecutionText: string[];
+  missingExecutionText: string[];
+  requiredSkills: string[];
+  missingSkills: string[];
   missingTokens: string[];
   missingTableRows: ExpectedTableRow[];
   producedArtifacts: string[];

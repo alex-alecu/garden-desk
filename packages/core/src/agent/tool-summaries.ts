@@ -90,7 +90,15 @@ export function toolStartedSummary(call: ChatToolCall): string {
   return verbObject(call).running;
 }
 
-export function toolCompletedSummary(call: ChatToolCall, failed: boolean): string {
+export function toolCompletedSummary(
+  call: ChatToolCall,
+  failed: boolean,
+  status?: "already_loaded",
+): string {
+  if (call.name === "skill" && status === "already_loaded") {
+    const name = stringParam(call, "name") ?? "This";
+    return `${name} skill was already loaded.`;
+  }
   const object = verbObject(call);
   return failed ? `${object.running} failed.` : `${object.done}.`;
 }

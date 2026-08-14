@@ -6,6 +6,8 @@ const RAW_CALL_TERMINATOR_ONLY = /^\s*(?:<tool_call\|>|<\/(?:tool_call|function_
 const PROTOCOL_TRANSITION =
   /(?:<tool_call\|>|<\/(?:tool_call|function_call)>)\s*(?:<\|(?:tool_call|function_call|channel|turn|return|think)\|?>|<(?:tool_call|function_call)>)/iu;
 const LEAKED_TOOL_SUFFIX = /\}\}\s*(?:<tool_call\|>|<\/(?:tool_call|function_call)>)[\s\S]*$/iu;
+const LEADING_RESPONSE_CHANNEL =
+  /^\s*(?:<\|"\|>\s*(?:thought|analysis|final)\s*(?:<channel\|>)?|<\|channel\|?>\s*(?:thought|analysis|final)\s*:?\s*(?:<channel\|>|<\|message\|?>)?)\s*/iu;
 
 export function containsRawProtocolCall(value: string): boolean {
   return (
@@ -20,6 +22,16 @@ export function containsProtocolTransition(value: unknown): boolean {
   if (Array.isArray(value)) return value.some(containsProtocolTransition);
   if (typeof value !== "object" || value === null) return false;
   return Object.values(value as Record<string, unknown>).some(containsProtocolTransition);
+}
+
+export function visibleResponseText(value: string, streaming = false): string {
+  const visible = value.replace(LEADING_RESPONSE_CHANNEL, "");
+  if (visible !== value) return visible;
+  const trimmed = value.trimStart();
+  if (streaming && trimmed.startsWith("<") && !trimmed.includes("\n") && trimmed.length < 256) {
+    return "";
+  }
+  return value;
 }
 
 /** Returns one complete leading JSON array only when a leaked tool-close suffix follows it. */

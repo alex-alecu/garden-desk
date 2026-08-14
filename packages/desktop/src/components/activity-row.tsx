@@ -104,9 +104,12 @@ function ActivityDetail({
 }) {
   return (
     <div className="activity-row-detail">
-      <pre className={liveThinking ? "thinking-log" : undefined} ref={viewer}>
-        {row.detail}
-      </pre>
+      <section aria-label={`${row.title} details`}>
+        {/* biome-ignore lint/a11y/noNoninteractiveTabindex: Overflowing activity detail needs a keyboard scroll target. */}
+        <pre className={liveThinking ? "thinking-log" : undefined} ref={viewer} tabIndex={0}>
+          {row.detail}
+        </pre>
+      </section>
       <button className="activity-row-open" onClick={() => onOpenDetails(row)} type="button">
         View in Technical details
       </button>

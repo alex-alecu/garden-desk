@@ -1,6 +1,6 @@
 # Implementation Structure
 
-Updated: 2026-07-24
+Updated: 2026-08-14
 
 This blueprint accompanies [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md). M0, M1, and M2 source exists, and the M3 macOS implementation is complete. M3 remains active for its Windows product integration and cross-platform launch gate. Paths not yet present remain authority, not evidence of implementation.
 
@@ -53,8 +53,9 @@ TypeScript owns only typed runtime facts, prompt selection, placeholder renderin
 schema construction. A skill directory and its required `name` and `description` frontmatter
 follow the open Agent Skills contract; the name matches the lowercase hyphenated directory and
 the description states what the skill does and when to use it. Core loads the metadata catalog,
-selects relevant bodies from the user task, attachment names, and explicit typed workflow state,
-and never routes on arbitrary file contents or model output. It rejects malformed prompt assets at startup. The desktop package copies the complete tree into its
+advertises that metadata to the model, and returns one body only when the model calls the generic
+`skill` tool. It never routes on arbitrary file contents or model output. It rejects malformed
+prompt assets at startup. The desktop package copies the complete tree into its
 offline Core resources. The resource manifest hashes every prompt, and the Windows host verifies
 and read-locks every packaged prompt before starting Core.
 
@@ -210,7 +211,7 @@ The newest-five sidebar query is ordered by last activity plus stable ID. Expans
 
 ## Guest Library Manifest
 
-One machine-readable manifest records each guest runtime/library name, exact version, source, license, notice obligation, hash, and reason. The set stays limited to the smallest reviewed combination that covers text, JSON, CSV, SQLite, PDF, DOCX, XLSX, and common image work; ReportLab uses its pinned pure-Python wheel for styled PDF creation.
+One machine-readable manifest records each guest runtime/library name, exact version, source or pin, license, notice obligation, hash, and reason. The Antiword record also carries the complete Debian patch archive, its actual installed size per architecture, and its guest license-notice path. The set stays limited to the smallest reviewed combination that covers text, JSON, CSV, SQLite, PDF, DOCX, legacy DOC text reading, XLSX, and common image work; ReportLab uses its pinned pure-Python wheel for styled PDF creation, and Antiword reads legacy DOC input without creating that format.
 
 The library manifest, generated executable capabilities manifest, guest build recipe, compliance inventory, package resources, and Technical details language change together. Libraries are not added because they might be useful.
 
@@ -246,3 +247,4 @@ The existing source-limit gate remains authoritative. Prefer files below 300 lin
 | 2026-07-24 | Moved the debug snapshot adapter into Core and limited installed-app creation and reveal to fixed Tauri commands. |
 | 2026-07-27 | Added the verified Windows CUDA/Vulkan resource package and signed copy-installed application directory. |
 | 2026-08-04 | Added final-response deliverable declarations, Core materialization/export adapters, and pinned DOCX/XLSX/PDF skill assets. |
+| 2026-08-14 | Added the reviewed guest Antiword package and replaced the DOCX-only skill with one Word document skill. |

@@ -55,11 +55,16 @@ describe("MarkdownDefinitionLibrary", () => {
     const library = new MarkdownDefinitionLibrary(resolve(process.cwd(), "prompts"));
     expectApprovedAgents(library);
     expect(library.skills.map(({ name }) => name)).toEqual([
-      "docx-documents",
       "pdf-documents",
       "terminal-commands",
+      "word-documents",
       "xlsx-workbooks",
     ]);
+    const word = library.skill("word-documents");
+    expect(word.description).toContain("legacy .doc file");
+    expect(word.body).toContain('/usr/bin/antiword", "-m", "UTF-8.txt", "-w", "0"');
+    expect(word.body).toContain("Never create or edit a `.doc` file.");
+    expect(() => library.skill("docx-documents")).toThrow("Unknown skill");
     expect(library.skill("xlsx-workbooks").body).toContain("reset_dimensions()");
   });
 

@@ -58,6 +58,7 @@ describe("M3 small stress sweep", () => {
   it("keeps the V1 gate small and leaves large model workloads optional", () => {
     expect(SMALL_GATE_CASES).toEqual([
       "terminal-discovery",
+      "legacy-doc-read",
       "xlsx-edit",
       "docx-edit",
       "invalid-document",

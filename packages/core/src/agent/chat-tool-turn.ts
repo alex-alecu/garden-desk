@@ -5,10 +5,18 @@ import type {
   ChatMessage,
   ChatToolCall,
 } from "@vault/shared";
+import { containsProtocolTransition } from "./chat-protocol.js";
 import {
-  containsProtocolTransition,
-  recoverJsonArrayBeforeProtocolTransition,
-} from "./chat-protocol.js";
+  type LoadedSkillCalls,
+  liveLoadedSkillNames,
+  requestedSkillName,
+} from "./chat-skill-state.js";
+import {
+  alreadyLoadedSkillResult,
+  blockedToolResult,
+  invalidToolInputResult,
+  recoverQuestionCall,
+} from "./chat-tool-call-support.js";
 import type { AgentToolResult, GenericToolRegistry } from "./generic-tools.js";
 import { subagentTitle, toolCompletedSummary, toolStartedSummary } from "./tool-summaries.js";
 
@@ -23,6 +31,7 @@ export interface ChatToolState {
   executions: AgentExecutionResult[];
   failedTools: number;
   guestExecutions: number;
+  loadedSkills: LoadedSkillCalls;
   messages: ChatMessage[];
   signatures: string[];
 }
@@ -108,7 +117,11 @@ function completedExecution(
 
 function completedTool(input: ToolTurnInput, call: ChatToolCall, result: AgentToolResult): void {
   const detail = { toolName: call.name, toolCallId: call.id, stdout: result.content };
-  input.onEvent?.("tool.completed", toolCompletedSummary(call, result.failed), detail);
+  input.onEvent?.(
+    "tool.completed",
+    toolCompletedSummary(call, result.failed, result.status),
+    detail,
+  );
   if (call.name === "task") {
     input.onEvent?.(
       "subagent.completed",
@@ -118,27 +131,19 @@ function completedTool(input: ToolTurnInput, call: ChatToolCall, result: AgentTo
   }
 }
 
-function blockedResult(message: string): AgentToolResult {
-  return { content: message, failed: true };
-}
-
-function invalidInputResult(message: string): AgentToolResult {
-  return { content: message, failed: true, invalidInput: true };
-}
-
 async function toolResult(
   input: ToolTurnInput,
   call: ChatToolCall,
   repeated: boolean,
 ): Promise<AgentToolResult> {
   if (repeated) {
-    return blockedResult(
+    return blockedToolResult(
       "Identical tool call repeated three times. Change approach before trying again.",
     );
   }
   if (GUEST_TOOLS.has(call.name)) {
     if (input.state.guestExecutions >= EXECUTION_LIMIT) {
-      return blockedResult(
+      return blockedToolResult(
         "Guest execution limit reached. Finish with the evidence already collected.",
       );
     }
@@ -147,24 +152,19 @@ async function toolResult(
   return await input.registry.execute(call.name, call.params);
 }
 
-function recoverQuestionCall(call: ChatToolCall): void {
-  if (call.name !== "question" || typeof call.params !== "object" || call.params === null) {
-    return;
-  }
-  const params = call.params as Record<string, unknown>;
-  if (typeof params.questions !== "string") return;
-  const questions = recoverJsonArrayBeforeProtocolTransition(params.questions);
-  if (questions !== undefined) call.params = { ...params, questions };
-}
-
 async function executeToolCall(input: ToolTurnInput, call: ChatToolCall): Promise<boolean> {
   recoverQuestionCall(call);
   const corrupt = containsProtocolTransition(call.params);
+  const skillName = requestedSkillName(call);
+  const loaded = liveLoadedSkillNames(input.state.loadedSkills, input.state.messages);
+  const alreadyLoaded = skillName !== undefined && loaded.has(skillName);
   const repeated = corrupt ? false : repeatedCall(input.state, call);
   beforeExecution(input, call, repeated, !corrupt);
   const result = corrupt
-    ? invalidInputResult("Invalid tool input: protocol-control transition in arguments.")
-    : await toolResult(input, call, repeated);
+    ? invalidToolInputResult("Invalid tool input: protocol-control transition in arguments.")
+    : alreadyLoaded && !repeated
+      ? alreadyLoadedSkillResult(skillName)
+      : await toolResult(input, call, repeated);
   finalizeToolCall(input, call, repeated, result);
   return result.invalidInput !== true;
 }
@@ -188,6 +188,10 @@ function finalizeToolCall(
     name: call.name,
     result: result.content,
   });
+  const skillName = requestedSkillName(call);
+  if (skillName !== undefined && !result.failed && result.status !== "already_loaded") {
+    input.state.loadedSkills.set(call.id, skillName);
+  }
   completedTool(input, call, result);
   if (repeated) {
     input.state.messages.push({
@@ -204,6 +208,7 @@ export function initialToolState(messages: ChatMessage[]): ChatToolState {
     executions: [],
     failedTools: 0,
     guestExecutions: 0,
+    loadedSkills: new Map(),
     messages,
     signatures: [],
   };
@@ -277,7 +282,7 @@ async function executeTaskGroup(input: ToolTurnInput, group: ChatToolCall[]): Pr
     beforeExecution(input, call, repeated, !corrupt);
     const result = corrupt
       ? Promise.resolve(
-          invalidInputResult("Invalid tool input: protocol-control transition in arguments."),
+          invalidToolInputResult("Invalid tool input: protocol-control transition in arguments."),
         )
       : toolResult(input, call, repeated);
     return { call, repeated, result };

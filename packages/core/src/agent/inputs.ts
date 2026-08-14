@@ -13,8 +13,11 @@ const MAX_ATTACHMENT_BYTES = 8 * 1024 * 1024 * 1024;
 export interface ResolvedAgentInputs {
   sourceFolder: string;
   attachments: AgentInputFile[];
-  inputNames: string[];
   dispose(): Promise<void>;
+}
+
+export function guestAttachmentName(index: number, name: string): string {
+  return `${String(index + 1).padStart(2, "0")}-${name}`;
 }
 
 function sessionFolder(database: DatabasePort, sessionId: string) {
@@ -60,7 +63,7 @@ export class AgentInputResolver {
         } finally {
           await handle.close();
         }
-        files.push({ path, name: `${String(index + 1).padStart(2, "0")}-${item.name}` });
+        files.push({ path, name: guestAttachmentName(index, item.name) });
       }
       const sourceFolder =
         session.root_path === null
@@ -69,7 +72,6 @@ export class AgentInputResolver {
       return {
         sourceFolder,
         attachments: files,
-        inputNames: attachments.map((item) => item.name),
         async dispose() {
           await rm(temporaryRoot, { recursive: true, force: true });
         },

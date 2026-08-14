@@ -190,7 +190,7 @@ describe("conversation Markdown presentation", () => {
             createdAt: "2026-07-20T12:00:01.000Z",
             id: "assistant",
             kind: "assistant",
-            text: "## Result\n\n| Item | Status |\n| --- | --- |\n| Report | **Ready** |\n\n- [x] Verified\n  - Nested evidence\n\n- [ ] Follow up\n\n  Second paragraph\n\n~~Draft~~ Final\n\n[Reference](https://example.test/page)\n\nhttps://example.test/auto\n\n![remote](https://example.test/image.png)\n\n<script>alert('no')</script>",
+            text: "## Result\n\n```ts\nconst ready = true;\n```\n\n| Item | Status |\n| --- | --- |\n| Report | **Ready** |\n\n- [x] Verified\n  - Nested evidence\n\n- [ ] Follow up\n\n  Second paragraph\n\n~~Draft~~ Final\n\n[Reference](https://example.test/page)\n\nhttps://example.test/auto\n\n![remote](https://example.test/image.png)\n\n<script>alert('no')</script>",
             runId: "run",
           },
         ],
@@ -202,6 +202,8 @@ describe("conversation Markdown presentation", () => {
 
     expect(markup).toContain("<p>## Keep this literal</p>");
     expect(markup).toContain("<h2>Result</h2>");
+    expect(markup).toContain('<section aria-label="Response code"><pre tabindex="0">');
+    expect(markup).toContain("const ready = true;");
     expect(markup).toContain('aria-label="Response table"');
     expect(markup).toContain('tabindex="0"');
     expect(markup).toContain("<table>");

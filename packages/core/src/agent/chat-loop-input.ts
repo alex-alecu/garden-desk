@@ -5,6 +5,12 @@ import type { AgentDefinition } from "./markdown-definition-library.js";
 import type { AgentTraceStore } from "./trace-store.js";
 
 type ConversationItem = { role: "user" | "assistant"; content: string };
+export interface ChatAttachmentInput {
+  path: string;
+  displayName: string;
+  mediaType: string;
+}
+
 export type ChatRecoveryState = {
   emptyResponsePending: boolean;
   inferenceRetryUsed: boolean;
@@ -17,10 +23,11 @@ export interface ChatAgentInput {
   knownContextTokens?: number;
   executor: AgentExecutor;
   history?: { messages: ConversationItem[]; summary?: string };
-  inputNames?: string[];
+  attachments?: ChatAttachmentInput[];
   modelId: string;
   onEvent?(type: AgentEventType, summary: string, detail?: Partial<AgentEventDetail>): void;
   onThinking?(text: string | null): void;
+  onResponse?(text: string | null): void;
   onContext?(used: number, allocated: number): void;
   savedScripts?: string[];
   signal?: AbortSignal;

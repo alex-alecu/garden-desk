@@ -122,6 +122,55 @@ function contextCompactions(trace: AgentTrace | undefined): number {
   return trace.turns.filter((turn) => turn.prompt.includes("# Compacted task state")).length;
 }
 
+function toolCalls(response: unknown): unknown[] {
+  if (typeof response !== "object" || response === null) return [];
+  const calls = (response as { toolCalls?: unknown }).toolCalls;
+  return Array.isArray(calls) ? calls : [];
+}
+
+function skillName(call: unknown): string | undefined {
+  if (typeof call !== "object" || call === null) return undefined;
+  const tool = call as { name?: unknown; params?: unknown };
+  if (tool.name !== "skill" || typeof tool.params !== "object" || tool.params === null)
+    return undefined;
+  const name = (tool.params as { name?: unknown }).name;
+  return typeof name === "string" ? name : undefined;
+}
+
+function calledSkills(trace: AgentTrace | undefined): Set<string> {
+  if (trace?.captureVersion !== 1) return new Set();
+  const names = trace.turns.flatMap((turn) => toolCalls(turn.structuredResponse).map(skillName));
+  return new Set(names.filter((name): name is string => name !== undefined));
+}
+
+function skillEvidence(active: ActiveCase, trace: AgentTrace | undefined) {
+  const requiredSkills = active.fixture.requiredSkills ?? [];
+  const skills = calledSkills(trace);
+  return { requiredSkills, missingSkills: requiredSkills.filter((name) => !skills.has(name)) };
+}
+
+function executionTextEvidence(active: ActiveCase, snapshot: AgentRunSnapshot) {
+  const requiredExecutionText = active.fixture.requiredExecutionText ?? [];
+  const executions = [...active.previousSnapshots, snapshot]
+    .flatMap((run) => run.executions)
+    .filter(({ exitCode, state }) => state === "completed" && exitCode === 0);
+  const text = executions
+    .map(({ command, source }) => `${command ?? ""}\n${source ?? ""}`)
+    .join("\n");
+  return {
+    requiredExecutionText,
+    missingExecutionText: requiredExecutionText.filter((value) => !text.includes(value)),
+  };
+}
+
+function responseEvidence(active: ActiveCase, snapshot: AgentRunSnapshot) {
+  const output = snapshot.run.response ?? "";
+  return {
+    missingTokens: active.fixture.expectedTokens.filter((token) => !outputHasToken(output, token)),
+    missingTableRows: missingTableRows(output, active.fixture.expectedTableRows ?? []),
+  };
+}
+
 function stressError(active: ActiveCase, snapshot: AgentRunSnapshot): string | null {
   if (active.fixture.forbidArtifacts === true && snapshot.artifacts.length > 0) {
     return "Expected no artifacts.";
@@ -141,20 +190,16 @@ export function stressResultFor(
 ): StressCaseResult {
   const verifiedDeliverables = verification.verified ?? [];
   const verificationOutput = verification.output ?? "";
-  const output = snapshot.run.response ?? "";
-  const missingTokens = active.fixture.expectedTokens.filter(
-    (token) => !outputHasToken(output, token),
-  );
-  const missingRows = missingTableRows(
-    snapshot.run.response ?? "",
-    active.fixture.expectedTableRows ?? [],
-  );
-  const compactions = contextCompactions(verification.trace);
+  const response = responseEvidence(active, snapshot);
+  const skills = skillEvidence(active, verification.trace);
+  const executionText = executionTextEvidence(active, snapshot);
   const error = stressError(active, snapshot);
   const passed =
     snapshot.run.state === "succeeded" &&
-    missingTokens.length === 0 &&
-    missingRows.length === 0 &&
+    response.missingTokens.length === 0 &&
+    response.missingTableRows.length === 0 &&
+    skills.missingSkills.length === 0 &&
+    executionText.missingExecutionText.length === 0 &&
     verifiedDeliverables.length === (active.fixture.deliverables?.length ?? 0) &&
     error === null;
   return {
@@ -167,14 +212,15 @@ export function stressResultFor(
     state: snapshot.run.state,
     ...executionMetrics(active, snapshot),
     expectedTokens: active.fixture.expectedTokens,
-    missingTokens,
-    missingTableRows: missingRows,
+    ...response,
+    ...executionText,
+    ...skills,
     producedArtifacts: snapshot.artifacts.map((artifact) => artifact.name),
     error,
     inferenceFailures: inferenceFailures(verification.trace),
     retainedArtifacts: verification.retained ?? [],
     verifiedDeliverables,
     verificationOutput,
-    contextCompactions: compactions,
+    contextCompactions: contextCompactions(verification.trace),
   };
 }

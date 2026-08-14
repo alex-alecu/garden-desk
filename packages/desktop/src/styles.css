@@ -1038,7 +1038,8 @@ textarea:focus-visible {
 }
 
 .assistant-markdown pre {
-  overflow-x: auto;
+  max-height: min(55vh, 560px);
+  overflow: auto;
   padding: 12px 14px;
   border: 1px solid rgb(202 225 220 / 12%);
   border-radius: 10px;
@@ -1061,8 +1062,9 @@ textarea:focus-visible {
 
 .assistant-table-scroll {
   max-width: 100%;
+  max-height: min(65vh, 720px);
   margin: 0 0 0.95em;
-  overflow-x: auto;
+  overflow: auto;
   border: 1px solid var(--border-color);
   border-radius: 10px;
   background: var(--reading-raised);
@@ -3042,20 +3044,16 @@ textarea:focus-visible {
 }
 
 .activity-row-detail pre {
+  max-height: 190px;
   margin: 0;
   padding: 8px 10px;
-  overflow-x: auto;
+  overflow: auto;
   border-radius: 8px;
   color: var(--ink);
   background: rgb(0 0 0 / 5%);
   font-family: "IBM Plex Mono", ui-monospace, monospace;
   font-size: 12px;
   white-space: pre-wrap;
-}
-
-.activity-row-detail pre.thinking-log {
-  max-height: 190px;
-  overflow-y: auto;
 }
 
 .activity-row-open {

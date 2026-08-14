@@ -57,7 +57,6 @@ function resolver(events: string[]): Pick<AgentInputResolver, "resolve"> {
       return {
         sourceFolder: `/source/${sessionId}`,
         attachments: [],
-        inputNames: [],
         async dispose() {
           events.push(`dispose:${sessionId}`);
         },

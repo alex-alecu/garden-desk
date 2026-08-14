@@ -29,6 +29,8 @@ export interface PreparedStressCase<Id extends string = string> {
   fixtureMs: number;
   evidence: FixtureEvidence;
   expectedTokens: string[];
+  requiredExecutionText?: string[];
+  requiredSkills?: string[];
   expectedTableRows?: ExpectedTableRow[];
   deliverables?: DeliverableExpectation[];
   forbidArtifacts?: boolean;
@@ -39,6 +41,8 @@ export interface StressCaseDefinition<Id extends string = string> {
   task: string;
   create(source: string): Promise<FixtureEvidence>;
   expected(evidence: FixtureEvidence): string[];
+  requiredExecutionText?: string[];
+  requiredSkills?: string[];
   expectedTableRows?(evidence: FixtureEvidence): ExpectedTableRow[];
   deliverables?(evidence: FixtureEvidence): DeliverableExpectation[];
   forbidArtifacts?: boolean;
@@ -111,6 +115,12 @@ export async function prepareStressCase<Id extends string>(
     fixtureMs: Math.round(performance.now() - startedAt),
     evidence,
     expectedTokens: definition.expected(evidence),
+    ...(definition.requiredExecutionText === undefined
+      ? {}
+      : { requiredExecutionText: definition.requiredExecutionText }),
+    ...(definition.requiredSkills === undefined
+      ? {}
+      : { requiredSkills: definition.requiredSkills }),
     ...(definition.expectedTableRows === undefined
       ? {}
       : { expectedTableRows: definition.expectedTableRows(evidence) }),

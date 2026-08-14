@@ -65,14 +65,17 @@ function bashTool(): ToolSpec {
   };
 }
 
-function skillTool(skills: SkillReader): ToolSpec {
-  const skillNames = skills.metadata().map((item) => item.name);
+function skillDefinition(skillNames: string[]): ChatToolDefinition {
   return {
-    definition: {
-      name: "skill",
-      description: "Load specialized instructions on demand.",
-      params: objectSchema({ name: { type: "string", enum: skillNames } }, ["name"]),
-    },
+    name: "skill",
+    description: "Load specialized instructions on demand.",
+    params: objectSchema({ name: { type: "string", enum: skillNames } }, ["name"]),
+  };
+}
+
+function skillTool(skills: SkillReader, skillNames: string[]): ToolSpec {
+  return {
+    definition: skillDefinition(skillNames),
     parse: (value) => {
       const name = textParam(object(value), "name", 64);
       if (!skillNames.includes(name)) throw new Error("unknown_skill");
@@ -133,29 +136,43 @@ function taskTool(): ToolSpec {
   };
 }
 
-function specs(skills: SkillReader): ToolSpec[] {
+function specs(skills: SkillReader, skillNames: string[]): ToolSpec[] {
   return [
     codeTool("python"),
     codeTool("node"),
     bashTool(),
     ...inspectionTools(),
-    skillTool(skills),
+    skillTool(skills, skillNames),
     taskTool(),
     questionTool(),
   ];
 }
 
 export class GenericToolRegistry {
+  private readonly skillNames: string[];
   private readonly tools: Map<string, ToolSpec>;
   constructor(private readonly context: ToolContext) {
-    this.tools = new Map(specs(context.skills).map((tool) => [tool.definition.name, tool]));
+    this.skillNames = context.skills.metadata().map((item) => item.name);
+    this.tools = new Map(
+      specs(context.skills, this.skillNames).map((tool) => [tool.definition.name, tool]),
+    );
   }
-  definitions(names: readonly string[]): ChatToolDefinition[] {
-    return names.map((name) => {
+  definitions(
+    names: readonly string[],
+    loadedSkills: ReadonlySet<string> = new Set<string>(),
+  ): ChatToolDefinition[] {
+    const definitions: ChatToolDefinition[] = [];
+    for (const name of names) {
       const tool = this.tools.get(name);
       if (tool === undefined) throw new Error(`Unknown agent tool: ${name}`);
-      return tool.definition;
-    });
+      if (name === "skill") {
+        const available = this.skillNames.filter((skill) => !loadedSkills.has(skill));
+        if (available.length > 0) definitions.push(skillDefinition(available));
+      } else {
+        definitions.push(tool.definition);
+      }
+    }
+    return definitions;
   }
   async execute(name: string, params: unknown): Promise<AgentToolResult> {
     const tool = this.tools.get(name);

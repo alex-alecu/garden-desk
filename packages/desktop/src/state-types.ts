@@ -14,6 +14,7 @@ export interface TimelineItem {
   text: string;
   detail?: string;
   runId?: string | null;
+  streaming?: boolean;
   sequence?: number;
   toolName?: string | null;
   toolCallId?: string | null;

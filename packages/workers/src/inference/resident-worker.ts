@@ -20,6 +20,7 @@ export interface InferenceExecution {
   timeoutMs: number;
   signal?: AbortSignal;
   onThinkingDelta?(text: string): void;
+  onResponseDelta?(text: string): void;
 }
 
 export class InferenceWorkerError extends Error {
@@ -136,7 +137,8 @@ export class ResidentWorker {
     const pending = this.pending.get(message.requestId);
     if (pending === undefined) return;
     if (message.status === "stream") {
-      pending.execution.onThinkingDelta?.(message.text);
+      if (message.event === "thinking.delta") pending.execution.onThinkingDelta?.(message.text);
+      else pending.execution.onResponseDelta?.(message.text);
       return;
     }
     this.finish(message.requestId, () => pending.accept(message));

@@ -9,6 +9,7 @@ import type { InferenceService } from "../runtime/inference.js";
 import type { DatabasePort } from "../workspace/database.js";
 import { ChatAgentLoop } from "./chat-loop.js";
 import type { AgentQuestionOutcome } from "./generic-tool-support.js";
+import { guestAttachmentName } from "./inputs.js";
 import { AGENT_MODEL_ID } from "./limits.js";
 import type { MarkdownDefinitionLibrary } from "./markdown-definition-library.js";
 import { createRunExecutor } from "./service-executor.js";
@@ -30,12 +31,18 @@ interface PrimaryRunInput {
   task: string;
   chat: InferenceService["chat"];
   onThinking(thinking: string | null): void;
+  onResponse(response: string | null): void;
   onContext(used: number, allocated: number): void;
   askQuestion(questions: AgentQuestion[]): Promise<AgentQuestionOutcome>;
 }
 
 export async function runPrimaryAgent(input: PrimaryRunInput): Promise<AgentRunResult> {
   const { definitions, run, store } = input;
+  const attachments = store.listAttachments(run.sessionId).map((item, index) => ({
+    path: `/run/attachments/${guestAttachmentName(index, item.name)}`,
+    displayName: item.name,
+    mediaType: item.mediaType,
+  }));
   return await new ChatAgentLoop({ chat: input.chat }).run({
     agent: definitions.agent("primary"),
     contextTokens: input.contextTokens,
@@ -49,10 +56,11 @@ export async function runPrimaryAgent(input: PrimaryRunInput): Promise<AgentRunR
       sessions: input.sessions,
     }),
     history: input.history,
-    inputNames: store.listAttachments(run.sessionId).map((item) => item.name),
+    attachments,
     modelId: AGENT_MODEL_ID,
     onEvent: (type, summary, detail) => store.appendEvent(run.id, type, summary, detail),
     onThinking: input.onThinking,
+    onResponse: input.onResponse,
     onContext: input.onContext,
     askQuestion: input.askQuestion,
     savedScripts: store.execution
