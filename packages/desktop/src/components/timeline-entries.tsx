@@ -33,8 +33,15 @@ function ResponseMetrics({ performance }: { performance: AgentRunPerformance }) 
   );
 }
 
-// biome-ignore-start lint/a11y/noNoninteractiveTabindex: Overflowing tables need a keyboard scroll target.
+// biome-ignore-start lint/a11y/noNoninteractiveTabindex: Overflowing response content needs a keyboard scroll target.
 const assistantMarkdownComponents: Components = {
+  pre({ children }) {
+    return (
+      <section aria-label="Response code">
+        <pre tabIndex={0}>{children}</pre>
+      </section>
+    );
+  },
   table({ children }) {
     return (
       <section aria-label="Response table" className="assistant-table-scroll" tabIndex={0}>
@@ -43,7 +50,7 @@ const assistantMarkdownComponents: Components = {
     );
   },
 };
-// biome-ignore-end lint/a11y/noNoninteractiveTabindex: Overflowing tables need a keyboard scroll target.
+// biome-ignore-end lint/a11y/noNoninteractiveTabindex: Overflowing response content needs a keyboard scroll target.
 
 function AssistantResponse({ children }: { children: string }) {
   return (

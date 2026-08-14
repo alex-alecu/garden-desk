@@ -135,6 +135,8 @@ describe("thinking activity presentation", () => {
     expect(liveMarkup).toContain('aria-expanded="true"');
     expect(liveMarkup).toContain('class="activity-row-label activity-row-shimmer" disabled=""');
     expect(liveMarkup).toContain('class="thinking-log"');
+    expect(liveMarkup).toContain('aria-label="Planning the task. details"');
+    expect(liveMarkup).toContain('tabindex="0"');
     expect(liveMarkup).toContain("Second thought");
     expect(finishedMarkup).toContain('aria-expanded="false" class="activity-row-label"');
     expect(finishedMarkup).not.toContain("Second thought");
