@@ -17,6 +17,7 @@ import type { ChatAgentInput, ChatRecoveryState } from "./chat-loop-input.js";
 import { chatOutputTokens } from "./chat-output-budget.js";
 import { recoverOutputLimit } from "./chat-output-recovery.js";
 import { containsRawProtocolCall } from "./chat-protocol.js";
+import { liveLoadedSkillNames } from "./chat-skill-state.js";
 import {
   type ChatToolState,
   executeToolCalls,
@@ -35,6 +36,17 @@ function currentArtifacts(executions: readonly AgentExecutionResult[]): string[]
     (path) => !path.startsWith(".vault-tools/") && !path.startsWith(".vault-output/"),
   );
 }
+function activeToolDefinitions(
+  input: ChatAgentInput,
+  state: ChatToolState,
+  registry: GenericToolRegistry,
+) {
+  return registry.definitions(
+    input.agent.tools,
+    liveLoadedSkillNames(state.loadedSkills, state.messages),
+  );
+}
+
 export class ChatAgentLoop {
   private contextTokens: number;
   private requestedContextSize: number | "auto";
@@ -201,9 +213,9 @@ export class ChatAgentLoop {
     finalTurn: boolean;
   }): Promise<AgentRunResult | undefined> {
     const { input, state, registry, recovery, performance, finalTurn } = options;
-    const tools = finalTurn ? [] : registry.definitions(input.agent.tools);
+    const tools = () => (finalTurn ? [] : activeToolDefinitions(input, state, registry));
     const generated = await generateWithInferenceRecovery({
-      generate: async () => await this.generate(input, state.messages, tools, "chat"),
+      generate: async () => await this.generate(input, state.messages, tools(), "chat"),
       recover: async () => {
         if (state.messages.length < 4) return;
         state.messages = await this.compact(input, state.messages, 2, performance);

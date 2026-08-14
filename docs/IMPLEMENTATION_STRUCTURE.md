@@ -53,8 +53,9 @@ TypeScript owns only typed runtime facts, prompt selection, placeholder renderin
 schema construction. A skill directory and its required `name` and `description` frontmatter
 follow the open Agent Skills contract; the name matches the lowercase hyphenated directory and
 the description states what the skill does and when to use it. Core loads the metadata catalog,
-selects relevant bodies from the user task, attachment names, and explicit typed workflow state,
-and never routes on arbitrary file contents or model output. It rejects malformed prompt assets at startup. The desktop package copies the complete tree into its
+advertises that metadata to the model, and returns one body only when the model calls the generic
+`skill` tool. It never routes on arbitrary file contents or model output. It rejects malformed
+prompt assets at startup. The desktop package copies the complete tree into its
 offline Core resources. The resource manifest hashes every prompt, and the Windows host verifies
 and read-locks every packaged prompt before starting Core.
 

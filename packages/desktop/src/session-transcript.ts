@@ -77,13 +77,30 @@ function stepSection(
 ): string {
   const header = `### Step ${ordinal} · ${row.title} — ${STATUS_LABEL[row.status]}`;
   const execution = CODE_TOOLS.has(row.toolName ?? "") ? cursors.next(runId) : undefined;
+  const detail = transcriptDetail(row);
   const body =
-    execution !== undefined
-      ? executionBody(execution)
-      : row.detail === undefined
-        ? ""
-        : fence(row.detail);
+    execution !== undefined ? executionBody(execution) : detail === undefined ? "" : fence(detail);
   return body.length === 0 ? header : `${header}\n\n${body}`;
+}
+
+function transcriptDetail(row: ActivityRow): string | undefined {
+  if (row.detail === undefined) return undefined;
+  const repeated = new Set(
+    [
+      row.toolName == null ? undefined : `Tool: ${row.toolName}`,
+      row.toolCallId == null ? undefined : `Call ID: ${row.toolCallId}`,
+    ].filter((item): item is string => item !== undefined),
+  );
+  const seen = new Set<string>();
+  return row.detail
+    .split("\n\n")
+    .flatMap((item) => {
+      if (!repeated.has(item)) return [item];
+      if (seen.has(item)) return [];
+      seen.add(item);
+      return [item];
+    })
+    .join("\n\n");
 }
 
 function executionBody(execution: AgentExecutionSnapshot): string {

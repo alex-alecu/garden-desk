@@ -90,6 +90,41 @@ const artifact = AgentArtifactSummarySchema.parse({
   createdAt: "2026-08-12T12:00:05.000Z",
 });
 
+function toolIdentityTranscript(): string {
+  const toolTimeline: TimelineItem[] = [
+    { createdAt: "t0", id: "user", kind: "user", text: "Review the file" },
+    {
+      createdAt: "t1",
+      detail: "Tool: skill\n\nCall ID: call-1",
+      eventType: "tool.started",
+      id: "start",
+      kind: "activity",
+      runId,
+      text: "Loading documents skill",
+      toolName: "skill",
+      toolCallId: "call-1",
+    },
+    {
+      createdAt: "t2",
+      detail: "Tool: skill\n\nCall ID: call-1\n\nOutput:\nSkill body.",
+      eventType: "tool.completed",
+      id: "done",
+      kind: "activity",
+      runId,
+      text: "Loaded documents skill.",
+      toolName: "skill",
+      toolCallId: "call-1",
+    },
+  ];
+  return sessionTranscript({
+    sessionId,
+    title: "Review the file",
+    timeline: toolTimeline,
+    executions: [],
+    artifacts: [],
+  });
+}
+
 describe("sessionTranscript", () => {
   const markdown = sessionTranscript({
     sessionId,
@@ -123,5 +158,15 @@ describe("sessionTranscript", () => {
   it("reports whether a timeline has any conversational content", () => {
     expect(transcriptHasContent(timeline)).toBe(true);
     expect(transcriptHasContent([])).toBe(false);
+  });
+});
+
+describe("sessionTranscript tool identity", () => {
+  it("includes a tool identity once when start and completion details repeat it", () => {
+    const transcript = toolIdentityTranscript();
+
+    expect(transcript.match(/Tool: skill/gu)).toHaveLength(1);
+    expect(transcript.match(/Call ID: call-1/gu)).toHaveLength(1);
+    expect(transcript).toContain("Output:\nSkill body.");
   });
 });

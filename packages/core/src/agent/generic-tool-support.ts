@@ -26,6 +26,7 @@ export interface AgentToolResult {
   failed: boolean;
   invalidInput?: boolean;
   execution?: AgentExecutionResult;
+  status?: "already_loaded";
 }
 
 export interface ToolContext {
@@ -127,7 +128,8 @@ function inspectionSource(operation: InspectionName, params: unknown): string {
     "    raw = str(value or default)",
     "    path = Path(raw if raw.startswith('/') else '/source/' + raw)",
     "    resolved = path.resolve()",
-    "    if resolved != Path('/source') and resolved != Path('/workspace') and not str(resolved).startswith(('/source/', '/workspace/')):",
+    "    roots = (Path('/source'), Path('/workspace'), Path('/run/attachments'))",
+    "    if resolved not in roots and not str(resolved).startswith(tuple(str(root) + '/' for root in roots)):",
     "        raise ValueError('path_outside_guest_roots')",
     "    return resolved",
     "root = safe(args.get('path'))",

@@ -220,12 +220,14 @@ describe("GenericToolRegistry resilient parameters", () => {
     expect(python?.params).not.toHaveProperty("properties.path");
     await registry.execute("python", { source: "print('ok')", path: "/workspace/bad.py" });
     await registry.execute("list", { path: "/source", depth: 5_000_000_000_000_000 });
+    await registry.execute("list", { path: "/run/attachments", depth: 1 });
 
     expect(runs[0]).toMatchObject({
       language: "python",
       path: expect.stringMatching(/^\.vault-tools\//u),
     });
     expect(source(runs[1] as (typeof runs)[number])).toContain('\\"depth\\":8');
+    expect(source(runs[2] as (typeof runs)[number])).toContain("Path('/run/attachments')");
   });
 
   it("rejects an unknown tool named by a Markdown agent", () => {
