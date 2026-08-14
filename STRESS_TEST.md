@@ -10,6 +10,15 @@ Task-specific evaluations use an ignored TypeScript runner under `packages/eval/
 
 ## Latest results
 
+### Exact host clock model context - 2026-08-14
+
+- Vault Core now adds one fresh host-clock snapshot to each effective chat, retry, agent compaction, session-summary compaction, and child-agent system prompt. Each snapshot contains a millisecond-precision local ISO 8601 value with UTC offset and IANA time-zone name plus the matching UTC value. It remains outside durable conversation history and uses no network time service or guest authority.
+- The focused physical Apple-silicon fixture used the pinned real `gemma-4-12b-it-qat-q4_0` worker, current-user daemon, and no-NIC guest. Gemma read a file with `2026-08-07`, `2026-08-14`, and `2026-08-21`, returned `past`, `today`, and `future`, and copied the exact final clock values: local `2026-08-14T23:45:31.576+03:00` in `Europe/Bucharest` and UTC `2026-08-14T20:45:31.576Z`.
+- The two ordered trace turns contained exactly one clock snapshot each. Their UTC values matched their local instants and fell inside the observed request window. The second request refreshed the first value from `20:45:00.409Z` to `20:45:31.576Z`. The read tool completed with exit code 0, empty stderr, and all source dates in stdout. The final response matched the final traced clock, and the audit chain verified. The ignored complete report is `packages/eval/.generated/reports/current-time-context.json`.
+- The canonical physical `pnpm test:m3:macos` gate returned `classification: certified`. Real Python and Node each completed two executions and one artifact at 131,072 tokens. Two no-NIC guests overlapped. Document probes, live source mounting, persistence, cancellation, timeout, output, process, memory, quota, crash, symlink, network, credential, teardown, folder-revocation, and session-deletion checks passed.
+- Final `pnpm verify` passed source limits, Biome, TypeScript, 114 unit files with 460 tests passed and one declared skip, two native tests, Rust checks, native helper and sidecar checks, and the desktop production build. The first full run found the 300-line source limit after the new test was added to an existing file; the test moved to its focused file. The second run found the old byte-identical retry-prompt expectation; it now proves that only the refreshed clock changes while the conversation stays unchanged.
+- This is physical macOS and local cross-platform build evidence only. Physical Windows behavior was not run and is not inferred from macOS.
+
 ### Word skill and legacy DOC reading - 2026-08-14
 
 - The DOCX-only skill is now the `word-documents` skill. Its exact-name tool call loads one body for DOCX read, edit, create, reopen, and verification work and for legacy DOC plain-text input. Legacy DOC source editing and output remain unsupported. All new Word output stays DOCX.

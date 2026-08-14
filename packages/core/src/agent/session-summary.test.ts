@@ -69,6 +69,12 @@ describe("session summary", () => {
     expect(summary?.text).toContain("## Objective");
     expect(chat.mock.calls[0]?.[0].tools).toEqual([]);
     expect(chat.mock.calls[0]?.[0].contextSize).toBe("auto");
+    expect(chat.mock.calls[0]?.[0].messages[0]).toEqual(
+      expect.objectContaining({
+        role: "system",
+        text: expect.stringContaining("Current host date and time:"),
+      }),
+    );
   });
 
   it("selects only messages after the previous anchor", () => {

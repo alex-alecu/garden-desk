@@ -11,6 +11,7 @@ import {
 import type { InferenceService } from "../runtime/inference.js";
 import { artifactCandidateNames } from "./artifact-results.js";
 import { compactChatHistory } from "./chat-compaction.js";
+import { withCurrentTimeContext } from "./chat-current-time.js";
 import { executeGeneratedTools } from "./chat-generated-tools.js";
 import { generateWithInferenceRecovery } from "./chat-inference-recovery.js";
 import { initialChatMessages } from "./chat-initial-messages.js";
@@ -75,7 +76,7 @@ export class ChatAgentLoop {
     };
     const request = {
       modelId: input.modelId,
-      messages,
+      messages: withCurrentTimeContext(messages),
       tools,
       contextSize: this.requestedContextSize,
       maxTokens: chatOutputTokens(this.contextTokens, phase === "compaction"),
