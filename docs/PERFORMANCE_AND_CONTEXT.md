@@ -17,8 +17,13 @@ The implemented product policy is:
 | More than 16 GB through 24 GB Mac | 12 GiB | 64K | Gemma 4 12B QAT | Automatically fit the largest context inside the budget and cap |
 | More than 24 GB through 32 GB Mac | 16 GiB | 64K | Gemma 4 12B QAT | Preserve shared memory for the host and agent guests |
 | More than 32 GB Mac | 16 GiB | 128K | Gemma 4 12B QAT | Automatically fit the largest context inside the budget and cap |
-| Windows through 24 GB dedicated GPU VRAM | One device's dedicated GPU VRAM | 64K | Gemma 4 12B QAT | Reject aggregate, unified, or shared memory readings |
-| Windows above 24 GB dedicated GPU VRAM | One device's dedicated GPU VRAM | 128K | Gemma 4 12B QAT | Reject aggregate, unified, or shared memory readings |
+| Windows dedicated GPU, 8 GiB through 24 GiB | One isolated device's complete memory | 64K | Gemma 4 12B QAT | Use one device and reject aggregates |
+| Windows dedicated GPU, more than 24 GiB | One isolated device's complete memory | 128K | Gemma 4 12B QAT | Use one device and reject aggregates |
+| Windows integrated GPU, less than 16 GiB installed RAM | None | None | None | Explain the hardware requirement |
+| Windows integrated GPU, exactly 16 GiB installed RAM | 8 GiB | 64K | Gemma 4 12B QAT | Use combined CPU and GPU fitting |
+| Windows integrated GPU, more than 16 GiB through 24 GiB installed RAM | 12 GiB | 64K | Gemma 4 12B QAT | Use combined CPU and GPU fitting |
+| Windows integrated GPU, more than 24 GiB through 32 GiB installed RAM | 16 GiB | 64K | Gemma 4 12B QAT | Use combined CPU and GPU fitting |
+| Windows integrated GPU, more than 32 GiB installed RAM | 16 GiB | 128K | Gemma 4 12B QAT | Use combined CPU and GPU fitting |
 
 Hardware tiers differ only in the memory available to model weights, runtime overhead, and active context. Do not create a lower-quality product by changing the model, weakening verification, skipping citations, disabling compaction, or reducing supported workflows.
 
@@ -28,7 +33,7 @@ The earlier architecture treated 16 GB and 64 GB as the main validation pair. Th
 
 The revised strategy is narrower:
 
-- Prove Gemma 4 12B QAT under every automatic macOS budget and representative Windows GPU VRAM sizes.
+- Prove Gemma 4 12B QAT under every automatic macOS and Windows memory budget.
 - Keep model behavior identical across those profiles.
 - Use retrieval, summaries, citation verification, and compaction to handle large folders.
 - Treat 64 GB, 26B A4B, and 31B dense as later appliance research, not MVP architecture.
@@ -60,14 +65,14 @@ The runtime now fits context automatically after applying the hardware budget:
 
 | Minimum | Maximum | Rule |
 |---:|---:|---|
-| 8K active tokens | 64K active tokens | Macs through 32 GB unified memory and Windows GPUs through 24 GB dedicated VRAM |
-| 8K active tokens | 128K active tokens | Macs above 32 GB unified memory and Windows GPUs above 24 GB dedicated VRAM |
+| 8K active tokens | 64K active tokens | Shared-memory systems through 32 GiB installed RAM and Windows dedicated GPUs through 24 GiB |
+| 8K active tokens | 128K active tokens | Shared-memory systems above 32 GiB installed RAM and Windows dedicated GPUs above 24 GiB |
 
-On macOS, the worker searches the pinned runtime's CPU and GPU context estimates for the largest aligned context whose combined model-plus-context allocation fits both the tier budget and hardware context cap, then checks the measured allocation after creation. An over-budget allocation is rejected. The selected 10/12/16 GiB value is a ceiling, so the desktop reports budget, measured CPU RAM and GPU or unified-memory allocation, and their total separately. The Mac requires more than 32 GB unified memory for 128K because its model, context, operating system, desktop, and agent guests share one memory pool. On Windows, the runtime fits context against a generation cap equal to one selected non-unified device's separately reported dedicated VRAM; 128K requires more than 24 GB dedicated VRAM. Multi-device aggregates and readings that include unified or shared system memory are unsupported. The terminal inference response records the measured allocations, actual allocated context, hardware cap, and the threshold rule that selected it. Automatic selection is implemented behavior, not by itself a public stability claim; each hardware tier still needs the full workload suite. Long context without evidence selection is not a document strategy.
+On macOS and Windows integrated GPUs, the worker searches the pinned runtime's CPU and GPU context estimates for the largest aligned context whose combined model-plus-context allocation fits both the tier budget and hardware cap. It then checks the measured allocation after creation. An over-budget allocation is rejected. Shared-memory systems need more than 32 GiB installed RAM for 128K. On a Windows dedicated GPU, the runtime fits context against one isolated device's complete memory; more than 24 GiB enables 128K. The worker never adds memory across devices. The terminal response records the measured allocations, memory kind, backend, one selected device, actual context, cap, and rule. Automatic selection does not make a public stability claim. Each exact configuration still needs the full workload suite.
 
 ## Memory Budget Rules
 
-Official Gemma 4 documentation lists the 12B Q4_0 load estimate at 6.7 GB before context and runtime overhead. Vault Desk applies the macOS 10/12/16 GiB total budgets or one selected Windows device's complete dedicated VRAM capacity, then lets the pinned runtime use the remainder for:
+Official Gemma 4 documentation lists the 12B Q4_0 load estimate at 6.7 GB before context and runtime overhead. Vault Desk applies the macOS budget, one isolated Windows dedicated device's complete memory, or the Windows integrated 8/12/16 GiB shared-pool tier. The pinned runtime uses the remainder for:
 
 - KV cache for prompt and generated tokens.
 - Runtime allocator overhead and graph buffers.
@@ -267,3 +272,4 @@ Do not:
 | 2026-07-22 | Replaced the fixed 8K product context with hardware-derived macOS budgets, complete detected Windows GPU VRAM use, and automatic context fitting up to 256K. |
 | 2026-08-01 | Replaced the 256K product ceiling with 64K and 128K caps derived from Mac unified memory or Windows GPU VRAM and exposed the measured allocations, selected cap, and threshold reason in Technical details. |
 | 2026-08-04 | Restricted Windows automatic budgets and context tiers to one device's dedicated VRAM. |
+| 2026-08-15 | Added Windows integrated shared-memory budgets and kept one-device isolation for all Windows profiles. |

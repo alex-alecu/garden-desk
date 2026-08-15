@@ -137,7 +137,7 @@ export async function probe(request: NativeWorkerProbeRequest): Promise<Inferenc
     throw new Error(`native_worker_authority_probe_failed:${failed.join(",")}`);
   }
   return {
-    protocolVersion: 1,
+    protocolVersion: 2,
     requestId: request.requestId,
     status: "ok",
     operation: "probe",

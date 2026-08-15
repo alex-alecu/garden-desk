@@ -4,13 +4,13 @@ Date: 2026-07-10
 
 ## Status
 
-Accepted; amended 2026-08-01
+Accepted; amended 2026-08-15
 
 ## Context
 
 The original plan defined manually selected Local 12 and Local 16 certification profiles. M3 initially implemented only an 8K context and the desktop always selected Local 12, leaving usable memory idle on larger systems.
 
-The repository owner directed M3 to derive the inference envelope from hardware without exposing a configuration maze: supported Macs receive fixed total model-plus-context budgets, Windows generation may use the selected device's dedicated GPU VRAM, and 8 GB Macs must not start inference.
+The repository owner directed M3 to derive the inference envelope from hardware without exposing a configuration maze. Supported Macs receive fixed total model-plus-context budgets. Windows uses one isolated dedicated GPU when possible and one integrated GPU otherwise. GPU brand and measured speed do not decide support.
 
 Official Gemma 4 documentation lists the 12B Q4_0 load estimate at 6.7 GB before KV cache and runtime overhead. The same documentation describes long-context capability, but the practical product constraint is stable active context under full workflow load.
 
@@ -39,9 +39,20 @@ The automatic macOS policy is:
 | More than 24 GB through 32 GB | 16 GiB | 64K | Preserve unified memory for the host and agent guests |
 | More than 32 GB | 16 GiB | 128K | Fit the largest stable context inside the budget and cap |
 
-On Windows, generation uses the complete dedicated VRAM capacity reported for one selected non-unified runtime device. Multi-device aggregates and readings that include unified or shared system memory are unsupported rather than treated as a larger budget. A supported GPU with a positive finite dedicated capacity is required; there is no smaller product-selected VRAM budget. Windows GPUs through 24 GB dedicated VRAM receive a 64K context cap and GPUs above 24 GB receive 128K. The terminal response reports detected dedicated VRAM independently so the physical canary can require exact equality with the applied budget.
+The automatic Windows policy is:
 
-Automatic generation context starts from the existing 8K floor and may grow through the applicable 64K or 128K product cap, not the model's 256K trained maximum. On macOS, Vault Desk searches the pinned runtime's CPU and GPU estimates for the largest aligned context whose combined model-plus-context allocation fits, then rejects a created context if its measured total exceeds the tier budget. A Mac requires more than 32 GB unified memory for 128K because inference shares memory with the operating system, desktop, and agent guests. On Windows, the pinned runtime chooses the largest allocation within the full-VRAM budget and applicable context cap; discrete GPU VRAM above 24 GB unlocks 128K without consuming the host RAM pool. The terminal inference response records the actual allocated context and memory budget. These results still require physical-platform stability evidence before public support claims.
+| Selected memory | Hardware rule | Model-plus-context budget | Context cap |
+|---|---|---:|---:|
+| Dedicated | At least 8 GiB isolated device memory | Complete isolated device memory | 64K through 24 GiB; 128K above 24 GiB |
+| Integrated | Less than 16 GiB installed RAM | Unsupported | None |
+| Integrated | Exactly 16 GiB installed RAM | 8 GiB | 64K |
+| Integrated | More than 16 GiB through 24 GiB installed RAM | 12 GiB | 64K |
+| Integrated | More than 24 GiB through 32 GiB installed RAM | 16 GiB | 64K |
+| Integrated | More than 32 GiB installed RAM | 16 GiB | 128K |
+
+The worker selects one usable dedicated adapter before an integrated adapter. It selects the largest usable memory in that type and uses CUDA before Vulkan for the same adapter. The integrated runtime capacity must be at least the selected tier. Missing, changed, or ambiguous identity and multi-device visibility are unsupported. The worker does not add memory across devices.
+
+Automatic generation context starts from the existing 8K floor and may grow through the applicable 64K or 128K product cap, not the model's 256K trained maximum. macOS and Windows integrated profiles use combined CPU and GPU estimates, post-creation checks, and sequence-count fitting. They reserve the complete inference budget from host RAM. Windows dedicated profiles fit device memory and keep the small host reservation. The terminal response records the actual context, budget, memory kind, backend, and one selected device. These results still require exact physical and packaged evidence before a configuration is Certified.
 
 ## Consequences
 
@@ -71,7 +82,7 @@ This ADR does not decide:
 
 ## Required Follow-Up
 
-- Benchmark every automatic macOS tier and representative Windows GPU VRAM sizes.
+- Benchmark every automatic macOS and Windows memory tier.
 - Validate the automatically selected active context with the complete product workload.
 - Validate context compaction through long-running folder workflows.
 - Keep future profile docs aligned with this ADR unless a later ADR supersedes it.
@@ -100,3 +111,4 @@ unchanged.
 | 2026-08-01 | Replaced the 256K ceiling with 64K and 128K caps using a higher threshold for shared Mac memory than discrete Windows VRAM. |
 | 2026-08-04 | Required one Windows device's dedicated VRAM and rejected multi-device aggregates or unified and shared memory readings. |
 | 2026-08-12 | Recorded that optional parallel context sequences never reduce the primary certified context. |
+| 2026-08-15 | Added dedicated-first Windows selection and integrated 8/12/16 GiB shared-memory tiers without vendor rules. |

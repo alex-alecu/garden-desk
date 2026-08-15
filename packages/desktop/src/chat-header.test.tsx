@@ -15,7 +15,7 @@ describe("model hardware status", () => {
           thinkingSupported: true,
           memoryBudgetBytes: 16 * 1024 ** 3,
           cpuRamBytes: 1024 ** 3,
-          gpuVramBytes: 11.5 * 1024 ** 3,
+          gpuMemoryBytes: 11.5 * 1024 ** 3,
           contextSizeTokens: 131_072,
         }}
         onAppearanceChange={() => undefined}

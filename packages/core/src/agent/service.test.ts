@@ -21,7 +21,7 @@ function chatResult(
   toolCalls: ChatGenerationResult["toolCalls"],
 ): ChatGenerationResult {
   return {
-    protocolVersion: 1,
+    protocolVersion: 2,
     requestId: "agent-test",
     status: "ok",
     operation: "chat",
@@ -30,9 +30,12 @@ function chatResult(
     stopReason: toolCalls.length > 0 ? "toolCalls" : "text",
     memory: {
       cpuRamBytes: 1,
-      gpuVramBytes: 1,
+      gpuMemoryBytes: 1,
       budgetBytes: 2,
-      detectedGpuVramBytes: 1,
+      detectedGpuMemoryBytes: 1,
+      gpuMemoryKind: "unified" as const,
+      backend: "metal" as const,
+      selectedDeviceCount: 1 as const,
       contextSizeTokens: 16_384,
     },
     performance: {

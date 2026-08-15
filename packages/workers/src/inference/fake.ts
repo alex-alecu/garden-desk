@@ -3,9 +3,12 @@ import type { InferenceWorkerRequest, InferenceWorkerResponse } from "@vault/sha
 function memoryReport(request: { contextSize: number | "auto" }, budgetBytes: number) {
   return {
     cpuRamBytes: 1024,
-    gpuVramBytes: 2048,
+    gpuMemoryBytes: 2048,
     budgetBytes,
-    detectedGpuVramBytes: budgetBytes,
+    detectedGpuMemoryBytes: budgetBytes,
+    gpuMemoryKind: "unified" as const,
+    backend: "metal" as const,
+    selectedDeviceCount: 1 as const,
     contextSizeTokens: request.contextSize === "auto" ? 65_536 : request.contextSize,
     contextLimitTokens: 65_536,
     contextLimitReason: "certified_standard" as const,
@@ -14,7 +17,7 @@ function memoryReport(request: { contextSize: number | "auto" }, budgetBytes: nu
 
 function probeResponse(request: InferenceWorkerRequest): InferenceWorkerResponse {
   return {
-    protocolVersion: 1,
+    protocolVersion: 2,
     requestId: request.requestId,
     status: "ok",
     operation: "probe",
@@ -34,7 +37,7 @@ function embedResponse(
   memoryBudgetBytes: number,
 ): InferenceWorkerResponse {
   return {
-    protocolVersion: 1,
+    protocolVersion: 2,
     requestId: request.requestId,
     status: "ok",
     operation: "embed",
@@ -58,7 +61,7 @@ function chatResponse(
   memoryBudgetBytes: number,
 ): InferenceWorkerResponse {
   return {
-    protocolVersion: 1,
+    protocolVersion: 2,
     requestId: request.requestId,
     status: "ok",
     operation: "chat",
@@ -75,7 +78,7 @@ function generateResponse(
   memoryBudgetBytes: number,
 ): InferenceWorkerResponse {
   return {
-    protocolVersion: 1,
+    protocolVersion: 2,
     requestId: request.requestId,
     status: "ok",
     operation: "generate",

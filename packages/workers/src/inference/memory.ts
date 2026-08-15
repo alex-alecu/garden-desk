@@ -1,17 +1,17 @@
-import type { GenerationContextLimitReason } from "@vault/shared";
+import type { GenerationContextLimitReason, GpuMemoryKind } from "@vault/shared";
 
 const MINIMUM_GENERATION_CONTEXT = 8_192;
 const STANDARD_MAXIMUM_GENERATION_CONTEXT = 65_536;
 const HIGH_MEMORY_MAXIMUM_GENERATION_CONTEXT = 131_072;
 const CONTEXT_ALIGNMENT = 256;
 const GiB = 1024 * 1024 * 1024;
-const MAC_HIGH_MEMORY_THRESHOLD_BYTES = 32 * GiB;
-const WINDOWS_HIGH_MEMORY_THRESHOLD_BYTES = 24 * GiB;
+const UNIFIED_HIGH_MEMORY_THRESHOLD_BYTES = 32 * GiB;
+const DEDICATED_HIGH_MEMORY_THRESHOLD_BYTES = 24 * GiB;
 const MAXIMUM_EXTRA_SEQUENCES = 2;
 
 export interface InferenceAllocation {
   cpuRamBytes: number;
-  gpuVramBytes: number;
+  gpuMemoryBytes: number;
 }
 
 export interface GenerationContextLimit {
@@ -19,78 +19,62 @@ export interface GenerationContextLimit {
   reason: GenerationContextLimitReason;
 }
 
-export function resolveDetectedGpuVramBytes(
-  platform: NodeJS.Platform,
-  vram: { total: number; unifiedSize: number },
-  gpuDeviceCount: number,
-  developmentAllowWindowsSharedGpu = false,
-): number {
-  if (platform !== "win32") return vram.total;
-  if (developmentAllowWindowsSharedGpu) {
-    if (gpuDeviceCount !== 1 || vram.unifiedSize === 0) {
-      throw new Error(`shared_gpu_required:${gpuDeviceCount}:${vram.total}:${vram.unifiedSize}`);
-    }
-    return vram.total;
-  }
-  if (gpuDeviceCount !== 1 || vram.unifiedSize !== 0) {
-    throw new Error("dedicated_gpu_vram_required");
-  }
-  return vram.total;
-}
-
-export function resolveDevelopmentWindowsSharedGpuBudget(
-  requestedBudgetBytes: number,
-  gpuMemoryBytes: number,
-): number {
-  if (!Number.isSafeInteger(gpuMemoryBytes) || gpuMemoryBytes <= 0) {
-    throw new Error("supported_gpu_required");
-  }
-  return Math.min(requestedBudgetBytes, gpuMemoryBytes);
-}
-
 export function resolveRuntimeMemoryBudget(
   requestedBudgetBytes: number,
-  gpuVramBytes: number,
+  detectedGpuMemoryBytes: number,
   platform: NodeJS.Platform,
   operation: "generate" | "embed",
+  memoryKind: GpuMemoryKind,
 ): number {
-  if (platform !== "win32" || operation !== "generate") return requestedBudgetBytes;
-  if (!Number.isSafeInteger(gpuVramBytes) || gpuVramBytes <= 0) {
+  if (
+    platform !== "win32" ||
+    operation !== "generate" ||
+    memoryKind === "unified"
+  ) {
+    return requestedBudgetBytes;
+  }
+  if (!Number.isSafeInteger(detectedGpuMemoryBytes) || detectedGpuMemoryBytes <= 0) {
     throw new Error("supported_gpu_required");
   }
-  return gpuVramBytes;
+  return detectedGpuMemoryBytes;
 }
 
 export function resolveMaximumGenerationContext(
   platform: NodeJS.Platform,
   totalMemoryBytes: number,
-  gpuVramBytes: number,
+  gpuMemoryBytes: number,
+  memoryKind: GpuMemoryKind = platform === "darwin" ? "unified" : "dedicated",
 ): number {
-  return resolveGenerationContextLimit(platform, totalMemoryBytes, gpuVramBytes)
+  return resolveGenerationContextLimit(platform, totalMemoryBytes, gpuMemoryBytes, memoryKind)
     .maximumContextTokens;
 }
 
 export function resolveGenerationContextLimit(
   platform: NodeJS.Platform,
   totalMemoryBytes: number,
-  gpuVramBytes: number,
+  gpuMemoryBytes: number,
+  memoryKind: GpuMemoryKind = platform === "darwin" ? "unified" : "dedicated",
 ): GenerationContextLimit {
-  if (platform === "darwin") {
-    const highMemory = totalMemoryBytes > MAC_HIGH_MEMORY_THRESHOLD_BYTES;
+  if (memoryKind === "unified") {
+    const highMemory = totalMemoryBytes > UNIFIED_HIGH_MEMORY_THRESHOLD_BYTES;
     return {
       maximumContextTokens: highMemory
         ? HIGH_MEMORY_MAXIMUM_GENERATION_CONTEXT
         : STANDARD_MAXIMUM_GENERATION_CONTEXT,
-      reason: highMemory ? "mac_unified_memory_above_32_gib" : "mac_unified_memory_at_most_32_gib",
+      reason: highMemory
+        ? "unified_memory_above_32_gib"
+        : "unified_memory_at_most_32_gib",
     };
   }
   if (platform === "win32") {
-    const highMemory = gpuVramBytes > WINDOWS_HIGH_MEMORY_THRESHOLD_BYTES;
+    const highMemory = gpuMemoryBytes > DEDICATED_HIGH_MEMORY_THRESHOLD_BYTES;
     return {
       maximumContextTokens: highMemory
         ? HIGH_MEMORY_MAXIMUM_GENERATION_CONTEXT
         : STANDARD_MAXIMUM_GENERATION_CONTEXT,
-      reason: highMemory ? "windows_gpu_vram_above_24_gib" : "windows_gpu_vram_at_most_24_gib",
+      reason: highMemory
+        ? "dedicated_memory_above_24_gib"
+        : "dedicated_memory_at_most_24_gib",
     };
   }
   return {
@@ -107,7 +91,7 @@ export function resolveGenerationContextSize(requested: "auto" | number, maximum
 }
 
 export function combinedAllocationBytes(allocation: InferenceAllocation): number {
-  return allocation.cpuRamBytes + allocation.gpuVramBytes;
+  return allocation.cpuRamBytes + allocation.gpuMemoryBytes;
 }
 
 /**

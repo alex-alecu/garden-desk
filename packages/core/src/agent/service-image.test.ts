@@ -23,7 +23,7 @@ const PNG = Buffer.from(
 
 function result(text: string, toolCalls: ChatGenerationResult["toolCalls"]): ChatGenerationResult {
   return {
-    protocolVersion: 1,
+    protocolVersion: 2,
     requestId: "image-test",
     status: "ok",
     operation: "chat",
@@ -32,9 +32,12 @@ function result(text: string, toolCalls: ChatGenerationResult["toolCalls"]): Cha
     stopReason: toolCalls.length === 0 ? "text" : "toolCalls",
     memory: {
       cpuRamBytes: 1,
-      gpuVramBytes: 1,
+      gpuMemoryBytes: 1,
       budgetBytes: 2,
-      detectedGpuVramBytes: 1,
+      detectedGpuMemoryBytes: 1,
+      gpuMemoryKind: "unified" as const,
+      backend: "metal" as const,
+      selectedDeviceCount: 1 as const,
       contextSizeTokens: 16_384,
     },
     performance: {

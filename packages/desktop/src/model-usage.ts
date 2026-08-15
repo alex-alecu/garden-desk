@@ -16,14 +16,14 @@ function formatContext(tokens: number): string {
 
 function contextLimitExplanation(reason: GenerationContextLimitReason): string {
   switch (reason) {
-    case "mac_unified_memory_at_most_32_gib":
-      return "This Mac has 32 GiB unified memory or less; RAM and GPU allocations share that pool.";
-    case "mac_unified_memory_above_32_gib":
-      return "This Mac has more than 32 GiB unified memory; RAM and GPU allocations share that pool.";
-    case "windows_gpu_vram_at_most_24_gib":
-      return "This Windows GPU has 24 GiB VRAM or less.";
-    case "windows_gpu_vram_above_24_gib":
-      return "This Windows GPU has more than 24 GiB VRAM.";
+    case "unified_memory_at_most_32_gib":
+      return "This computer has 32 GiB unified memory or less; RAM and GPU allocations share that pool.";
+    case "unified_memory_above_32_gib":
+      return "This computer has more than 32 GiB unified memory; RAM and GPU allocations share that pool.";
+    case "dedicated_memory_at_most_24_gib":
+      return "This GPU has 24 GiB dedicated memory or less.";
+    case "dedicated_memory_above_24_gib":
+      return "This GPU has more than 24 GiB dedicated memory.";
     case "certified_standard":
       return "This platform uses the certified standard context cap.";
   }
@@ -38,8 +38,8 @@ function optionalContext(tokens: number | undefined): string | undefined {
 }
 
 function totalAllocation(model: ModelRuntimeStatus): string | undefined {
-  if (model.cpuRamBytes === undefined && model.gpuVramBytes === undefined) return undefined;
-  return formatMemory((model.cpuRamBytes ?? 0) + (model.gpuVramBytes ?? 0));
+  if (model.cpuRamBytes === undefined && model.gpuMemoryBytes === undefined) return undefined;
+  return formatMemory((model.cpuRamBytes ?? 0) + (model.gpuMemoryBytes ?? 0));
 }
 
 function contextExplanation(reason: GenerationContextLimitReason | undefined): string | undefined {
@@ -52,7 +52,7 @@ export function modelUsage(model: ModelRuntimeStatus) {
   if (
     model.memoryBudgetBytes === undefined &&
     model.cpuRamBytes === undefined &&
-    model.gpuVramBytes === undefined &&
+    model.gpuMemoryBytes === undefined &&
     model.contextSizeTokens === undefined
   )
     return undefined;
@@ -60,27 +60,36 @@ export function modelUsage(model: ModelRuntimeStatus) {
     budget: optionalMemory(model.memoryBudgetBytes),
     totalAllocated: totalAllocation(model),
     ram: optionalMemory(model.cpuRamBytes),
-    vram: optionalMemory(model.gpuVramBytes),
+    gpuMemory: optionalMemory(model.gpuMemoryBytes),
     context: optionalContext(model.contextSizeTokens),
     contextLimit: optionalContext(model.contextLimitTokens),
     contextExplanation: contextExplanation(model.contextLimitReason),
   };
 }
 
-/**
- * Collapses the memory panel to one value: the combined model-plus-context allocation against the
- * budget, e.g. "10.2 GiB of 16 GiB". On macOS this is unified memory. Sequence count, when the
- * runtime reports more than one, is surfaced so the panel can note parallel sequences.
+/** Shows one GPU memory value and the configured budget. Unified memory includes CPU and GPU
+ * allocations because both use the same host pool. Dedicated memory shows only the GPU allocation.
  */
-export function vramUsage(
+export function gpuMemoryUsage(
   model: ModelRuntimeStatus,
-): { used: string; budget: string | undefined; sequences: number | undefined } | undefined {
+):
+  | {
+      used: string;
+      budget: string | undefined;
+      label: "VRAM" | "Unified GPU memory";
+      sequences: number | undefined;
+    }
+  | undefined {
   if (model.state !== "ready" && model.state !== "busy") return undefined;
-  const used = totalAllocation(model);
+  const used =
+    model.gpuMemoryKind === "unified"
+      ? totalAllocation(model)
+      : optionalMemory(model.gpuMemoryBytes);
   if (used === undefined) return undefined;
   return {
     used,
     budget: optionalMemory(model.memoryBudgetBytes),
+    label: model.gpuMemoryKind === "unified" ? "Unified GPU memory" : "VRAM",
     sequences: model.sequenceCount,
   };
 }

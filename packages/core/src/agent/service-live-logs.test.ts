@@ -21,7 +21,7 @@ function executeDecisionInference(): Pick<InferenceService, "chat"> {
   return {
     async chat() {
       return {
-        protocolVersion: 1,
+        protocolVersion: 2,
         requestId: "agent-launch-failure-test",
         status: "ok",
         operation: "chat",
@@ -30,9 +30,12 @@ function executeDecisionInference(): Pick<InferenceService, "chat"> {
         stopReason: "toolCalls",
         memory: {
           cpuRamBytes: 1,
-          gpuVramBytes: 1,
+          gpuMemoryBytes: 1,
           budgetBytes: 1,
-          detectedGpuVramBytes: 1,
+          detectedGpuMemoryBytes: 1,
+          gpuMemoryKind: "unified" as const,
+          backend: "metal" as const,
+          selectedDeviceCount: 1 as const,
           contextSizeTokens: 16_384,
         },
         performance: {

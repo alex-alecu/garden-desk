@@ -40,16 +40,19 @@ function deferred() {
 
 function success(execution: Parameters<InferencePort["execute"]>[0]) {
   return {
-    protocolVersion: 1 as const,
+    protocolVersion: 2 as const,
     requestId: execution.request.requestId,
     status: "ok" as const,
     operation: "generate" as const,
     value: { result: "ready" },
     memory: {
       cpuRamBytes: 1,
-      gpuVramBytes: 1,
+      gpuMemoryBytes: 1,
       budgetBytes: execution.memoryBudgetBytes,
-      detectedGpuVramBytes: execution.memoryBudgetBytes,
+      detectedGpuMemoryBytes: execution.memoryBudgetBytes,
+      gpuMemoryKind: "unified" as const,
+      backend: "metal" as const,
+      selectedDeviceCount: 1 as const,
     },
     performance: {
       promptTokens: 1,
@@ -165,7 +168,7 @@ describe("M3 resident worker recovery", () => {
         const message = failures.shift();
         if (message === undefined) return success(execution);
         return {
-          protocolVersion: 1,
+          protocolVersion: 2,
           requestId: execution.request.requestId,
           status: "error",
           error: { code: "internal", message },

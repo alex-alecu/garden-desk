@@ -4,11 +4,13 @@ import { JobIdSchema, RequestIdSchema } from "./ids.js";
 
 export const InferenceProfileSchema = z.enum(["auto", "local12", "local16"]);
 export const InferenceOperationSchema = z.enum(["generate", "chat", "embed", "probe", "vision"]);
+export const GpuMemoryKindSchema = z.enum(["dedicated", "unified"]);
+export const InferenceBackendSchema = z.enum(["metal", "cuda", "vulkan"]);
 export const GenerationContextLimitReasonSchema = z.enum([
-  "mac_unified_memory_at_most_32_gib",
-  "mac_unified_memory_above_32_gib",
-  "windows_gpu_vram_at_most_24_gib",
-  "windows_gpu_vram_above_24_gib",
+  "unified_memory_at_most_32_gib",
+  "unified_memory_above_32_gib",
+  "dedicated_memory_at_most_24_gib",
+  "dedicated_memory_above_24_gib",
   "certified_standard",
 ]);
 
@@ -16,7 +18,7 @@ const JsonSchemaSchema = z.record(z.string(), z.unknown());
 export const MAX_EFFECTIVE_GENERATION_PROMPT_CHARACTERS = 256_054;
 export const MAX_GENERATION_TOKENS = 32_768;
 const RequestBaseSchema = z.object({
-  protocolVersion: z.literal(1),
+  protocolVersion: z.literal(2),
   requestId: RequestIdSchema,
   jobId: JobIdSchema,
 });
@@ -98,7 +100,7 @@ export const NativeWorkerProbeRequestSchema = RequestBaseSchema.extend({
 });
 
 export const InferenceWorkerCancelRequestSchema = z.object({
-  protocolVersion: z.literal(1),
+  protocolVersion: z.literal(2),
   operation: z.literal("cancel"),
   requestId: RequestIdSchema,
   code: z.enum(["cancelled", "timeout"]),
@@ -121,9 +123,12 @@ export const InferenceWorkerFrameSchema = z.discriminatedUnion("operation", [
 
 export const InferenceMemoryReportSchema = z.object({
   cpuRamBytes: z.number().int().nonnegative(),
-  gpuVramBytes: z.number().int().nonnegative(),
+  gpuMemoryBytes: z.number().int().nonnegative(),
   budgetBytes: z.number().int().positive(),
-  detectedGpuVramBytes: z.number().int().nonnegative(),
+  detectedGpuMemoryBytes: z.number().int().nonnegative(),
+  gpuMemoryKind: GpuMemoryKindSchema,
+  backend: InferenceBackendSchema,
+  selectedDeviceCount: z.literal(1),
   contextSizeTokens: z.number().int().positive().optional(),
   contextLimitTokens: z.number().int().positive().optional(),
   contextLimitReason: GenerationContextLimitReasonSchema.optional(),
@@ -139,7 +144,7 @@ export const InferencePerformanceSchema = z.object({
 });
 
 const ResponseBaseSchema = z.object({
-  protocolVersion: z.literal(1),
+  protocolVersion: z.literal(2),
   requestId: RequestIdSchema,
   status: z.literal("ok"),
 });
@@ -179,14 +184,14 @@ export const NativeWorkerProbeResultSchema = ResponseBaseSchema.extend({
 });
 
 export const InferenceWorkerFailureSchema = z.object({
-  protocolVersion: z.literal(1),
+  protocolVersion: z.literal(2),
   requestId: RequestIdSchema,
   status: z.literal("error"),
   error: VaultErrorSchema,
 });
 
 export const InferenceWorkerThinkingEventSchema = z.object({
-  protocolVersion: z.literal(1),
+  protocolVersion: z.literal(2),
   requestId: RequestIdSchema,
   status: z.literal("stream"),
   event: z.literal("thinking.delta"),
@@ -194,7 +199,7 @@ export const InferenceWorkerThinkingEventSchema = z.object({
 });
 
 export const InferenceWorkerResponseDeltaEventSchema = z.object({
-  protocolVersion: z.literal(1),
+  protocolVersion: z.literal(2),
   requestId: RequestIdSchema,
   status: z.literal("stream"),
   event: z.literal("response.delta"),
@@ -217,6 +222,8 @@ export const InferenceWorkerMessageSchema = z.union([
 
 export type InferenceProfile = z.infer<typeof InferenceProfileSchema>;
 export type InferenceOperation = z.infer<typeof InferenceOperationSchema>;
+export type GpuMemoryKind = z.infer<typeof GpuMemoryKindSchema>;
+export type InferenceBackend = z.infer<typeof InferenceBackendSchema>;
 export type GenerationContextLimitReason = z.infer<typeof GenerationContextLimitReasonSchema>;
 export type StructuredGenerationRequest = z.infer<typeof StructuredGenerationRequestSchema>;
 export type ChatGenerationRequest = z.infer<typeof ChatGenerationRequestSchema>;

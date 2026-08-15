@@ -1,11 +1,10 @@
 import { fileURLToPath } from "node:url";
 import { type InferenceProfile, InferenceProfileSchema } from "@vault/shared";
 import {
+  createWindowsInferenceRuntime,
   InferenceWorkerClient,
   LlamaVisionClient,
   MacOsNativeWorkerLauncher,
-  WindowsNativeWorkerLauncher,
-  windowsNativeWorkerEntryPath,
 } from "@vault/workers";
 import type { AuditLog } from "../audit/log.js";
 import { resolveAgentSessionCapacity, resolveInferenceHardwarePolicy } from "./hardware.js";
@@ -50,8 +49,39 @@ export async function createInferenceService(
   workspaceRoot: string,
   audit: AuditLog,
 ) {
-  const policy = resolveInferenceHardwarePolicy(InferenceProfileSchema.parse(options.profile));
-  if (!policy.supported) {
+  const profile = InferenceProfileSchema.parse(options.profile);
+  let windowsRuntime: Awaited<ReturnType<typeof createWindowsInferenceRuntime>> | undefined;
+  if (process.platform === "win32") {
+    try {
+      windowsRuntime = await createWindowsInferenceRuntime({
+        ...(options.workerEntryPath === undefined
+          ? {}
+          : { workerEntryPath: options.workerEntryPath }),
+        ...(options.inferenceHelperPath === undefined
+          ? {}
+          : { inferenceHelperPath: options.inferenceHelperPath }),
+        ...(options.inferenceRuntimePath === undefined
+          ? {}
+          : { inferenceRuntimePath: options.inferenceRuntimePath }),
+        ...(options.visionRuntimePath === undefined
+          ? {}
+          : { visionRuntimePath: options.visionRuntimePath }),
+      });
+    } catch (error) {
+      if (error instanceof Error && error.message === "supported_gpu_required") {
+        return {
+          service: unavailableInference(
+            "This computer does not have a supported local graphics configuration.",
+          ),
+          available: false,
+          agentSessionCapacity: 0,
+        } as const;
+      }
+      throw error;
+    }
+  }
+  const policy = resolveInferenceHardwarePolicy(profile);
+  if (!policy.supported && windowsRuntime === undefined) {
     return {
       service: unavailableInference(policy.message),
       available: false,
@@ -59,26 +89,33 @@ export async function createInferenceService(
     } as const;
   }
   const modelResolver = await ModelResolver.open(options.modelStoreDir);
-  const launcher =
-    process.platform === "win32"
-      ? new WindowsNativeWorkerLauncher(options.inferenceHelperPath, options.inferenceRuntimePath)
-      : new MacOsNativeWorkerLauncher([workspaceRoot], options.inferenceRuntimePath);
+  const hardwareProfile = windowsRuntime?.hardwareProfile ?? {
+    memoryBudgetBytes: policy.supported ? policy.memoryBudgetBytes : 0,
+    hostMemoryReservationBytes: policy.supported ? policy.memoryBudgetBytes : 0,
+  };
   const workerEntryPath =
+    windowsRuntime?.workerEntryPath ??
     options.workerEntryPath ??
-    (process.platform === "win32"
-      ? windowsNativeWorkerEntryPath()
-      : fileURLToPath(new URL("../../../workers/dist/inference/worker.js", import.meta.url)));
+    fileURLToPath(new URL("../../../workers/dist/inference/worker.js", import.meta.url));
+  const launcher =
+    windowsRuntime?.workerLauncher ??
+    new MacOsNativeWorkerLauncher([workspaceRoot], options.inferenceRuntimePath);
+  const vision =
+    windowsRuntime?.visionClient ??
+    (options.visionRuntimePath === undefined
+      ? undefined
+      : new LlamaVisionClient(options.visionRuntimePath, options.inferenceHelperPath));
   return {
     service: new InferenceSupervisor(
       new InferenceWorkerClient(launcher, workerEntryPath),
       modelResolver,
-      new ResourceScheduler(policy.memoryBudgetBytes),
+      new ResourceScheduler(hardwareProfile.memoryBudgetBytes),
       (event) => audit.append(event),
-      options.visionRuntimePath === undefined
-        ? undefined
-        : new LlamaVisionClient(options.visionRuntimePath, options.inferenceHelperPath),
+      vision,
     ),
     available: true,
-    agentSessionCapacity: resolveAgentSessionCapacity(policy.memoryBudgetBytes),
+    agentSessionCapacity: resolveAgentSessionCapacity(
+      hardwareProfile.hostMemoryReservationBytes,
+    ),
   } as const;
 }

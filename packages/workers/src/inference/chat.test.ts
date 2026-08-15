@@ -31,7 +31,7 @@ describe("native chat history", () => {
 
   it("passes Core tool schemas through without handlers", () => {
     const request = {
-      protocolVersion: 1,
+      protocolVersion: 2,
       requestId: "test",
       jobId: JobIdSchema.parse("00000000-0000-4000-8000-000000000001"),
       operation: "chat",

@@ -36,6 +36,25 @@ const antiword = {
 };
 
 describe("package compliance", () => {
+  it("records the Windows DXCore binding on Windows", async () => {
+    const { guest, resources } = await fixture();
+    await writePackageCompliance(resources, guest);
+    const notices = JSON.parse(
+      await readFile(join(resources, "THIRD_PARTY_NOTICES.json"), "utf8"),
+    ) as { packages: Array<{ name: string; version: string }> };
+    const dependency = notices.packages.find(({ name }) => name === "Microsoft windows-rs");
+    if (process.platform === "win32") {
+      expect(dependency).toEqual({
+        name: "Microsoft windows-rs",
+        version: "0.61.3",
+        license: "MIT OR Apache-2.0",
+        purpose: "DXCore GPU and installed-memory discovery in the Windows inference helper",
+      });
+    } else {
+      expect(dependency).toBeUndefined();
+    }
+  });
+
   it("records an external model at its packaged path", async () => {
     const { external, guest, resources } = await fixture();
     await writePackageCompliance(resources, guest, [

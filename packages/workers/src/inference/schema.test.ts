@@ -2,7 +2,7 @@ import { StructuredGenerationRequestSchema } from "@vault/shared";
 import { describe, expect, it } from "vitest";
 
 const request = {
-  protocolVersion: 1,
+  protocolVersion: 2,
   requestId: "00000000-0000-4000-8000-000000000000",
   jobId: "00000000-0000-4000-8000-000000000001",
   operation: "generate",

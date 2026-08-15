@@ -1,20 +1,20 @@
 import type { ModelRuntimeStatus } from "@vault/shared";
-import { contextMeter, vramUsage } from "../model-usage.js";
+import { contextMeter, gpuMemoryUsage } from "../model-usage.js";
 
 function formatTokens(tokens: number): string {
   if (tokens < 1_000) return String(tokens);
   return `${Number((tokens / 1_000).toFixed(1))}K`;
 }
 
-function VramLine({ vram }: { vram: NonNullable<ReturnType<typeof vramUsage>> }) {
-  const memory = vram.budget === undefined ? vram.used : `${vram.used} of ${vram.budget}`;
+function GpuMemoryLine({ usage }: { usage: NonNullable<ReturnType<typeof gpuMemoryUsage>> }) {
+  const memory = usage.budget === undefined ? usage.used : `${usage.used} of ${usage.budget}`;
   const sequences =
-    vram.sequences !== undefined && vram.sequences > 1
-      ? ` · ${vram.sequences} parallel sequences`
+    usage.sequences !== undefined && usage.sequences > 1
+      ? ` · ${usage.sequences} parallel sequences`
       : "";
   return (
     <div>
-      <dt>VRAM / unified memory</dt>
+      <dt>{usage.label}</dt>
       <dd>
         {memory}
         {sequences}
@@ -51,12 +51,12 @@ export function TechnicalModelUsage({
   contextUsedTokens?: number | null | undefined;
   contextAllocatedTokens?: number | null | undefined;
 }) {
-  const vram = vramUsage(model);
+  const gpuMemory = gpuMemoryUsage(model);
   const meter = contextMeter(contextUsedTokens, contextAllocatedTokens, model);
-  if (vram === undefined && meter === undefined) return null;
+  if (gpuMemory === undefined && meter === undefined) return null;
   return (
     <dl className="technical-model-usage">
-      {vram === undefined ? null : <VramLine vram={vram} />}
+      {gpuMemory === undefined ? null : <GpuMemoryLine usage={gpuMemory} />}
       {meter === undefined ? null : <ContextMeterRow meter={meter} />}
     </dl>
   );

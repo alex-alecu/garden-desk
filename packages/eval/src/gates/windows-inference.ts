@@ -8,11 +8,6 @@ export interface WindowsInferencePaths {
   visionRuntimePath: string;
 }
 
-interface WindowsInferencePathOptions {
-  preferDevelopmentResources?: boolean;
-  requireVisionRuntime?: boolean;
-}
-
 /**
  * The Windows worker must run through the packaged CUDA runtime and its adjacent
  * redistributables. The development Node runtime cannot load them and misreads
@@ -24,22 +19,14 @@ const inferenceRoots = [
   "packages/desktop/src-tauri/target/release/bundle/windows/Vault Desk/resources/core/inference",
   "packages/desktop/src-tauri/resources/core/inference",
 ];
-const probeInferenceRoot = "packages/eval/.generated/windows-shared-gpu-inference";
-
-export async function windowsInferencePaths(
-  options: WindowsInferencePathOptions = {},
-): Promise<WindowsInferencePaths> {
-  const roots = options.preferDevelopmentResources
-    ? [probeInferenceRoot, ...inferenceRoots.toReversed()]
-    : inferenceRoots;
-  for (const relative of roots) {
+export async function windowsInferencePaths(): Promise<WindowsInferencePaths> {
+  for (const relative of inferenceRoots) {
     const root = join(process.cwd(), relative);
     try {
       await Promise.all([
+        stat(join(root, "hardware-worker.mjs")),
         stat(join(root, "worker.mjs")),
-        ...(options.requireVisionRuntime === false
-          ? []
-          : [stat(join(root, "vision", "llama-mtmd-cli.exe"))]),
+        stat(join(root, "vision", "llama-mtmd-cli.exe")),
       ]);
       return {
         workerEntryPath: join(root, "worker.mjs"),
@@ -51,5 +38,7 @@ export async function windowsInferencePaths(
       // Try the next staged inference root.
     }
   }
-  throw new Error("Build the required Windows inference resources before running this gate.");
+  throw new Error(
+    "Build the packaged Windows inference resources with `pnpm desktop:build-sidecar` before running this gate.",
+  );
 }

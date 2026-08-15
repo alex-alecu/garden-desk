@@ -2,8 +2,11 @@ import type { GenerationContextLimitReason } from "@vault/shared";
 import type { Llama } from "node-llama-cpp";
 
 interface MemoryReportRuntime {
+  backend: "metal" | "cuda" | "vulkan";
   budget: number;
-  detectedGpuVramBytes: number;
+  detectedGpuMemoryBytes: number;
+  gpuMemoryKind: "dedicated" | "unified";
+  selectedDeviceCount: 1;
   llama: Pick<Llama, "getLlamaMemoryUsage">;
 }
 
@@ -15,9 +18,12 @@ export async function memoryReport(
   const memory = await runtime.llama.getLlamaMemoryUsage();
   return {
     cpuRamBytes: memory.cpuRam,
-    gpuVramBytes: memory.gpuVram,
+    gpuMemoryBytes: memory.gpuVram,
     budgetBytes: runtime.budget,
-    detectedGpuVramBytes: runtime.detectedGpuVramBytes,
+    detectedGpuMemoryBytes: runtime.detectedGpuMemoryBytes,
+    gpuMemoryKind: runtime.gpuMemoryKind,
+    backend: runtime.backend,
+    selectedDeviceCount: runtime.selectedDeviceCount,
     contextSizeTokens,
     ...(contextLimit === undefined
       ? {}

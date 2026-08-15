@@ -22,7 +22,7 @@ function port(): InferencePort {
       execution.onResponseDelta?.("Streaming ");
       execution.onResponseDelta?.("now.");
       return {
-        protocolVersion: 1,
+        protocolVersion: 2,
         requestId: execution.request.requestId,
         status: "ok",
         operation: "chat",
@@ -31,9 +31,12 @@ function port(): InferencePort {
         stopReason: "text",
         memory: {
           cpuRamBytes: 1,
-          gpuVramBytes: 1,
+          gpuMemoryBytes: 1,
           budgetBytes: execution.memoryBudgetBytes,
-          detectedGpuVramBytes: execution.memoryBudgetBytes,
+          detectedGpuMemoryBytes: execution.memoryBudgetBytes,
+          gpuMemoryKind: "unified" as const,
+          backend: "metal" as const,
+          selectedDeviceCount: 1 as const,
           contextSizeTokens: 512,
         },
         performance: {

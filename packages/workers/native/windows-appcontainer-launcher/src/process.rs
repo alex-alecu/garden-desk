@@ -8,9 +8,15 @@ use std::path::Path;
 use std::ptr::null_mut;
 
 #[derive(Default)]
-pub(crate) struct GpuEnvironment<'a> {
-    pub(crate) disable_cuda: bool,
-    pub(crate) vulkan_driver_filter: Option<&'a str>,
+pub(crate) struct GpuEnvironment {
+    pub(crate) backend: Option<GpuBackend>,
+    pub(crate) device_index: Option<u32>,
+}
+
+#[derive(Clone, Copy)]
+pub(crate) enum GpuBackend {
+    Cuda,
+    Vulkan,
 }
 
 fn wide(value: &OsStr) -> Vec<u16> {
@@ -47,7 +53,7 @@ fn command_line(executable: &Path, arguments: &[String]) -> Vec<u16> {
     wide(OsStr::new(&value))
 }
 
-fn environment(scratch: &Path, profile: &Path, gpu: GpuEnvironment<'_>) -> Vec<u16> {
+fn environment(scratch: &Path, profile: &Path, gpu: GpuEnvironment) -> Vec<u16> {
     let windows = std::env::var("WINDIR").unwrap_or_else(|_| "C:\\Windows".to_owned());
     let scratch = scratch.to_string_lossy();
     let drive = scratch.get(..2).unwrap_or("C:");
@@ -67,11 +73,16 @@ fn environment(scratch: &Path, profile: &Path, gpu: GpuEnvironment<'_>) -> Vec<u
         "LLAMA_ARG_OFFLINE=1".to_owned(),
         "VAULT_APPCONTAINER_LOCKED=1".to_owned(),
     ];
-    if gpu.disable_cuda {
-        values.push("CUDA_VISIBLE_DEVICES=-1".to_owned());
-    }
-    if let Some(filter) = gpu.vulkan_driver_filter {
-        values.push(format!("VK_LOADER_DRIVERS_SELECT={filter}"));
+    if let Some(device_index) = gpu.device_index {
+        match gpu.backend {
+            Some(GpuBackend::Cuda) => {
+                values.push(format!("CUDA_VISIBLE_DEVICES={device_index}"));
+            }
+            Some(GpuBackend::Vulkan) => {
+                values.push(format!("GGML_VK_VISIBLE_DEVICES={device_index}"));
+            }
+            None => {}
+        }
     }
     values.sort_by_key(|value| value.to_ascii_uppercase());
     values.join("\0").encode_utf16().chain([0, 0]).collect()
@@ -93,7 +104,7 @@ fn create_process(
     arguments: &[String],
     scratch: &Path,
     profile: &Path,
-    gpu: GpuEnvironment<'_>,
+    gpu: GpuEnvironment,
     startup: &mut StartupInfoEx,
 ) -> Result<ProcessInformation, Box<dyn Error>> {
     let mut information: ProcessInformation = unsafe { zeroed() };
@@ -132,7 +143,7 @@ pub(crate) fn run_sandboxed(
     memory_bytes: usize,
     sid: Pointer,
     profile: &Path,
-    gpu: GpuEnvironment<'_>,
+    gpu: GpuEnvironment,
 ) -> Result<i32, Box<dyn Error>> {
     let mut capabilities = SecurityCapabilities {
         app_container_sid: sid,

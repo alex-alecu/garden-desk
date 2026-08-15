@@ -95,8 +95,17 @@ export function windowsVisionArguments(
   runtime: string,
   promptFile: string,
   scratch: string,
+  vulkanDeviceIndex?: number,
 ): string[] {
-  return [
+  if (
+    vulkanDeviceIndex !== undefined &&
+    (!Number.isSafeInteger(vulkanDeviceIndex) ||
+      vulkanDeviceIndex < 0 ||
+      vulkanDeviceIndex > 0xffff_ffff)
+  ) {
+    throw new Error("invalid_windows_gpu_selection");
+  }
+  const arguments_ = [
     "run-vision",
     "--executable",
     resolve(runtime),
@@ -113,6 +122,10 @@ export function windowsVisionArguments(
     "--memory",
     String(input.memoryBudgetBytes),
   ];
+  if (vulkanDeviceIndex !== undefined) {
+    arguments_.push("--vulkan-device-index", String(vulkanDeviceIndex));
+  }
+  return arguments_;
 }
 
 export function parseVisionOutput(output: string): string {
@@ -225,6 +238,7 @@ export class LlamaVisionClient {
   constructor(
     private readonly runtimePath: string,
     private readonly windowsHelperPath = defaultWindowsHelper(),
+    private readonly windowsVulkanDeviceIndex?: number,
   ) {}
 
   async inspect(input: VisionExecution): Promise<{ text: string }> {
@@ -243,7 +257,13 @@ export class LlamaVisionClient {
         await prepareWindows(this.windowsHelperPath, runtime, operationSignal);
         operationSignal.throwIfAborted();
         command = this.windowsHelperPath;
-        args = windowsVisionArguments(input, runtime, promptFile, temporaryRoot);
+        args = windowsVisionArguments(
+          input,
+          runtime,
+          promptFile,
+          temporaryRoot,
+          this.windowsVulkanDeviceIndex,
+        );
       } else if (process.platform === "darwin" && process.arch === "arm64") {
         command = "/usr/bin/sandbox-exec";
         args = [

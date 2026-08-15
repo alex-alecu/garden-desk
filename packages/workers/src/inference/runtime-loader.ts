@@ -1,5 +1,4 @@
 import type { Llama, LlamaGpuType } from "node-llama-cpp";
-import { resolveDetectedGpuVramBytes } from "./memory.js";
 
 export const windowsGpuOrder: readonly LlamaGpuType[] = ["cuda", "vulkan"];
 
@@ -20,21 +19,26 @@ async function tryWindowsGpu(gpu: LlamaGpuType): Promise<Llama | undefined> {
   return undefined;
 }
 
-async function runtimeWithGpuMemory(llama: Llama, developmentAllowWindowsSharedGpu: boolean) {
+async function runtimeWithGpuMemory(llama: Llama, expectedDeviceName?: string) {
   try {
     const [vram, gpuDeviceNames] = await Promise.all([
       llama.getVramState(),
       llama.getGpuDeviceNames(),
     ]);
+    if (process.platform === "win32") {
+      if (gpuDeviceNames.length !== 1) throw new Error("selected_gpu_isolation_failed");
+      if (expectedDeviceName !== undefined && gpuDeviceNames[0] !== expectedDeviceName) {
+        throw new Error("selected_gpu_changed");
+      }
+    }
+    if (!Number.isSafeInteger(vram.total) || vram.total <= 0) {
+      throw new Error("supported_gpu_required");
+    }
     return {
       llama,
-      detectedGpuVramBytes: resolveDetectedGpuVramBytes(
-        process.platform,
-        vram,
-        gpuDeviceNames.length,
-        developmentAllowWindowsSharedGpu,
-      ),
-      sharedGpuMemory: process.platform === "win32" && vram.unifiedSize !== 0,
+      backend: llama.gpu,
+      detectedGpuMemoryBytes: vram.total,
+      deviceNames: gpuDeviceNames,
     };
   } catch (error) {
     await llama.dispose();
@@ -42,16 +46,32 @@ async function runtimeWithGpuMemory(llama: Llama, developmentAllowWindowsSharedG
   }
 }
 
-export async function loadLlamaRuntime(developmentAllowWindowsSharedGpu = false) {
+export async function inspectLlamaBackend(gpu: LlamaGpuType) {
+  const llama = await tryWindowsGpu(gpu);
+  if (llama === undefined) throw new Error("supported_gpu_required");
+  try {
+    const [vram, deviceNames] = await Promise.all([
+      llama.getVramState(),
+      llama.getGpuDeviceNames(),
+    ]);
+    return { backend: gpu, deviceNames, vram };
+  } finally {
+    await llama.dispose();
+  }
+}
+
+export async function loadLlamaRuntime(options: {
+  backend?: LlamaGpuType;
+  expectedDeviceName?: string;
+} = {}) {
   if (process.platform === "win32") {
-    for (const gpu of windowsGpuOrder) {
-      const llama = await tryWindowsGpu(gpu);
-      if (llama !== undefined) {
-        return await runtimeWithGpuMemory(llama, developmentAllowWindowsSharedGpu);
-      }
+    if (options.backend !== "cuda" && options.backend !== "vulkan") {
+      throw new Error("selected_gpu_backend_required");
     }
-    throw new Error("supported_gpu_required");
+    const llama = await tryWindowsGpu(options.backend);
+    if (llama === undefined) throw new Error("supported_gpu_required");
+    return await runtimeWithGpuMemory(llama, options.expectedDeviceName);
   }
   const { getLlama, LlamaLogLevel } = await import("node-llama-cpp");
-  return await runtimeWithGpuMemory(await getLlama({ logLevel: LlamaLogLevel.error }), false);
+  return await runtimeWithGpuMemory(await getLlama({ logLevel: LlamaLogLevel.error }));
 }

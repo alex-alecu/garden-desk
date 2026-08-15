@@ -1,5 +1,6 @@
 import type {
   GenerationContextLimitReason,
+  GpuMemoryKind,
   ModelRuntimeStatus,
   StructuredGenerationResult,
 } from "@vault/shared";
@@ -10,7 +11,8 @@ export interface ModelRuntimeMeasurements {
   memoryBudgetBytes?: number;
   contextSizeTokens?: number;
   cpuRamBytes?: number;
-  gpuVramBytes?: number;
+  gpuMemoryBytes?: number;
+  gpuMemoryKind?: GpuMemoryKind;
   contextLimitTokens?: number;
   contextLimitReason?: GenerationContextLimitReason;
   sequenceCount?: number;
@@ -22,7 +24,8 @@ export function generationMeasurements(
   return {
     memoryBudgetBytes: memory.budgetBytes,
     cpuRamBytes: memory.cpuRamBytes,
-    gpuVramBytes: memory.gpuVramBytes,
+    gpuMemoryBytes: memory.gpuMemoryBytes,
+    gpuMemoryKind: memory.gpuMemoryKind,
     ...(memory.contextSizeTokens === undefined
       ? {}
       : { contextSizeTokens: memory.contextSizeTokens }),

@@ -121,7 +121,7 @@ describe("M3 model residency", () => {
       state: "ready",
       memoryBudgetBytes: 12 * GiB,
       cpuRamBytes: 1024,
-      gpuVramBytes: 2048,
+      gpuMemoryBytes: 2048,
       contextSizeTokens: 512,
       contextLimitTokens: 65_536,
       contextLimitReason: "certified_standard",
@@ -144,7 +144,7 @@ describe("M3 model residency", () => {
       contextLimitReason: "certified_standard",
     });
     expect(status.cpuRamBytes).toBeUndefined();
-    expect(status.gpuVramBytes).toBeUndefined();
+    expect(status.gpuMemoryBytes).toBeUndefined();
     expect(status.memoryBudgetBytes).toBeUndefined();
   });
 });
@@ -217,22 +217,25 @@ describe("M2 inference response validation", () => {
     const events: AuditEventInput[] = [];
     const responses = [
       {
-        protocolVersion: 1 as const,
+        protocolVersion: 2 as const,
         requestId: "first",
         status: "error" as const,
         error: { code: "out_of_memory" as const, message: "allocation failed" },
       },
       {
-        protocolVersion: 1 as const,
+        protocolVersion: 2 as const,
         requestId: "second",
         status: "ok" as const,
         operation: "embed" as const,
         vector: [1],
         memory: {
           cpuRamBytes: 1,
-          gpuVramBytes: 1,
+          gpuMemoryBytes: 1,
           budgetBytes: 1,
-          detectedGpuVramBytes: 1,
+          detectedGpuMemoryBytes: 1,
+          gpuMemoryKind: "unified" as const,
+          backend: "metal" as const,
+          selectedDeviceCount: 1 as const,
         },
       },
     ];

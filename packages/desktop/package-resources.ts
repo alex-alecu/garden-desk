@@ -156,6 +156,7 @@ export async function installInferenceResources(
     | "inferenceHelperSignature"
     | "inferenceRuntime"
     | "inferenceRuntimeSignature"
+    | "inferenceHardwareWorker"
     | "inferenceWorker"
     | "cudaAssets"
   >
@@ -163,16 +164,27 @@ export async function installInferenceResources(
   await mkdir(destinationRoot, { recursive: true });
   reportDevelopmentResourceStage("inferenceWorker");
   const worker = join(destinationRoot, "worker.mjs");
-  await build({
-    absWorkingDir: repositoryRoot,
-    entryPoints: [join(repositoryRoot, "packages/workers/src/inference/worker.ts")],
-    outfile: worker,
-    bundle: true,
-    external: ["node-llama-cpp"],
-    format: "esm",
-    platform: "node",
-    target: "node24",
-  });
+  const hardwareWorker = join(destinationRoot, "hardware-worker.mjs");
+  await Promise.all(
+    [
+      [join(repositoryRoot, "packages/workers/src/inference/worker.ts"), worker],
+      [
+        join(repositoryRoot, "packages/workers/src/inference/hardware-worker.ts"),
+        hardwareWorker,
+      ],
+    ].map(async ([entryPoint, outfile]) => {
+      await build({
+        absWorkingDir: repositoryRoot,
+        entryPoints: [entryPoint as string],
+        outfile: outfile as string,
+        bundle: true,
+        external: ["node-llama-cpp"],
+        format: "esm",
+        platform: "node",
+        target: "node24",
+      });
+    }),
+  );
   reportDevelopmentResourceStage("inferenceRuntime");
   await copyRuntimePackage(
     "node-llama-cpp",
@@ -194,15 +206,9 @@ export async function installInferenceResources(
       : {}),
     inferenceRuntime: await sha256(runtime),
     inferenceRuntimeSignature,
+    inferenceHardwareWorker: await sha256(hardwareWorker),
     inferenceWorker: await sha256(worker),
   };
-}
-
-export async function rebuildInferenceResources(
-  destinationRoot: string,
-): ReturnType<typeof installInferenceResources> {
-  await rm(destinationRoot, { recursive: true, force: true });
-  return await installInferenceResources(destinationRoot);
 }
 
 function productBuild(): boolean {

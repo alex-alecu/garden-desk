@@ -7,6 +7,7 @@ export interface ResourceHashes {
   inferenceHelperSignature?: string;
   inferenceRuntime?: string;
   inferenceRuntimeSignature?: string;
+  inferenceHardwareWorker?: string;
   inferenceWorker?: string;
   cudaAssets?: Record<string, string>;
   agentHelper?: string;

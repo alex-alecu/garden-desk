@@ -17,7 +17,7 @@ export function generated(
   promptTokens = 1,
 ): ChatGenerationResult {
   return {
-    protocolVersion: 1,
+    protocolVersion: 2,
     requestId: "chat-loop-test",
     status: "ok",
     operation: "chat",
@@ -26,9 +26,12 @@ export function generated(
     stopReason: toolCalls.length === 0 ? "text" : "toolCalls",
     memory: {
       cpuRamBytes: 1,
-      gpuVramBytes: 1,
+      gpuMemoryBytes: 1,
       budgetBytes: 1,
-      detectedGpuVramBytes: 1,
+      detectedGpuMemoryBytes: 1,
+      gpuMemoryKind: "unified" as const,
+      backend: "metal" as const,
+      selectedDeviceCount: 1 as const,
       contextSizeTokens: 8_192,
     },
     performance: performance(promptTokens),

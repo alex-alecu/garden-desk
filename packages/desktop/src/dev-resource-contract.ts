@@ -53,6 +53,7 @@ function commonOutputs(resourcesRoot: string): string[] {
     join(resourcesRoot, "resource-manifest.json"),
     join(resourcesRoot, "models", "installed-models.json"),
     join(resourcesRoot, "licenses", "llama.cpp-LICENSE.txt"),
+    join(resourcesRoot, "inference", "hardware-worker.mjs"),
     join(resourcesRoot, "inference", "worker.mjs"),
     join(resourcesRoot, "inference", "node_modules", "node-llama-cpp", "package.json"),
     join(resourcesRoot, "workers", "images", "agent", "manifest.json"),

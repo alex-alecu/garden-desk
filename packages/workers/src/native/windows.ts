@@ -11,11 +11,41 @@ import { NativeWorkerLaunchError } from "./launcher.js";
 
 const preparations = new Map<string, Promise<void>>();
 
-interface WindowsNativeWorkerLauncherOptions {
-  developmentAllowSharedGpu?: boolean;
+export interface WindowsGpuLaunch {
+  backend: "cuda" | "vulkan";
+  deviceIndex?: number;
+  detectedMemoryBytes?: number;
+  expectedName?: string;
+  installedMemoryBytes?: number;
+  memoryKind?: "dedicated" | "unified";
 }
 
-function helperEnvironment(): NodeJS.ProcessEnv {
+export interface WindowsNativeWorkerLauncherOptions {
+  gpu?: WindowsGpuLaunch;
+}
+
+function validPositiveInteger(value: number | undefined): boolean {
+  return value === undefined || (Number.isSafeInteger(value) && value > 0);
+}
+
+export function validateWindowsGpuLaunch(gpu: WindowsGpuLaunch): void {
+  if (
+    (gpu.backend !== "cuda" && gpu.backend !== "vulkan") ||
+    (gpu.deviceIndex !== undefined &&
+      (!Number.isSafeInteger(gpu.deviceIndex) || gpu.deviceIndex < 0 || gpu.deviceIndex > 0xffff_ffff)) ||
+    (gpu.expectedName !== undefined &&
+      (gpu.expectedName.length === 0 || gpu.expectedName.length > 512)) ||
+    (gpu.memoryKind !== undefined &&
+      gpu.memoryKind !== "dedicated" &&
+      gpu.memoryKind !== "unified") ||
+    !validPositiveInteger(gpu.detectedMemoryBytes) ||
+    !validPositiveInteger(gpu.installedMemoryBytes)
+  ) {
+    throw new Error("invalid_windows_gpu_selection");
+  }
+}
+
+export function windowsHelperEnvironment(): NodeJS.ProcessEnv {
   const windowsRoot = process.env.WINDIR ?? "C:\\Windows";
   return {
     PATH: join(windowsRoot, "System32"),
@@ -29,7 +59,10 @@ function runtimeReadPaths(workerEntryPath: string): string[] {
   return [resolve(workerDirectory, "../..")];
 }
 
-function preparation(helperPath: string, workerEntryPath: string): Promise<void> {
+export function prepareWindowsRuntime(
+  helperPath: string,
+  workerEntryPath: string,
+): Promise<void> {
   const key = `${helperPath}\0${workerEntryPath}`;
   const existing = preparations.get(key);
   if (existing !== undefined) return existing;
@@ -37,7 +70,7 @@ function preparation(helperPath: string, workerEntryPath: string): Promise<void>
     const args = ["prepare"];
     for (const path of runtimeReadPaths(workerEntryPath)) args.push("--read", path);
     const child = spawn(helperPath, args, {
-      env: helperEnvironment(),
+      env: windowsHelperEnvironment(),
       stdio: ["ignore", "ignore", "pipe"],
     });
     let stderr = "";
@@ -73,18 +106,29 @@ export function windowsNativeWorkerArguments(
     String(request.memoryBudgetBytes),
   ];
   if (request.modelPath !== undefined) args.push("--model", resolve(request.modelPath));
-  if (options.developmentAllowSharedGpu === true) {
-    args.push(
-      "--development-allow-shared-gpu",
-      "true",
-      "--development-vulkan-driver-filter",
-      "*amd*",
-    );
+  if (options.gpu !== undefined) {
+    validateWindowsGpuLaunch(options.gpu);
+    args.push("--gpu-backend", options.gpu.backend);
+    if (options.gpu.deviceIndex !== undefined) {
+      args.push("--gpu-device-index", String(options.gpu.deviceIndex));
+    }
+    if (options.gpu.expectedName !== undefined) {
+      args.push("--expected-gpu-name", options.gpu.expectedName);
+    }
+    if (options.gpu.memoryKind !== undefined) {
+      args.push("--gpu-memory-kind", options.gpu.memoryKind);
+    }
+    if (options.gpu.detectedMemoryBytes !== undefined) {
+      args.push("--detected-gpu-memory", String(options.gpu.detectedMemoryBytes));
+    }
+    if (options.gpu.installedMemoryBytes !== undefined) {
+      args.push("--installed-memory", String(options.gpu.installedMemoryBytes));
+    }
   }
   return args;
 }
 
-function defaultHelperPath(): string {
+export function defaultWindowsInferenceHelperPath(): string {
   return join(
     process.cwd(),
     "packages/workers/native/windows-appcontainer-launcher/.generated/vault-appcontainer-launcher.exe",
@@ -100,7 +144,7 @@ export function windowsNativeWorkerEntryPath(): string {
 
 export class WindowsNativeWorkerLauncher implements NativeWorkerLauncher {
   constructor(
-    private readonly helperPath = defaultHelperPath(),
+    private readonly helperPath = defaultWindowsInferenceHelperPath(),
     private readonly runtimePath = process.execPath,
     private readonly options: WindowsNativeWorkerLauncherOptions = {},
   ) {}
@@ -109,14 +153,14 @@ export class WindowsNativeWorkerLauncher implements NativeWorkerLauncher {
     if (process.platform !== "win32" || process.arch !== "x64") {
       throw new NativeWorkerLaunchError("unsupported", "unsupported_native_worker_platform");
     }
-    await preparation(this.helperPath, resolve(request.workerEntryPath));
+    await prepareWindowsRuntime(this.helperPath, resolve(request.workerEntryPath));
     const temporaryRoot = await mkdtemp(join(tmpdir(), "vault-inference-"));
     const child = spawn(
       this.helperPath,
       windowsNativeWorkerArguments(request, temporaryRoot, resolve(this.runtimePath), this.options),
       {
         cwd: temporaryRoot,
-        env: helperEnvironment(),
+        env: windowsHelperEnvironment(),
         stdio: ["pipe", "pipe", "pipe"],
       },
     );

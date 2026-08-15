@@ -43,11 +43,12 @@ Current community targets:
 
 - 8 GB Macs do not start local inference and explain the requirement to the user.
 - Macs through 16 GB use a 10 GiB model-plus-context budget; Macs through 24 GB use 12 GiB; Macs above 24 GB use 16 GiB.
-- Windows generation uses one selected non-unified device's complete dedicated VRAM and requires a supported GPU; aggregate multi-device or unified and shared memory readings are unsupported.
+- Windows selects one usable dedicated GPU first. If none is usable, it selects one integrated GPU. Brand and speed do not decide support, and the runtime never adds memory across devices.
+- A Windows dedicated GPU needs at least 8 GiB of isolated device memory and uses that complete memory. An integrated GPU needs at least 16 GiB installed RAM and uses the 8/12/16 GiB shared-pool tier.
 - Windows agent execution requires Windows Pro or Enterprise with Hyper-V already enabled. The Windows-only setup helper adds the requesting account to Hyper-V Administrators once; it does not enable or download Windows features. macOS has no administrator prerequisite.
-- Active context is fitted automatically inside the selected budget rather than configured by the user. Macs through 32 GB unified memory and Windows GPUs through 24 GB dedicated VRAM are capped at 64K; Macs and Windows GPUs above their respective thresholds are capped at 128K.
+- Active context is fitted automatically inside the selected budget. Shared-memory systems through 32 GiB installed RAM and Windows dedicated GPUs through 24 GiB are capped at 64K. Systems above the applicable threshold are capped at 128K.
 
-The public V1 launch baseline is intentionally simpler than the internal memory tiers: an Apple silicon Mac with at least 16 GB unified memory, or a Windows PC with an NVIDIA GPU and at least 12 GB VRAM. Physical Windows headless validation now covers an RTX 4080 with 12 GB VRAM; broader configuration claims remain launch targets until their exact hardware and signed release gate pass. The website and download surfaces must not describe an untested configuration as certified or imply that installers are available before the signed release gate passes.
+The support class applies to an exact configuration, not to a GPU vendor. A configuration is Certified only after its complete physical and packaged gates pass. Other configurations that meet the implemented memory and isolation contract are Compatible. Untested future platforms are Experimental. The website and download surfaces must not describe a vendor as verified or an untested configuration as Certified.
 
 The product should degrade by reducing active context pressure, multimodal usage, or concurrency rather than exposing low-level runtime choices to ordinary users. Hardware tiers must not differ by verification strictness, citation requirements, supported workflows, or safety policy.
 
@@ -58,7 +59,7 @@ Current model target:
 - Retrieval-first prompting and bounded active context.
 - One resident Gemma generation at a time, with different conversations allowed to overlap guest work within the RAM-derived VM capacity.
 - Background ingestion throttled around available memory.
-- Automatic active context from an 8K floor through a 64K or 128K hardware cap. The Mac requires more than 32 GB unified memory for 128K so the model and context do not consume the shared pool needed by the operating system, desktop, and agent guests; Windows requires more than 24 GB discrete VRAM.
+- Automatic active context from an 8K floor through a 64K or 128K hardware cap. Shared memory needs more than 32 GiB installed RAM for 128K. Windows dedicated memory needs more than 24 GiB.
 - One first desktop runtime and model format across Windows and macOS: node-llama-cpp with the pinned official Gemma 4 QAT GGUF, per [ADR 0013](adr/0013-first-desktop-runtime.md).
 - A hardware capability check that selects the memory budget or returns a clear unsupported state before the user starts a model-dependent workflow.
 
@@ -113,8 +114,7 @@ The first office appliance should benchmark from real workflow demand, not from 
 Planned first-choice runtime directions:
 
 - Apple Silicon: node-llama-cpp through Metal with the pinned official QAT GGUF first; MLX-family serving is a later adapter-backed optimization candidate.
-- Windows with NVIDIA: the single Windows package uses node-llama-cpp through its pinned CUDA 13.1 binding and bundled cuBLAS redistributables first; the user supplies only a compatible display driver, not a CUDA Toolkit or separate Vault Desk installation.
-- Windows with supported AMD hardware: the same package uses node-llama-cpp through its pinned Vulkan binding, with no separate AMD installation.
+- Windows: one package contains CUDA and Vulkan. The worker probes both and uses one adapter that it can map and isolate. CUDA has priority over Vulkan only for the same adapter. The user supplies a compatible display driver, not a separate Vault Desk installation.
 - Shared appliance or Linux server: vLLM-class serving only after the automatic desktop tiers are validated and appliance profiles are re-opened.
 - NVIDIA-specific optimization: later, after exact model support is proven.
 
@@ -172,3 +172,4 @@ Avoid company-wide exclusivity. Vendor-specific SKUs are acceptable, but the com
 | 2026-07-28 | Physically validated the single package's CUDA and Vulkan initialization plus real-Gemma CUDA execution on an RTX 4080 and AMD Radeon 610M system. |
 | 2026-08-01 | Added 64K and 128K context caps with separate Mac unified-memory and Windows VRAM thresholds. |
 | 2026-08-04 | Restricted Windows automatic budgets and context tiers to one device's dedicated VRAM. |
+| 2026-08-15 | Added vendor-neutral Windows dedicated-first selection and integrated 8/12/16 GiB shared-memory tiers. |

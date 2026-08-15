@@ -31,7 +31,7 @@ describe("effective structured inference prompts", () => {
     expect(request.input.prompt).toHaveLength(256_054);
     expect(() =>
       InferenceWorkerRequestSchema.parse({
-        protocolVersion: 1,
+        protocolVersion: 2,
         requestId: request.identity.requestId,
         jobId: request.identity.jobId,
         operation: "generate",

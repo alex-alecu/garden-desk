@@ -25,6 +25,11 @@ export type {
 export { NativeWorkerLaunchError } from "./native/launcher.js";
 export { MacOsNativeWorkerLauncher } from "./native/macos.js";
 export {
+  createWindowsInferenceRuntime,
+  type NeutralInferenceHardwareProfile,
+} from "./native/windows-runtime.js";
+export {
+  type WindowsGpuLaunch,
   WindowsNativeWorkerLauncher,
   windowsNativeWorkerEntryPath,
 } from "./native/windows.js";
