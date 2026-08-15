@@ -32,7 +32,10 @@ const model = manifest.models.find((candidate) => candidate.id === generationMod
 if (model === undefined) throw new Error(`Canonical model is missing: ${generationModelId}`);
 await verifyModelFile(model, modelPath);
 
-const inference = await windowsInferencePaths({ preferDevelopmentResources: true });
+const inference = await windowsInferencePaths({
+  preferDevelopmentResources: true,
+  requireVisionRuntime: false,
+});
 const client = new InferenceWorkerClient(
   new WindowsNativeWorkerLauncher(inference.inferenceHelperPath, inference.inferenceRuntimePath, {
     developmentAllowSharedGpu: true,
@@ -87,6 +90,7 @@ const report = {
   schemaVersion: 1,
   certification: false,
   developmentSharedGpuOverride: true,
+  gpuTarget: "amd_shared_memory",
   platform: process.platform,
   architecture: process.arch,
   totalMemoryBytes,

@@ -99,7 +99,13 @@ describe("development shared GPU probe", () => {
   it("rejects multiple Windows GPUs", () => {
     expect(() =>
       resolveDetectedGpuVramBytes("win32", { total: 32 * GiB, unifiedSize: 16 * GiB }, 2, true),
-    ).toThrow("dedicated_gpu_vram_required");
+    ).toThrow("shared_gpu_required");
+  });
+
+  it("rejects a dedicated GPU", () => {
+    expect(() =>
+      resolveDetectedGpuVramBytes("win32", { total: 16 * GiB, unifiedSize: 0 }, 1, true),
+    ).toThrow("shared_gpu_required");
   });
 });
 

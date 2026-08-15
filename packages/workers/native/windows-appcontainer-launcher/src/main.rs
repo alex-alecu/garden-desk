@@ -41,6 +41,7 @@ struct RunArguments {
     model: Option<PathBuf>,
     memory_bytes: usize,
     development_allow_shared_gpu: bool,
+    development_vulkan_driver_filter: Option<String>,
 }
 
 #[cfg(windows)]
@@ -84,6 +85,10 @@ fn parse() -> Result<Command, Box<dyn Error>> {
             development_allow_shared_gpu: values
                 .iter()
                 .any(|(key, value)| key == "--development-allow-shared-gpu" && value == "true"),
+            development_vulkan_driver_filter: values
+                .iter()
+                .find(|(key, _)| key == "--development-vulkan-driver-filter")
+                .map(|(_, value)| value.clone()),
         })),
         "run-vision" if read_roots.is_empty() => Ok(Command::RunVision(VisionArguments {
             executable: PathBuf::from(value(&values, "--executable")?),
@@ -94,7 +99,7 @@ fn parse() -> Result<Command, Box<dyn Error>> {
             scratch: PathBuf::from(value(&values, "--scratch")?),
             memory_bytes: value(&values, "--memory")?.parse()?,
         })),
-        _ => Err("Usage: vault-appcontainer-launcher <prepare --read PATH...|run --executable PATH --worker PATH --scratch PATH --memory BYTES [--model PATH] [--development-allow-shared-gpu true]|run-vision --executable PATH --model PATH --projector PATH --image PATH --prompt-file PATH --scratch PATH --memory BYTES>".into()),
+        _ => Err("Usage: vault-appcontainer-launcher <prepare --read PATH...|run --executable PATH --worker PATH --scratch PATH --memory BYTES [--model PATH] [--development-allow-shared-gpu true --development-vulkan-driver-filter GLOB]|run-vision --executable PATH --model PATH --projector PATH --image PATH --prompt-file PATH --scratch PATH --memory BYTES>".into()),
     }
 }
 
@@ -136,6 +141,14 @@ fn run() -> Result<i32, Box<dyn Error>> {
             if arguments.development_allow_shared_gpu {
                 child_arguments.push("--development-allow-windows-shared-gpu".to_owned());
             }
+            let gpu_environment = if arguments.development_allow_shared_gpu {
+                process::GpuEnvironment {
+                    disable_cuda: true,
+                    vulkan_driver_filter: arguments.development_vulkan_driver_filter.as_deref(),
+                }
+            } else {
+                process::GpuEnvironment::default()
+            };
             process::run_sandboxed(
                 &executable,
                 &child_arguments,
@@ -143,6 +156,7 @@ fn run() -> Result<i32, Box<dyn Error>> {
                 arguments.memory_bytes,
                 container.sid(),
                 &container.profile_path()?,
+                gpu_environment,
             )
         }
         Command::RunVision(arguments) => {
@@ -184,6 +198,7 @@ fn run() -> Result<i32, Box<dyn Error>> {
                 arguments.memory_bytes,
                 container.sid(),
                 &container.profile_path()?,
+                process::GpuEnvironment::default(),
             )
         }
     }

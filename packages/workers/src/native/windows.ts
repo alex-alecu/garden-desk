@@ -74,7 +74,12 @@ export function windowsNativeWorkerArguments(
   ];
   if (request.modelPath !== undefined) args.push("--model", resolve(request.modelPath));
   if (options.developmentAllowSharedGpu === true) {
-    args.push("--development-allow-shared-gpu", "true");
+    args.push(
+      "--development-allow-shared-gpu",
+      "true",
+      "--development-vulkan-driver-filter",
+      "*amd*",
+    );
   }
   return args;
 }

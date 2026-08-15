@@ -26,7 +26,13 @@ export function resolveDetectedGpuVramBytes(
   developmentAllowWindowsSharedGpu = false,
 ): number {
   if (platform !== "win32") return vram.total;
-  if (gpuDeviceCount !== 1 || (vram.unifiedSize !== 0 && !developmentAllowWindowsSharedGpu)) {
+  if (developmentAllowWindowsSharedGpu) {
+    if (gpuDeviceCount !== 1 || vram.unifiedSize === 0) {
+      throw new Error(`shared_gpu_required:${gpuDeviceCount}:${vram.total}:${vram.unifiedSize}`);
+    }
+    return vram.total;
+  }
+  if (gpuDeviceCount !== 1 || vram.unifiedSize !== 0) {
     throw new Error("dedicated_gpu_vram_required");
   }
   return vram.total;

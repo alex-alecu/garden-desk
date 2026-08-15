@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "build": "node --import tsx run-tauri.ts build",
+    "build:inference-probe": "node --import tsx build-inference-probe.ts",
     "build:sidecar": "node --import tsx build-sidecar.ts",
     "check:sidecar": "node --import tsx build-sidecar.ts --check",
     "clean:model-copies": "node --import tsx clean-model-copies.ts",
