@@ -10,6 +10,7 @@ export interface DeliverableExpectation {
   factAlternatives?: string[][];
   facts: string[];
   forbiddenFacts?: string[];
+  forbiddenPatterns?: string[];
   name?: string;
   orderedFacts?: string[];
   pdfMetadata?: Record<string, string>;
@@ -30,6 +31,7 @@ export interface PreparedStressCase<Id extends string = string> {
   evidence: FixtureEvidence;
   expectedTokens: string[];
   forbiddenResponseText?: string[];
+  forbiddenResponsePatterns?: string[];
   requiredExecutionText?: string[];
   requiredSkills?: string[];
   requiredSkillSequence?: string[];
@@ -45,6 +47,7 @@ export interface StressCaseDefinition<Id extends string = string> {
   create(source: string): Promise<FixtureEvidence>;
   expected(evidence: FixtureEvidence): string[];
   forbiddenResponseText?: string[];
+  forbiddenResponsePatterns?: string[];
   requiredExecutionText?: string[];
   requiredSkills?: string[];
   requiredSkillSequence?: string[];
@@ -124,6 +127,9 @@ export async function prepareStressCase<Id extends string>(
     ...(definition.forbiddenResponseText === undefined
       ? {}
       : { forbiddenResponseText: definition.forbiddenResponseText }),
+    ...(definition.forbiddenResponsePatterns === undefined
+      ? {}
+      : { forbiddenResponsePatterns: definition.forbiddenResponsePatterns }),
     ...(definition.requiredExecutionText === undefined
       ? {}
       : { requiredExecutionText: definition.requiredExecutionText }),

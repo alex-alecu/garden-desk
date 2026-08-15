@@ -100,6 +100,10 @@ function missingOrderedFacts(extracted: string, facts: string[]): string[] {
   });
 }
 
+export function presentForbiddenPatterns(extracted: string, patterns: string[]): string[] {
+  return patterns.filter((pattern) => new RegExp(pattern, "iu").test(extracted));
+}
+
 export function missingFactAlternatives(extracted: string, groups: string[][]): string[] {
   return groups
     .filter((alternatives) => !alternatives.some((fact) => extracted.includes(fact)))
@@ -154,6 +158,7 @@ async function deterministicMismatches(
     `alternatives:${missingFactAlternatives(extracted, item.factAlternatives ?? []).join(",")}`,
     `labels:${missingVisibleLabelValues(extracted, item.visibleLabelValues ?? []).join(",")}`,
     `forbidden:${(item.forbiddenFacts ?? []).filter((fact) => extracted.includes(fact)).join(",")}`,
+    `forbidden-patterns:${presentForbiddenPatterns(extracted, item.forbiddenPatterns ?? []).join(",")}`,
     `order:${missingOrderedFacts(extracted, item.orderedFacts ?? []).join(",")}`,
     `archive:${archive}`,
     `archive-forbidden:${archiveForbidden}`,

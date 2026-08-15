@@ -198,12 +198,17 @@ function executionTextEvidence(active: ActiveCase, snapshot: AgentRunSnapshot) {
 function responseEvidence(active: ActiveCase, snapshot: AgentRunSnapshot) {
   const output = snapshot.run.response ?? "";
   const forbiddenResponseText = active.fixture.forbiddenResponseText ?? [];
+  const forbiddenResponsePatterns = active.fixture.forbiddenResponsePatterns ?? [];
   return {
     missingTokens: active.fixture.expectedTokens.filter((token) => !outputHasToken(output, token)),
     missingTableRows: missingTableRows(output, active.fixture.expectedTableRows ?? []),
     forbiddenResponseText,
     presentForbiddenResponseText: forbiddenResponseText.filter((text) =>
       output.toLocaleLowerCase("en-US").includes(text.toLocaleLowerCase("en-US")),
+    ),
+    forbiddenResponsePatterns,
+    presentForbiddenResponsePatterns: forbiddenResponsePatterns.filter((pattern) =>
+      new RegExp(pattern, "iu").test(output),
     ),
   };
 }
@@ -236,6 +241,7 @@ export function stressResultFor(
     response.missingTokens.length === 0 &&
     response.missingTableRows.length === 0 &&
     response.presentForbiddenResponseText.length === 0 &&
+    response.presentForbiddenResponsePatterns.length === 0 &&
     skills.missingSkills.length === 0 &&
     skills.skillOrderValid &&
     skills.calledForbiddenSkills.length === 0 &&

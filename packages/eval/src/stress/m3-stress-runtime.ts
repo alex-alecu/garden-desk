@@ -47,6 +47,8 @@ export interface StressCaseResult {
   expectedTokens: string[];
   forbiddenResponseText: string[];
   presentForbiddenResponseText: string[];
+  forbiddenResponsePatterns: string[];
+  presentForbiddenResponsePatterns: string[];
   requiredExecutionText: string[];
   missingExecutionText: string[];
   requiredSkills: string[];
