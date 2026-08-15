@@ -6,7 +6,9 @@ import { fileURLToPath } from "node:url";
 import { signExecutable } from "./build-signing.js";
 import {
   canonicalGenerationModelPath,
+  canonicalProjectorModelPath,
   packagedGenerationModelPath,
+  packagedProjectorModelPath,
 } from "./src/package-model-contract.js";
 import { nativeRuntimePackages } from "./src/runtime-package-contract.js";
 
@@ -43,6 +45,7 @@ async function packageRecord(
   const coreResources = join(packageRoot, "resources", "core");
   const resourceManifest = join(coreResources, "resource-manifest.json");
   const model = join(coreResources, "models", "gemma-4-12b-it-qat-q4_0.gguf");
+  const projector = join(coreResources, "models", "gemma-4-12b-it-qat-q4_0-mmproj.gguf");
   const inferenceRuntimes = nativeRuntimePackages();
   await Promise.all(
     inferenceRuntimes.map((name) =>
@@ -59,6 +62,8 @@ async function packageRecord(
       manifestSha256: await sha256(resourceManifest),
       generationModelBytes: (await stat(model)).size,
       generationModelSha256: await sha256(model),
+      projectorModelBytes: (await stat(projector)).size,
+      projectorModelSha256: await sha256(projector),
       inferenceRuntimes,
     },
   };
@@ -77,8 +82,10 @@ export async function stageWindowsApplication(): Promise<void> {
   await copyFile(join(tauriRoot, "binaries", "vault-core-x86_64-pc-windows-msvc.exe"), sidecar);
   await copyTree(join(tauriRoot, "resources", "core"), join(packageRoot, "resources", "core"));
   const packagedModel = packagedGenerationModelPath(join(packageRoot, "resources", "core"));
+  const packagedProjector = packagedProjectorModelPath(join(packageRoot, "resources", "core"));
   await mkdir(join(packageRoot, "resources", "core", "models"), { recursive: true });
   await copyFile(canonicalGenerationModelPath(join(desktopRoot, "../..")), packagedModel);
+  await copyFile(canonicalProjectorModelPath(join(desktopRoot, "../..")), packagedProjector);
   await mkdir(join(packageRoot, "assets", "fonts"), { recursive: true });
   await copyFile(
     join(desktopRoot, "..", "..", "assets", "fonts", "LICENSE.txt"),

@@ -128,7 +128,7 @@ The Node harness should call local inference runtimes through stable adapter int
 Candidate adapter families (support status verified 2026-07-11; see [research/local-ai-runtimes.md](research/local-ai-runtimes.md)):
 
 - node-llama-cpp (MIT) as the first supervised inference-worker adapter: loads Gemma 4 QAT GGUFs, enforces JSON-schema output via grammar-constrained sampling, and supports function calling, embeddings, reranking, speculative decoding, and multiple parallel context sequences on one loaded model (`sequences`, `sequencesLeft`, and a maximum-parallelism batch strategy), with Metal, CUDA, and Vulkan builds. Parallel generation is therefore bounded by KV-cache memory rather than by the runtime; V1 uses bounded extra sequences for sub-agents and plans to extend them to concurrent conversations. It runs behind Vault Core rather than inside the Tauri webview or Rust host.
-- A supervised llama-server child process as the companion adapter for vision workloads (Gemma 4 multimodal, PaddleOCR-VL, Granite-Docling GGUF), because node-llama-cpp does not yet support image input.
+- The pinned llama.cpp `llama-mtmd-cli` as the supervised on-demand image adapter for the current Gemma 4 model pair. It runs one bounded offline request after the resident node-llama-cpp chat worker unloads. Later document-vision models must use the same narrow adapter or a separately reviewed equivalent.
 - MLX-family local serving on macOS.
 - Ollama-compatible serving.
 - Google LiteRT-LM's OpenAI-compatible local server as an emerging Google-first adapter to track.
@@ -283,4 +283,5 @@ M2 was activated by the repository owner on 2026-07-19 and completed across macO
 | 2026-07-19 | Hardened completed M1 recovery, endpoint authentication, audit truncation detection, and worker staging limits after follow-up review. |
 | 2026-07-22 | Aligned the inference adapter boundary with automatic hardware memory and context fitting. |
 | 2026-07-23 | Added the session-scoped agent VM, live read-only folder share, installed guest shell tools, and durable workspace manifests. |
+| 2026-08-15 | Recorded the implemented bounded llama-mtmd-cli image adapter and the exclusive unload-before-inspection memory rule. |
 | 2026-08-12 | Recorded node-llama-cpp parallel context sequences on one loaded model as a verified runtime capability, used for bounded sub-agent parallelism in V1. |

@@ -34,6 +34,7 @@
     "guest:build:agent": "node --import tsx packages/workers/images/build.ts --agent --arch aarch64",
     "guest:build:agent:windows": "node --import tsx packages/workers/images/build.ts --agent --arch x86_64",
     "model:fetch": "node --import tsx packages/eval/src/gates/fetch-model.ts",
+    "vision:fetch": "node --import tsx packages/eval/src/gates/fetch-vision-runtime.ts",
     "tauri:build-sidecar": "node --import tsx packages/eval/src/platform/tauri-smoke/build.ts",
     "tauri:check": "node --import tsx packages/eval/src/platform/tauri-smoke/build.ts --tauri",
     "desktop:dev": "pnpm --filter @vault/desktop start:dev",

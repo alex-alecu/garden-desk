@@ -3,18 +3,18 @@ use serde_json::Value;
 #[cfg(any(windows, test))]
 use sha2::{Digest, Sha256};
 #[cfg(any(windows, test))]
-use std::collections::HashSet;
-#[cfg(any(windows, test))]
-use std::ffi::OsStr;
-#[cfg(any(windows, test))]
 use std::fs::{File, OpenOptions};
 #[cfg(any(windows, test))]
 use std::io::{Read, Seek, SeekFrom};
-#[cfg(any(windows, test))]
-use std::path::Component;
 use std::path::Path;
 #[cfg(any(windows, test))]
 use std::path::PathBuf;
+
+#[cfg(any(windows, test))]
+#[path = "package_integrity_resources.rs"]
+mod resources;
+#[cfg(any(windows, test))]
+use resources::{expected_resource_hash, lock_prompt_resources, lock_resource_prefix};
 
 #[cfg(windows)]
 const ELEVATED_RESOURCES: [&str; 3] = [
@@ -82,78 +82,6 @@ fn open_verified(path: &Path, expected: &str) -> Result<File, String> {
     Ok(file)
 }
 
-#[cfg(any(windows, test))]
-fn safe_relative_path(path: &str) -> Result<&Path, String> {
-    let relative = Path::new(path);
-    if relative.components().next().is_some()
-        && relative
-            .components()
-            .all(|part| matches!(part, Component::Normal(_)))
-    {
-        Ok(relative)
-    } else {
-        Err("Packaged resource manifest contains an unsafe path.".to_owned())
-    }
-}
-
-#[cfg(any(windows, test))]
-fn expected_resource_hash(manifest: &Value, required: &str) -> Result<String, String> {
-    let files = manifest
-        .get("files")
-        .and_then(Value::as_array)
-        .ok_or_else(|| "Packaged resource manifest is invalid.".to_owned())?;
-    let mut matches = files.iter().filter_map(|entry| {
-        let path = entry.get("path")?.as_str()?;
-        let hash = entry.get("sha256")?.as_str()?;
-        let relative = safe_relative_path(path).ok()?;
-        relative
-            .components()
-            .eq(Path::new(required).components())
-            .then(|| hash.to_owned())
-    });
-    let hash = matches
-        .next()
-        .ok_or_else(|| format!("Packaged resource manifest is missing {required}."))?;
-    if matches.next().is_some() {
-        return Err(format!(
-            "Packaged resource manifest contains duplicate {required}."
-        ));
-    }
-    Ok(hash)
-}
-
-#[cfg(any(windows, test))]
-fn lock_prompt_resources(core_resources: &Path, manifest: &Value) -> Result<Vec<File>, String> {
-    let entries = manifest
-        .get("files")
-        .and_then(Value::as_array)
-        .ok_or_else(|| "Packaged resource manifest is invalid.".to_owned())?;
-    let mut seen = HashSet::new();
-    let mut files = Vec::new();
-    for entry in entries {
-        let Some(relative_text) = entry.get("path").and_then(Value::as_str) else {
-            continue;
-        };
-        let relative = safe_relative_path(relative_text)?;
-        if relative.components().next() != Some(std::path::Component::Normal(OsStr::new("prompts")))
-        {
-            continue;
-        }
-        let expected = entry
-            .get("sha256")
-            .and_then(Value::as_str)
-            .ok_or_else(|| "Packaged prompt manifest entry is invalid.".to_owned())?;
-        if !seen.insert(relative.to_path_buf()) {
-            return Err("Packaged resource manifest contains a duplicate prompt path.".to_owned());
-        }
-        files.push(open_verified(&core_resources.join(relative), expected)?);
-    }
-    if files.is_empty() {
-        return Err("Packaged resource manifest contains no prompt assets.".to_owned());
-    }
-    Ok(files)
-}
-
 #[cfg(windows)]
 pub(crate) fn lock_packaged_runtime(
     resource_root: &Path,
@@ -179,6 +107,12 @@ pub(crate) fn lock_packaged_runtime(
         .map_err(|_| "Packaged resource manifest is invalid.".to_owned())?;
     files.push(manifest_file);
     files.extend(lock_prompt_resources(core_resources, &manifest)?);
+    files.extend(lock_resource_prefix(
+        core_resources,
+        &manifest,
+        "inference/vision",
+        "inference",
+    )?);
     for relative in ELEVATED_RESOURCES {
         let expected = expected_resource_hash(&manifest, relative)?;
         files.push(open_verified(&core_resources.join(relative), &expected)?);
@@ -285,6 +219,30 @@ mod tests {
         assert!(lock_setup_helper_with_manifest(&root, &manifest_hash).is_err());
         std::fs::remove_file(&path).expect("remove helper");
         assert!(lock_setup_helper_with_manifest(&root, &manifest_hash).is_err());
+        remove_dir_all(root).expect("cleanup");
+    }
+
+    #[test]
+    fn locks_every_image_runtime_file_from_the_manifest() {
+        let root = temporary_root();
+        let vision = root.join("inference").join("vision");
+        std::fs::create_dir_all(&vision).expect("vision resources");
+        let executable = vision.join("llama-mtmd-cli.exe");
+        let library = vision.join("mtmd.dll");
+        write(&executable, b"runtime").expect("runtime fixture");
+        write(&library, b"library").expect("library fixture");
+        let runtime_hash =
+            file_sha256(&mut File::open(&executable).expect("runtime")).expect("hash");
+        let library_hash = file_sha256(&mut File::open(&library).expect("library")).expect("hash");
+        let manifest = serde_json::json!({
+            "files": [
+                {"path": "inference/vision/llama-mtmd-cli.exe", "sha256": runtime_hash},
+                {"path": "inference/vision/mtmd.dll", "sha256": library_hash}
+            ]
+        });
+        let locks = lock_resource_prefix(&root, &manifest, "inference/vision", "inference")
+            .expect("valid runtime");
+        assert_eq!(locks.len(), 2);
         remove_dir_all(root).expect("cleanup");
     }
 }

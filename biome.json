@@ -120,6 +120,7 @@
         "packages/desktop/build-signing.ts",
         "packages/desktop/native/windows-hyper-v-setup/build.ts",
         "packages/desktop/package-compliance.ts",
+        "packages/desktop/package-image-resources.ts",
         "packages/desktop/package-output-cleanup.ts",
         "packages/desktop/clean-model-copies.ts",
         "packages/desktop/clean-development-model.ts",
@@ -130,6 +131,7 @@
         "packages/desktop/runtime-packages.ts",
         "packages/desktop/windows-runtime-assets.ts",
         "packages/desktop/src/package-compliance.test.ts",
+        "packages/desktop/src/package-image-resources.test.ts",
         "packages/desktop/src/package-output-cleanup.test.ts",
         "scripts/**/*.ts"
       ],

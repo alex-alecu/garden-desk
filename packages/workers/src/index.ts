@@ -28,3 +28,10 @@ export {
   WindowsNativeWorkerLauncher,
   windowsNativeWorkerEntryPath,
 } from "./native/windows.js";
+export type { VisionExecution } from "./vision/client.js";
+export {
+  LlamaVisionClient,
+  parseVisionOutput,
+  visionRuntimeArguments,
+  windowsVisionArguments,
+} from "./vision/client.js";

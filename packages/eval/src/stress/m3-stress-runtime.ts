@@ -1,5 +1,5 @@
-import { mkdir, writeFile } from "node:fs/promises";
-import { basename, join } from "node:path";
+import { mkdir } from "node:fs/promises";
+import { join } from "node:path";
 import { request } from "@vault/cli/client";
 import { createVaultCore, startDaemon, type VaultDaemon } from "@vault/core";
 import {
@@ -13,7 +13,7 @@ import {
   type RpcResponse,
   SessionSummarySchema,
 } from "@vault/shared";
-import { readCanonicalModelManifest, verifyModelFile } from "../models.js";
+import { prepareAgentModelStore } from "../gates/agent-model-store.js";
 import { verifyDeliverables } from "./deliverable-verification.js";
 import type { ExpectedTableRow, PreparedStressCase } from "./document-workloads.js";
 import { createProgressReporter, stressResultFor, terminal } from "./m3-stress-reporting.js";
@@ -21,7 +21,6 @@ import { stressPlatform } from "./stress-platform.js";
 
 const repositoryRoot = process.cwd();
 const modelRoot = join(repositoryRoot, "packages/eval/.generated/models");
-const modelPath = join(modelRoot, "gemma-4-12b-it-qat-q4_0.gguf");
 const images = join(repositoryRoot, "packages/workers/images");
 
 export interface ActiveCase {
@@ -94,26 +93,7 @@ export async function expectRpcFailure(
 }
 
 export async function prepareModelStore(): Promise<void> {
-  const manifest = await readCanonicalModelManifest();
-  const model = manifest.models.find((candidate) => candidate.id === "gemma-4-12b-it-qat-q4_0");
-  if (model === undefined) throw new Error("Canonical M3 model is missing.");
-  await verifyModelFile(model, modelPath);
-  await writeFile(
-    join(modelRoot, "installed-models.json"),
-    JSON.stringify({
-      schemaVersion: 1,
-      models: [
-        {
-          modelId: model.id,
-          sha256: model.sha256,
-          byteLength: model.byteLength,
-          runtimeBuild: "node-llama-cpp@3.19.0",
-          storeKey: basename(modelPath),
-          installedAt: new Date().toISOString(),
-        },
-      ],
-    }),
-  );
+  await prepareAgentModelStore(modelRoot);
 }
 
 export async function startStressRuntime(workspace: string): Promise<StressRuntime> {
@@ -125,6 +105,7 @@ export async function startStressRuntime(workspace: string): Promise<StressRunti
     profile: "auto",
     agentHelperPath: platform.helper,
     agentImageRoot: images,
+    visionRuntimePath: platform.visionRuntimePath,
     ...(platform.inference ?? {}),
   });
   try {

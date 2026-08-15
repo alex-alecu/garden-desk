@@ -1,5 +1,6 @@
 import type { AgentRunSnapshot } from "@vault/shared";
 import type { PendingQuestion } from "./agent-questions.js";
+import type { AgentStore } from "./store.js";
 
 export interface ActiveRun {
   controller: AbortController;
@@ -22,4 +23,13 @@ export function withActiveRun(snapshot: AgentRunSnapshot, active: ActiveRun | un
     contextAllocatedTokens: active?.contextAllocatedTokens ?? snapshot.contextAllocatedTokens,
     question: active?.question?.request ?? null,
   };
+}
+
+export function activeRunSnapshot(
+  store: Pick<AgentStore, "snapshot">,
+  activeRuns: Iterable<ActiveRun>,
+  runId: string,
+): AgentRunSnapshot {
+  const active = [...activeRuns].find((run) => run.runId === runId);
+  return withActiveRun(store.snapshot(runId), active);
 }

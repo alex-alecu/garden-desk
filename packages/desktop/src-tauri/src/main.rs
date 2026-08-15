@@ -11,6 +11,7 @@ use tauri_plugin_shell::process::CommandChild;
 mod artifact_commands;
 mod attachment_commands;
 mod commands;
+mod core_arguments;
 mod diagnostics;
 mod drop_commands;
 mod package_integrity;
@@ -18,53 +19,6 @@ mod question_commands;
 mod windows_setup;
 #[cfg(windows)]
 mod windows_setup_windows;
-
-#[cfg(windows)]
-fn add_platform_arguments(
-    arguments: &mut Vec<String>,
-    core_resources: &Path,
-) -> Result<(), String> {
-    arguments.extend([
-        "--windows-pipe-guard".to_owned(),
-        path_text(&core_resources.join("vault-pipe-guard.exe"))?,
-        "--worker-entry".to_owned(),
-        path_text(&core_resources.join("inference/worker.mjs"))?,
-        "--inference-runtime".to_owned(),
-        path_text(&core_resources.join("inference/node.exe"))?,
-        "--inference-helper".to_owned(),
-        path_text(&core_resources.join("inference/vault-appcontainer-launcher.exe"))?,
-        "--agent-helper".to_owned(),
-        path_text(&core_resources.join("workers/vault-hcs-helper.exe"))?,
-        "--agent-image-root".to_owned(),
-        path_text(&core_resources.join("workers/images"))?,
-        "--packaged-model-store".to_owned(),
-    ]);
-    Ok(())
-}
-
-#[cfg(target_os = "macos")]
-fn add_platform_arguments(
-    arguments: &mut Vec<String>,
-    core_resources: &Path,
-) -> Result<(), String> {
-    arguments.extend([
-        "--worker-entry".to_owned(),
-        path_text(&core_resources.join("inference/worker.mjs"))?,
-        "--inference-runtime".to_owned(),
-        path_text(&core_resources.join("inference/node"))?,
-        "--agent-helper".to_owned(),
-        path_text(&core_resources.join("workers/vault-vz-helper"))?,
-        "--agent-image-root".to_owned(),
-        path_text(&core_resources.join("workers/images"))?,
-        "--packaged-model-store".to_owned(),
-    ]);
-    Ok(())
-}
-
-#[cfg(not(any(windows, target_os = "macos")))]
-fn add_platform_arguments(_: &mut Vec<String>, _: &Path) -> Result<(), String> {
-    Ok(())
-}
 
 pub(crate) struct CoreBridge {
     child: Mutex<Option<CommandChild>>,
@@ -107,7 +61,7 @@ impl CoreBridge {
             "--parent-pid".to_owned(),
             std::process::id().to_string(),
         ];
-        add_platform_arguments(&mut arguments, &core_resources)?;
+        core_arguments::add_platform_arguments(&mut arguments, &core_resources)?;
         let command = app
             .shell()
             .sidecar("vault-core")

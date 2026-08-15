@@ -32,6 +32,7 @@ export interface AgentToolResult {
 export interface ToolContext {
   executor: AgentExecutor;
   skills: SkillReader;
+  inspectImage?(path: string, prompt: string): Promise<string>;
   spawnTask?(request: SubagentRequest): Promise<string>;
   askQuestion?(questions: AgentQuestion[]): Promise<AgentQuestionOutcome>;
   signal?: AbortSignal;

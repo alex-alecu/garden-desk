@@ -5,9 +5,19 @@ interface DevelopmentResourceContract {
   requiredOutputs: string[];
 }
 
+function modelInputs(repositoryRoot: string): string[] {
+  const root = join(repositoryRoot, "packages", "eval", ".generated", "models");
+  return [
+    join(root, "gemma-4-12b-it-qat-q4_0.gguf"),
+    join(root, "gemma-4-12b-it-qat-q4_0-mmproj.gguf"),
+  ];
+}
+
 function commonInputs(desktopRoot: string, repositoryRoot: string): string[] {
   return [
     join(repositoryRoot, "pnpm-lock.yaml"),
+    join(repositoryRoot, "assets", "vision-runtime.json"),
+    join(repositoryRoot, "assets", "licenses", "llama.cpp-LICENSE.txt"),
     join(repositoryRoot, "patches"),
     join(repositoryRoot, "packages", "shared", "src"),
     join(repositoryRoot, "packages", "core", "package.json"),
@@ -20,18 +30,12 @@ function commonInputs(desktopRoot: string, repositoryRoot: string): string[] {
     join(repositoryRoot, "packages", "workers", "images", "manifest.json"),
     join(repositoryRoot, "packages", "workers", "images", "agent"),
     join(repositoryRoot, "packages", "workers", "images", "buildroot-external"),
-    join(
-      repositoryRoot,
-      "packages",
-      "eval",
-      ".generated",
-      "models",
-      "gemma-4-12b-it-qat-q4_0.gguf",
-    ),
+    ...modelInputs(repositoryRoot),
     join(desktopRoot, "package.json"),
     join(desktopRoot, "build-sidecar.ts"),
     join(desktopRoot, "build-signing.ts"),
     join(desktopRoot, "package-resources.ts"),
+    join(desktopRoot, "package-image-resources.ts"),
     join(desktopRoot, "package-compliance.ts"),
     join(desktopRoot, "runtime-packages.ts"),
     join(desktopRoot, "windows-setup-resource.ts"),
@@ -48,6 +52,7 @@ function commonOutputs(resourcesRoot: string): string[] {
   return [
     join(resourcesRoot, "resource-manifest.json"),
     join(resourcesRoot, "models", "installed-models.json"),
+    join(resourcesRoot, "licenses", "llama.cpp-LICENSE.txt"),
     join(resourcesRoot, "inference", "worker.mjs"),
     join(resourcesRoot, "inference", "node_modules", "node-llama-cpp", "package.json"),
     join(resourcesRoot, "workers", "images", "agent", "manifest.json"),
@@ -106,11 +111,16 @@ function windowsContract(
       ...rustHelperInputs(join(desktopRoot, "native", "windows-hyper-v-setup")),
       join(desktopRoot, "windows-runtime-assets.json"),
       join(desktopRoot, "windows-runtime-assets.ts"),
+      join(repositoryRoot, "packages", "eval", ".generated", "vision", "windows-vulkan-x64"),
     ],
     requiredOutputs: [
       ...commonOutputs(resourcesRoot),
       join(resourcesRoot, "inference", "node.exe"),
       join(resourcesRoot, "inference", "vault-appcontainer-launcher.exe"),
+      join(resourcesRoot, "inference", "vision", "llama-mtmd-cli.exe"),
+      join(resourcesRoot, "inference", "vision", "msvcp140.dll"),
+      join(resourcesRoot, "inference", "vision", "vcruntime140.dll"),
+      join(resourcesRoot, "inference", "vision", "vcruntime140_1.dll"),
       join(resourcesRoot, "inference", "cublas64_13.dll"),
       join(resourcesRoot, "inference", "cublasLt64_13.dll"),
       ...["win-x64-cuda", "win-x64-cuda-ext", "win-x64-vulkan"].map((name) =>
@@ -133,10 +143,12 @@ function macContract(
     inputRoots: [
       ...commonInputs(desktopRoot, repositoryRoot),
       ...macHelperInputs(join(repositoryRoot, "packages", "workers", "native", "macos-vz-helper")),
+      join(repositoryRoot, "packages", "eval", ".generated", "vision", "macos-arm64"),
     ],
     requiredOutputs: [
       ...commonOutputs(resourcesRoot),
       join(resourcesRoot, "inference", "node"),
+      join(resourcesRoot, "inference", "vision", "llama-mtmd-cli"),
       join(
         resourcesRoot,
         "inference",

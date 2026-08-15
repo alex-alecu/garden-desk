@@ -54,7 +54,27 @@ async function files(root: string, directory = root): Promise<string[]> {
 const hostPackages = [
   { name: "Node.js", version: "24.18.0", license: "MIT" },
   { name: "node-llama-cpp", version: "3.19.0", license: "MIT" },
-  { name: "Gemma 4 12B IT QAT GGUF", version: "Q4_0", license: "Gemma Terms of Use" },
+  {
+    name: "llama.cpp",
+    version: "b9842",
+    license: "MIT",
+    notice: "License text: licenses/llama.cpp-LICENSE.txt",
+    source: {
+      file:
+        process.platform === "win32"
+          ? "llama-b9842-bin-win-vulkan-x64.zip"
+          : "llama-b9842-bin-macos-arm64.tar.gz",
+      sha256:
+        process.platform === "win32"
+          ? "8056f5c2fd8863a9b02719db527edd3c51f16567abb26981de4292d8d797444e"
+          : "c2903c14b9e0cf60a62fc85b8b8ab379267f5f849b9c6f29c8a4e21d299fa62b",
+      url:
+        process.platform === "win32"
+          ? "https://github.com/ggml-org/llama.cpp/releases/download/b9842/llama-b9842-bin-win-vulkan-x64.zip"
+          : "https://github.com/ggml-org/llama.cpp/releases/download/b9842/llama-b9842-bin-macos-arm64.tar.gz",
+    },
+  },
+  { name: "Gemma 4 12B IT QAT GGUF", version: "Q4_0", license: "Apache-2.0" },
   { name: "React", version: "19.2.7", license: "MIT" },
   { name: "Tauri", version: "2.11.5", license: "Apache-2.0 OR MIT" },
 ];
@@ -62,6 +82,24 @@ const hostPackages = [
 function platformPackages(): NoticePackage[] {
   return process.platform === "win32"
     ? [
+        {
+          name: "Microsoft Visual C++ OpenMP Runtime",
+          version: "MSVC 19.50.35721",
+          license: "Microsoft Software License Terms",
+          purpose: "application-local Windows image inference runtime dependency",
+          notice: "The pinned llama.cpp b9842 Windows archive supplies libomp140.x86_64.dll.",
+        },
+        {
+          name: "Microsoft Visual C++ Desktop Runtime",
+          version: "14.0.33321.0",
+          license: "Microsoft Software License Terms",
+          purpose: "application-local Windows image inference runtime dependency",
+          source: {
+            file: "Microsoft.VCLibs.x64.14.00.Desktop.appx",
+            sha256: "b56a9101f706f9d95f815f5b7fa6efbac972e86573d378b96a07cff5540c5961",
+            url: "https://download.microsoft.com/download/4/7/c/47c6134b-d61f-4024-83bd-b9c9ea951c25/Microsoft.VCLibs.x64.14.00.Desktop.appx",
+          },
+        },
         {
           name: "NVIDIA cuBLAS",
           version: "13.2.0.9",

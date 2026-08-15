@@ -15,6 +15,7 @@ import type {
   ChatInput,
   EmbeddingInput,
   GenerationInput,
+  ImageInspectionInput,
   InferenceService,
 } from "./runtime/inference.js";
 
@@ -87,6 +88,8 @@ function inferencePorts(ports: VaultCorePorts) {
       identity?: Parameters<InferenceService["chat"]>[3],
     ) => ports.chat(input, signal, streams, identity),
     embed: (input: EmbeddingInput, signal?: AbortSignal) => ports.embed(input, signal),
+    inspectImage: (input: ImageInspectionInput, signal?: AbortSignal) =>
+      ports.inspectImage(input, signal),
     modelStatus: () => ports.modelStatus(),
     unloadModel: () => ports.unloadModel(),
   };

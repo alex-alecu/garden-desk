@@ -5,6 +5,7 @@ import { windowsInferencePaths } from "../gates/windows-inference.js";
 
 export interface StressPlatform {
   helper: string;
+  visionRuntimePath: string;
   inference?: {
     inferenceHelperPath: string;
     inferenceRuntimePath: string;
@@ -21,6 +22,10 @@ export async function stressPlatform(): Promise<StressPlatform> {
         repositoryRoot,
         "packages/workers/native/windows-hcs-helper/.generated/vault-hcs-helper.exe",
       ),
+      visionRuntimePath: join(
+        repositoryRoot,
+        "packages/eval/.generated/vision/windows-vulkan-x64/llama-mtmd-cli.exe",
+      ),
       inference: await windowsInferencePaths(),
     };
   }
@@ -28,6 +33,10 @@ export async function stressPlatform(): Promise<StressPlatform> {
     helper: join(
       repositoryRoot,
       "packages/workers/native/macos-vz-helper/.generated/vault-vz-helper",
+    ),
+    visionRuntimePath: join(
+      repositoryRoot,
+      "packages/eval/.generated/vision/macos-arm64/llama-mtmd-cli",
     ),
   };
 }

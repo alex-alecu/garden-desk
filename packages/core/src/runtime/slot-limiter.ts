@@ -18,6 +18,8 @@ interface Waiter {
  */
 export class SlotLimiter {
   private active = 0;
+  private exclusiveActive = false;
+  private readonly exclusive: Waiter[] = [];
   private readonly primary: Waiter[] = [];
   private readonly secondary: Waiter[] = [];
 
@@ -28,8 +30,23 @@ export class SlotLimiter {
   setCapacity(capacity: number): void {
     if (!Number.isSafeInteger(capacity) || capacity < 1) throw new Error("invalid_slot_capacity");
     this.capacity = capacity;
-    while (this.active < this.capacity && this.admitNext()) {
+    while (
+      !this.exclusiveActive &&
+      this.exclusive.length === 0 &&
+      this.active < this.capacity &&
+      this.admitNext()
+    ) {
       // Admitting a waiter increments active; the loop stops when capacity or the queues run out.
+    }
+  }
+
+  async runExclusive<T>(operation: () => Promise<T>, signal?: AbortSignal): Promise<T> {
+    signal?.throwIfAborted();
+    await this.acquireExclusive(signal);
+    try {
+      return await operation();
+    } finally {
+      this.releaseExclusive();
     }
   }
 
@@ -47,7 +64,7 @@ export class SlotLimiter {
   }
 
   private acquire(priority: SlotPriority, signal: AbortSignal | undefined): Promise<void> {
-    if (this.active < this.capacity) {
+    if (!this.exclusiveActive && this.exclusive.length === 0 && this.active < this.capacity) {
       this.active += 1;
       return Promise.resolve();
     }
@@ -55,20 +72,70 @@ export class SlotLimiter {
       const queue = priority === "primary" ? this.primary : this.secondary;
       const waiter: Waiter = { admit: () => accept(), reject, signal, onAbort: undefined };
       if (signal !== undefined) {
-        waiter.onAbort = () => {
+        const abort = () => {
+          signal.removeEventListener("abort", abort);
           const index = queue.indexOf(waiter);
           if (index !== -1) queue.splice(index, 1);
           reject(signal.reason);
         };
-        signal.addEventListener("abort", waiter.onAbort, { once: true });
+        waiter.onAbort = abort;
       }
       queue.push(waiter);
+      if (signal !== undefined && waiter.onAbort !== undefined) {
+        signal.addEventListener("abort", waiter.onAbort, { once: true });
+        if (signal.aborted) waiter.onAbort();
+      }
+    });
+  }
+
+  private acquireExclusive(signal: AbortSignal | undefined): Promise<void> {
+    if (!this.exclusiveActive && this.active === 0) {
+      this.exclusiveActive = true;
+      return Promise.resolve();
+    }
+    return new Promise<void>((accept, reject) => {
+      const waiter: Waiter = { admit: () => accept(), reject, signal, onAbort: undefined };
+      if (signal !== undefined) {
+        const abort = () => {
+          signal.removeEventListener("abort", abort);
+          const index = this.exclusive.indexOf(waiter);
+          if (index !== -1) this.exclusive.splice(index, 1);
+          reject(signal.reason);
+        };
+        waiter.onAbort = abort;
+      }
+      this.exclusive.push(waiter);
+      if (signal !== undefined && waiter.onAbort !== undefined) {
+        signal.addEventListener("abort", waiter.onAbort, { once: true });
+        if (signal.aborted) waiter.onAbort();
+      }
     });
   }
 
   private release(): void {
     this.active -= 1;
-    if (this.active < this.capacity) this.admitNext();
+    if (this.active === 0 && this.admitExclusive()) return;
+    if (this.exclusive.length === 0 && this.active < this.capacity) this.admitNext();
+  }
+
+  private releaseExclusive(): void {
+    this.exclusiveActive = false;
+    if (this.admitExclusive()) return;
+    while (this.active < this.capacity && this.admitNext()) {
+      // Fill all available normal slots after the exclusive operation.
+    }
+  }
+
+  private admitExclusive(): boolean {
+    if (this.exclusiveActive || this.active !== 0) return false;
+    const waiter = this.exclusive.shift();
+    if (waiter === undefined) return false;
+    if (waiter.signal !== undefined && waiter.onAbort !== undefined) {
+      waiter.signal.removeEventListener("abort", waiter.onAbort);
+    }
+    this.exclusiveActive = true;
+    waiter.admit();
+    return true;
   }
 
   private admitNext(): boolean {

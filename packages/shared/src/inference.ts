@@ -3,7 +3,7 @@ import { VaultErrorSchema } from "./errors.js";
 import { JobIdSchema, RequestIdSchema } from "./ids.js";
 
 export const InferenceProfileSchema = z.enum(["auto", "local12", "local16"]);
-export const InferenceOperationSchema = z.enum(["generate", "chat", "embed", "probe"]);
+export const InferenceOperationSchema = z.enum(["generate", "chat", "embed", "probe", "vision"]);
 export const GenerationContextLimitReasonSchema = z.enum([
   "mac_unified_memory_at_most_32_gib",
   "mac_unified_memory_above_32_gib",

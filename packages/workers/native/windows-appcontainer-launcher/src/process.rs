@@ -58,6 +58,7 @@ fn environment(scratch: &Path, profile: &Path) -> Vec<u16> {
         format!("PATH={windows}\\System32"),
         "NODE_NO_WARNINGS=1".to_owned(),
         "NODE_LLAMA_CPP_SKIP_DOWNLOAD=true".to_owned(),
+        "LLAMA_ARG_OFFLINE=1".to_owned(),
         "VAULT_APPCONTAINER_LOCKED=1".to_owned(),
     ];
     values.sort_by_key(|value| value.to_ascii_uppercase());

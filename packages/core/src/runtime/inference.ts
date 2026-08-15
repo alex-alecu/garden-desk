@@ -72,6 +72,27 @@ export interface InferencePort {
   unload(): Promise<boolean>;
 }
 
+export interface ImageInspectionInput {
+  imagePath: string;
+  modelId: string;
+  projectorModelId: string;
+  prompt: string;
+}
+
+export interface ImageInferenceExecution {
+  imagePath: string;
+  memoryBudgetBytes: number;
+  modelPath: string;
+  projectorPath: string;
+  prompt: string;
+  signal?: AbortSignal;
+  timeoutMs: number;
+}
+
+export interface ImageInferencePort {
+  inspect(execution: ImageInferenceExecution): Promise<{ text: string }>;
+}
+
 export interface InferenceStreamCallbacks {
   onThinkingDelta?(text: string): void;
   onResponseDelta?(text: string): void;
@@ -91,6 +112,7 @@ export interface InferenceService {
     identity?: GenerationRequestIdentity,
   ): Promise<ChatGenerationResult>;
   embed(input: EmbeddingInput, signal?: AbortSignal): Promise<EmbeddingResult>;
+  inspectImage(input: ImageInspectionInput, signal?: AbortSignal): Promise<string>;
   modelStatus(): Promise<ModelRuntimeStatus>;
   unloadModel(): Promise<boolean>;
 }

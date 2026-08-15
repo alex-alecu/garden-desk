@@ -5,11 +5,12 @@ const stageLabels = {
   windowsPermissionSetup: "Building the one-time Windows permission helper",
   inferenceWorker: "Bundling the local inference worker",
   inferenceRuntime: "Copying the local inference runtime and native backends",
+  visionRuntime: "Copying the local image inspection runtime",
   inferenceIsolation: "Building the Windows inference isolation helper",
   cudaRuntime: "Verifying and copying the Windows CUDA runtime",
   agentHelper: "Building the no-network agent VM helper",
   agentImage: "Copying the no-network agent VM image",
-  model: "Verifying the 6.5 GiB local model for packaging",
+  model: "Verifying the local generation model and image projector for packaging",
   manifest: "Hashing and recording the complete offline resource package",
 } as const;
 

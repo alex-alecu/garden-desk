@@ -30,6 +30,7 @@ interface LaunchOptions {
   agentImageRoot: string | undefined;
   inferenceHelperPath: string | undefined;
   inferenceRuntimePath: string | undefined;
+  visionRuntimePath: string | undefined;
   migrationDirectory: string | undefined;
   modelStoreDir: string;
   packagedModelStore: boolean;
@@ -56,6 +57,7 @@ function launchOptions(args: string[]): LaunchOptions {
     agentImageRoot: argument(args, "--agent-image-root", false),
     inferenceHelperPath: argument(args, "--inference-helper", false),
     inferenceRuntimePath: argument(args, "--inference-runtime", false),
+    visionRuntimePath: argument(args, "--vision-runtime", false),
     migrationDirectory: argument(args, "--migration-directory", false),
     modelStoreDir,
     packagedModelStore: args.includes("--packaged-model-store"),
@@ -88,6 +90,8 @@ function coreOptions(options: LaunchOptions): VaultCoreOptions {
   if (options.inferenceHelperPath !== undefined) {
     configured.inferenceHelperPath = options.inferenceHelperPath;
   }
+  if (options.visionRuntimePath !== undefined)
+    configured.visionRuntimePath = options.visionRuntimePath;
   if (options.agentHelperPath !== undefined) configured.agentHelperPath = options.agentHelperPath;
   if (options.agentImageRoot !== undefined) configured.agentImageRoot = options.agentImageRoot;
   return configured;

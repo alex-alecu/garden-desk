@@ -19,6 +19,18 @@ const PROFILE_NAME: &str = "VaultDesk.M2.Inference";
 enum Command {
     Prepare { read_roots: Vec<PathBuf> },
     Run(RunArguments),
+    RunVision(VisionArguments),
+}
+
+#[cfg(windows)]
+struct VisionArguments {
+    executable: PathBuf,
+    model: PathBuf,
+    projector: PathBuf,
+    image: PathBuf,
+    prompt_file: PathBuf,
+    scratch: PathBuf,
+    memory_bytes: usize,
 }
 
 #[cfg(windows)]
@@ -73,7 +85,16 @@ fn parse() -> Result<Command, Box<dyn Error>> {
                 .iter()
                 .any(|(key, value)| key == "--development-allow-shared-gpu" && value == "true"),
         })),
-        _ => Err("Usage: vault-appcontainer-launcher <prepare --read PATH...|run --executable PATH --worker PATH --scratch PATH --memory BYTES [--model PATH] [--development-allow-shared-gpu true]>".into()),
+        "run-vision" if read_roots.is_empty() => Ok(Command::RunVision(VisionArguments {
+            executable: PathBuf::from(value(&values, "--executable")?),
+            model: PathBuf::from(value(&values, "--model")?),
+            projector: PathBuf::from(value(&values, "--projector")?),
+            image: PathBuf::from(value(&values, "--image")?),
+            prompt_file: PathBuf::from(value(&values, "--prompt-file")?),
+            scratch: PathBuf::from(value(&values, "--scratch")?),
+            memory_bytes: value(&values, "--memory")?.parse()?,
+        })),
+        _ => Err("Usage: vault-appcontainer-launcher <prepare --read PATH...|run --executable PATH --worker PATH --scratch PATH --memory BYTES [--model PATH] [--development-allow-shared-gpu true]|run-vision --executable PATH --model PATH --projector PATH --image PATH --prompt-file PATH --scratch PATH --memory BYTES>".into()),
     }
 }
 
@@ -115,6 +136,47 @@ fn run() -> Result<i32, Box<dyn Error>> {
             if arguments.development_allow_shared_gpu {
                 child_arguments.push("--development-allow-windows-shared-gpu".to_owned());
             }
+            process::run_sandboxed(
+                &executable,
+                &child_arguments,
+                &scratch,
+                arguments.memory_bytes,
+                container.sid(),
+                &container.profile_path()?,
+            )
+        }
+        Command::RunVision(arguments) => {
+            let executable = arguments.executable.canonicalize()?;
+            let model = arguments.model.canonicalize()?;
+            let projector = arguments.projector.canonicalize()?;
+            let image = arguments.image.canonicalize()?;
+            let prompt_file = arguments.prompt_file.canonicalize()?;
+            let scratch = arguments.scratch.canonicalize()?;
+            container.grant_scratch(&scratch)?;
+            for path in [&model, &projector, &image, &prompt_file] {
+                container.grant_file_read(path)?;
+            }
+            let child_arguments = vec![
+                "--offline".to_owned(),
+                "--no-warmup".to_owned(),
+                "--log-verbosity".to_owned(),
+                "1".to_owned(),
+                "--jinja".to_owned(),
+                "--model".to_owned(),
+                model.to_string_lossy().into_owned(),
+                "--mmproj".to_owned(),
+                projector.to_string_lossy().into_owned(),
+                "--image".to_owned(),
+                image.to_string_lossy().into_owned(),
+                "--file".to_owned(),
+                prompt_file.to_string_lossy().into_owned(),
+                "--predict".to_owned(),
+                "2048".to_owned(),
+                "--ctx-size".to_owned(),
+                "8192".to_owned(),
+                "--temperature".to_owned(),
+                "0".to_owned(),
+            ];
             process::run_sandboxed(
                 &executable,
                 &child_arguments,

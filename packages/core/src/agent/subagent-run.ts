@@ -15,6 +15,7 @@ interface SubagentPorts {
   knownContextTokens?: number;
   database: DatabasePort;
   inference: Pick<InferenceService, "chat">;
+  inspectImage(path: string, prompt: string): Promise<string>;
   jobs: JobStore;
   library: MarkdownDefinitionLibrary;
   modelId: string;
@@ -90,6 +91,7 @@ export async function runSubagent(ports: SubagentPorts, request: SubagentRequest
       onEvent: (type, summary, detail) => ports.store.appendEvent(child.id, type, summary, detail),
       signal: ports.signal,
       inferencePriority: "secondary",
+      ...(request.subagentType === "general" ? { inspectImage: ports.inspectImage } : {}),
       skills: skillReader(ports.library),
       systemPrompt: (name) => ports.library.system(name),
       task: `${request.description}\n\n${request.prompt}`,
