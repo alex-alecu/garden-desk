@@ -25,7 +25,7 @@ describe("llama vision client", () => {
   it("builds fixed offline arguments without prompt text", () => {
     const args = visionRuntimeArguments(input, "/tmp/prompt.txt");
     expect(args).toContain("--offline");
-    expect(args).toContain("/tmp/prompt.txt");
+    expect(args[args.indexOf("--file") + 1]).toMatch(/prompt\.txt$/u);
     expect(args).not.toContain(input.prompt);
 
     const windows = windowsVisionArguments(input, "/runtime/llama.exe", "/tmp/prompt.txt", "/tmp");
