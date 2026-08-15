@@ -3,6 +3,10 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
+  prepareProfessionalRoutingCase,
+  ROUTING_CASE_IDS,
+} from "./professional-skill-routing-profile.js";
+import {
   DOMAIN_SKILLS,
   PROFESSIONAL_SKILL_CASES,
   type ProfessionalSkillId,
@@ -66,5 +70,21 @@ describe("M3 professional skill profile", () => {
     const prepared = await preparedFile(id);
     expect(prepared.name).toBe(name);
     expect(prepared.bytes.subarray(0, header.length).toString()).toBe(header);
+  });
+});
+
+describe("M3 professional skill negative routing", () => {
+  it("defines negative routes that forbid all professional review skills", async () => {
+    const root = await mkdtemp(join(tmpdir(), "vault-professional-routing-"));
+    try {
+      for (const id of ROUTING_CASE_IDS) {
+        const fixture = await prepareProfessionalRoutingCase(root, id);
+        expect(fixture.forbiddenSkills).toEqual(
+          expect.arrayContaining(["document-review", "review-report", ...DOMAIN_SKILLS]),
+        );
+      }
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
   });
 });

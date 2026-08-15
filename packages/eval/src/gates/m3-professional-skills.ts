@@ -9,6 +9,11 @@ import {
 import { createStressRoot, requireStressPlatform } from "../stress/stress-platform.js";
 import { runSequentialCases } from "../stress/stress-suite.js";
 import {
+  type ProfessionalRoutingCaseId,
+  prepareProfessionalRoutingCase,
+  ROUTING_CASE_IDS,
+} from "./professional-skill-routing-profile.js";
+import {
   DOMAIN_SKILLS,
   type ProfessionalSkillId,
   prepareProfessionalSkillCase,
@@ -16,13 +21,22 @@ import {
 
 const CASE_DEADLINE_MS = 5 * 60_000;
 
-function requestedCase(): ProfessionalSkillId | undefined {
+type ProfessionalCaseId = ProfessionalSkillId | ProfessionalRoutingCaseId;
+const CASE_IDS: readonly ProfessionalCaseId[] = [...DOMAIN_SKILLS, ...ROUTING_CASE_IDS];
+
+function requestedCase(): ProfessionalCaseId | undefined {
   const index = process.argv.indexOf("--case");
   if (index === -1) return undefined;
   const value = process.argv[index + 1];
-  const id = DOMAIN_SKILLS.find((candidate) => candidate === value);
+  const id = CASE_IDS.find((candidate) => candidate === value);
   if (id === undefined) throw new Error(`Unknown professional skill case: ${value ?? "missing"}`);
   return id;
+}
+
+async function prepareCase(root: string, id: ProfessionalCaseId) {
+  const domain = DOMAIN_SKILLS.find((candidate) => candidate === id);
+  if (domain !== undefined) return await prepareProfessionalSkillCase(root, domain);
+  return await prepareProfessionalRoutingCase(root, id as ProfessionalRoutingCaseId);
 }
 
 function reportPath(): string {
@@ -49,8 +63,8 @@ async function main(): Promise<void> {
     const evidence = await runSequentialCases({
       endpoint: runtime.endpoint,
       fixtureRoot: join(root, "fixtures"),
-      ids: selected === undefined ? [...DOMAIN_SKILLS] : [selected],
-      prepare: prepareProfessionalSkillCase,
+      ids: selected === undefined ? [...CASE_IDS] : [selected],
+      prepare: prepareCase,
       deadlineMs: CASE_DEADLINE_MS,
     });
     const auditValid = await runtime.core.verifyAudit();

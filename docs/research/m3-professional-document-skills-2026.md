@@ -43,7 +43,7 @@ The product uses only supplied files, policies, playbooks, and criteria. It does
 
 ## Validation Required
 
-- Run all 12 held-out skill cases with the real Gemma worker and no-NIC guest on physical macOS and Windows.
+- Run all 12 held-out domain cases and two negative routing cases with the real Gemma worker and no-NIC guest on physical macOS and Windows.
 - Review final case results blind with qualified legal, finance, and medical-administration reviewers.
 - Manually inspect generated DOCX and PDF reports because the guest does not render them.
 - Treat any safety failure, invented professional conclusion, missing critical issue, or unusable citation as release-blocking.
