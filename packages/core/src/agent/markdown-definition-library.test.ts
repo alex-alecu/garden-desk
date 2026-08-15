@@ -5,6 +5,16 @@ import { join, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { MarkdownDefinitionLibrary } from "./markdown-definition-library.js";
 
+const LEGAL_CONFLICT_TYPES = [
+  "identity mismatch",
+  "value mismatch",
+  "date conflict",
+  "defined-term drift",
+  "clause conflict",
+  "broken reference",
+  "missing repeated detail",
+] as const;
+
 function fixture(): { root: string; remove: () => void } {
   const root = mkdtempSync(join(tmpdir(), "vault-markdown-definitions-"));
   for (const path of ["agents", "skills/example-skill"]) {
@@ -50,16 +60,56 @@ function expectApprovedAgents(library: MarkdownDefinitionLibrary): void {
   });
 }
 
+function expectDocumentReviewSkills(library: MarkdownDefinitionLibrary): void {
+  const finance = library.skill("finance-document-review");
+  expect(finance.description).toContain("Required first skill");
+  expect(finance.description).toContain("Load it before PDF, Word, or XLSX skills");
+  expect(finance.description).toContain("financial statements");
+  expect(finance.body).toContain("Assess the reliability of each source.");
+  expect(finance.body).toContain("Use records mode");
+  expect(finance.body).toContain("Use statements mode");
+  expect(finance.body).toContain("Do not combine currencies or apply exchange rates");
+  expect(finance.body).toContain("statement of financial position at the start");
+  expect(finance.body).toContain("For a comparison, cite both source locations");
+  expect(finance.body).toContain("If one value is absent, cite where it should appear");
+  expect(finance.body).toContain("Never use one fixed percentage as the only test.");
+  expect(finance.body).toContain("Do not describe the review as an audit");
+  expect(finance.body).toContain("Do not give tax, investment, compliance, or fraud conclusions");
+
+  const legal = library.skill("legal-document-review");
+  expect(legal.description).toContain("Must be loaded before a format skill");
+  expect(legal.description).toContain("inconsistency check");
+  expect(legal.body).toContain("## Check Consistency First");
+  expect(legal.body).toContain("Report all internal mismatches before you compare versions");
+  expect(legal.body).toContain("Put each different field in its own result row");
+  for (const conflict of LEGAL_CONFLICT_TYPES) expect(legal.body).toContain(conflict);
+  expect(legal.body).toContain("blank signatory name, title, authority, party, or date");
+  expect(legal.body).toContain("add a `Signatory title` row");
+  expect(legal.body).toContain("give each field its own row and quote both exact values");
+  expect(legal.body).toContain(
+    "Never classify an added or completed value as a harmless formatting change",
+  );
+  expect(legal.body).toContain(
+    "Treat them as aliases only when the documents explicitly establish",
+  );
+  expect(legal.body).toContain("Ignore only harmless differences in case, spacing, or punctuation");
+  expect(legal.body).toContain("Do not give a final legal conclusion");
+  expect(legal.body).toContain("qualified human review is required");
+}
+
 describe("MarkdownDefinitionLibrary", () => {
   it("loads the approved generic agent and skill catalog", () => {
     const library = new MarkdownDefinitionLibrary(resolve(process.cwd(), "prompts"));
     expectApprovedAgents(library);
     expect(library.skills.map(({ name }) => name)).toEqual([
+      "finance-document-review",
+      "legal-document-review",
       "pdf-documents",
       "terminal-commands",
       "word-documents",
       "xlsx-workbooks",
     ]);
+    expectDocumentReviewSkills(library);
     const word = library.skill("word-documents");
     expect(word.description).toContain("legacy .doc file");
     expect(word.body).toContain('/usr/bin/antiword", "-m", "UTF-8.txt", "-w", "0"');

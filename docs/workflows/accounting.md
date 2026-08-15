@@ -4,6 +4,14 @@ Created: 2026-07-10
 
 Accounting is a possible post-V1 workflow pack. It is not part of the desktop V1 gate.
 
+## Current Skill-Only Support
+
+The owner activated a limited product-agent skill on 2026-08-15. The `finance-document-review` skill uses the existing Word, PDF, and XLSX workflows. It reviews text-readable financial statements and reconciles supplied invoices, bank statements, ledgers, and workbooks with source citations.
+
+This skill is not the complete accounting workflow pack. It does not add OCR, autonomous postings, bank connections, tax advice, compliance filing, audit assurance, or unreviewed export.
+
+Research-derived workflow guidance comes from the [IAS 1 complete statement set](https://www.ifrs.org/issued-standards/list-of-standards/ias-1-presentation-of-financial-statements.html/), the [SEC 10-K section guide](https://www.sec.gov/answers/reada10k.htm), and [PCAOB AS 1105 evidence controls](https://pcaobus.org/oversight/standards/auditing-standards/details/AS1105). [SEC Staff Accounting Bulletin 99](https://www.sec.gov/interps/account/sab99.htm) supports the rule that one fixed percentage cannot be the only materiality test. These sources guide review structure only. The product does not perform an audit.
+
 ## Why Accounting Is A Candidate
 
 Accounting firms and bookkeeping teams have:
@@ -65,6 +73,7 @@ Development fixtures and held-out acceptance documents must use different templa
 
 | Date | Change |
 |---|---|
+| 2026-08-15 | Added the limited local finance document review skill and retained the full workflow pack as follow-up work. |
 | 2026-07-10 | Initial accounting workflow document created. |
 | 2026-07-11 | Added held-out variation and blinded human-review requirements for pilot readiness. |
 | 2026-07-20 | Removed the pre-V1 review slice and retained generic reconciliation only as a post-V1 candidate. |
