@@ -3,10 +3,9 @@ import { createReadStream } from "node:fs";
 import { readdir, readFile, rename, rm, stat } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import {
-  canonicalGenerationModelPath,
-  generationModelFileName,
-  generationModelResourcePath,
-  packagedGenerationModelPath,
+  canonicalModelPath,
+  packagedModelFiles,
+  packagedModelPath,
 } from "./src/package-model-contract.js";
 
 export type PackageProfile = "debug" | "release";
@@ -94,27 +93,27 @@ async function verifyPackage(target: PackageBuildTarget): Promise<void> {
   const manifest = JSON.parse(
     await readFile(join(resourcesRoot, "resource-manifest.json"), "utf8"),
   ) as { files?: Array<{ path?: string; byteLength?: number; sha256?: string }> };
-  const matches = (manifest.files ?? []).filter(
-    (entry) => entry.path === generationModelResourcePath,
-  );
-  if (matches.length !== 1)
-    throw new Error("Packaged model manifest entry is missing or duplicated.");
-  const entry = matches[0];
-  const model = packagedGenerationModelPath(resourcesRoot);
-  const canonical = canonicalGenerationModelPath(resolve(target.desktopRoot, "../.."));
-  const [metadata, canonicalMetadata, modelHash, canonicalHash] = await Promise.all([
-    stat(model),
-    stat(canonical),
-    sha256(model),
-    sha256(canonical),
-  ]);
-  if (
-    entry?.byteLength !== metadata.size ||
-    entry.byteLength !== canonicalMetadata.size ||
-    entry.sha256 !== modelHash ||
-    entry.sha256 !== canonicalHash
-  ) {
-    throw new Error("Packaged model does not match its resource manifest.");
+  for (const candidate of packagedModelFiles) {
+    const matches = (manifest.files ?? []).filter((entry) => entry.path === candidate.resourcePath);
+    if (matches.length !== 1)
+      throw new Error("Packaged model manifest entry is missing or duplicated.");
+    const entry = matches[0];
+    const model = packagedModelPath(resourcesRoot, candidate.fileName);
+    const canonical = canonicalModelPath(resolve(target.desktopRoot, "../.."), candidate.fileName);
+    const [metadata, canonicalMetadata, modelHash, canonicalHash] = await Promise.all([
+      stat(model),
+      stat(canonical),
+      sha256(model),
+      sha256(canonical),
+    ]);
+    if (
+      entry?.byteLength !== metadata.size ||
+      entry.byteLength !== canonicalMetadata.size ||
+      entry.sha256 !== modelHash ||
+      entry.sha256 !== canonicalHash
+    ) {
+      throw new Error("Packaged model does not match its resource manifest.");
+    }
   }
 }
 
@@ -124,49 +123,45 @@ async function modelFiles(root: string): Promise<string[]> {
   for (const entry of await readdir(root, { withFileTypes: true })) {
     const path = join(root, entry.name);
     if (entry.isDirectory()) output.push(...(await modelFiles(path)));
-    else if (entry.isFile() && entry.name === generationModelFileName) output.push(path);
+    else if (
+      entry.isFile() &&
+      packagedModelFiles.some((candidate) => candidate.fileName === entry.name)
+    )
+      output.push(path);
   }
   return output;
 }
 
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: all platform copy locations stay explicit.
 function knownModelPaths(target: PackageBuildTarget): Set<string> {
-  const paths = new Set([
-    join(target.tauriRoot, "resources", "core", "models", generationModelFileName),
-    join(
-      target.tauriRoot,
-      "target",
-      "debug",
-      "resources",
-      "core",
-      "models",
-      generationModelFileName,
-    ),
-    join(
-      target.tauriRoot,
-      "target",
-      "release",
-      "resources",
-      "core",
-      "models",
-      generationModelFileName,
-    ),
-    packagedGenerationModelPath(packageResourcesRoot(target.packageRoot, target.platform)),
-    packagedGenerationModelPath(packageResourcesRoot(backupRoot(target), target.platform)),
-  ]);
-  if (target.platform === "darwin") {
+  const paths = new Set<string>();
+  for (const model of packagedModelFiles) {
+    paths.add(join(target.tauriRoot, "resources", "core", "models", model.fileName));
     for (const profile of ["debug", "release"] as const) {
       paths.add(
-        packagedGenerationModelPath(
-          packageResourcesRoot(macPackageRoot(target.tauriRoot, profile), target.platform),
+        join(target.tauriRoot, "target", profile, "resources", "core", "models", model.fileName),
+      );
+    }
+    for (const root of [target.packageRoot, backupRoot(target)]) {
+      paths.add(packagedModelPath(packageResourcesRoot(root, target.platform), model.fileName));
+    }
+    if (target.platform === "darwin") {
+      for (const profile of ["debug", "release"] as const) {
+        paths.add(
+          packagedModelPath(
+            packageResourcesRoot(macPackageRoot(target.tauriRoot, profile), target.platform),
+            model.fileName,
+          ),
+        );
+      }
+    } else {
+      paths.add(
+        packagedModelPath(
+          packageResourcesRoot(windowsPackageRoot(target.tauriRoot), target.platform),
+          model.fileName,
         ),
       );
     }
-  } else {
-    paths.add(
-      packagedGenerationModelPath(
-        packageResourcesRoot(windowsPackageRoot(target.tauriRoot), target.platform),
-      ),
-    );
   }
   return paths;
 }
@@ -208,9 +203,11 @@ export async function rollbackPackageBuild(
 export async function cleanModelCopies(target: PackageBuildTarget): Promise<void> {
   await verifyPackage(target);
   await rejectUnknownCopies(target);
-  await rm(join(target.tauriRoot, "resources", "core", "models", generationModelFileName), {
-    force: true,
-  });
+  await Promise.all(
+    packagedModelFiles.map((model) =>
+      rm(join(target.tauriRoot, "resources", "core", "models", model.fileName), { force: true }),
+    ),
+  );
   await Promise.all(
     (["debug", "release"] as const).map((profile) =>
       rm(join(target.tauriRoot, "target", profile, "resources"), {
@@ -222,14 +219,15 @@ export async function cleanModelCopies(target: PackageBuildTarget): Promise<void
   const otherPackage = otherPackageRoot(target);
   if (otherPackage !== undefined) await rm(otherPackage, { force: true, recursive: true });
   const remaining = await modelFiles(target.tauriRoot);
-  const expected = packagedGenerationModelPath(
-    packageResourcesRoot(target.packageRoot, target.platform),
-  );
   const backup = backupRoot(target);
-  const expectedBeforeBackupRemoval = [expected];
+  const expectedBeforeBackupRemoval = packagedModelFiles.map((model) =>
+    packagedModelPath(packageResourcesRoot(target.packageRoot, target.platform), model.fileName),
+  );
   if (await exists(backup)) {
     expectedBeforeBackupRemoval.push(
-      packagedGenerationModelPath(packageResourcesRoot(backup, target.platform)),
+      ...packagedModelFiles.map((model) =>
+        packagedModelPath(packageResourcesRoot(backup, target.platform), model.fileName),
+      ),
     );
   }
   if (
@@ -242,17 +240,21 @@ export async function cleanModelCopies(target: PackageBuildTarget): Promise<void
 }
 
 export async function cleanupDevelopmentModelOutput(desktopRoot: string): Promise<void> {
-  await rm(
-    join(
-      desktopRoot,
-      "src-tauri",
-      "target",
-      "debug",
-      "resources",
-      "core",
-      "models",
-      generationModelFileName,
+  await Promise.all(
+    packagedModelFiles.map((model) =>
+      rm(
+        join(
+          desktopRoot,
+          "src-tauri",
+          "target",
+          "debug",
+          "resources",
+          "core",
+          "models",
+          model.fileName,
+        ),
+        { force: true },
+      ),
     ),
-    { force: true },
   );
 }

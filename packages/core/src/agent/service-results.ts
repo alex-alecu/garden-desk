@@ -1,4 +1,15 @@
 import type { AgentRunPerformance, AgentRunResult } from "@vault/shared";
+import type { InferenceService } from "../runtime/inference.js";
+
+export async function inferenceContextTokens(
+  inference: Partial<Pick<InferenceService, "modelStatus">>,
+): Promise<number | "auto"> {
+  try {
+    return (await inference.modelStatus?.())?.contextSizeTokens ?? "auto";
+  } catch {
+    return "auto";
+  }
+}
 
 export function tokenRate(tokens: number, milliseconds: number): number {
   return milliseconds <= 0 ? 0 : tokens / (milliseconds / 1_000);

@@ -83,6 +83,7 @@ src/folders/grants.ts        canonical folder grants and revocation
 src/sessions/sessions.ts     sessions, newest-five query, cursor expansion, turns, drafts
 src/sessions/attachments.ts  explicit-file staging for New chat
 src/agent/loop.ts            bounded Core-owned agent orchestration
+src/agent/image-inputs.ts    image path authority, validation, and private snapshots
 src/agent/prompt-library.ts  validated root prompt and skill loading
 src/agent/guest.ts           CodeAgentPort consumed by the loop
 src/agent/events.ts          observable event persistence and polling/streaming
@@ -112,6 +113,7 @@ Add only:
 src/microvm/agent/client.ts       host CodeAgentPort implementation
 src/microvm/agent/frames.ts       typed agent frame codec
 src/microvm/guest/agent.ts        guest task and completion loop
+src/vision/client.ts               bounded host-native image inspection adapter
 images/agent/                      reproducible image recipe and manifest
 ```
 
@@ -132,7 +134,7 @@ src/app.tsx
 src/api.ts                 typed Tauri command adapter
 src/desktop-actions.ts     narrow desktop workflow calls
 src/dev-resource-progress.ts development startup stage labels
-src/package-model-contract.ts canonical and packaged generation-model paths
+src/package-model-contract.ts canonical and packaged generation-model and projector paths
 src/package-resource-contract.ts packaged migration inventory
 src/state.ts               plain React reducer
 src/styles.css

@@ -1,6 +1,7 @@
 import type { WorkerLimits } from "@vault/shared";
 
 export const AGENT_MODEL_ID = "gemma-4-12b-it-qat-q4_0";
+export const AGENT_PROJECTOR_MODEL_ID = "gemma-4-12b-it-qat-q4_0-mmproj";
 export const MAX_AGENT_EXECUTIONS = 24;
 
 export const AGENT_WORKER_LIMITS: WorkerLimits = {

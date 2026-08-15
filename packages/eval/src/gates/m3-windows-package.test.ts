@@ -4,14 +4,18 @@ import { describe, expect, it } from "vitest";
 
 describe("M3 Windows package contract", () => {
   it("passes every packaged Windows runtime and guest resource to Core", async () => {
-    const source = await readFile(
-      join(process.cwd(), "packages/desktop/src-tauri/src/main.rs"),
-      "utf8",
-    );
+    const source = (
+      await Promise.all(
+        ["main.rs", "core_arguments.rs"].map((name) =>
+          readFile(join(process.cwd(), "packages/desktop/src-tauri/src", name), "utf8"),
+        ),
+      )
+    ).join("\n");
     for (const value of [
       "inference/worker.mjs",
       "inference/node.exe",
       "inference/vault-appcontainer-launcher.exe",
+      "inference/vision/llama-mtmd-cli.exe",
       "workers/vault-hcs-helper.exe",
       "workers/images",
       "--packaged-model-store",
@@ -19,7 +23,9 @@ describe("M3 Windows package contract", () => {
       expect(source).toContain(value);
     }
   });
+});
 
+describe("M3 Windows portable package", () => {
   it("produces one portable application with every backend and no online installer", async () => {
     const [configuration, staging, assets] = await Promise.all([
       readFile(join(process.cwd(), "packages/desktop/src-tauri/tauri.windows.conf.json"), "utf8"),
@@ -50,8 +56,24 @@ describe("M3 Windows package contract", () => {
   });
 });
 
+describe("M3 Windows image runtime", () => {
+  it("packages the exact application-local Visual C++ dependencies", async () => {
+    const source = await readFile(join(process.cwd(), "assets/vision-runtime.json"), "utf8");
+    const runtime = (
+      JSON.parse(source) as {
+        platforms: { "windows-vulkan-x64": { dependencies: Array<{ files: object }> } };
+      }
+    ).platforms["windows-vulkan-x64"];
+    expect(Object.keys(runtime.dependencies[0]?.files ?? {})).toEqual([
+      "msvcp140.dll",
+      "vcruntime140.dll",
+      "vcruntime140_1.dll",
+    ]);
+  });
+});
+
 describe("M3 model package input", () => {
-  it("maps the canonical model only for model-bearing desktop commands", async () => {
+  it("maps the canonical model pair only for model-bearing desktop commands", async () => {
     const [baseSource, packageSource, launcher] = await Promise.all([
       readFile(join(process.cwd(), "packages/desktop/src-tauri/tauri.conf.json"), "utf8"),
       readFile(
@@ -71,6 +93,8 @@ describe("M3 model package input", () => {
       "resources/core/": "resources/core/",
       "../../eval/.generated/models/gemma-4-12b-it-qat-q4_0.gguf":
         "resources/core/models/gemma-4-12b-it-qat-q4_0.gguf",
+      "../../eval/.generated/models/gemma-4-12b-it-qat-q4_0-mmproj.gguf":
+        "resources/core/models/gemma-4-12b-it-qat-q4_0-mmproj.gguf",
       "../../../assets/fonts/LICENSE.txt": "assets/fonts/LICENSE.txt",
     });
     expect(launcher).toContain('tauriArguments[0] === "dev"');
