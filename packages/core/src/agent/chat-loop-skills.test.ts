@@ -1,8 +1,10 @@
+import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import type { InferenceService } from "../runtime/inference.js";
 import { InferenceFailure } from "../runtime/inference-errors.js";
 import { ChatAgentLoop } from "./chat-loop.js";
 import { execution, generated, input, model, source, tool } from "./chat-loop-test-support.js";
+import { MarkdownDefinitionLibrary } from "./markdown-definition-library.js";
 
 function skillNames(request: Parameters<InferenceService["chat"]>[0] | undefined): string[] {
   const skill = request?.tools.find((item) => item.name === "skill");
@@ -27,6 +29,11 @@ const inspectionExecutor = {
 const documentSkills = {
   metadata: () => [{ name: "documents-a", description: "Handles documents." }],
   read: () => "Skill body.",
+};
+const professionalLibrary = new MarkdownDefinitionLibrary(resolve(process.cwd(), "prompts"));
+const professionalSkills = {
+  metadata: () => [...professionalLibrary.skills],
+  read: (name: string) => professionalLibrary.skill(name).body,
 };
 
 describe("ChatAgentLoop duplicate skill state", () => {
@@ -147,12 +154,12 @@ describe("ChatAgentLoop available skills", () => {
 });
 
 describe("ChatAgentLoop compacted skills", () => {
-  it("makes a skill available after compaction removes its body", async () => {
+  it("makes document-review available after compaction removes its body", async () => {
     const requests: Parameters<InferenceService["chat"]>[0][] = [];
     const loop = new ChatAgentLoop(
       model(
         [
-          generated("", [tool("skill", "skill-1", { name: "documents-a" })]),
+          generated("", [tool("skill", "skill-1", { name: "document-review" })]),
           generated("", [tool("list", "list-1", { path: "/source" })]),
           generated("", [tool("glob", "glob-1", { path: "/source", pattern: "*" })], 6_554),
           generated("The earlier skill was loaded."),
@@ -163,12 +170,14 @@ describe("ChatAgentLoop compacted skills", () => {
     );
 
     await loop.run(
-      input(inspectionExecutor, ["skill", "list", "glob"], { skills: documentSkills }),
+      input(inspectionExecutor, ["skill", "list", "glob"], {
+        skills: professionalSkills,
+      }),
     );
 
-    expect(requests[1]?.tools.some((item) => item.name === "skill")).toBe(false);
+    expect(skillNames(requests[1])).not.toContain("document-review");
     expect(requests[3]?.tools).toEqual([]);
-    expect(skillNames(requests[4])).toEqual(["documents-a"]);
+    expect(skillNames(requests[4])).toContain("document-review");
   });
 });
 

@@ -55,6 +55,7 @@ On 2026-07-11 a full live-web revalidation pass was run across the model stack, 
 - [research/competitive-landscape.md](research/competitive-landscape.md) — twelve incumbents and six newcomers with verified license, telemetry, OCR, approval, and audit findings.
 - [RETRIEVAL_AND_VERIFICATION.md](RETRIEVAL_AND_VERIFICATION.md) — TurboQuant (Google Research, ICLR 2026) versus turbovec naming and index decision.
 - [research/offline-knowledge-bundles-2026.md](research/offline-knowledge-bundles-2026.md) — RO-Crate 1.3, BagIt, SPDX 3.0.1 Dataset, W3C PROV/selectors, TUF, Sigstore, OCI, and offline domain-library architecture.
+- [research/m3-professional-document-skills-2026.md](research/m3-professional-document-skills-2026.md) — Agent Skills design, public legal, finance, healthcare, and report patterns, and the M3 adoption boundary.
 - [IMPLEMENTATION_QUALITY_BAR.md](IMPLEMENTATION_QUALITY_BAR.md) — default component stack table.
 
 ## 2026-07-13 Desktop And Hybrid-Execution Review
@@ -131,4 +132,5 @@ Before code or public claims:
 | 2026-07-12 | Added the live-web standards and architecture review for passive, domain-scoped offline Knowledge Bundles. |
 | 2026-07-13 | Added official Tauri and OpenCode sources for the desktop-shell and hybrid-execution decisions. |
 | 2026-07-15 | Added ECC workflow, DCO, and GitHub sign-off sources and documented the selective adoption boundary. |
+| 2026-08-15 | Added live research for the M3 prompt-only professional review skill set. |
 | 2026-07-22 | Reframed the open memory and context benchmarks around automatic macOS tiers and detected Windows GPU VRAM. |

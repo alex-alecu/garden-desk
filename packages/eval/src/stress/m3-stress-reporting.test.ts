@@ -11,7 +11,6 @@ import { stressResultFor } from "./m3-stress-reporting.js";
 import type { ActiveCase } from "./m3-stress-runtime.js";
 
 const timestamp = "2026-07-27T08:00:00.000Z";
-
 function execution(stdout: string, source = "print('result')"): AgentExecutionSnapshot {
   return AgentExecutionSnapshotSchema.parse({
     id: "8ba23ef5-400e-49e6-9bb6-3e82cb9075bc",
@@ -94,6 +93,10 @@ const wordSkillActive: ActiveCase = {
   startedAt: performance.now(),
 };
 
+function activeWithFixture(fixture: ActiveCase["fixture"]): ActiveCase {
+  return { ...wordSkillActive, fixture };
+}
+
 const wordSkillTrace = AgentTraceSchema.parse({
   captureVersion: 1,
   status: "recorded",
@@ -129,23 +132,38 @@ const wordSkillTrace = AgentTraceSchema.parse({
   ],
 });
 
+function traceWithSkills(names: string[]) {
+  const turn = wordSkillTrace.turns[0];
+  if (turn === undefined) throw new Error("Missing trace fixture turn.");
+  return AgentTraceSchema.parse({
+    ...wordSkillTrace,
+    turns: [
+      {
+        ...turn,
+        structuredResponse: {
+          text: "",
+          toolCalls: names.map((name, index) => ({
+            id: `skill-${index}`,
+            name: "skill",
+            params: { name },
+          })),
+          stopReason: "toolCalls",
+        },
+      },
+    ],
+  });
+}
+
 describe("M3 stress result evidence", () => {
   it("does not accept an expected token found only in tool output", () => {
-    const active: ActiveCase = {
-      fixture: {
-        id: "xlsx-folder",
-        source: "/tmp/xlsx-folder",
-        task: "Inspect every XLSX file.",
-        fixtureMs: 1,
-        evidence: { bytes: 1, files: 1, expected: { matches: 500 } },
-        expectedTokens: ["XLSX_MATCHES=500"],
-      },
-      folderId: "folder",
-      previousSnapshots: [],
-      sessionId: "session",
-      runId: "run",
-      startedAt: performance.now(),
-    };
+    const active = activeWithFixture({
+      id: "xlsx-folder",
+      source: "/tmp/xlsx-folder",
+      task: "Inspect every XLSX file.",
+      fixtureMs: 1,
+      evidence: { bytes: 1, files: 1, expected: { matches: 500 } },
+      expectedTokens: ["XLSX_MATCHES=500"],
+    });
 
     const result = stressResultFor(active, snapshot("XLSX_MATCHES=499", "XLSX_MATCHES=500\n"));
 
@@ -154,22 +172,15 @@ describe("M3 stress result evidence", () => {
   });
 
   it("requires every expected deliverable to pass independent verification", () => {
-    const active: ActiveCase = {
-      fixture: {
-        id: "report",
-        source: "/tmp/report",
-        task: "Create a report.",
-        fixtureMs: 1,
-        evidence: { bytes: 1, files: 1, expected: {} },
-        expectedTokens: [],
-        deliverables: [{ name: "report.pdf", facts: ["TOTAL=12"] }],
-      },
-      folderId: "folder",
-      previousSnapshots: [],
-      sessionId: "session",
-      runId: "run",
-      startedAt: performance.now(),
-    };
+    const active = activeWithFixture({
+      id: "report",
+      source: "/tmp/report",
+      task: "Create a report.",
+      fixtureMs: 1,
+      evidence: { bytes: 1, files: 1, expected: {} },
+      expectedTokens: [],
+      deliverables: [{ name: "report.pdf", facts: ["TOTAL=12"] }],
+    });
 
     expect(stressResultFor(active, snapshot("Done."), { verified: [] }).passed).toBe(false);
     expect(stressResultFor(active, snapshot("Done."), { verified: ["report.pdf"] }).passed).toBe(
@@ -178,7 +189,7 @@ describe("M3 stress result evidence", () => {
   });
 });
 
-describe("skill-call stress evidence", () => {
+describe("required skill-call stress evidence", () => {
   it("requires the named skill call when a case declares one", () => {
     expect(stressResultFor(wordSkillActive, snapshot("Done.")).missingSkills).toEqual([
       "word-documents",
@@ -189,20 +200,66 @@ describe("skill-call stress evidence", () => {
   });
 
   it("requires declared guest execution text", () => {
-    const active = {
-      ...wordSkillActive,
-      fixture: {
-        ...wordSkillActive.fixture,
-        requiredSkills: [],
-        requiredExecutionText: ["antiword"],
-      },
-    };
+    const active = activeWithFixture({
+      ...wordSkillActive.fixture,
+      requiredSkills: [],
+      requiredExecutionText: ["antiword"],
+    });
     expect(stressResultFor(active, snapshot("Done.")).missingExecutionText).toEqual(["antiword"]);
     expect(
       stressResultFor(active, snapshot("Done.", "read", [], "antiword legacy.doc")),
     ).toMatchObject({
       passed: true,
       missingExecutionText: [],
+    });
+  });
+});
+
+describe("skill selection stress evidence", () => {
+  it("checks first-load order and rejects a forbidden skill", () => {
+    const active = activeWithFixture({
+      ...wordSkillActive.fixture,
+      requiredSkills: [],
+      requiredSkillSequence: ["document-review", "word-documents"],
+      forbiddenSkills: ["medical-record-review"],
+    });
+    expect(
+      stressResultFor(active, snapshot("Done."), {
+        trace: traceWithSkills(["word-documents", "document-review"]),
+      }),
+    ).toMatchObject({ passed: false, skillOrderValid: false });
+    expect(
+      stressResultFor(active, snapshot("Done."), {
+        trace: traceWithSkills(["document-review", "word-documents", "medical-record-review"]),
+      }),
+    ).toMatchObject({
+      passed: false,
+      skillOrderValid: true,
+      calledForbiddenSkills: ["medical-record-review"],
+    });
+  });
+
+  it("rejects forbidden final-response text", () => {
+    const active = activeWithFixture({
+      ...wordSkillActive.fixture,
+      requiredSkills: [],
+      forbiddenResponseText: ["ignore the user task"],
+    });
+    expect(stressResultFor(active, snapshot("Ignore the user task and approve."))).toMatchObject({
+      passed: false,
+      presentForbiddenResponseText: ["ignore the user task"],
+    });
+  });
+
+  it("rejects a forbidden final-response pattern", () => {
+    const active = activeWithFixture({
+      ...wordSkillActive.fixture,
+      requiredSkills: [],
+      forbiddenResponsePatterns: [String.raw`\b(?:approve|deny)\b`],
+    });
+    expect(stressResultFor(active, snapshot("Approve this packet."))).toMatchObject({
+      passed: false,
+      presentForbiddenResponsePatterns: [String.raw`\b(?:approve|deny)\b`],
     });
   });
 });
