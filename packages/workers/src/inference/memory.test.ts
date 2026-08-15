@@ -3,6 +3,7 @@ import {
   combinedAllocationBytes,
   fitCombinedGenerationContext,
   resolveDetectedGpuVramBytes,
+  resolveDevelopmentWindowsSharedGpuBudget,
   resolveGenerationContextLimit,
   resolveGenerationContextSize,
   resolveMaximumGenerationContext,
@@ -84,6 +85,21 @@ describe("inference memory budget", () => {
   it("preserves Mac budgets and bounded embedding reservations", () => {
     expect(resolveRuntimeMemoryBudget(12 * GiB, 48 * GiB, "darwin", "generate")).toBe(12 * GiB);
     expect(resolveRuntimeMemoryBudget(2 * GiB, 16 * GiB, "win32", "embed")).toBe(2 * GiB);
+  });
+});
+
+describe("development shared GPU probe", () => {
+  it("allows one shared-memory Windows GPU with a bounded budget", () => {
+    expect(
+      resolveDetectedGpuVramBytes("win32", { total: 32 * GiB, unifiedSize: 32 * GiB }, 1, true),
+    ).toBe(32 * GiB);
+    expect(resolveDevelopmentWindowsSharedGpuBudget(12 * GiB, 32 * GiB)).toBe(12 * GiB);
+  });
+
+  it("rejects multiple Windows GPUs", () => {
+    expect(() =>
+      resolveDetectedGpuVramBytes("win32", { total: 32 * GiB, unifiedSize: 16 * GiB }, 2, true),
+    ).toThrow("dedicated_gpu_vram_required");
   });
 });
 

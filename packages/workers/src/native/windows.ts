@@ -11,6 +11,10 @@ import { NativeWorkerLaunchError } from "./launcher.js";
 
 const preparations = new Map<string, Promise<void>>();
 
+interface WindowsNativeWorkerLauncherOptions {
+  developmentAllowSharedGpu?: boolean;
+}
+
 function helperEnvironment(): NodeJS.ProcessEnv {
   const windowsRoot = process.env.WINDIR ?? "C:\\Windows";
   return {
@@ -55,6 +59,7 @@ export function windowsNativeWorkerArguments(
   request: NativeWorkerLaunchRequest,
   scratch: string,
   runtimePath: string,
+  options: WindowsNativeWorkerLauncherOptions = {},
 ): string[] {
   const args = [
     "run",
@@ -68,6 +73,9 @@ export function windowsNativeWorkerArguments(
     String(request.memoryBudgetBytes),
   ];
   if (request.modelPath !== undefined) args.push("--model", resolve(request.modelPath));
+  if (options.developmentAllowSharedGpu === true) {
+    args.push("--development-allow-shared-gpu", "true");
+  }
   return args;
 }
 
@@ -89,6 +97,7 @@ export class WindowsNativeWorkerLauncher implements NativeWorkerLauncher {
   constructor(
     private readonly helperPath = defaultHelperPath(),
     private readonly runtimePath = process.execPath,
+    private readonly options: WindowsNativeWorkerLauncherOptions = {},
   ) {}
 
   async launch(request: NativeWorkerLaunchRequest): Promise<NativeWorkerHandle> {
@@ -99,7 +108,7 @@ export class WindowsNativeWorkerLauncher implements NativeWorkerLauncher {
     const temporaryRoot = await mkdtemp(join(tmpdir(), "vault-inference-"));
     const child = spawn(
       this.helperPath,
-      windowsNativeWorkerArguments(request, temporaryRoot, resolve(this.runtimePath)),
+      windowsNativeWorkerArguments(request, temporaryRoot, resolve(this.runtimePath), this.options),
       {
         cwd: temporaryRoot,
         env: helperEnvironment(),

@@ -9,6 +9,7 @@ import { ChatSequencePool } from "./chat-pool.js";
 import {
   combinedAllocationBytes,
   fitCombinedGenerationContext,
+  resolveDevelopmentWindowsSharedGpuBudget,
   resolveGenerationContextLimit,
   resolveGenerationContextSize,
   resolveRuntimeMemoryBudget,
@@ -57,13 +58,21 @@ export async function runtime(operation: "generate" | "embed"): Promise<LoadedRu
     if (modelPath === undefined || !Number.isSafeInteger(requestedBudget) || requestedBudget <= 0) {
       throw new Error("Invalid worker launch arguments.");
     }
-    const { llama, detectedGpuVramBytes } = await loadLlamaRuntime();
-    const budget = resolveRuntimeMemoryBudget(
-      requestedBudget,
-      detectedGpuVramBytes,
-      process.platform,
-      operation,
+    const developmentAllowWindowsSharedGpu = process.argv.includes(
+      "--development-allow-windows-shared-gpu",
     );
+    const { llama, detectedGpuVramBytes, sharedGpuMemory } = await loadLlamaRuntime(
+      developmentAllowWindowsSharedGpu,
+    );
+    const budget =
+      developmentAllowWindowsSharedGpu && sharedGpuMemory
+        ? resolveDevelopmentWindowsSharedGpuBudget(requestedBudget, detectedGpuVramBytes)
+        : resolveRuntimeMemoryBudget(
+            requestedBudget,
+            detectedGpuVramBytes,
+            process.platform,
+            operation,
+          );
     await llama.setVramCap(budget);
     return {
       budget,

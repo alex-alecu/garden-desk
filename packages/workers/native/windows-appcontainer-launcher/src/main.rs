@@ -28,6 +28,7 @@ struct RunArguments {
     scratch: PathBuf,
     model: Option<PathBuf>,
     memory_bytes: usize,
+    development_allow_shared_gpu: bool,
 }
 
 #[cfg(windows)]
@@ -68,8 +69,11 @@ fn parse() -> Result<Command, Box<dyn Error>> {
                 .find(|(key, _)| key == "--model")
                 .map(|(_, path)| PathBuf::from(path)),
             memory_bytes: value(&values, "--memory")?.parse()?,
+            development_allow_shared_gpu: values
+                .iter()
+                .any(|(key, value)| key == "--development-allow-shared-gpu" && value == "true"),
         })),
-        _ => Err("Usage: vault-appcontainer-launcher <prepare --read PATH...|run --executable PATH --worker PATH --scratch PATH --memory BYTES [--model PATH]>".into()),
+        _ => Err("Usage: vault-appcontainer-launcher <prepare --read PATH...|run --executable PATH --worker PATH --scratch PATH --memory BYTES [--model PATH] [--development-allow-shared-gpu true]>".into()),
     }
 }
 
@@ -107,6 +111,9 @@ fn run() -> Result<i32, Box<dyn Error>> {
             if let Some(path) = model {
                 child_arguments.push("--model".to_owned());
                 child_arguments.push(path.to_string_lossy().into_owned());
+            }
+            if arguments.development_allow_shared_gpu {
+                child_arguments.push("--development-allow-windows-shared-gpu".to_owned());
             }
             process::run_sandboxed(
                 &executable,

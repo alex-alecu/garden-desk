@@ -7,6 +7,10 @@ export interface WindowsInferencePaths {
   workerEntryPath: string;
 }
 
+interface WindowsInferencePathOptions {
+  preferDevelopmentResources?: boolean;
+}
+
 /**
  * The Windows worker must run through the packaged CUDA runtime and its adjacent
  * redistributables. The development Node runtime cannot load them and misreads
@@ -19,8 +23,11 @@ const inferenceRoots = [
   "packages/desktop/src-tauri/resources/core/inference",
 ];
 
-export async function windowsInferencePaths(): Promise<WindowsInferencePaths> {
-  for (const relative of inferenceRoots) {
+export async function windowsInferencePaths(
+  options: WindowsInferencePathOptions = {},
+): Promise<WindowsInferencePaths> {
+  const roots = options.preferDevelopmentResources ? inferenceRoots.toReversed() : inferenceRoots;
+  for (const relative of roots) {
     const root = join(process.cwd(), relative);
     try {
       await stat(join(root, "worker.mjs"));

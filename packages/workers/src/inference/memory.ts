@@ -23,12 +23,23 @@ export function resolveDetectedGpuVramBytes(
   platform: NodeJS.Platform,
   vram: { total: number; unifiedSize: number },
   gpuDeviceCount: number,
+  developmentAllowWindowsSharedGpu = false,
 ): number {
   if (platform !== "win32") return vram.total;
-  if (gpuDeviceCount !== 1 || vram.unifiedSize !== 0) {
+  if (gpuDeviceCount !== 1 || (vram.unifiedSize !== 0 && !developmentAllowWindowsSharedGpu)) {
     throw new Error("dedicated_gpu_vram_required");
   }
   return vram.total;
+}
+
+export function resolveDevelopmentWindowsSharedGpuBudget(
+  requestedBudgetBytes: number,
+  gpuMemoryBytes: number,
+): number {
+  if (!Number.isSafeInteger(gpuMemoryBytes) || gpuMemoryBytes <= 0) {
+    throw new Error("supported_gpu_required");
+  }
+  return Math.min(requestedBudgetBytes, gpuMemoryBytes);
 }
 
 export function resolveRuntimeMemoryBudget(
