@@ -2,7 +2,7 @@
 
 Updated: 2026-08-14
 
-Vault Desk V1 is a general-purpose local file agent rather than a collection of predefined professional workflows.
+Vault Desk V1 is a general-purpose local file agent with a limited prompt-only professional review set. The skill set gives the agent focused instructions; it does not add predefined workflow state machines, domain policy in Core, or the post-V1 document-intelligence system.
 
 ## V1 Interaction
 
@@ -60,6 +60,7 @@ Task-quality cases use deterministic development and held-out inputs. Security i
 |---|---|
 | 2026-07-10 | Created the initial workflow document. |
 | 2026-07-20 | Replaced the pre-V1 vertical workflow sequence with the generic offline dev-agent interaction. |
+| 2026-08-15 | Added limited prompt-only legal, finance, and medical-administration review without adding vertical workflow state machines. |
 | 2026-07-23 | Added the live read-only folder, guest shell tools, session VM, and persistent bounded workspace workflow. |
 | 2026-08-04 | Added declared generated-file deliverables, explicit Open and Save As actions, and invisible DOCX, XLSX, and PDF skill routing. |
 | 2026-08-14 | Replaced the DOCX-only skill with one Word skill and added legacy DOC plain-text input through guest Antiword. |

@@ -8,7 +8,7 @@ Vault Desk completed implementation milestone M0 on 2026-07-17, cross-platform m
 
 ## Current Phase Rules
 
-- M0, M1, and M2 are complete. M3 is active only for the generic offline dev-agent desktop and its named gate; the macOS stage is complete. Do not begin the post-V1 document-intelligence follow-up or other later work without a new explicit owner request.
+- M0, M1, and M2 are complete. M3 is active for the generic offline dev-agent desktop, its named gate, and the owner-approved prompt-only professional review skill set. The macOS stage is complete for the earlier generic-agent scope. The professional skill set needs new macOS, Windows, and qualified domain-review evidence. Do not begin the post-V1 document-intelligence follow-up or other later work without a new explicit owner request.
 - Preserve the completed M1 shared contracts, workspace state and security primitives, daemon and CLI health path, current-user local transports, common microVM protocol, signed native helpers, guest images, and passing platform evidence.
 - Preserve the completed M2 inference contracts, verified model staging, scheduler and supervisor, typed worker protocol, platform-native confinement, pinned runtime patch, and passing authority and model evidence.
 - Treat [docs/M1_STATUS.md](docs/M1_STATUS.md) and [docs/M2_STATUS.md](docs/M2_STATUS.md) as completed milestone evidence records and [docs/M3_STATUS.md](docs/M3_STATUS.md) as the active product and platform evidence record.
@@ -118,7 +118,7 @@ Architecture:
 - [docs/IMPLEMENTATION_STRUCTURE.md](docs/IMPLEMENTATION_STRUCTURE.md) - concrete folder/module blueprint, startup minimal-code working agreement, and milestone-to-folder map.
 - [docs/M1_STATUS.md](docs/M1_STATUS.md) - completed cross-platform M1 implementation and certification evidence.
 - [docs/M2_STATUS.md](docs/M2_STATUS.md) - completed cross-platform M2 implementation and certification evidence.
-- [docs/M3_STATUS.md](docs/M3_STATUS.md) - active generic offline dev-agent desktop evidence and gate state.
+- [docs/M3_STATUS.md](docs/M3_STATUS.md) - active offline dev-agent desktop and professional review skill evidence.
 - [docs/IMPLEMENTATION_QUALITY_BAR.md](docs/IMPLEMENTATION_QUALITY_BAR.md) - future minimal-code, minimal-test, and clean-code constraints.
 - [docs/HARDWARE.md](docs/HARDWARE.md) - supported hardware and runtime strategy.
 - [docs/SECURITY.md](docs/SECURITY.md) - privacy, policy, audit, and sandboxing model.
@@ -130,7 +130,7 @@ Workflows:
 - [docs/WORKFLOWS.md](docs/WORKFLOWS.md) - workflow architecture and priorities.
 - [docs/workflows/accounting.md](docs/workflows/accounting.md) - possible post-V1 accounting workflow research.
 - [docs/workflows/legal.md](docs/workflows/legal.md) - legal workflow target.
-- [docs/workflows/medical-admin.md](docs/workflows/medical-admin.md) - later medical administration target.
+- [docs/workflows/medical-admin.md](docs/workflows/medical-admin.md) - limited M3 skill support and later medical administration target.
 
 Diagrams:
 

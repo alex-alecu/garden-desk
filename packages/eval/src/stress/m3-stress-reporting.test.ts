@@ -11,7 +11,6 @@ import { stressResultFor } from "./m3-stress-reporting.js";
 import type { ActiveCase } from "./m3-stress-runtime.js";
 
 const timestamp = "2026-07-27T08:00:00.000Z";
-
 function execution(stdout: string, source = "print('result')"): AgentExecutionSnapshot {
   return AgentExecutionSnapshotSchema.parse({
     id: "8ba23ef5-400e-49e6-9bb6-3e82cb9075bc",
@@ -129,6 +128,28 @@ const wordSkillTrace = AgentTraceSchema.parse({
   ],
 });
 
+function traceWithSkills(names: string[]) {
+  const turn = wordSkillTrace.turns[0];
+  if (turn === undefined) throw new Error("Missing trace fixture turn.");
+  return AgentTraceSchema.parse({
+    ...wordSkillTrace,
+    turns: [
+      {
+        ...turn,
+        structuredResponse: {
+          text: "",
+          toolCalls: names.map((name, index) => ({
+            id: `skill-${index}`,
+            name: "skill",
+            params: { name },
+          })),
+          stopReason: "toolCalls",
+        },
+      },
+    ],
+  });
+}
+
 describe("M3 stress result evidence", () => {
   it("does not accept an expected token found only in tool output", () => {
     const active: ActiveCase = {
@@ -178,7 +199,7 @@ describe("M3 stress result evidence", () => {
   });
 });
 
-describe("skill-call stress evidence", () => {
+describe("required skill-call stress evidence", () => {
   it("requires the named skill call when a case declares one", () => {
     expect(stressResultFor(wordSkillActive, snapshot("Done.")).missingSkills).toEqual([
       "word-documents",
@@ -203,6 +224,49 @@ describe("skill-call stress evidence", () => {
     ).toMatchObject({
       passed: true,
       missingExecutionText: [],
+    });
+  });
+});
+
+describe("skill selection stress evidence", () => {
+  it("checks first-load order and rejects a forbidden skill", () => {
+    const active: ActiveCase = {
+      ...wordSkillActive,
+      fixture: {
+        ...wordSkillActive.fixture,
+        requiredSkills: [],
+        requiredSkillSequence: ["document-review", "word-documents"],
+        forbiddenSkills: ["medical-record-review"],
+      },
+    };
+    expect(
+      stressResultFor(active, snapshot("Done."), {
+        trace: traceWithSkills(["word-documents", "document-review"]),
+      }),
+    ).toMatchObject({ passed: false, skillOrderValid: false });
+    expect(
+      stressResultFor(active, snapshot("Done."), {
+        trace: traceWithSkills(["document-review", "word-documents", "medical-record-review"]),
+      }),
+    ).toMatchObject({
+      passed: false,
+      skillOrderValid: true,
+      calledForbiddenSkills: ["medical-record-review"],
+    });
+  });
+
+  it("rejects forbidden final-response text", () => {
+    const active: ActiveCase = {
+      ...wordSkillActive,
+      fixture: {
+        ...wordSkillActive.fixture,
+        requiredSkills: [],
+        forbiddenResponseText: ["ignore the user task"],
+      },
+    };
+    expect(stressResultFor(active, snapshot("Ignore the user task and approve."))).toMatchObject({
+      passed: false,
+      presentForbiddenResponseText: ["ignore the user task"],
     });
   });
 });

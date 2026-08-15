@@ -45,10 +45,17 @@ export interface StressCaseResult {
   executionMs: number;
   inferenceFailures: number;
   expectedTokens: string[];
+  forbiddenResponseText: string[];
+  presentForbiddenResponseText: string[];
   requiredExecutionText: string[];
   missingExecutionText: string[];
   requiredSkills: string[];
   missingSkills: string[];
+  requiredSkillSequence: string[];
+  firstLoadedSkills: string[];
+  skillOrderValid: boolean;
+  forbiddenSkills: string[];
+  calledForbiddenSkills: string[];
   missingTokens: string[];
   missingTableRows: ExpectedTableRow[];
   producedArtifacts: string[];

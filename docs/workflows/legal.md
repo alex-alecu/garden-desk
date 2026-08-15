@@ -6,7 +6,7 @@ Legal is a strong follow-on vertical after the document engine, citation layer, 
 
 ## Current Skill-Only Support
 
-The owner activated a limited product-agent skill on 2026-08-15. The `legal-document-review` skill uses the existing Word and PDF workflows to review text-readable contracts and related files. It checks repeated party, identity, address, date, value, term, reference, and signature details before the general clause review. Each reported inconsistency must cite both source locations and must not invent a correction.
+The owner expanded limited product-agent support on 2026-08-15. `legal-document-review` covers one contract. `legal-document-comparison`, `legal-due-diligence-review`, and `legal-matter-chronology` provide separate workflows. They load after the shared `document-review` skill and use the existing Word and PDF workflows. `review-report` adds a formal result only when the user requests one. Each reported inconsistency must cite all source locations and must not invent a correction.
 
 This skill is not the complete legal workflow. It does not add OCR, deterministic clause segmentation, tracked changes, redaction, matter-aware retrieval, legal research, or final legal advice. Qualified human review remains required.
 
@@ -55,4 +55,5 @@ Research-derived guardrail: [ABA Formal Opinion 512](https://www.americanbar.org
 | Date | Change |
 |---|---|
 | 2026-08-15 | Added the limited local legal document review skill and retained the full workflow as follow-up work. |
+| 2026-08-15 | Split limited legal support into contract, comparison, diligence, and chronology skills with a shared review contract. |
 | 2026-07-10 | Initial legal workflow document created. |

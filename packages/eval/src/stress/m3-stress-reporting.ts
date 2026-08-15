@@ -137,16 +137,48 @@ function skillName(call: unknown): string | undefined {
   return typeof name === "string" ? name : undefined;
 }
 
-function calledSkills(trace: AgentTrace | undefined): Set<string> {
-  if (trace?.captureVersion !== 1) return new Set();
-  const names = trace.turns.flatMap((turn) => toolCalls(turn.structuredResponse).map(skillName));
-  return new Set(names.filter((name): name is string => name !== undefined));
+function calledSkillNames(trace: AgentTrace | undefined): string[] {
+  if (trace?.captureVersion !== 1) return [];
+  return trace.turns
+    .flatMap((turn) => toolCalls(turn.structuredResponse).map(skillName))
+    .filter((name): name is string => name !== undefined);
+}
+
+function firstLoadedSkills(names: string[]): string[] {
+  const seen = new Set<string>();
+  return names.filter((name) => {
+    if (seen.has(name)) return false;
+    seen.add(name);
+    return true;
+  });
+}
+
+function sequenceIsOrdered(actual: string[], expected: string[]): boolean {
+  let previous = -1;
+  for (const name of expected) {
+    const index = actual.indexOf(name);
+    if (index <= previous) return false;
+    previous = index;
+  }
+  return true;
 }
 
 function skillEvidence(active: ActiveCase, trace: AgentTrace | undefined) {
   const requiredSkills = active.fixture.requiredSkills ?? [];
-  const skills = calledSkills(trace);
-  return { requiredSkills, missingSkills: requiredSkills.filter((name) => !skills.has(name)) };
+  const requiredSkillSequence = active.fixture.requiredSkillSequence ?? [];
+  const forbiddenSkills = active.fixture.forbiddenSkills ?? [];
+  const called = calledSkillNames(trace);
+  const skills = new Set(called);
+  const firstLoaded = firstLoadedSkills(called);
+  return {
+    requiredSkills,
+    missingSkills: requiredSkills.filter((name) => !skills.has(name)),
+    requiredSkillSequence,
+    firstLoadedSkills: firstLoaded,
+    skillOrderValid: sequenceIsOrdered(firstLoaded, requiredSkillSequence),
+    forbiddenSkills,
+    calledForbiddenSkills: forbiddenSkills.filter((name) => skills.has(name)),
+  };
 }
 
 function executionTextEvidence(active: ActiveCase, snapshot: AgentRunSnapshot) {
@@ -165,9 +197,14 @@ function executionTextEvidence(active: ActiveCase, snapshot: AgentRunSnapshot) {
 
 function responseEvidence(active: ActiveCase, snapshot: AgentRunSnapshot) {
   const output = snapshot.run.response ?? "";
+  const forbiddenResponseText = active.fixture.forbiddenResponseText ?? [];
   return {
     missingTokens: active.fixture.expectedTokens.filter((token) => !outputHasToken(output, token)),
     missingTableRows: missingTableRows(output, active.fixture.expectedTableRows ?? []),
+    forbiddenResponseText,
+    presentForbiddenResponseText: forbiddenResponseText.filter((text) =>
+      output.toLocaleLowerCase("en-US").includes(text.toLocaleLowerCase("en-US")),
+    ),
   };
 }
 
@@ -198,7 +235,10 @@ export function stressResultFor(
     snapshot.run.state === "succeeded" &&
     response.missingTokens.length === 0 &&
     response.missingTableRows.length === 0 &&
+    response.presentForbiddenResponseText.length === 0 &&
     skills.missingSkills.length === 0 &&
+    skills.skillOrderValid &&
+    skills.calledForbiddenSkills.length === 0 &&
     executionText.missingExecutionText.length === 0 &&
     verifiedDeliverables.length === (active.fixture.deliverables?.length ?? 0) &&
     error === null;

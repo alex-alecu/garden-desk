@@ -26,7 +26,7 @@ Before changing a file:
 4. Read the relevant ADRs and the folder ownership rules in [IMPLEMENTATION_STRUCTURE.md](IMPLEMENTATION_STRUCTURE.md).
 5. Stop if the requested implementation belongs to an inactive milestone.
 
-Roadmap presence is not authorization. The owner activated M3 on 2026-07-20. The post-V1 document-intelligence follow-up and all later work require a new explicit owner request. Implementation outside the active scope must be converted into an issue, design note, or plan rather than code.
+Roadmap presence is not authorization. The owner activated M3 on 2026-07-20 and expanded it on 2026-08-15 with the named prompt-only professional review skill set. The post-V1 document-intelligence follow-up and all later work require a new explicit owner request. Implementation outside the active scope must be converted into an issue, design note, or plan rather than code.
 
 ### Change Brief
 
@@ -198,4 +198,5 @@ AI assistants, models, coding agents, and tools are never authors or co-authors.
 | 2026-07-15 | Added the milestone-scoped, research-first, risk-gated implementation and contribution workflow. |
 | 2026-07-16 | Activated the M0 workflow and aligned contribution activation with the original v1 gate. |
 | 2026-07-20 | Activated M3 Desktop V1, moved document intelligence after launch, and decoupled contribution activation from product certification. |
+| 2026-08-15 | Added the named prompt-only professional review skill set to active M3 scope. |
 | 2026-07-17 | Required a branch and pull request for every remaining implementation stage and moved CI from direct pushes to pull-request activity. |
