@@ -2,6 +2,7 @@ import { fileURLToPath } from "node:url";
 import { type InferenceProfile, InferenceProfileSchema } from "@vault/shared";
 import {
   InferenceWorkerClient,
+  LlamaVisionClient,
   MacOsNativeWorkerLauncher,
   WindowsNativeWorkerLauncher,
   windowsNativeWorkerEntryPath,
@@ -18,6 +19,7 @@ interface InferenceCompositionOptions {
   workerEntryPath?: string;
   inferenceHelperPath?: string;
   inferenceRuntimePath?: string;
+  visionRuntimePath?: string;
 }
 
 export function unavailableInference(message?: string) {
@@ -28,6 +30,7 @@ export function unavailableInference(message?: string) {
     generate: unsupported,
     chat: unsupported,
     embed: unsupported,
+    inspectImage: unsupported,
     async modelStatus() {
       return {
         modelId: "gemma-4-12b-it-qat-q4_0",
@@ -71,6 +74,9 @@ export async function createInferenceService(
       modelResolver,
       new ResourceScheduler(policy.memoryBudgetBytes),
       (event) => audit.append(event),
+      options.visionRuntimePath === undefined
+        ? undefined
+        : new LlamaVisionClient(options.visionRuntimePath, options.inferenceHelperPath),
     ),
     available: true,
     agentSessionCapacity: resolveAgentSessionCapacity(policy.memoryBudgetBytes),

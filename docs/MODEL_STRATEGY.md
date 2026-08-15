@@ -16,7 +16,7 @@ Vault Desk's product contracts are model-agnostic, with per-model certification 
 
 The design goal is a small set of certified, hardware-fit models with predictable behavior — defaults chosen for the user, additional models installable through the managed download experience defined in ADR 0016, and never a marketplace of arbitrary local models.
 
-The first cross-platform desktop runtime is also singular: node-llama-cpp with the pinned official Gemma 4 12B QAT GGUF on Windows and macOS. MLX remains a later adapter-backed Apple Silicon optimization. See [ADR 0013](adr/0013-first-desktop-runtime.md).
+The first cross-platform desktop uses node-llama-cpp for resident chat generation and pinned llama.cpp b9842 for on-demand image inspection with the same Gemma 4 12B QAT GGUF and its official projector. Image inspection unloads the resident chat worker first, runs as one exclusive bounded operation, and returns text facts before chat resumes. MLX remains a later adapter-backed Apple Silicon optimization. See [ADR 0013](adr/0013-first-desktop-runtime.md).
 
 ## Certified Profiles
 
@@ -57,7 +57,7 @@ Notes:
 
 - The E2B file name does not follow the 12B naming pattern (`gemma-4-E2B_q4_0-it.gguf`, underscore before `q4_0`); the manifest must use these literal file names, not a derived pattern.
 - The Q8_0 encoder quantization remains the pinned development reference. Retrieval quality is measured only when the post-V1 document-intelligence follow-up is activated.
-- Multimodal projectors remain post-V1 assets and are not fetched or packaged for M3.
+- The 12B multimodal projector and the hash-pinned llama.cpp b9842 image runtime are M3 package assets. The E2B projector remains development-only.
 - A digest mismatch on fetch is a hard failure: the upstream file changed and the pin must be re-reviewed deliberately, never auto-updated.
 
 Vault Desk does not mirror or rehost model weights during development. GitHub is unsuitable regardless of preference: release assets cap at 2 GiB and Git LFS at 2-5 GB per file, below the 12B GGUF. The official repositories also keep provenance verifiable: the fetcher pins the upstream SHA-256 per file, so a silent upstream change fails the fetch instead of entering the cache. The same official repositories later serve as the allowlisted sources for the ADR 0016 model-download build, behind the typed broker and signed catalog.
@@ -75,7 +75,7 @@ Every supported tier uses:
 - Evidence packs rather than raw folder stuffing.
 - Claim-level verification.
 - The shared resident worker generates on one loaded Gemma model but supports multiple parallel context sequences (node-llama-cpp exposes `sequences`, `sequencesLeft`, and a maximum-parallelism batch strategy), so parallelism is bounded by KV-cache memory rather than by the runtime. V1 uses bounded extra sequences for sub-agents; requests beyond the available sequence slots queue. Extending parallel sequences to concurrent user conversations and background work is planned, not yet current. Independent conversations may also overlap microVM work within the hardware-derived RAM cap.
-- Conservative multimodal page inspection.
+- On-demand PNG and JPEG inspection from immutable attachments or regular files below the selected folder.
 - The same supported workflows.
 - The same citation and approval requirements.
 - The same context-compaction architecture.
@@ -211,3 +211,4 @@ Each certified profile needs:
 | 2026-08-01 | Capped automatic context at 64K or 128K using separate Mac unified-memory and Windows VRAM thresholds and exposed the measured allocations, selected cap, and threshold reason through the typed runtime status. |
 | 2026-08-04 | Restricted Windows automatic budgets and context tiers to one device's dedicated VRAM. |
 | 2026-08-12 | Recorded that the single loaded model supports multiple parallel context sequences (memory-bounded), used for sub-agents in V1, with concurrent conversations planned. |
+| 2026-08-15 | Added the official projector and pinned llama.cpp b9842 as the bounded on-demand M3 image path. |

@@ -5,6 +5,7 @@ export interface WindowsInferencePaths {
   inferenceHelperPath: string;
   inferenceRuntimePath: string;
   workerEntryPath: string;
+  visionRuntimePath: string;
 }
 
 /**
@@ -23,11 +24,15 @@ export async function windowsInferencePaths(): Promise<WindowsInferencePaths> {
   for (const relative of inferenceRoots) {
     const root = join(process.cwd(), relative);
     try {
-      await stat(join(root, "worker.mjs"));
+      await Promise.all([
+        stat(join(root, "worker.mjs")),
+        stat(join(root, "vision", "llama-mtmd-cli.exe")),
+      ]);
       return {
         workerEntryPath: join(root, "worker.mjs"),
         inferenceHelperPath: join(root, "vault-appcontainer-launcher.exe"),
         inferenceRuntimePath: join(root, "node.exe"),
+        visionRuntimePath: join(root, "vision", "llama-mtmd-cli.exe"),
       };
     } catch {
       // Try the next staged inference root.

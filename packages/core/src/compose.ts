@@ -30,6 +30,7 @@ export interface VaultCoreOptions {
   workerEntryPath?: string;
   inferenceHelperPath?: string;
   inferenceRuntimePath?: string;
+  visionRuntimePath?: string;
   agentHelperPath?: string;
   agentImageRoot?: string;
   promptDirectory?: string;
@@ -206,6 +207,7 @@ function assembleVaultCore(services: CoreServices): VaultCore {
       inference.generate(input, signal, onThinkingDelta, identity),
     chat: (input, signal, streams, identity) => inference.chat(input, signal, streams, identity),
     embed: (input, signal) => inference.embed(input, signal),
+    inspectImage: (input, signal) => inference.inspectImage(input, signal),
     modelStatus: () => inference.modelStatus(),
     unloadModel: () => inference.unloadModel(),
     async close() {

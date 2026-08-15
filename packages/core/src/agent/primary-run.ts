@@ -30,6 +30,7 @@ interface PrimaryRunInput {
   store: AgentStore;
   task: string;
   chat: InferenceService["chat"];
+  inspectImage(path: string, prompt: string): Promise<string>;
   onThinking(thinking: string | null): void;
   onResponse(response: string | null): void;
   onContext(used: number, allocated: number): void;
@@ -56,6 +57,7 @@ export async function runPrimaryAgent(input: PrimaryRunInput): Promise<AgentRunR
       sessions: input.sessions,
     }),
     history: input.history,
+    inspectImage: input.inspectImage,
     attachments,
     modelId: AGENT_MODEL_ID,
     onEvent: (type, summary, detail) => store.appendEvent(run.id, type, summary, detail),
@@ -90,6 +92,7 @@ async function runPrimarySubagent(
         : { knownContextTokens: input.knownContextTokens }),
       database: input.database,
       inference: { chat: input.chat },
+      inspectImage: input.inspectImage,
       jobs: input.jobs,
       library: input.definitions,
       modelId: AGENT_MODEL_ID,

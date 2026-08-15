@@ -23,8 +23,14 @@ import { AGENT_MODEL_ID, AGENT_WORKER_LIMITS } from "./limits.js";
 import { MarkdownDefinitionLibrary } from "./markdown-definition-library.js";
 import { runPrimaryAgent } from "./primary-run.js";
 import { AgentRunCapacity } from "./run-capacity.js";
-import { type ActiveRun, withActiveRun } from "./service-active.js";
-import { agentFailureEvent, agentFailureText, runPerformance } from "./service-results.js";
+import { type ActiveRun, activeRunSnapshot } from "./service-active.js";
+import { AgentImageInspector } from "./service-image.js";
+import {
+  agentFailureEvent,
+  agentFailureText,
+  inferenceContextTokens,
+  runPerformance,
+} from "./service-results.js";
 import { AgentSessionManager } from "./session-manager.js";
 import { refreshSessionSummary } from "./session-summary.js";
 import { SessionSummaryStore } from "./session-summary-store.js";
@@ -37,6 +43,7 @@ export class AgentService {
   private readonly sessions: AgentSessionManager;
   private readonly runCapacity: AgentRunCapacity;
   private readonly summaries: SessionSummaryStore;
+  private readonly images: AgentImageInspector;
 
   // biome-ignore lint/complexity/useMaxParams: explicit ports keep security authorities visible at construction.
   constructor(
@@ -46,7 +53,7 @@ export class AgentService {
     private readonly jobs: JobStore,
     private readonly artifacts: ArtifactStore,
     private readonly inference: Partial<
-      Pick<InferenceService, "chat" | "generate" | "modelStatus">
+      Pick<InferenceService, "chat" | "generate" | "inspectImage" | "modelStatus">
     >,
     launcher: CodeAgentLauncher,
     private readonly audit: AuditLog,
@@ -54,6 +61,7 @@ export class AgentService {
     private readonly definitions = new MarkdownDefinitionLibrary(resolve(process.cwd(), "prompts")),
   ) {
     this.artifactMaterializer = new ArtifactMaterializer(database, artifacts, audit);
+    this.images = new AgentImageInspector(database, store, inference);
     this.summaries = new SessionSummaryStore(database);
     this.sessions = new AgentSessionManager(
       launcher,
@@ -139,9 +147,7 @@ export class AgentService {
     return run;
   }
   snapshot(runId: string): AgentRunSnapshot {
-    const snapshot = this.store.snapshot(runId);
-    const active = [...this.active.values()].find((run) => run.runId === runId);
-    return withActiveRun(snapshot, active);
+    return activeRunSnapshot(this.store, this.active.values(), runId);
   }
   settleQuestion = (runId: string, questionId: string, answers?: string[][]): boolean =>
     settleActiveQuestion(this.active, runId, questionId, answers);
@@ -154,13 +160,6 @@ export class AgentService {
   }
   async trace(runId: string): Promise<AgentTrace> {
     return await this.store.trace.get(runId);
-  }
-  private async contextTokens(): Promise<number | "auto"> {
-    try {
-      return (await this.inference.modelStatus?.())?.contextSizeTokens ?? "auto";
-    } catch {
-      return "auto";
-    }
   }
   warmSession(sessionId: string): Promise<void> {
     if (this.closed) return Promise.reject(new Error("agent_service_closed"));
@@ -225,13 +224,14 @@ export class AgentService {
         ...(anchored === undefined ? {} : { summary: anchored.text }),
       };
       if (this.inference.chat === undefined) throw new Error("agent_chat_unavailable");
-      const knownContextTokens = await this.contextTokens();
+      const knownContextTokens = await inferenceContextTokens(this.inference);
       const result = await runPrimaryAgent({
         chat: this.inference.chat.bind(this.inference),
         contextTokens: "auto",
         database: this.database,
         definitions: this.definitions,
         history,
+        inspectImage: this.images.forRun(run.sessionId, signal),
         jobs: this.jobs,
         ...(knownContextTokens === "auto" ? {} : { knownContextTokens }),
         onThinking: (thinking) => this.updateActive(run.jobId, { thinking }),
@@ -268,7 +268,7 @@ export class AgentService {
         outcome: "succeeded",
         metadata: { runId: run.id, jobId: run.jobId, executions: result.executions.length },
       });
-      const summaryContextTokens = await this.contextTokens();
+      const summaryContextTokens = await inferenceContextTokens(this.inference);
       await refreshSessionSummary(
         { chat: this.inference.chat.bind(this.inference) },
         {

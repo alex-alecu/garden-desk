@@ -16,13 +16,14 @@ import { executeGeneratedTools } from "./chat-generated-tools.js";
 import { generateWithInferenceRecovery } from "./chat-inference-recovery.js";
 import { initialChatMessages } from "./chat-initial-messages.js";
 import type { ChatAgentInput, ChatRecoveryState } from "./chat-loop-input.js";
+import { createToolRegistry } from "./chat-loop-registry.js";
 import { chatOutputTokens } from "./chat-output-budget.js";
 import { recoverOutputLimit } from "./chat-output-recovery.js";
 import { containsRawProtocolCall, visibleResponseText } from "./chat-protocol.js";
 import { liveLoadedSkillNames } from "./chat-skill-state.js";
 import { streamCallbacks } from "./chat-streaming.js";
 import { type ChatToolState, initialToolState, rollbackFailedDirection } from "./chat-tool-turn.js";
-import { GenericToolRegistry } from "./generic-tools.js";
+import type { GenericToolRegistry } from "./generic-tools.js";
 import { addPerformance, emptyPerformance } from "./inference-performance.js";
 
 export type { ChatAgentInput } from "./chat-loop-input.js";
@@ -50,12 +51,9 @@ function activeToolDefinitions(
 }
 
 export class ChatAgentLoop {
-  private contextTokens: number;
-  private requestedContextSize: number | "auto";
-  constructor(private readonly inference: Pick<InferenceService, "chat">) {
-    this.contextTokens = 8_192;
-    this.requestedContextSize = "auto";
-  }
+  private contextTokens = 8_192;
+  private requestedContextSize: number | "auto" = "auto";
+  constructor(private readonly inference: Pick<InferenceService, "chat">) {}
   private record(
     input: ChatAgentInput,
     turnId: string | undefined,
@@ -263,13 +261,7 @@ export class ChatAgentLoop {
     this.contextTokens =
       input.knownContextTokens ??
       (input.contextTokens === "auto" ? 8_192 : Math.max(8_192, input.contextTokens));
-    const registry = new GenericToolRegistry({
-      executor: input.executor,
-      skills: input.skills,
-      ...(input.spawnTask === undefined ? {} : { spawnTask: input.spawnTask }),
-      ...(input.askQuestion === undefined ? {} : { askQuestion: input.askQuestion }),
-      ...(input.signal === undefined ? {} : { signal: input.signal }),
-    });
+    const registry = createToolRegistry(input);
     const performance = emptyPerformance();
     const state = initialToolState(initialChatMessages(input));
     const recovery: ChatRecoveryState = {

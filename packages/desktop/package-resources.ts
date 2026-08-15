@@ -1,13 +1,14 @@
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { createReadStream } from "node:fs";
-import { chmod, copyFile, cp, mkdir, readFile, rm, stat, writeFile } from "node:fs/promises";
+import { chmod, copyFile, cp, mkdir, readFile, rm } from "node:fs/promises";
 import { createRequire } from "node:module";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { build } from "esbuild";
 import { signExecutable } from "./build-signing.js";
 import { writePackageCompliance, writePackageIdentity } from "./package-compliance.js";
+import { installImageModelResources, installVisionResources } from "./package-image-resources.js";
 import { copyRuntimePackage } from "./runtime-packages.js";
 import { reportDevelopmentResourceStage } from "./src/dev-resource-progress.js";
 import * as model from "./src/package-model-contract.js";
@@ -21,7 +22,6 @@ const repositoryRoot = resolve(desktopRoot, "../..");
 const resourcesRoot = join(desktopRoot, "src-tauri", "resources", "core");
 const inferenceRoot = join(resourcesRoot, "inference");
 const workerResourcesRoot = join(resourcesRoot, "workers");
-const modelResourcesRoot = join(resourcesRoot, "models");
 
 export type { ResourceHashes } from "./src/resource-hashes.js";
 
@@ -195,31 +195,6 @@ async function installInferenceResources(): Promise<
   };
 }
 
-async function installModelResources(): Promise<Pick<ResourceHashes, "generationModel">> {
-  reportDevelopmentResourceStage("model");
-  await mkdir(modelResourcesRoot, { recursive: true });
-  const source = model.canonicalGenerationModelPath(repositoryRoot);
-  const digest = await sha256(source);
-  const size = (await stat(source)).size;
-  await writeFile(
-    join(modelResourcesRoot, "installed-models.json"),
-    `${JSON.stringify({
-      schemaVersion: 1,
-      models: [
-        {
-          modelId: model.generationModelId,
-          storeKey: model.generationModelFileName,
-          byteLength: size,
-          sha256: digest,
-          runtimeBuild: "node-llama-cpp@3.19.0",
-          installedAt: "2026-07-20T00:00:00.000Z",
-        },
-      ],
-    })}\n`,
-  );
-  return { generationModel: digest };
-}
-
 function productBuild(): boolean {
   return (
     !process.argv.includes("--check") &&
@@ -230,6 +205,7 @@ function productBuild(): boolean {
 async function installProductResources(): Promise<Omit<ResourceHashes, "migrations">> {
   return {
     ...(await installInferenceResources()),
+    ...(await installVisionResources(sha256)),
     ...(process.platform === "win32"
       ? {
           ...(await installWindowsSetupHelper({
@@ -241,7 +217,7 @@ async function installProductResources(): Promise<Omit<ResourceHashes, "migratio
           ...(await installWindowsAgentResources()),
         }
       : await installMacAgentResources()),
-    ...(await installModelResources()),
+    ...(await installImageModelResources(sha256)),
   };
 }
 
@@ -284,7 +260,7 @@ export async function installResources(
     ? await writePackageCompliance(
         resourcesRoot,
         join(workerResourcesRoot, "images/agent/manifest.json"),
-        [model.generationModelPackageFile(repositoryRoot)],
+        model.modelPackageFiles(repositoryRoot),
       )
     : undefined;
   return {

@@ -4,7 +4,10 @@ import { developmentResourceStageMessage } from "./dev-resource-progress.js";
 describe("desktop development resource progress", () => {
   it("explains long-running offline startup stages", () => {
     expect(developmentResourceStageMessage("model")).toBe(
-      "[Vault Desk startup] Verifying the 6.5 GiB local model for packaging...",
+      "[Vault Desk startup] Verifying the local generation model and image projector for packaging...",
+    );
+    expect(developmentResourceStageMessage("visionRuntime")).toBe(
+      "[Vault Desk startup] Copying the local image inspection runtime...",
     );
     expect(developmentResourceStageMessage("manifest")).toBe(
       "[Vault Desk startup] Hashing and recording the complete offline resource package...",

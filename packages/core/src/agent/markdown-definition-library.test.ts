@@ -41,8 +41,23 @@ function expectApprovedAgents(library: MarkdownDefinitionLibrary): void {
   expect(library.agent("primary")).toMatchObject({
     steps: 40,
     temperature: 0,
-    tools: ["bash", "python", "node", "read", "glob", "grep", "list", "skill", "task", "question"],
+    tools: [
+      "bash",
+      "python",
+      "node",
+      "read",
+      "glob",
+      "grep",
+      "list",
+      "image",
+      "skill",
+      "task",
+      "question",
+    ],
   });
+  expect(library.agent("primary").body).toContain(
+    "Do not call `image` again in this run only to repeat that extraction",
+  );
   expect(library.agent("primary").body).toContain(
     "first turn must contain only one `question` tool call",
   );
@@ -52,7 +67,7 @@ function expectApprovedAgents(library: MarkdownDefinitionLibrary): void {
   });
   expect(library.agent("general")).toMatchObject({
     steps: 24,
-    tools: ["bash", "python", "node", "read", "glob", "grep", "list", "skill"],
+    tools: ["bash", "python", "node", "read", "glob", "grep", "list", "image", "skill"],
   });
   expect(library.agent("probe")).toMatchObject({
     steps: 16,

@@ -1,42 +1,14 @@
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir, totalmem } from "node:os";
-import { basename, join } from "node:path";
+import { join } from "node:path";
 import { createVaultCore } from "@vault/core";
 import { resolveMaximumGenerationContext } from "@vault/workers";
-import { readCanonicalModelManifest, verifyModelFile } from "../models.js";
+import { generationModelId, prepareAgentModelStore } from "./agent-model-store.js";
 import { windowsInferencePaths } from "./windows-inference.js";
 
-const modelId = "gemma-4-12b-it-qat-q4_0";
+const modelId = generationModelId;
 const modelRoot = join(process.cwd(), "packages/eval/.generated/models");
-const modelPath = join(modelRoot, `${modelId}.gguf`);
 const GiB = 1024 * 1024 * 1024;
-
-async function prepareModelStore(): Promise<void> {
-  const manifest = await readCanonicalModelManifest();
-  const model = manifest.models.find((candidate) => candidate.id === modelId);
-  if (model === undefined) throw new Error(`Canonical model missing: ${modelId}`);
-  await verifyModelFile(model, modelPath);
-  await writeFile(
-    join(modelRoot, "installed-models.json"),
-    JSON.stringify(
-      {
-        schemaVersion: 1,
-        models: [
-          {
-            modelId,
-            sha256: model.sha256,
-            byteLength: model.byteLength,
-            runtimeBuild: "node-llama-cpp@3.19.0",
-            storeKey: basename(modelPath),
-            installedAt: new Date().toISOString(),
-          },
-        ],
-      },
-      null,
-      2,
-    ),
-  );
-}
 
 async function generate(workspaceDir: string) {
   const inference = await windowsInferencePaths();
@@ -67,7 +39,7 @@ async function generate(workspaceDir: string) {
 if (process.platform !== "win32" || process.arch !== "x64") {
   throw new Error("The M3 Windows memory gate requires Windows x64.");
 }
-await prepareModelStore();
+await prepareAgentModelStore(modelRoot);
 const workspaceDir = await mkdtemp(join(tmpdir(), "vault-m3-windows-memory-"));
 try {
   const result = await generate(workspaceDir);

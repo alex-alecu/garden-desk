@@ -11,7 +11,7 @@ import {
   preparePackageBuild,
   rollbackPackageBuild,
 } from "../package-output-cleanup.js";
-import { generationModelFileName } from "./package-model-contract.js";
+import { generationModelFileName, projectorModelFileName } from "./package-model-contract.js";
 
 const roots: string[] = [];
 
@@ -33,17 +33,21 @@ async function writePackage(
   const resources = resourcesRoot(target);
   await mkdir(join(resources, "models"), { recursive: true });
   await writeFile(join(resources, "models", generationModelFileName), model);
+  await writeFile(join(resources, "models", projectorModelFileName), "projector");
   await writeFile(
     join(resources, "resource-manifest.json"),
     JSON.stringify({
       schemaVersion: 1,
       files: [
-        {
-          path: `models/${generationModelFileName}`,
-          byteLength: Buffer.byteLength(manifestModel),
-          sha256: createHash("sha256").update(manifestModel).digest("hex"),
-        },
-      ],
+        [generationModelFileName, manifestModel],
+        [projectorModelFileName, "projector"],
+      ].map(([name, content]) => ({
+        path: `models/${name}`,
+        byteLength: Buffer.byteLength(content as string),
+        sha256: createHash("sha256")
+          .update(content as string)
+          .digest("hex"),
+      })),
     }),
   );
 }
@@ -61,6 +65,7 @@ async function macTarget(profile: "debug" | "release"): Promise<PackageBuildTarg
   const canonical = join(root, "packages", "eval", ".generated", "models");
   await mkdir(canonical, { recursive: true });
   await writeFile(join(canonical, generationModelFileName), "model");
+  await writeFile(join(canonical, projectorModelFileName), "projector");
   return target;
 }
 
@@ -71,36 +76,42 @@ describe("package output retention", () => {
     if (debug === undefined) throw new Error("Expected debug package target.");
     await writePackage(release);
     await writePackage(debug);
-    const legacy = join(release.tauriRoot, "resources", "core", "models", generationModelFileName);
-    const intermediate = join(
+    const legacyRoot = join(release.tauriRoot, "resources", "core", "models");
+    const intermediateRoot = join(
       release.tauriRoot,
       "target",
       "release",
       "resources",
       "core",
       "models",
-      generationModelFileName,
     );
-    await mkdir(join(legacy, ".."), { recursive: true });
-    await mkdir(join(intermediate, ".."), { recursive: true });
-    await writeFile(legacy, "model");
-    await writeFile(intermediate, "model");
+    await mkdir(legacyRoot, { recursive: true });
+    await mkdir(intermediateRoot, { recursive: true });
+    for (const name of [generationModelFileName, projectorModelFileName]) {
+      await writeFile(join(legacyRoot, name), "model");
+      await writeFile(join(intermediateRoot, name), "model");
+    }
 
     await cleanModelCopies(release);
 
     await expect(
       stat(join(resourcesRoot(release), "models", generationModelFileName)),
     ).resolves.toBeDefined();
+    await expect(
+      stat(join(resourcesRoot(release), "models", projectorModelFileName)),
+    ).resolves.toBeDefined();
     await expect(stat(debug.packageRoot)).rejects.toMatchObject({ code: "ENOENT" });
-    await expect(stat(legacy)).rejects.toMatchObject({ code: "ENOENT" });
-    await expect(stat(intermediate)).rejects.toMatchObject({ code: "ENOENT" });
+    for (const name of [generationModelFileName, projectorModelFileName]) {
+      await expect(stat(join(legacyRoot, name))).rejects.toMatchObject({ code: "ENOENT" });
+      await expect(stat(join(intermediateRoot, name))).rejects.toMatchObject({ code: "ENOENT" });
+    }
   });
 });
 
 describe("development model cleanup", () => {
-  it("removes the transient development model", async () => {
+  it("removes the transient development model pair", async () => {
     const release = await macTarget("release");
-    const model = join(
+    const modelRoot = join(
       release.desktopRoot,
       "src-tauri",
       "target",
@@ -108,14 +119,17 @@ describe("development model cleanup", () => {
       "resources",
       "core",
       "models",
-      generationModelFileName,
     );
-    await mkdir(join(model, ".."), { recursive: true });
-    await writeFile(model, "model");
+    await mkdir(modelRoot, { recursive: true });
+    for (const name of [generationModelFileName, projectorModelFileName]) {
+      await writeFile(join(modelRoot, name), "model");
+    }
 
     await cleanupDevelopmentModelOutput(release.desktopRoot);
 
-    await expect(stat(model)).rejects.toMatchObject({ code: "ENOENT" });
+    for (const name of [generationModelFileName, projectorModelFileName]) {
+      await expect(stat(join(modelRoot, name))).rejects.toMatchObject({ code: "ENOENT" });
+    }
   });
 });
 

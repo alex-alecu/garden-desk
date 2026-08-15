@@ -4,6 +4,7 @@ import type {
   EmbeddingInput,
   GenerationInput,
   GenerationRequestIdentity,
+  ImageInferencePort,
   InferencePort,
   InferenceService,
   InferenceStreamCallbacks,
@@ -24,7 +25,7 @@ import {
 import type { ModelResolver } from "./models.js";
 import type { ResourceScheduler } from "./scheduler.js";
 import { AsyncSerial } from "./serial.js";
-import { SlotLimiter } from "./slot-limiter.js";
+import { ImageInferenceController } from "./supervisor-image.js";
 import {
   createChatWorkerRequest,
   createEmbedWorkerRequest,
@@ -38,9 +39,7 @@ type AuditAppender = (event: AuditEventInput) => void;
 type ResourceLease = ReturnType<ResourceScheduler["reserve"]>;
 type StagedModel = Awaited<ReturnType<ModelResolver["resolve"]>>;
 
-export class InferenceSupervisor implements InferenceService {
-  private readonly active = new Map<AbortController, Promise<void>>();
-  private readonly slots = new SlotLimiter(1);
+export class InferenceSupervisor extends ImageInferenceController implements InferenceService {
   private readonly residency = new AsyncSerial();
   private measurements: Parameters<typeof modelRuntimeStatus>[2] = {};
   private resident:
@@ -51,41 +50,15 @@ export class InferenceSupervisor implements InferenceService {
         lease: ResourceLease;
       }
     | undefined;
-  private closed = false;
-
+  // biome-ignore lint/complexity/useMaxParams: explicit ports keep inference authorities visible.
   constructor(
     private readonly port: InferencePort,
-    private readonly models: ModelResolver,
-    private readonly scheduler: ResourceScheduler,
-    private readonly audit: AuditAppender,
-  ) {}
-
-  private startExecution(signal?: AbortSignal): ActiveInferenceExecution {
-    if (this.closed) throw new InferenceFailure("cancelled", "Inference supervisor closed.");
-    const lifecycle = new AbortController();
-    const operationSignal = AbortSignal.any([
-      lifecycle.signal,
-      ...(signal === undefined ? [] : [signal]),
-    ]);
-    let finishExecution!: () => void;
-    const finished = new Promise<void>((accept) => {
-      finishExecution = () => accept();
-    });
-    this.active.set(lifecycle, finished);
-    return {
-      lifecycle,
-      signal: operationSignal,
-      startedAt: 0,
-      timeoutMs: 0,
-      finish: finishExecution,
-    };
-  }
-
-  private startTimedExecution(execution: ActiveInferenceExecution, timeoutMs: number): void {
-    execution.signal.throwIfAborted();
-    execution.signal = AbortSignal.any([execution.signal, AbortSignal.timeout(timeoutMs)]);
-    execution.startedAt = Date.now();
-    execution.timeoutMs = timeoutMs;
+    models: ModelResolver,
+    scheduler: ResourceScheduler,
+    audit: AuditAppender,
+    imagePort?: ImageInferencePort,
+  ) {
+    super(models, scheduler, audit, imagePort);
   }
 
   private async execute(
@@ -125,11 +98,6 @@ export class InferenceSupervisor implements InferenceService {
     });
     return response;
   }
-  private finishExecution(execution: ActiveInferenceExecution): void {
-    this.active.delete(execution.lifecycle);
-    execution.finish();
-  }
-
   private async prepareModel(modelId: string, operation: InferenceOperation, signal: AbortSignal) {
     if (this.resident?.modelId === modelId && this.resident.operation === operation) {
       return this.resident;
@@ -146,7 +114,7 @@ export class InferenceSupervisor implements InferenceService {
     }
   }
 
-  private async releaseResident(): Promise<boolean> {
+  protected async releaseResident(): Promise<boolean> {
     const resident = this.resident;
     this.resident = undefined;
     this.measurements = lastKnownContext(this.measurements);

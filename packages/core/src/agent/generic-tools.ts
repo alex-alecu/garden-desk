@@ -136,12 +136,47 @@ function taskTool(): ToolSpec {
   };
 }
 
+function imageTool(): ToolSpec {
+  return {
+    definition: {
+      name: "image",
+      description:
+        "Inspect one PNG or JPEG from /run/attachments or /source. Return only image facts needed for the task.",
+      params: objectSchema(
+        {
+          path: { type: "string", description: "Exact guest image path." },
+          prompt: {
+            type: "string",
+            description: "Specific visual question or extraction request.",
+          },
+        },
+        ["path", "prompt"],
+      ),
+    },
+    parse: (value) => {
+      const params = object(value);
+      return {
+        path: textParam(params, "path", 4_096),
+        prompt: textParam(params, "prompt", 16_384),
+      };
+    },
+    execute: async (value, context) => {
+      if (context.inspectImage === undefined) {
+        return { content: "Image inspection is not available.", failed: true };
+      }
+      const params = value as { path: string; prompt: string };
+      return { content: await context.inspectImage(params.path, params.prompt), failed: false };
+    },
+  };
+}
+
 function specs(skills: SkillReader, skillNames: string[]): ToolSpec[] {
   return [
     codeTool("python"),
     codeTool("node"),
     bashTool(),
     ...inspectionTools(),
+    imageTool(),
     skillTool(skills, skillNames),
     taskTool(),
     questionTool(),

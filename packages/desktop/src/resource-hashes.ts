@@ -14,5 +14,7 @@ export interface ResourceHashes {
   agentKernel?: string;
   agentInitramfs?: string;
   generationModel?: string;
+  projectorModel?: string;
+  visionRuntime?: Record<string, string>;
   resourceManifest?: string;
 }

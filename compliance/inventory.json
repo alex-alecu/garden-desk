@@ -22,7 +22,9 @@
     "agentGuestReview": "docs/research/m3-agent-guest-dependency-review.md",
     "windowsRuntimeAssets": "packages/desktop/windows-runtime-assets.json",
     "windowsRuntimeReview": "docs/research/m3-windows-runtime-dependency-review.md",
-    "windowsPackageIntegrityReview": "docs/research/m3-package-integrity-dependency-review.md"
+    "windowsPackageIntegrityReview": "docs/research/m3-package-integrity-dependency-review.md",
+    "visionRuntimeAssets": "assets/vision-runtime.json",
+    "visionRuntimeReview": "docs/research/m3-image-runtime-dependency-review.md"
   },
   "directDependencies": [
     {
@@ -94,6 +96,24 @@
       "version": "13.2.0.9",
       "license": "NVIDIA CUDA Toolkit EULA",
       "use": "packaged_windows_cuda_runtime"
+    },
+    {
+      "name": "llama.cpp",
+      "version": "b9842",
+      "license": "MIT",
+      "use": "packaged_local_image_inference_runtime"
+    },
+    {
+      "name": "Microsoft Visual C++ Desktop Runtime",
+      "version": "14.0.33321.0",
+      "license": "Microsoft Software License Terms",
+      "use": "packaged_windows_image_inference_runtime"
+    },
+    {
+      "name": "Microsoft Visual C++ OpenMP Runtime",
+      "version": "MSVC 19.50.35721",
+      "license": "Microsoft Software License Terms",
+      "use": "packaged_windows_image_inference_runtime"
     },
     { "name": "postject", "version": "1.0.0-alpha.6", "license": "MIT", "use": "node_sea_build" },
     { "name": "react", "version": "19.2.7", "license": "MIT", "use": "desktop_ui" },

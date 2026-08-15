@@ -1,12 +1,13 @@
 import { spawn } from "node:child_process";
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { basename, join } from "node:path";
+import { join } from "node:path";
 import { createVaultCore } from "@vault/core";
 import type { AgentRunSnapshot } from "@vault/shared";
 import { WindowsMicroVmLauncher } from "@vault/workers";
-import { readCanonicalModelManifest, verifyModelFile } from "../models.js";
+import { prepareAgentModelStore } from "./agent-model-store.js";
 import { runGuestEvidence } from "./m3-guest.js";
+import { realImageEvidence } from "./m3-image-agent.js";
 import { windowsInferencePaths } from "./windows-inference.js";
 
 const repositoryRoot = process.cwd();
@@ -16,8 +17,7 @@ const helper = join(
 );
 const images = join(repositoryRoot, "packages/workers/images");
 const modelRoot = join(repositoryRoot, "packages/eval/.generated/models");
-const modelId = "gemma-4-12b-it-qat-q4_0";
-const modelPath = join(modelRoot, `${modelId}.gguf`);
+const imageFixture = join(repositoryRoot, "site/assets/product-icon.png");
 
 interface WindowsArtifacts {
   kernel: string;
@@ -34,29 +34,6 @@ interface AgentEvidenceInput {
   expectedError?: string;
   expectLiveOutput?: boolean;
   expectStdoutTruncated?: boolean;
-}
-
-async function prepareModelStore(): Promise<void> {
-  const manifest = await readCanonicalModelManifest();
-  const model = manifest.models.find((candidate) => candidate.id === modelId);
-  if (model === undefined) throw new Error(`Canonical model missing: ${modelId}`);
-  await verifyModelFile(model, modelPath);
-  await writeFile(
-    join(modelRoot, "installed-models.json"),
-    JSON.stringify({
-      schemaVersion: 1,
-      models: [
-        {
-          modelId,
-          sha256: model.sha256,
-          byteLength: model.byteLength,
-          runtimeBuild: "node-llama-cpp@3.19.0",
-          storeKey: basename(modelPath),
-          installedAt: new Date().toISOString(),
-        },
-      ],
-    }),
-  );
 }
 
 async function windowsArtifacts(): Promise<WindowsArtifacts> {
@@ -221,8 +198,30 @@ async function runWindowsEvidence(root: string, artifacts: WindowsArtifacts) {
   if (limits.runState !== "succeeded") {
     throw new Error(`Windows bounded-observation proof failed: ${limits.runState}`);
   }
+  const image = await runWindowsImageEvidence(root);
   const malformedFrames = await malformedFrameEvidence(root, artifacts);
-  return { python, node, cancellation, limits, malformedFrames };
+  return { python, node, cancellation, limits, image, malformedFrames };
+}
+
+async function runWindowsImageEvidence(root: string): Promise<Record<string, unknown>> {
+  const imageWorkspace = join(root, "image-workspace");
+  await mkdir(imageWorkspace);
+  const inference = await windowsInferencePaths();
+  const imageCore = await createVaultCore({
+    workspaceDir: imageWorkspace,
+    modelStoreDir: modelRoot,
+    profile: "auto",
+    agentHelperPath: helper,
+    agentImageRoot: images,
+    ...inference,
+  });
+  try {
+    const image = await realImageEvidence(imageCore, imageFixture);
+    if (!(await imageCore.verifyAudit())) throw new Error("Real image audit chain failed.");
+    return image;
+  } finally {
+    await imageCore.close();
+  }
 }
 
 async function malformedFrameEvidence(root: string, artifacts: WindowsArtifacts) {
@@ -273,7 +272,7 @@ async function main(): Promise<void> {
       root,
       (workspace) => new WindowsMicroVmLauncher(helper, images, workspace),
     );
-    await prepareModelStore();
+    await prepareAgentModelStore(modelRoot);
     const evidence = await runWindowsEvidence(root, artifacts);
     console.log(
       JSON.stringify({

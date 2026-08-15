@@ -1,11 +1,13 @@
 import { mkdir, mkdtemp, rm, stat, writeFile } from "node:fs/promises";
-import { tmpdir, totalmem } from "node:os";
-import { basename, join } from "node:path";
-import { createVaultCore, resolveInferenceHardwarePolicy } from "@vault/core";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { createVaultCore } from "@vault/core";
 import type { AgentRunSnapshot } from "@vault/shared";
-import { MacOsMicroVmLauncher, resolveMaximumGenerationContext } from "@vault/workers";
-import { readCanonicalModelManifest, verifyModelFile } from "../models.js";
+import { MacOsMicroVmLauncher } from "@vault/workers";
+import { prepareAgentModelStore } from "./agent-model-store.js";
 import { runGuestEvidence } from "./m3-guest.js";
+import { realImageEvidence } from "./m3-image-agent.js";
+import { automaticModelEvidence } from "./m3-macos-model-evidence.js";
 
 const repositoryRoot = process.cwd();
 const helper = join(
@@ -14,31 +16,12 @@ const helper = join(
 );
 const images = join(repositoryRoot, "packages/workers/images");
 const modelRoot = join(repositoryRoot, "packages/eval/.generated/models");
-const modelPath = join(modelRoot, "gemma-4-12b-it-qat-q4_0.gguf");
+const visionRuntime = join(
+  repositoryRoot,
+  "packages/eval/.generated/vision/macos-arm64/llama-mtmd-cli",
+);
+const imageFixture = join(repositoryRoot, "site/assets/product-icon.png");
 type RealLanguage = "python" | "node";
-
-async function prepareModelStore(): Promise<void> {
-  const manifest = await readCanonicalModelManifest();
-  const model = manifest.models.find((candidate) => candidate.id === "gemma-4-12b-it-qat-q4_0");
-  if (model === undefined) throw new Error("Canonical M3 model is missing.");
-  await verifyModelFile(model, modelPath);
-  await writeFile(
-    join(modelRoot, "installed-models.json"),
-    JSON.stringify({
-      schemaVersion: 1,
-      models: [
-        {
-          modelId: model.id,
-          sha256: model.sha256,
-          byteLength: model.byteLength,
-          runtimeBuild: "node-llama-cpp@3.19.0",
-          storeKey: basename(modelPath),
-          installedAt: new Date().toISOString(),
-        },
-      ],
-    }),
-  );
-}
 
 function retainTerminalSnapshots(
   snapshots: Map<RealLanguage, AgentRunSnapshot>,
@@ -110,23 +93,6 @@ function maximumVmOverlap(snapshots: AgentRunSnapshot[], observedAt: number): nu
     maximum = Math.max(maximum, active);
   }
   return maximum;
-}
-
-async function automaticModelEvidence(core: Awaited<ReturnType<typeof createVaultCore>>) {
-  const model = await core.modelStatus();
-  const policy = resolveInferenceHardwarePolicy("auto");
-  const maximumContextSize = resolveMaximumGenerationContext(process.platform, totalmem(), 0);
-  if (
-    !policy.supported ||
-    model.state !== "ready" ||
-    model.memoryBudgetBytes !== policy.memoryBudgetBytes ||
-    (model.cpuRamBytes ?? 0) + (model.gpuVramBytes ?? 0) > policy.memoryBudgetBytes ||
-    (model.contextSizeTokens ?? 0) <= 8_192 ||
-    (model.contextSizeTokens ?? 0) > maximumContextSize
-  ) {
-    throw new Error(`Automatic model memory or context proof failed: ${JSON.stringify(model)}`);
-  }
-  return model;
 }
 
 async function requireMissing(path: string): Promise<void> {
@@ -221,6 +187,7 @@ async function runRealAgents(root: string) {
     profile: "auto",
     agentHelperPath: helper,
     agentImageRoot: images,
+    visionRuntimePath: visionRuntime,
   });
   try {
     const targets = [
@@ -247,10 +214,13 @@ async function runRealAgents(root: string) {
         }),
       ),
     );
+    const realImage = await realImageEvidence(core, imageFixture);
+    if (!(await core.verifyAudit())) throw new Error("Real image audit chain failed.");
     return {
       maximumOverlappingVms: concurrent.maximumOverlappingVms,
       realPython: results.python,
       realNode: results.node,
+      realImage,
     };
   } finally {
     await core.close();
@@ -267,7 +237,7 @@ async function main(): Promise<void> {
       root,
       (workspace) => new MacOsMicroVmLauncher(helper, images, workspace),
     );
-    await prepareModelStore();
+    await prepareAgentModelStore(modelRoot);
     const realAgents = await runRealAgents(root);
     console.log(
       JSON.stringify({

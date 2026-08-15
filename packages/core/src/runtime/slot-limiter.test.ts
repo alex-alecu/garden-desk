@@ -73,4 +73,33 @@ describe("SlotLimiter", () => {
     });
     expect(ran).toBe(true);
   });
+
+  it("runs an exclusive operation after active work and before queued work", async () => {
+    const limiter = new SlotLimiter(2);
+    const first = deferred();
+    const second = deferred();
+    const order: string[] = [];
+    const a = limiter.run(async () => {
+      order.push("a");
+      await first.promise;
+    });
+    const b = limiter.run(async () => {
+      order.push("b");
+      await second.promise;
+    });
+    const vision = limiter.runExclusive(async () => {
+      order.push("vision");
+    });
+    const next = limiter.run(async () => {
+      order.push("next");
+    });
+    await Promise.resolve();
+    expect(order).toEqual(["a", "b"]);
+    first.resolve();
+    await Promise.resolve();
+    expect(order).toEqual(["a", "b"]);
+    second.resolve();
+    await Promise.all([a, b, vision, next]);
+    expect(order).toEqual(["a", "b", "vision", "next"]);
+  });
 });

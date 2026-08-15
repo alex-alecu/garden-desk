@@ -32,8 +32,9 @@ To minimize code written and code changed later, the implementation should start
 
 | Responsibility | Default component | Fallback | Why least code |
 |---|---|---|---|
-| Generation runtime | node-llama-cpp (MIT) in a supervised inference worker | Supervised llama-server child process | Typed Node integration, official Gemma 4 QAT GGUFs, grammar-enforced JSON output, function calling, embeddings, and crash containment |
-| Vision and OCR models | llama-server child process serving Gemma 4 multimodal, PaddleOCR-VL, Granite-Docling GGUFs | node-llama-cpp once image input lands | Same runtime family as generation; no separate ML stack |
+| Generation runtime | node-llama-cpp (MIT) in a supervised inference worker | Pinned llama.cpp command adapter | Typed Node integration, official Gemma 4 QAT GGUFs, grammar-enforced JSON output, function calling, embeddings, and crash containment |
+| Direct image inspection | Pinned llama.cpp `llama-mtmd-cli` child using the generation model and its projector | Later reviewed local vision adapter | Same model and runtime family as generation, with one bounded offline process and no separate ML stack |
+| Post-V1 document vision and OCR | Later reviewed llama.cpp-compatible document model | Specialized no-NIC document worker | Keeps document extraction out of the V1 direct-image path and requires measured value before expansion |
 | Born-digital parsing | Native Node parsers in a no-NIC microVM: pdf.js, mammoth, ExcelJS/SheetJS, officeParser, mailparser | Process-only compatibility mode, not certified | Permissive licenses, covers most files, and places hostile inputs behind a VM boundary |
 | Layout-aware parsing | Granite-Docling-258M GGUF | Docling Python sidecar | Docling-class quality through the already-shipped runtime |
 | Remaining formats and fallback parsing | One Python worker image in the no-NIC microVM (Docling, MarkItDown, Unstructured) | — | One isolated dependency image instead of scattered host processes |
@@ -180,3 +181,4 @@ No package manifest or source tree should be created until that plan exists and 
 | 2026-07-17 | Replaced the proposed OpenTelemetry trace shape with a minimal Vault Desk-owned local audit schema and no exporter. |
 | 2026-07-20 | Replaced the pre-V1 document-specific quality surface with the generic offline dev-agent desktop gate. |
 | 2026-07-22 | Replaced fixed profile checks with automatic memory-tier and Windows GPU-budget validation. |
+| 2026-08-15 | Replaced the proposed vision server with the implemented bounded llama-mtmd-cli direct-image adapter and kept document vision after V1. |

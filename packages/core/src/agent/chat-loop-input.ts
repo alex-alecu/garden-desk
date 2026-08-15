@@ -33,6 +33,7 @@ export interface ChatAgentInput {
   signal?: AbortSignal;
   skills: SkillReader;
   inferencePriority?: "primary" | "secondary";
+  inspectImage?(path: string, prompt: string): Promise<string>;
   spawnTask?(request: SubagentRequest): Promise<string>;
   askQuestion?(questions: AgentQuestion[]): Promise<AgentQuestionOutcome>;
   systemPrompt(name: string): string;
