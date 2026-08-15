@@ -21,6 +21,7 @@ Ship the first useful product as quickly as the security boundary permits:
 - A generic local agent inspired by modern coding-agent interaction.
 - Python, Node.js, and installed shell-tool execution in a session-scoped no-NIC microVM.
 - A reviewed fixed set of offline document and image libraries.
+- A prompt-only professional review set for legal, finance, and medical administration, with physical and qualified reviewer gates.
 - Live read-only selected-folder mount and persistent bounded guest workspace; no selected-folder writes.
 - Typed host-mediated local inference; no generic model endpoint in the guest.
 - Self-contained packages with zero-download first launch on supported macOS and Windows hardware.
@@ -54,4 +55,5 @@ One combined follow-up may add:
 | 2026-07-10 | Created the initial roadmap. |
 | 2026-07-13 | Selected Tauri v2 and the no-NIC executable-tool boundary. |
 | 2026-07-20 | Made the generic offline dev-agent desktop the V1 target and moved document intelligence after launch. |
+| 2026-08-15 | Added the limited professional review skill set to M3 without starting the document-intelligence follow-up. |
 | 2026-07-23 | Replaced per-execution guests and copied folder inputs with a session VM, live read-only source, and persistent bounded workspace. |

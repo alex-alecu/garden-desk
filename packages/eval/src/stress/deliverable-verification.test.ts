@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { missingFactAlternatives, missingVisibleLabelValues } from "./deliverable-verification.js";
+import {
+  missingFactAlternatives,
+  missingVisibleLabelValues,
+  presentForbiddenPatterns,
+} from "./deliverable-verification.js";
 
 describe("deliverable fact alternatives", () => {
   it("accepts one exact visible rendering from each label-value group", () => {
@@ -37,5 +41,13 @@ describe("visible label values", () => {
     expect(
       missingVisibleLabelValues("INVOICE_TOTAL\nUnknown\nMEETING_NOTES\nCount: 24", groups),
     ).toEqual(["INVOICE_TOTAL=20012|20012.0"]);
+  });
+});
+
+describe("forbidden deliverable patterns", () => {
+  it("finds unsafe text independent of capitalization", () => {
+    expect(
+      presentForbiddenPatterns("APPROVE this packet.", [String.raw`\b(?:approve|deny)\b`]),
+    ).toEqual([String.raw`\b(?:approve|deny)\b`]);
   });
 });

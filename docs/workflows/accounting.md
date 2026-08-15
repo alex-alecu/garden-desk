@@ -6,7 +6,7 @@ Accounting is a possible post-V1 workflow pack. It is not part of the desktop V1
 
 ## Current Skill-Only Support
 
-The owner activated a limited product-agent skill on 2026-08-15. The `finance-document-review` skill uses the existing Word, PDF, and XLSX workflows. It reviews text-readable financial statements and reconciles supplied invoices, bank statements, ledgers, and workbooks with source citations.
+The owner expanded limited product-agent support on 2026-08-15. `finance-document-review` now focuses on financial statements. `financial-records-reconciliation`, `invoice-expense-review`, and `budget-variance-review` provide separate workflows. They load after the shared `document-review` skill and use the existing Word, PDF, and XLSX workflows. `review-report` adds a formal result only when the user requests one.
 
 This skill is not the complete accounting workflow pack. It does not add OCR, autonomous postings, bank connections, tax advice, compliance filing, audit assurance, or unreviewed export.
 
@@ -74,6 +74,7 @@ Development fixtures and held-out acceptance documents must use different templa
 | Date | Change |
 |---|---|
 | 2026-08-15 | Added the limited local finance document review skill and retained the full workflow pack as follow-up work. |
+| 2026-08-15 | Split limited finance support into statement, reconciliation, invoice and expense, and budget variance skills with a shared review contract. |
 | 2026-07-10 | Initial accounting workflow document created. |
 | 2026-07-11 | Added held-out variation and blinded human-review requirements for pilot readiness. |
 | 2026-07-20 | Removed the pre-V1 review slice and retained generic reconciliation only as a post-V1 candidate. |

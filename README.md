@@ -60,7 +60,7 @@ Vault Desk does more than place extracted text into a prompt. The agent can writ
 
 The agent can also inspect a PNG or JPEG attachment, or an image in the selected folder. A simple question about one direct image stays in the main chat. Exact extraction and multi-image work run in a general child agent, so only the requested facts return to the main context. Image inspection is local, on demand, and has no network access.
 
-The immutable guest image includes pinned offline tools for common work with JSON, CSV, SQLite, PDF, DOCX, XLSX, and images, including Pillow, pypdf, openpyxl, python-docx, and ReportLab. Product-owned format skills route automatically from the trusted task and attachment names. Explicitly requested files appear beneath the matching response with Open and Save As actions; scripts, intermediates, and logs stay in Technical details. Package managers are intentionally absent: the environment is reproducible and cannot download code at runtime.
+The immutable guest image includes pinned offline tools for common work with JSON, CSV, SQLite, PDF, DOCX, XLSX, and images, including Pillow, pypdf, openpyxl, python-docx, and ReportLab. The model loads product-owned format and professional review skills on demand through one generic skill tool. Legal, finance, and medical-administration review skills use supplied evidence and require qualified human review. Explicitly requested files appear beneath the matching response with Open and Save As actions; scripts, intermediates, and logs stay in Technical details. Package managers are intentionally absent: the environment is reproducible and cannot download code at runtime.
 
 ## Local stress results
 

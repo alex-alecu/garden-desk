@@ -59,6 +59,12 @@ prompt assets at startup. The desktop package copies the complete tree into its
 offline Core resources. The resource manifest hashes every prompt, and the Windows host verifies
 and read-locks every packaged prompt before starting Core.
 
+M3 contains four format and command skills plus 14 professional review skills. Each product skill
+contains only `SKILL.md`; it has no script, reference, asset, UI metadata, or executable authority.
+`document-review` contains shared evidence and safety rules. The 12 focused domain skills do not
+repeat those rules. `review-report` owns formal result structure and optional DOCX or PDF output.
+Core does not load a bundle or select a domain.
+
 ## M3 Package Shape
 
 ### `packages/shared`
@@ -250,3 +256,4 @@ The existing source-limit gate remains authoritative. Prefer files below 300 lin
 | 2026-07-27 | Added the verified Windows CUDA/Vulkan resource package and signed copy-installed application directory. |
 | 2026-08-04 | Added final-response deliverable declarations, Core materialization/export adapters, and pinned DOCX/XLSX/PDF skill assets. |
 | 2026-08-14 | Added the reviewed guest Antiword package and replaced the DOCX-only skill with one Word document skill. |
+| 2026-08-15 | Added the 14 prompt-only professional review skills and kept domain selection outside Core. |

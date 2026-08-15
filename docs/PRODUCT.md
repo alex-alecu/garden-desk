@@ -168,7 +168,7 @@ The Community V1 targets individuals and small teams that need a private general
 
 Legal practices are a strong second vertical because document comparison, citation, redaction, and formatting-sensitive edits are high-value workflows.
 
-Medical administration is a later target. Initial medical scope should avoid autonomous diagnosis, treatment recommendations, and triage.
+M3 includes limited prompt-only medical-administration review for supplied records, timelines, prior-authorization packet completeness, and billing-document differences. It does not provide diagnosis, treatment recommendations, triage, medical-necessity decisions, or autonomous patient communication. The complete medical administration workflow remains a later target.
 
 ## Revision History
 

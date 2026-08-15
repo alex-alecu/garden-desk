@@ -169,7 +169,7 @@ The harness should persist a document-set manifest so huge folder jobs can resum
 
 ## Hybrid Execution Principle
 
-For V1, use the generic offline dev agent for folder and attachment work. Add typed deterministic operations after V1 only when measurements prove that a maintained operation materially improves speed, accuracy, evidence quality, or model cost. Such operations remain Vault Core-owned and cannot weaken guest isolation or grant host-write authority.
+For V1, use the generic offline dev agent for folder and attachment work. Prompt-only professional review skills may guide the same generic tools, but they do not add Core routing, domain policy, or deterministic operations. Add typed deterministic operations after V1 only when measurements prove that a maintained operation materially improves speed, accuracy, evidence quality, or model cost. Such operations remain Vault Core-owned and cannot weaken guest isolation or grant host-write authority.
 
 Only a request that cannot be expressed through supported operations may be routed by policy to the bounded code-interpreter microVM. Generated code is untrusted input to the verifier, not product authority. Its source, environment, inputs, outputs, logs, resource use, and termination are auditable, and any workspace write or export still crosses normal policy and approval boundaries.
 
@@ -278,6 +278,7 @@ M2 was activated by the repository owner on 2026-07-19 and completed across macO
 | 2026-07-12 | Made the no-NIC microVM the hostile-work boundary, retained a narrow host-native accelerator exception, and prohibited command matching as network isolation. |
 | 2026-07-13 | Replaced Electron with a thin Tauri v2 shell and added deterministic document tools with a bounded no-NIC code-interpreter fallback. |
 | 2026-07-20 | Made the generic offline dev agent the V1 execution path and moved deterministic document specialization after launch. |
+| 2026-08-15 | Added prompt-only professional review guidance without changing the generic execution path. |
 | 2026-07-16 | Replaced the no-code constraint with an M0-only implementation constraint after the explicit owner phase-change request. |
 | 2026-07-17 | Replaced the proposed OpenTelemetry-shaped audit contract with a small Vault Desk-owned local schema and prohibited telemetry exporters. |
 | 2026-07-19 | Hardened completed M1 recovery, endpoint authentication, audit truncation detection, and worker staging limits after follow-up review. |

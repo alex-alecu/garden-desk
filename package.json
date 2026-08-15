@@ -25,6 +25,7 @@
     "test:m3:windows": "node --import tsx packages/eval/src/gates/m3-windows-agent.ts",
     "test:m3:windows:memory": "node --import tsx packages/eval/src/gates/m3-windows-memory.ts",
     "dev:probe:windows:shared-gpu": "pnpm --filter @vault/desktop build:inference-probe && node --import tsx packages/eval/src/gates/m3-windows-shared-gpu-development.ts",
+    "test:m3:skills": "node --import tsx packages/eval/src/gates/m3-professional-skills.ts",
     "test:m2:native": "node --import tsx packages/eval/src/gates/m2-native-canary.ts",
     "test:platform:gate": "vitest run --config vitest.workspace.ts --project platform",
     "test:gate": "node --import tsx packages/eval/src/gates/run.ts",
