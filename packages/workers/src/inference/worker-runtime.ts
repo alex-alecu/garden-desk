@@ -1,38 +1,20 @@
-import { totalmem } from "node:os";
 import type {
   ChatGenerationRequest,
   GenerationContextLimitReason,
-  GpuMemoryKind,
-  InferenceBackend,
   StructuredGenerationRequest,
 } from "@vault/shared";
-import type {
-  Llama,
-  LlamaChatSession,
-  LlamaEmbeddingContext,
-  LlamaGpuType,
-  LlamaModel,
-} from "node-llama-cpp";
+import type { LlamaChatSession, LlamaEmbeddingContext, LlamaModel } from "node-llama-cpp";
 import { ChatSequencePool } from "./chat-pool.js";
 import {
   combinedAllocationBytes,
   fitCombinedGenerationContext,
   resolveGenerationContextLimit,
   resolveGenerationContextSize,
-  resolveRuntimeMemoryBudget,
   resolveSequenceCount,
 } from "./memory.js";
-import { loadLlamaRuntime } from "./runtime-loader.js";
+import { loadSelectedRuntime, type SelectedRuntime } from "./worker-launch.js";
 
-export interface LoadedRuntime {
-  budget: number;
-  backend: InferenceBackend;
-  detectedGpuMemoryBytes: number;
-  gpuMemoryKind: GpuMemoryKind;
-  installedMemoryBytes: number;
-  selectedDeviceCount: 1;
-  llama: Llama;
-  model: LlamaModel;
+export interface LoadedRuntime extends SelectedRuntime {
   generation?: {
     requestedContextSize: StructuredGenerationRequest["contextSize"];
     contextSize: number;
@@ -53,68 +35,10 @@ export interface LoadedRuntime {
 
 type ChatRuntime = NonNullable<LoadedRuntime["chat"]>;
 
-function argument(name: string): string {
-  const index = process.argv.indexOf(name);
-  const value = process.argv[index + 1];
-  if (index === -1 || value === undefined) throw new Error(`Missing ${name}.`);
-  return value;
-}
-
 let loadedRuntime: Promise<LoadedRuntime> | undefined;
 
 export async function runtime(operation: "generate" | "embed"): Promise<LoadedRuntime> {
-  loadedRuntime ??= (async () => {
-    const modelPath = argument("--model");
-    const requestedBudget = Number(argument("--memory-budget"));
-    if (modelPath === undefined || !Number.isSafeInteger(requestedBudget) || requestedBudget <= 0) {
-      throw new Error("Invalid worker launch arguments.");
-    }
-    const windows = process.platform === "win32";
-    const backend = windows ? (argument("--gpu-backend") as LlamaGpuType) : undefined;
-    const expectedDeviceName = windows ? argument("--expected-gpu-name") : undefined;
-    const gpuMemoryKind = windows
-      ? (argument("--gpu-memory-kind") as GpuMemoryKind)
-      : "unified";
-    const installedMemoryBytes = windows ? Number(argument("--installed-memory")) : totalmem();
-    const expectedMemoryBytes = windows
-      ? Number(argument("--detected-gpu-memory"))
-      : undefined;
-    if (
-      (windows && backend !== "cuda" && backend !== "vulkan") ||
-      (windows && gpuMemoryKind !== "dedicated" && gpuMemoryKind !== "unified") ||
-      !Number.isSafeInteger(installedMemoryBytes) ||
-      installedMemoryBytes <= 0 ||
-      (windows && (!Number.isSafeInteger(expectedMemoryBytes) || Number(expectedMemoryBytes) <= 0))
-    ) {
-      throw new Error("Invalid worker GPU arguments.");
-    }
-    const loaded = await loadLlamaRuntime({
-      ...(backend === undefined ? {} : { backend }),
-      ...(expectedDeviceName === undefined ? {} : { expectedDeviceName }),
-    });
-    if (expectedMemoryBytes !== undefined && loaded.detectedGpuMemoryBytes !== expectedMemoryBytes) {
-      await loaded.llama.dispose();
-      throw new Error("selected_gpu_changed");
-    }
-    const budget = resolveRuntimeMemoryBudget(
-      requestedBudget,
-      loaded.detectedGpuMemoryBytes,
-      process.platform,
-      operation,
-      gpuMemoryKind,
-    );
-    await loaded.llama.setVramCap(budget);
-    return {
-      budget,
-      backend: loaded.backend === false ? "metal" : loaded.backend,
-      detectedGpuMemoryBytes: loaded.detectedGpuMemoryBytes,
-      gpuMemoryKind,
-      installedMemoryBytes,
-      selectedDeviceCount: 1,
-      llama: loaded.llama,
-      model: await loaded.llama.loadModel({ modelPath }),
-    };
-  })();
+  loadedRuntime ??= loadSelectedRuntime(operation);
   return loadedRuntime;
 }
 

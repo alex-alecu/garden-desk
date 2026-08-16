@@ -60,10 +60,9 @@ export async function inspectLlamaBackend(gpu: LlamaGpuType) {
   }
 }
 
-export async function loadLlamaRuntime(options: {
-  backend?: LlamaGpuType;
-  expectedDeviceName?: string;
-} = {}) {
+export async function loadLlamaRuntime(
+  options: { backend?: LlamaGpuType; expectedDeviceName?: string } = {},
+) {
   if (process.platform === "win32") {
     if (options.backend !== "cuda" && options.backend !== "vulkan") {
       throw new Error("selected_gpu_backend_required");

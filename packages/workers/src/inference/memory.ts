@@ -19,24 +19,39 @@ export interface GenerationContextLimit {
   reason: GenerationContextLimitReason;
 }
 
-export function resolveRuntimeMemoryBudget(
-  requestedBudgetBytes: number,
-  detectedGpuMemoryBytes: number,
-  platform: NodeJS.Platform,
-  operation: "generate" | "embed",
-  memoryKind: GpuMemoryKind,
-): number {
+interface RuntimeMemoryBudgetInput {
+  detectedGpuMemoryBytes: number;
+  memoryKind: GpuMemoryKind;
+  operation: "generate" | "embed";
+  platform: NodeJS.Platform;
+  requestedBudgetBytes: number;
+}
+
+export function resolveRuntimeMemoryBudget(input: RuntimeMemoryBudgetInput): number {
   if (
-    platform !== "win32" ||
-    operation !== "generate" ||
-    memoryKind === "unified"
+    input.platform !== "win32" ||
+    input.operation !== "generate" ||
+    input.memoryKind === "unified"
   ) {
-    return requestedBudgetBytes;
+    return input.requestedBudgetBytes;
   }
-  if (!Number.isSafeInteger(detectedGpuMemoryBytes) || detectedGpuMemoryBytes <= 0) {
+  if (!Number.isSafeInteger(input.detectedGpuMemoryBytes) || input.detectedGpuMemoryBytes <= 0) {
     throw new Error("supported_gpu_required");
   }
-  return detectedGpuMemoryBytes;
+  return input.detectedGpuMemoryBytes;
+}
+
+function hardwareContextLimit(
+  highMemory: boolean,
+  standardReason: GenerationContextLimitReason,
+  highMemoryReason: GenerationContextLimitReason,
+): GenerationContextLimit {
+  return {
+    maximumContextTokens: highMemory
+      ? HIGH_MEMORY_MAXIMUM_GENERATION_CONTEXT
+      : STANDARD_MAXIMUM_GENERATION_CONTEXT,
+    reason: highMemory ? highMemoryReason : standardReason,
+  };
 }
 
 export function resolveMaximumGenerationContext(
@@ -56,26 +71,18 @@ export function resolveGenerationContextLimit(
   memoryKind: GpuMemoryKind = platform === "darwin" ? "unified" : "dedicated",
 ): GenerationContextLimit {
   if (memoryKind === "unified") {
-    const highMemory = totalMemoryBytes > UNIFIED_HIGH_MEMORY_THRESHOLD_BYTES;
-    return {
-      maximumContextTokens: highMemory
-        ? HIGH_MEMORY_MAXIMUM_GENERATION_CONTEXT
-        : STANDARD_MAXIMUM_GENERATION_CONTEXT,
-      reason: highMemory
-        ? "unified_memory_above_32_gib"
-        : "unified_memory_at_most_32_gib",
-    };
+    return hardwareContextLimit(
+      totalMemoryBytes > UNIFIED_HIGH_MEMORY_THRESHOLD_BYTES,
+      "unified_memory_at_most_32_gib",
+      "unified_memory_above_32_gib",
+    );
   }
   if (platform === "win32") {
-    const highMemory = gpuMemoryBytes > DEDICATED_HIGH_MEMORY_THRESHOLD_BYTES;
-    return {
-      maximumContextTokens: highMemory
-        ? HIGH_MEMORY_MAXIMUM_GENERATION_CONTEXT
-        : STANDARD_MAXIMUM_GENERATION_CONTEXT,
-      reason: highMemory
-        ? "dedicated_memory_above_24_gib"
-        : "dedicated_memory_at_most_24_gib",
-    };
+    return hardwareContextLimit(
+      gpuMemoryBytes > DEDICATED_HIGH_MEMORY_THRESHOLD_BYTES,
+      "dedicated_memory_at_most_24_gib",
+      "dedicated_memory_above_24_gib",
+    );
   }
   return {
     maximumContextTokens: STANDARD_MAXIMUM_GENERATION_CONTEXT,

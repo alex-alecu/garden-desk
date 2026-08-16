@@ -50,9 +50,7 @@ type Probe = (selection: WindowsGpuLaunch) => Promise<WindowsRuntimeProbeResult 
 
 function safeInteger(value: unknown, allowZero = true): value is number {
   return (
-    typeof value === "number" &&
-    Number.isSafeInteger(value) &&
-    (allowZero ? value >= 0 : value > 0)
+    typeof value === "number" && Number.isSafeInteger(value) && (allowZero ? value >= 0 : value > 0)
   );
 }
 
@@ -243,20 +241,28 @@ async function resolveCandidate(
   return undefined;
 }
 
+function preferenceRank(profile: WindowsGpuProfile): [number, number, number] {
+  return [
+    profile.selection.memoryKind === "dedicated" ? 0 : 1,
+    -profile.selection.detectedMemoryBytes,
+    profile.selection.backend === "cuda" ? 0 : 1,
+  ];
+}
+
+function comparePreference(left: WindowsGpuProfile, right: WindowsGpuProfile): number {
+  const leftRank = preferenceRank(left);
+  const rightRank = preferenceRank(right);
+  for (const [index, value] of leftRank.entries()) {
+    const difference = value - (rightRank[index] as number);
+    if (difference !== 0) return difference;
+  }
+  return left.selection.expectedName.localeCompare(right.selection.expectedName);
+}
+
 export function selectPreferredWindowsGpuProfile(
   profiles: WindowsGpuProfile[],
 ): WindowsGpuProfile | undefined {
-  return profiles.toSorted((left, right) => {
-    if (left.selection.memoryKind !== right.selection.memoryKind) {
-      return left.selection.memoryKind === "dedicated" ? -1 : 1;
-    }
-    const memory = right.selection.detectedMemoryBytes - left.selection.detectedMemoryBytes;
-    if (memory !== 0) return memory;
-    if (left.selection.backend !== right.selection.backend) {
-      return left.selection.backend === "cuda" ? -1 : 1;
-    }
-    return left.selection.expectedName.localeCompare(right.selection.expectedName);
-  })[0];
+  return profiles.toSorted(comparePreference)[0];
 }
 
 export async function resolveWindowsGpuProfileFromFacts(

@@ -32,7 +32,9 @@ export function validateWindowsGpuLaunch(gpu: WindowsGpuLaunch): void {
   if (
     (gpu.backend !== "cuda" && gpu.backend !== "vulkan") ||
     (gpu.deviceIndex !== undefined &&
-      (!Number.isSafeInteger(gpu.deviceIndex) || gpu.deviceIndex < 0 || gpu.deviceIndex > 0xffff_ffff)) ||
+      (!Number.isSafeInteger(gpu.deviceIndex) ||
+        gpu.deviceIndex < 0 ||
+        gpu.deviceIndex > 0xffff_ffff)) ||
     (gpu.expectedName !== undefined &&
       (gpu.expectedName.length === 0 || gpu.expectedName.length > 512)) ||
     (gpu.memoryKind !== undefined &&
@@ -59,10 +61,7 @@ function runtimeReadPaths(workerEntryPath: string): string[] {
   return [resolve(workerDirectory, "../..")];
 }
 
-export function prepareWindowsRuntime(
-  helperPath: string,
-  workerEntryPath: string,
-): Promise<void> {
+export function prepareWindowsRuntime(helperPath: string, workerEntryPath: string): Promise<void> {
   const key = `${helperPath}\0${workerEntryPath}`;
   const existing = preparations.get(key);
   if (existing !== undefined) return existing;
@@ -88,6 +87,22 @@ export function prepareWindowsRuntime(
   return pending;
 }
 
+function windowsGpuArguments(gpu: WindowsGpuLaunch): string[] {
+  validateWindowsGpuLaunch(gpu);
+  const optional: [string, string | number | undefined][] = [
+    ["--gpu-device-index", gpu.deviceIndex],
+    ["--expected-gpu-name", gpu.expectedName],
+    ["--gpu-memory-kind", gpu.memoryKind],
+    ["--detected-gpu-memory", gpu.detectedMemoryBytes],
+    ["--installed-memory", gpu.installedMemoryBytes],
+  ];
+  const args = ["--gpu-backend", gpu.backend];
+  for (const [name, value] of optional) {
+    if (value !== undefined) args.push(name, String(value));
+  }
+  return args;
+}
+
 export function windowsNativeWorkerArguments(
   request: NativeWorkerLaunchRequest,
   scratch: string,
@@ -106,25 +121,7 @@ export function windowsNativeWorkerArguments(
     String(request.memoryBudgetBytes),
   ];
   if (request.modelPath !== undefined) args.push("--model", resolve(request.modelPath));
-  if (options.gpu !== undefined) {
-    validateWindowsGpuLaunch(options.gpu);
-    args.push("--gpu-backend", options.gpu.backend);
-    if (options.gpu.deviceIndex !== undefined) {
-      args.push("--gpu-device-index", String(options.gpu.deviceIndex));
-    }
-    if (options.gpu.expectedName !== undefined) {
-      args.push("--expected-gpu-name", options.gpu.expectedName);
-    }
-    if (options.gpu.memoryKind !== undefined) {
-      args.push("--gpu-memory-kind", options.gpu.memoryKind);
-    }
-    if (options.gpu.detectedMemoryBytes !== undefined) {
-      args.push("--detected-gpu-memory", String(options.gpu.detectedMemoryBytes));
-    }
-    if (options.gpu.installedMemoryBytes !== undefined) {
-      args.push("--installed-memory", String(options.gpu.installedMemoryBytes));
-    }
-  }
+  if (options.gpu !== undefined) args.push(...windowsGpuArguments(options.gpu));
   return args;
 }
 

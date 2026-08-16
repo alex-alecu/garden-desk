@@ -21,6 +21,58 @@ interface InferenceCompositionOptions {
   visionRuntimePath?: string;
 }
 
+type WindowsRuntime = Awaited<ReturnType<typeof createWindowsInferenceRuntime>>;
+
+function unavailableResult(message: string) {
+  return {
+    service: unavailableInference(message),
+    available: false,
+    agentSessionCapacity: 0,
+  } as const;
+}
+
+function windowsRuntimeOptions(options: InferenceCompositionOptions) {
+  const configured: Parameters<typeof createWindowsInferenceRuntime>[0] = {};
+  if (options.workerEntryPath !== undefined) configured.workerEntryPath = options.workerEntryPath;
+  if (options.inferenceHelperPath !== undefined) {
+    configured.inferenceHelperPath = options.inferenceHelperPath;
+  }
+  if (options.inferenceRuntimePath !== undefined) {
+    configured.inferenceRuntimePath = options.inferenceRuntimePath;
+  }
+  if (options.visionRuntimePath !== undefined)
+    configured.visionRuntimePath = options.visionRuntimePath;
+  return configured;
+}
+
+async function windowsRuntime(
+  options: InferenceCompositionOptions,
+): Promise<WindowsRuntime | undefined> {
+  if (process.platform !== "win32") return undefined;
+  return await createWindowsInferenceRuntime(windowsRuntimeOptions(options));
+}
+
+function windowsRuntimeFailure(error: unknown): ReturnType<typeof unavailableResult> {
+  if (error instanceof Error && error.message === "supported_gpu_required") {
+    return unavailableResult(
+      "This computer does not have a supported local graphics configuration.",
+    );
+  }
+  throw error;
+}
+
+function hardwareProfile(
+  selected: WindowsRuntime | undefined,
+  policy: ReturnType<typeof resolveInferenceHardwarePolicy>,
+) {
+  if (selected !== undefined) return selected.hardwareProfile;
+  if (!policy.supported) throw new Error("unsupported_inference_hardware");
+  return {
+    memoryBudgetBytes: policy.memoryBudgetBytes,
+    hostMemoryReservationBytes: policy.memoryBudgetBytes,
+  };
+}
+
 export function unavailableInference(message?: string) {
   const unsupported = async (): Promise<never> => {
     throw Object.assign(new Error("inference_not_packaged"), { code: "unsupported" });
@@ -50,58 +102,26 @@ export async function createInferenceService(
   audit: AuditLog,
 ) {
   const profile = InferenceProfileSchema.parse(options.profile);
-  let windowsRuntime: Awaited<ReturnType<typeof createWindowsInferenceRuntime>> | undefined;
-  if (process.platform === "win32") {
-    try {
-      windowsRuntime = await createWindowsInferenceRuntime({
-        ...(options.workerEntryPath === undefined
-          ? {}
-          : { workerEntryPath: options.workerEntryPath }),
-        ...(options.inferenceHelperPath === undefined
-          ? {}
-          : { inferenceHelperPath: options.inferenceHelperPath }),
-        ...(options.inferenceRuntimePath === undefined
-          ? {}
-          : { inferenceRuntimePath: options.inferenceRuntimePath }),
-        ...(options.visionRuntimePath === undefined
-          ? {}
-          : { visionRuntimePath: options.visionRuntimePath }),
-      });
-    } catch (error) {
-      if (error instanceof Error && error.message === "supported_gpu_required") {
-        return {
-          service: unavailableInference(
-            "This computer does not have a supported local graphics configuration.",
-          ),
-          available: false,
-          agentSessionCapacity: 0,
-        } as const;
-      }
-      throw error;
-    }
+  let selectedWindowsRuntime: WindowsRuntime | undefined;
+  try {
+    selectedWindowsRuntime = await windowsRuntime(options);
+  } catch (error) {
+    return windowsRuntimeFailure(error);
   }
   const policy = resolveInferenceHardwarePolicy(profile);
-  if (!policy.supported && windowsRuntime === undefined) {
-    return {
-      service: unavailableInference(policy.message),
-      available: false,
-      agentSessionCapacity: 0,
-    } as const;
-  }
+  if (!policy.supported && selectedWindowsRuntime === undefined)
+    return unavailableResult(policy.message);
   const modelResolver = await ModelResolver.open(options.modelStoreDir);
-  const hardwareProfile = windowsRuntime?.hardwareProfile ?? {
-    memoryBudgetBytes: policy.supported ? policy.memoryBudgetBytes : 0,
-    hostMemoryReservationBytes: policy.supported ? policy.memoryBudgetBytes : 0,
-  };
+  const selectedHardware = hardwareProfile(selectedWindowsRuntime, policy);
   const workerEntryPath =
-    windowsRuntime?.workerEntryPath ??
+    selectedWindowsRuntime?.workerEntryPath ??
     options.workerEntryPath ??
     fileURLToPath(new URL("../../../workers/dist/inference/worker.js", import.meta.url));
   const launcher =
-    windowsRuntime?.workerLauncher ??
+    selectedWindowsRuntime?.workerLauncher ??
     new MacOsNativeWorkerLauncher([workspaceRoot], options.inferenceRuntimePath);
   const vision =
-    windowsRuntime?.visionClient ??
+    selectedWindowsRuntime?.visionClient ??
     (options.visionRuntimePath === undefined
       ? undefined
       : new LlamaVisionClient(options.visionRuntimePath, options.inferenceHelperPath));
@@ -109,13 +129,11 @@ export async function createInferenceService(
     service: new InferenceSupervisor(
       new InferenceWorkerClient(launcher, workerEntryPath),
       modelResolver,
-      new ResourceScheduler(hardwareProfile.memoryBudgetBytes),
+      new ResourceScheduler(selectedHardware.memoryBudgetBytes),
       (event) => audit.append(event),
       vision,
     ),
     available: true,
-    agentSessionCapacity: resolveAgentSessionCapacity(
-      hardwareProfile.hostMemoryReservationBytes,
-    ),
+    agentSessionCapacity: resolveAgentSessionCapacity(selectedHardware.hostMemoryReservationBytes),
   } as const;
 }

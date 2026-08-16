@@ -1,14 +1,11 @@
 import { LlamaVisionClient, type VisionExecution } from "../vision/client.js";
+import { WindowsNativeWorkerLauncher, windowsNativeWorkerEntryPath } from "./windows.js";
 import {
   assertWindowsVisionSelection,
-  resolveWindowsGpuProfile,
   type ResolveWindowsGpuProfileOptions,
+  resolveWindowsGpuProfile,
 } from "./windows-gpu.js";
 import type { WindowsGpuProfile } from "./windows-gpu-policy.js";
-import {
-  WindowsNativeWorkerLauncher,
-  windowsNativeWorkerEntryPath,
-} from "./windows.js";
 
 export interface NeutralInferenceHardwareProfile {
   memoryBudgetBytes: number;

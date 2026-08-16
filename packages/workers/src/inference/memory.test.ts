@@ -64,22 +64,46 @@ const contextCaps = [
 describe("inference memory budget", () => {
   it("uses the full isolated Windows dedicated memory for generation", () => {
     expect(
-      resolveRuntimeMemoryBudget(64 * GiB, 16 * GiB, "win32", "generate", "dedicated"),
+      resolveRuntimeMemoryBudget({
+        requestedBudgetBytes: 64 * GiB,
+        detectedGpuMemoryBytes: 16 * GiB,
+        platform: "win32",
+        operation: "generate",
+        memoryKind: "dedicated",
+      }),
     ).toBe(16 * GiB);
   });
 
   it("uses the selected budget for Windows unified memory", () => {
     expect(
-      resolveRuntimeMemoryBudget(12 * GiB, 32 * GiB, "win32", "generate", "unified"),
+      resolveRuntimeMemoryBudget({
+        requestedBudgetBytes: 12 * GiB,
+        detectedGpuMemoryBytes: 32 * GiB,
+        platform: "win32",
+        operation: "generate",
+        memoryKind: "unified",
+      }),
     ).toBe(12 * GiB);
   });
 
   it("preserves Mac budgets and bounded embedding reservations", () => {
     expect(
-      resolveRuntimeMemoryBudget(12 * GiB, 48 * GiB, "darwin", "generate", "unified"),
+      resolveRuntimeMemoryBudget({
+        requestedBudgetBytes: 12 * GiB,
+        detectedGpuMemoryBytes: 48 * GiB,
+        platform: "darwin",
+        operation: "generate",
+        memoryKind: "unified",
+      }),
     ).toBe(12 * GiB);
     expect(
-      resolveRuntimeMemoryBudget(2 * GiB, 16 * GiB, "win32", "embed", "dedicated"),
+      resolveRuntimeMemoryBudget({
+        requestedBudgetBytes: 2 * GiB,
+        detectedGpuMemoryBytes: 16 * GiB,
+        platform: "win32",
+        operation: "embed",
+        memoryKind: "dedicated",
+      }),
     ).toBe(2 * GiB);
   });
 });
@@ -88,25 +112,21 @@ describe("generation context caps", () => {
   it.each(contextCaps)(
     "caps $platform generation with $memory GiB memory and $vram GiB VRAM at $maximum tokens",
     ({ platform, memory, vram, maximum, reason, memoryKind }) => {
-      expect(
-        resolveMaximumGenerationContext(platform, memory * GiB, vram * GiB, memoryKind),
-      ).toBe(maximum);
-      expect(
-        resolveGenerationContextLimit(platform, memory * GiB, vram * GiB, memoryKind),
-      ).toEqual({
-        maximumContextTokens: maximum,
-        reason,
-      });
+      expect(resolveMaximumGenerationContext(platform, memory * GiB, vram * GiB, memoryKind)).toBe(
+        maximum,
+      );
+      expect(resolveGenerationContextLimit(platform, memory * GiB, vram * GiB, memoryKind)).toEqual(
+        {
+          maximumContextTokens: maximum,
+          reason,
+        },
+      );
     },
   );
 
   it("uses strict high-memory thresholds", () => {
-    expect(resolveMaximumGenerationContext("darwin", 32 * GiB + 1, 0, "unified")).toBe(
-      131_072,
-    );
-    expect(resolveMaximumGenerationContext("win32", 0, 24 * GiB + 1, "dedicated")).toBe(
-      131_072,
-    );
+    expect(resolveMaximumGenerationContext("darwin", 32 * GiB + 1, 0, "unified")).toBe(131_072);
+    expect(resolveMaximumGenerationContext("win32", 0, 24 * GiB + 1, "dedicated")).toBe(131_072);
   });
 
   it("fits automatic and explicit generation context inside the hardware cap", () => {
@@ -134,10 +154,15 @@ describe("combined generation allocation", () => {
 
   it("rejects a Mac budget that cannot fit the minimum context", async () => {
     await expect(
-      fitCombinedGenerationContext(50, { cpuRamBytes: 20, gpuMemoryBytes: 30 }, 65_536, async () => ({
-        cpuRamBytes: 1,
-        gpuMemoryBytes: 0,
-      })),
+      fitCombinedGenerationContext(
+        50,
+        { cpuRamBytes: 20, gpuMemoryBytes: 30 },
+        65_536,
+        async () => ({
+          cpuRamBytes: 1,
+          gpuMemoryBytes: 0,
+        }),
+      ),
     ).rejects.toThrow("combined_memory_budget_exceeded");
   });
 

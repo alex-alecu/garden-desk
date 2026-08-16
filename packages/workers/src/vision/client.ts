@@ -90,13 +90,16 @@ export function visionRuntimeArguments(input: VisionExecution, promptFile: strin
   ];
 }
 
-export function windowsVisionArguments(
-  input: VisionExecution,
-  runtime: string,
-  promptFile: string,
-  scratch: string,
-  vulkanDeviceIndex?: number,
-): string[] {
+export interface WindowsVisionLaunch {
+  input: VisionExecution;
+  promptFile: string;
+  runtime: string;
+  scratch: string;
+  vulkanDeviceIndex?: number;
+}
+
+export function windowsVisionArguments(launch: WindowsVisionLaunch): string[] {
+  const { input, runtime, promptFile, scratch, vulkanDeviceIndex } = launch;
   if (
     vulkanDeviceIndex !== undefined &&
     (!Number.isSafeInteger(vulkanDeviceIndex) ||
@@ -257,13 +260,15 @@ export class LlamaVisionClient {
         await prepareWindows(this.windowsHelperPath, runtime, operationSignal);
         operationSignal.throwIfAborted();
         command = this.windowsHelperPath;
-        args = windowsVisionArguments(
+        args = windowsVisionArguments({
           input,
           runtime,
           promptFile,
-          temporaryRoot,
-          this.windowsVulkanDeviceIndex,
-        );
+          scratch: temporaryRoot,
+          ...(this.windowsVulkanDeviceIndex === undefined
+            ? {}
+            : { vulkanDeviceIndex: this.windowsVulkanDeviceIndex }),
+        });
       } else if (process.platform === "darwin" && process.arch === "arm64") {
         command = "/usr/bin/sandbox-exec";
         args = [

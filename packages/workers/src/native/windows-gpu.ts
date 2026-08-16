@@ -1,6 +1,13 @@
+// biome-ignore lint/style/noRestrictedImports: this module launches the bounded GPU fact probes.
 import { spawn } from "node:child_process";
 import { dirname, extname, join, resolve } from "node:path";
 import type { NativeWorkerHandle } from "./launcher.js";
+import {
+  defaultWindowsInferenceHelperPath,
+  type WindowsGpuLaunch,
+  WindowsNativeWorkerLauncher,
+  windowsHelperEnvironment,
+} from "./windows.js";
 import {
   parseWindowsGpuInfo,
   parseWindowsRuntimeProbe,
@@ -8,12 +15,6 @@ import {
   type WindowsGpuProfile,
   type WindowsRuntimeProbeResult,
 } from "./windows-gpu-policy.js";
-import {
-  defaultWindowsInferenceHelperPath,
-  type WindowsGpuLaunch,
-  WindowsNativeWorkerLauncher,
-  windowsHelperEnvironment,
-} from "./windows.js";
 
 const GiB = 1024 ** 3;
 const PROBE_MEMORY_BYTES = 2 * GiB;
@@ -116,7 +117,9 @@ async function runtimeProbe(
   options: ResolvedOptions,
   gpu: WindowsGpuLaunch,
 ): Promise<WindowsRuntimeProbeResult | undefined> {
-  const launcher = new WindowsNativeWorkerLauncher(options.helperPath, options.runtimePath, { gpu });
+  const launcher = new WindowsNativeWorkerLauncher(options.helperPath, options.runtimePath, {
+    gpu,
+  });
   const handle = await launcher.launch({
     workerEntryPath: hardwareWorkerPath(options.workerEntryPath),
     memoryBudgetBytes: PROBE_MEMORY_BYTES,
@@ -134,8 +137,8 @@ export async function resolveWindowsGpuProfile(
   const info = await gpuInfo(options);
   const inventories = (
     await Promise.all(
-      (["cuda", "vulkan"] as const).map(async (backend) =>
-        await runtimeProbe(options, { backend }).catch(() => undefined),
+      (["cuda", "vulkan"] as const).map(
+        async (backend) => await runtimeProbe(options, { backend }).catch(() => undefined),
       ),
     )
   ).filter((value): value is WindowsRuntimeProbeResult => value !== undefined);

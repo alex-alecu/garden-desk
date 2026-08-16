@@ -70,9 +70,7 @@ export function modelUsage(model: ModelRuntimeStatus) {
 /** Shows one GPU memory value and the configured budget. Unified memory includes CPU and GPU
  * allocations because both use the same host pool. Dedicated memory shows only the GPU allocation.
  */
-export function gpuMemoryUsage(
-  model: ModelRuntimeStatus,
-):
+export function gpuMemoryUsage(model: ModelRuntimeStatus):
   | {
       used: string;
       budget: string | undefined;

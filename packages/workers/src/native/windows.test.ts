@@ -57,7 +57,9 @@ describe("Windows native worker launch arguments", () => {
       ),
     ).toThrow("invalid_windows_gpu_selection");
   });
+});
 
+describe("Windows helper environment", () => {
   it("does not pass credentials or network configuration to the helper", () => {
     expect(windowsHelperEnvironment()).toEqual({
       PATH: expect.any(String),

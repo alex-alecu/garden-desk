@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import type { WindowsGpuLaunch } from "./windows.js";
 import {
   normalizeGpuName,
   resolveIntegratedGpuBudget,
@@ -7,15 +8,10 @@ import {
   type WindowsGpuInfo,
   type WindowsRuntimeProbeResult,
 } from "./windows-gpu-policy.js";
-import type { WindowsGpuLaunch } from "./windows.js";
 
 const GiB = 1024 ** 3;
 
-function adapter(
-  id: string,
-  description: string,
-  integrated: boolean,
-): WindowsGpuAdapterInfo {
+function adapter(id: string, description: string, integrated: boolean): WindowsGpuAdapterInfo {
   return {
     id,
     description,
@@ -34,10 +30,7 @@ function inventory(
   return { schemaVersion: 1, backend, deviceNames, totalMemoryBytes };
 }
 
-function facts(
-  adapters: WindowsGpuAdapterInfo[],
-  installedMemoryBytes = 32 * GiB,
-): WindowsGpuInfo {
+function facts(adapters: WindowsGpuAdapterInfo[], installedMemoryBytes = 32 * GiB): WindowsGpuInfo {
   return { schemaVersion: 1, installedMemoryBytes, adapters };
 }
 
@@ -63,7 +56,7 @@ describe("Windows integrated GPU budgets", () => {
   });
 });
 
-describe("Windows GPU selection", () => {
+describe("Windows dedicated GPU preference", () => {
   it("selects an NVIDIA dedicated device through CUDA before an AMD integrated device", async () => {
     const selected = await resolveWindowsGpuProfileFromFacts(
       facts([
@@ -88,7 +81,9 @@ describe("Windows GPU selection", () => {
     });
     expect(selected.visionSelection).toEqual({ deviceIndex: 1, expectedName: "NVIDIA GPU" });
   });
+});
 
+describe("Windows GPU selection without vendor rules", () => {
   it("selects an Intel dedicated device before an Intel integrated device", async () => {
     const selected = await resolveWindowsGpuProfileFromFacts(
       facts([
@@ -107,7 +102,9 @@ describe("Windows GPU selection", () => {
       memoryKind: "dedicated",
     });
   });
+});
 
+describe("Windows integrated GPU fallback", () => {
   it.each(["AMD Integrated Graphics", "Intel Integrated Graphics", "NVIDIA Integrated Graphics"])(
     "uses the unified policy for %s without a vendor rule",
     async (name) => {
@@ -145,13 +142,12 @@ describe("Windows GPU selection", () => {
       memoryKind: "unified",
     });
   });
+});
 
+describe("Windows GPU candidate ranking", () => {
   it("selects the dedicated device with the largest isolated memory", async () => {
     const selected = await resolveWindowsGpuProfileFromFacts(
-      facts([
-        adapter("large", "Large GPU", false),
-        adapter("small", "Small GPU", false),
-      ]),
+      facts([adapter("large", "Large GPU", false), adapter("small", "Small GPU", false)]),
       [inventory("vulkan", ["Small GPU", "Large GPU"])],
       probe({
         "vulkan:0": { name: "Small GPU", memory: 12 * GiB },
@@ -176,7 +172,9 @@ describe("Windows GPU selection", () => {
     expect(selected.selection.backend).toBe("cuda");
     expect(selected.visionSelection).toEqual({ deviceIndex: 0, expectedName: "GPU" });
   });
+});
 
+describe("Windows GPU identity failures", () => {
   it.each([
     {
       name: "missing mapping",

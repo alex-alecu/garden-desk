@@ -35,7 +35,7 @@ const antiword = {
   purpose: "legacy DOC plain-text reading",
 };
 
-describe("package compliance", () => {
+describe("package compliance dependency records", () => {
   it("records the Windows DXCore binding on Windows", async () => {
     const { guest, resources } = await fixture();
     await writePackageCompliance(resources, guest);
@@ -54,7 +54,9 @@ describe("package compliance", () => {
       expect(dependency).toBeUndefined();
     }
   });
+});
 
+describe("package compliance manifests", () => {
   it("records an external model at its packaged path", async () => {
     const { external, guest, resources } = await fixture();
     await writePackageCompliance(resources, guest, [

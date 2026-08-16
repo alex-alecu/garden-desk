@@ -147,6 +147,31 @@ async function installWindowsInferenceHelper(
   };
 }
 
+async function buildInferenceWorkers(destinationRoot: string): Promise<[string, string]> {
+  reportDevelopmentResourceStage("inferenceWorker");
+  const worker = join(destinationRoot, "worker.mjs");
+  const hardwareWorker = join(destinationRoot, "hardware-worker.mjs");
+  const entries: [string, string][] = [
+    [join(repositoryRoot, "packages/workers/src/inference/worker.ts"), worker],
+    [join(repositoryRoot, "packages/workers/src/inference/hardware-worker.ts"), hardwareWorker],
+  ];
+  await Promise.all(
+    entries.map(async ([entryPoint, outfile]) => {
+      await build({
+        absWorkingDir: repositoryRoot,
+        entryPoints: [entryPoint],
+        outfile,
+        bundle: true,
+        external: ["node-llama-cpp"],
+        format: "esm",
+        platform: "node",
+        target: "node24",
+      });
+    }),
+  );
+  return [worker, hardwareWorker];
+}
+
 export async function installInferenceResources(
   destinationRoot = inferenceRoot,
 ): Promise<
@@ -162,29 +187,7 @@ export async function installInferenceResources(
   >
 > {
   await mkdir(destinationRoot, { recursive: true });
-  reportDevelopmentResourceStage("inferenceWorker");
-  const worker = join(destinationRoot, "worker.mjs");
-  const hardwareWorker = join(destinationRoot, "hardware-worker.mjs");
-  await Promise.all(
-    [
-      [join(repositoryRoot, "packages/workers/src/inference/worker.ts"), worker],
-      [
-        join(repositoryRoot, "packages/workers/src/inference/hardware-worker.ts"),
-        hardwareWorker,
-      ],
-    ].map(async ([entryPoint, outfile]) => {
-      await build({
-        absWorkingDir: repositoryRoot,
-        entryPoints: [entryPoint as string],
-        outfile: outfile as string,
-        bundle: true,
-        external: ["node-llama-cpp"],
-        format: "esm",
-        platform: "node",
-        target: "node24",
-      });
-    }),
-  );
+  const [worker, hardwareWorker] = await buildInferenceWorkers(destinationRoot);
   reportDevelopmentResourceStage("inferenceRuntime");
   await copyRuntimePackage(
     "node-llama-cpp",

@@ -28,7 +28,12 @@ describe("llama vision client", () => {
     expect(args[args.indexOf("--file") + 1]).toMatch(/prompt\.txt$/u);
     expect(args).not.toContain(input.prompt);
 
-    const windows = windowsVisionArguments(input, "/runtime/llama.exe", "/tmp/prompt.txt", "/tmp");
+    const windows = windowsVisionArguments({
+      input,
+      runtime: "/runtime/llama.exe",
+      promptFile: "/tmp/prompt.txt",
+      scratch: "/tmp",
+    });
     expect(windows[0]).toBe("run-vision");
     expect(windows).not.toContain(input.prompt);
   });

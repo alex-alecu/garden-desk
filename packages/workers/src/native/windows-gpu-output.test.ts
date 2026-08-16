@@ -1,10 +1,8 @@
+// biome-ignore lint/style/noRestrictedImports: this test drives the bounded probe output collector.
 import { spawn } from "node:child_process";
 import { describe, expect, it } from "vitest";
 import { collectWindowsGpuProcess } from "./windows-gpu.js";
-import {
-  parseWindowsGpuInfo,
-  parseWindowsRuntimeProbe,
-} from "./windows-gpu-policy.js";
+import { parseWindowsGpuInfo, parseWindowsRuntimeProbe } from "./windows-gpu-policy.js";
 
 function adapter(description = "GPU") {
   return {

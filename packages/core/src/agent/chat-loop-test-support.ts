@@ -11,6 +11,21 @@ const performance = (promptTokens = 1) => ({
   totalDurationMs: 2,
 });
 
+export function memoryReport(
+  overrides: Partial<ChatGenerationResult["memory"]> = {},
+): ChatGenerationResult["memory"] {
+  return {
+    cpuRamBytes: 1,
+    gpuMemoryBytes: 1,
+    budgetBytes: 1,
+    detectedGpuMemoryBytes: 1,
+    gpuMemoryKind: "unified",
+    backend: "metal",
+    selectedDeviceCount: 1,
+    ...overrides,
+  };
+}
+
 export function generated(
   text: string,
   toolCalls: ChatGenerationResult["toolCalls"] = [],
@@ -24,16 +39,7 @@ export function generated(
     text,
     toolCalls,
     stopReason: toolCalls.length === 0 ? "text" : "toolCalls",
-    memory: {
-      cpuRamBytes: 1,
-      gpuMemoryBytes: 1,
-      budgetBytes: 1,
-      detectedGpuMemoryBytes: 1,
-      gpuMemoryKind: "unified" as const,
-      backend: "metal" as const,
-      selectedDeviceCount: 1 as const,
-      contextSizeTokens: 8_192,
-    },
+    memory: memoryReport({ contextSizeTokens: 8_192 }),
     performance: performance(promptTokens),
   };
 }

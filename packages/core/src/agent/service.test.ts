@@ -11,6 +11,7 @@ import type { ChatInput, InferenceService } from "../runtime/inference.js";
 import { ArtifactStore } from "../workspace/artifacts.js";
 import { openWorkspaceCatalog } from "../workspace/catalog.js";
 import { WorkspaceScope } from "../workspace/scope.js";
+import { memoryReport } from "./chat-loop-test-support.js";
 import { AgentService } from "./service.js";
 import { AgentStore } from "./store.js";
 
@@ -28,16 +29,7 @@ function chatResult(
     text,
     toolCalls,
     stopReason: toolCalls.length > 0 ? "toolCalls" : "text",
-    memory: {
-      cpuRamBytes: 1,
-      gpuMemoryBytes: 1,
-      budgetBytes: 2,
-      detectedGpuMemoryBytes: 1,
-      gpuMemoryKind: "unified" as const,
-      backend: "metal" as const,
-      selectedDeviceCount: 1 as const,
-      contextSizeTokens: 16_384,
-    },
+    memory: memoryReport({ budgetBytes: 2, contextSizeTokens: 16_384 }),
     performance: {
       promptTokens: 10,
       outputTokens: 5,
