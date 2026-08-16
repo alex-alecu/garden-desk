@@ -42,3 +42,28 @@ describe("llama vision client", () => {
     expect(() => parseVisionOutput("analysis only")).toThrow("vision_final_response_missing");
   });
 });
+
+describe("Windows vision device selection", () => {
+  it("passes the selected Vulkan device to the helper", () => {
+    const args = windowsVisionArguments({
+      input,
+      runtime: "/runtime/llama.exe",
+      promptFile: "/tmp/prompt.txt",
+      scratch: "/tmp",
+      vulkanDeviceIndex: 2,
+    });
+    expect(args[args.indexOf("--vulkan-device-index") + 1]).toBe("2");
+  });
+
+  it.each([-1, 1.5, 0x1_0000_0000])("rejects the numeric selector %s", (vulkanDeviceIndex) => {
+    expect(() =>
+      windowsVisionArguments({
+        input,
+        runtime: "/runtime/llama.exe",
+        promptFile: "/tmp/prompt.txt",
+        scratch: "/tmp",
+        vulkanDeviceIndex,
+      }),
+    ).toThrow("invalid_windows_gpu_selection");
+  });
+});
