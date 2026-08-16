@@ -197,6 +197,11 @@ describe("M2 inference worker containment", () => {
 });
 
 describe("resident inference worker", () => {
+  // These cases spawn real Node worker processes, so the timeout must cover process
+  // startup on a loaded runner. The timed-out and cancelled cases above keep their
+  // short budgets because they assert the timeout and cancellation paths themselves.
+  const residentTimeoutMs = 30_000;
+
   it("reuses one process, routes both text streams, and unloads explicitly", async () => {
     const launcher = new ScriptLauncher(residentWorkerScript);
     const client = new InferenceWorkerClient(launcher, "unused");
@@ -206,7 +211,7 @@ describe("resident inference worker", () => {
       request: largeGeneration,
       modelPath: "/approved/model.gguf",
       memoryBudgetBytes: 1024,
-      timeoutMs: 500,
+      timeoutMs: residentTimeoutMs,
       onThinkingDelta: (text: string) => thinking.push(text),
       onResponseDelta: (text: string) => responses.push(text),
     };
@@ -223,7 +228,11 @@ describe("resident inference worker", () => {
   it("cancels one multiplexed request without interrupting its sibling", async () => {
     const client = new InferenceWorkerClient(new ScriptLauncher(parallelWorkerScript), "unused");
     const controller = new AbortController();
-    const common = { modelPath: "/approved/model.gguf", memoryBudgetBytes: 1024, timeoutMs: 500 };
+    const common = {
+      modelPath: "/approved/model.gguf",
+      memoryBudgetBytes: 1024,
+      timeoutMs: residentTimeoutMs,
+    };
     const first = client.execute({
       request: generation("first"),
       signal: controller.signal,
