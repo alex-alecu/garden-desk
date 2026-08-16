@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("node-llama-cpp", () => ({
   Gemma4ChatWrapper: class {},
@@ -60,8 +60,17 @@ function fakeRuntime(input: FakeRuntimeInput) {
 
 const request = { contextSize: "auto", modelId: "test-model" } as never;
 
+const platform = process.platform;
+
+function usePlatform(value: NodeJS.Platform): void {
+  Object.defineProperty(process, "platform", { configurable: true, value });
+}
+
+afterEach(() => usePlatform(platform));
+
 describe("Windows generation context fitting", () => {
   it("fits a unified profile against the combined budget", async () => {
+    usePlatform("win32");
     const { runtime, createContext } = fakeRuntime({
       budget: 12 * GiB,
       contextEstimateBytes: 1 * GiB,
@@ -79,6 +88,7 @@ describe("Windows generation context fitting", () => {
   });
 
   it("rejects a unified profile whose measured allocation exceeds the budget", async () => {
+    usePlatform("win32");
     const { runtime } = fakeRuntime({
       budget: 8 * GiB,
       contextEstimateBytes: 1 * GiB,
@@ -94,6 +104,7 @@ describe("Windows generation context fitting", () => {
   });
 
   it("uses device memory rather than combined fitting for a dedicated profile", async () => {
+    usePlatform("win32");
     const { runtime, createContext } = fakeRuntime({
       budget: 16 * GiB,
       contextEstimateBytes: 1 * GiB,
