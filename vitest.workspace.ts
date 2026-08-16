@@ -12,6 +12,11 @@ export default defineConfig({
         },
         test: {
           name: "unit",
+          // Several unit suites drive real SQLite catalogs, daemons, and temporary
+          // workspaces. Windows runners exceed the 5 s default under load, and an
+          // aborted test leaves its catalog open, so cleanup then fails with EBUSY.
+          testTimeout: 30_000,
+          hookTimeout: 30_000,
           include: [
             "packages/core/src/**/*.test.ts",
             "packages/core/tests/**/*.test.ts",
