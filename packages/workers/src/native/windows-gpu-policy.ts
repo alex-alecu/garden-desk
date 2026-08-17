@@ -241,11 +241,10 @@ async function resolveCandidate(
   return undefined;
 }
 
-function preferenceRank(profile: WindowsGpuProfile): [number, number, number] {
+function preferenceRank(profile: WindowsGpuProfile): [number, number] {
   return [
     profile.selection.memoryKind === "dedicated" ? 0 : 1,
     -profile.selection.detectedMemoryBytes,
-    profile.selection.backend === "cuda" ? 0 : 1,
   ];
 }
 

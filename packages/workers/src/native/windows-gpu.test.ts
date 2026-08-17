@@ -172,6 +172,25 @@ describe("Windows GPU candidate ranking", () => {
     expect(selected.selection.backend).toBe("cuda");
     expect(selected.visionSelection).toEqual({ deviceIndex: 0, expectedName: "GPU" });
   });
+
+  it("does not use CUDA to break an equal-memory adapter tie", async () => {
+    const selected = await resolveWindowsGpuProfileFromFacts(
+      facts([adapter("a", "A Vulkan GPU", false), adapter("z", "Z CUDA GPU", false)]),
+      [
+        inventory("cuda", ["Z CUDA GPU"]),
+        inventory("vulkan", ["A Vulkan GPU", "Z CUDA GPU"]),
+      ],
+      probe({
+        "cuda:0": { name: "Z CUDA GPU", memory: 12 * GiB },
+        "vulkan:0": { name: "A Vulkan GPU", memory: 12 * GiB },
+        "vulkan:1": { name: "Z CUDA GPU", memory: 12 * GiB },
+      }),
+    );
+    expect(selected.selection).toMatchObject({
+      backend: "vulkan",
+      expectedName: "A Vulkan GPU",
+    });
+  });
 });
 
 describe("Windows GPU identity failures", () => {
