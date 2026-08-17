@@ -27,6 +27,7 @@ export interface WindowsRuntimeProbeResult {
 }
 
 export interface WindowsGpuProfile {
+  adapterId: string;
   memoryBudgetBytes: number;
   hostMemoryReservationBytes: number;
   selection: Required<WindowsGpuLaunch>;
@@ -223,6 +224,7 @@ async function resolveCandidate(
     );
     if (memory === undefined) continue;
     return {
+      adapterId: candidate.adapter.id,
       ...memory,
       selection: {
         backend: generation.backend,

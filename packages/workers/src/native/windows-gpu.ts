@@ -8,6 +8,7 @@ import {
   WindowsNativeWorkerLauncher,
   windowsHelperEnvironment,
 } from "./windows.js";
+import { isExpectedWindowsGpuIdentity } from "./windows-gpu-identity.js";
 import {
   parseWindowsGpuInfo,
   parseWindowsRuntimeProbe,
@@ -149,19 +150,36 @@ export async function resolveWindowsGpuProfile(
   );
 }
 
+function unsupportedGpu(): never {
+  throw Object.assign(new Error("supported_gpu_required"), { code: "unsupported" });
+}
+
+async function assertWindowsGpuSelection(
+  input: ResolveWindowsGpuProfileOptions,
+  profile: WindowsGpuProfile,
+  selection: Pick<Required<WindowsGpuLaunch>, "backend" | "deviceIndex" | "expectedName">,
+): Promise<void> {
+  const options = resolvedOptions(input);
+  const info = await gpuInfo(options).catch(() => undefined);
+  if (info === undefined) unsupportedGpu();
+  const result = await runtimeProbe(options, selection).catch(() => undefined);
+  if (!isExpectedWindowsGpuIdentity(profile.adapterId, selection, info, result)) unsupportedGpu();
+}
+
+export async function assertWindowsInferenceSelection(
+  input: ResolveWindowsGpuProfileOptions,
+  profile: WindowsGpuProfile,
+): Promise<void> {
+  await assertWindowsGpuSelection(input, profile, profile.selection);
+}
+
 export async function assertWindowsVisionSelection(
   input: ResolveWindowsGpuProfileOptions,
   profile: WindowsGpuProfile,
 ): Promise<void> {
-  const result = await runtimeProbe(resolvedOptions(input), {
+  await assertWindowsGpuSelection(input, profile, {
     backend: "vulkan",
     deviceIndex: profile.visionSelection.deviceIndex,
-  }).catch(() => undefined);
-  if (
-    result === undefined ||
-    result.deviceNames.length !== 1 ||
-    result.deviceNames[0] !== profile.visionSelection.expectedName
-  ) {
-    throw Object.assign(new Error("supported_gpu_required"), { code: "unsupported" });
-  }
+    expectedName: profile.visionSelection.expectedName,
+  });
 }

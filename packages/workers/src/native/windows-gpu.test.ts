@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { WindowsGpuLaunch } from "./windows.js";
+import { isExpectedWindowsGpuIdentity } from "./windows-gpu-identity.js";
 import {
   normalizeGpuName,
   resolveIntegratedGpuBudget,
@@ -79,6 +80,7 @@ describe("Windows dedicated GPU preference", () => {
       expectedName: "NVIDIA GPU",
       memoryKind: "dedicated",
     });
+    expect(selected.adapterId).toBe("nvidia");
     expect(selected.visionSelection).toEqual({ deviceIndex: 1, expectedName: "NVIDIA GPU" });
   });
 });
@@ -176,10 +178,7 @@ describe("Windows GPU candidate ranking", () => {
   it("does not use CUDA to break an equal-memory adapter tie", async () => {
     const selected = await resolveWindowsGpuProfileFromFacts(
       facts([adapter("a", "A Vulkan GPU", false), adapter("z", "Z CUDA GPU", false)]),
-      [
-        inventory("cuda", ["Z CUDA GPU"]),
-        inventory("vulkan", ["A Vulkan GPU", "Z CUDA GPU"]),
-      ],
+      [inventory("cuda", ["Z CUDA GPU"]), inventory("vulkan", ["A Vulkan GPU", "Z CUDA GPU"])],
       probe({
         "cuda:0": { name: "Z CUDA GPU", memory: 12 * GiB },
         "vulkan:0": { name: "A Vulkan GPU", memory: 12 * GiB },
@@ -239,5 +238,28 @@ describe("Windows GPU identity failures", () => {
     expect(normalizeGpuName("Intel(R) Arc(TM) Graphics")).toBe(
       normalizeGpuName("intel arc graphics"),
     );
+  });
+});
+
+describe("Windows GPU adapter identity", () => {
+  it("rejects a same-name adapter with a changed ID", () => {
+    const selection = { backend: "vulkan" as const, expectedName: "Same GPU" };
+    const result = inventory("vulkan", ["Same GPU"], 12 * GiB);
+    expect(
+      isExpectedWindowsGpuIdentity(
+        "original",
+        selection,
+        facts([adapter("original", "Same GPU", false)]),
+        result,
+      ),
+    ).toBe(true);
+    expect(
+      isExpectedWindowsGpuIdentity(
+        "original",
+        selection,
+        facts([adapter("replacement", "Same GPU", false)]),
+        result,
+      ),
+    ).toBe(false);
   });
 });
