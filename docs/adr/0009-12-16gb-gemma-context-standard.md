@@ -4,7 +4,7 @@ Date: 2026-07-10
 
 ## Status
 
-Accepted; amended 2026-08-15
+Accepted; amended 2026-08-17
 
 ## Context
 
@@ -41,7 +41,7 @@ The automatic macOS policy is:
 
 The automatic Windows policy is:
 
-| Selected memory | Hardware rule | Model-plus-context budget | Context cap |
+| Selected memory | Hardware rule | Maximum model-plus-context budget | Context cap |
 |---|---|---:|---:|
 | Dedicated | At least 8 GiB isolated device memory | Complete isolated device memory | 64K through 24 GiB; 128K above 24 GiB |
 | Integrated | Less than 16 GiB installed RAM | Unsupported | None |
@@ -50,7 +50,7 @@ The automatic Windows policy is:
 | Integrated | More than 24 GiB through 32 GiB installed RAM | 16 GiB | 64K |
 | Integrated | More than 32 GiB installed RAM | 16 GiB | 128K |
 
-The worker selects one usable dedicated adapter before an integrated adapter. It selects the largest usable memory in that type and uses CUDA before Vulkan for the same adapter. The integrated runtime capacity must be at least the selected tier. Missing, changed, or ambiguous identity and multi-device visibility are unsupported. The worker does not add memory across devices.
+The worker selects one usable dedicated adapter before an integrated adapter. It selects the largest usable memory in that type and uses CUDA before Vulkan for the same adapter. Installed RAM sets the maximum integrated tier. The isolated runtime capacity selects the highest 8, 12, or 16 GiB tier that does not exceed that maximum or the detected capacity. An integrated capacity below 8 GiB is unsupported. Missing, changed, or ambiguous identity and multi-device visibility are unsupported. The worker does not add memory across devices.
 
 Automatic generation context starts from the existing 8K floor and may grow through the applicable 64K or 128K product cap, not the model's 256K trained maximum. macOS and Windows integrated profiles use combined CPU and GPU estimates, post-creation checks, and sequence-count fitting. They reserve the complete inference budget from host RAM. Windows dedicated profiles fit device memory and keep the small host reservation. The terminal response records the actual context, budget, memory kind, backend, and one selected device. These results still require exact physical and packaged evidence before a configuration is Certified.
 
@@ -112,3 +112,4 @@ unchanged.
 | 2026-08-04 | Required one Windows device's dedicated VRAM and rejected multi-device aggregates or unified and shared memory readings. |
 | 2026-08-12 | Recorded that optional parallel context sequences never reduce the primary certified context. |
 | 2026-08-15 | Added dedicated-first Windows selection and integrated 8/12/16 GiB shared-memory tiers without vendor rules. |
+| 2026-08-17 | Made the integrated tier capacity-aware so a driver-reserved shared pool can use the next lower fixed tier. |

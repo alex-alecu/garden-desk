@@ -20,10 +20,10 @@ The implemented product policy is:
 | Windows dedicated GPU, 8 GiB through 24 GiB | One isolated device's complete memory | 64K | Gemma 4 12B QAT | Use one device and reject aggregates |
 | Windows dedicated GPU, more than 24 GiB | One isolated device's complete memory | 128K | Gemma 4 12B QAT | Use one device and reject aggregates |
 | Windows integrated GPU, less than 16 GiB installed RAM | None | None | None | Explain the hardware requirement |
-| Windows integrated GPU, exactly 16 GiB installed RAM | 8 GiB | 64K | Gemma 4 12B QAT | Use combined CPU and GPU fitting |
-| Windows integrated GPU, more than 16 GiB through 24 GiB installed RAM | 12 GiB | 64K | Gemma 4 12B QAT | Use combined CPU and GPU fitting |
-| Windows integrated GPU, more than 24 GiB through 32 GiB installed RAM | 16 GiB | 64K | Gemma 4 12B QAT | Use combined CPU and GPU fitting |
-| Windows integrated GPU, more than 32 GiB installed RAM | 16 GiB | 128K | Gemma 4 12B QAT | Use combined CPU and GPU fitting |
+| Windows integrated GPU, exactly 16 GiB installed RAM | Up to 8 GiB | 64K | Gemma 4 12B QAT | Use the highest fixed tier within isolated capacity |
+| Windows integrated GPU, more than 16 GiB through 24 GiB installed RAM | Up to 12 GiB | 64K | Gemma 4 12B QAT | Use the highest fixed tier within isolated capacity |
+| Windows integrated GPU, more than 24 GiB through 32 GiB installed RAM | Up to 16 GiB | 64K | Gemma 4 12B QAT | Use the highest fixed tier within isolated capacity |
+| Windows integrated GPU, more than 32 GiB installed RAM | Up to 16 GiB | 128K | Gemma 4 12B QAT | Use the highest fixed tier within isolated capacity |
 
 Hardware tiers differ only in the memory available to model weights, runtime overhead, and active context. Do not create a lower-quality product by changing the model, weakening verification, skipping citations, disabling compaction, or reducing supported workflows.
 
@@ -68,7 +68,7 @@ The runtime now fits context automatically after applying the hardware budget:
 | 8K active tokens | 64K active tokens | Shared-memory systems through 32 GiB installed RAM and Windows dedicated GPUs through 24 GiB |
 | 8K active tokens | 128K active tokens | Shared-memory systems above 32 GiB installed RAM and Windows dedicated GPUs above 24 GiB |
 
-On macOS and Windows integrated GPUs, the worker searches the pinned runtime's CPU and GPU context estimates for the largest aligned context whose combined model-plus-context allocation fits both the tier budget and hardware cap. It then checks the measured allocation after creation. An over-budget allocation is rejected. Shared-memory systems need more than 32 GiB installed RAM for 128K. On a Windows dedicated GPU, the runtime fits context against one isolated device's complete memory; more than 24 GiB enables 128K. The worker never adds memory across devices. The terminal response records the measured allocations, memory kind, backend, one selected device, actual context, cap, and rule. Automatic selection does not make a public stability claim. Each exact configuration still needs the full workload suite.
+On macOS and Windows integrated GPUs, the worker searches the pinned runtime's CPU and GPU context estimates for the largest aligned context whose combined model-plus-context allocation fits both the tier budget and hardware cap. It then checks the measured allocation after creation. An over-budget allocation is rejected. For a Windows integrated GPU, installed RAM sets the maximum shared-pool tier and isolated runtime capacity selects the highest fixed tier that fits. Shared-memory systems need more than 32 GiB installed RAM for 128K. On a Windows dedicated GPU, the runtime fits context against one isolated device's complete memory; more than 24 GiB enables 128K. The worker never adds memory across devices. The terminal response records the measured allocations, memory kind, backend, one selected device, actual context, cap, and rule. Automatic selection does not make a public stability claim. Each exact configuration still needs the full workload suite.
 
 ## Memory Budget Rules
 
@@ -273,3 +273,4 @@ Do not:
 | 2026-08-01 | Replaced the 256K product ceiling with 64K and 128K caps derived from Mac unified memory or Windows GPU VRAM and exposed the measured allocations, selected cap, and threshold reason in Technical details. |
 | 2026-08-04 | Restricted Windows automatic budgets and context tiers to one device's dedicated VRAM. |
 | 2026-08-15 | Added Windows integrated shared-memory budgets and kept one-device isolation for all Windows profiles. |
+| 2026-08-17 | Made the Windows integrated budget fall back through fixed tiers when isolated capacity is below the installed-RAM maximum. |

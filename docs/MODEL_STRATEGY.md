@@ -30,10 +30,10 @@ The first cross-platform desktop uses node-llama-cpp for resident chat generatio
 | Windows dedicated GPU, 8 GiB through 24 GiB | One isolated device's complete memory | 64K | Gemma 4 12B QAT (default) | Automatically fitted GPU generation |
 | Windows dedicated GPU, more than 24 GiB | One isolated device's complete memory | 128K | Gemma 4 12B QAT (default) | Automatically fitted GPU generation |
 | Windows integrated GPU, less than 16 GiB installed RAM | Unsupported | None | None | Explain the hardware requirement |
-| Windows integrated GPU, exactly 16 GiB installed RAM | 8 GiB shared pool | 64K | Gemma 4 12B QAT (default) | Combined CPU and GPU fitting |
-| Windows integrated GPU, more than 16 GiB through 24 GiB installed RAM | 12 GiB shared pool | 64K | Gemma 4 12B QAT (default) | Combined CPU and GPU fitting |
-| Windows integrated GPU, more than 24 GiB through 32 GiB installed RAM | 16 GiB shared pool | 64K | Gemma 4 12B QAT (default) | Combined CPU and GPU fitting |
-| Windows integrated GPU, more than 32 GiB installed RAM | 16 GiB shared pool | 128K | Gemma 4 12B QAT (default) | Combined CPU and GPU fitting |
+| Windows integrated GPU, exactly 16 GiB installed RAM | Up to 8 GiB shared pool | 64K | Gemma 4 12B QAT (default) | Use the highest fixed tier within isolated capacity |
+| Windows integrated GPU, more than 16 GiB through 24 GiB installed RAM | Up to 12 GiB shared pool | 64K | Gemma 4 12B QAT (default) | Use the highest fixed tier within isolated capacity |
+| Windows integrated GPU, more than 24 GiB through 32 GiB installed RAM | Up to 16 GiB shared pool | 64K | Gemma 4 12B QAT (default) | Use the highest fixed tier within isolated capacity |
+| Windows integrated GPU, more than 32 GiB installed RAM | Up to 16 GiB shared pool | 128K | Gemma 4 12B QAT (default) | Use the highest fixed tier within isolated capacity |
 | Retrieval | Separate bounded reservation | 32K | Qwen3-Embedding-0.6B | Dense retrieval and semantic search over local document corpora |
 
 Google's current Gemma 4 documentation lists approximate Q4_0 inference-load memory of 6.7 GB for 12B, 14.4 GB for 26B A4B, and 17.5 GB for 31B. Those numbers are model-load estimates, not whole-product budgets. Vault Desk still needs room for KV cache, runtime overhead, embeddings, document parsers, OCR, indexes, UI, and operating-system memory.
@@ -85,7 +85,7 @@ Every supported tier uses:
 - The same citation and approval requirements.
 - The same context-compaction architecture.
 
-The runtime fits the active generation context from an 8K minimum through the applicable 64K or 128K cap after it applies the tier budget. macOS and Windows integrated GPUs use combined CPU and GPU estimates and reject a measured allocation above the selected shared-pool budget. Shared memory needs more than 32 GiB installed RAM for the 128K cap. Windows dedicated GPUs need more than 24 GiB isolated device memory for that cap. The Windows worker maps each runtime device to one DXCore adapter, selects one usable dedicated adapter before an integrated adapter, and uses the largest usable memory in the selected type. It never adds device memory. Brand and measured speed do not decide support. The typed response records measured CPU RAM, GPU memory, memory kind, backend, one selected device, budget, context, cap, and reason. A profile is Certified only after the exact hardware configuration passes the full physical and packaged gates. Other expected configurations are Compatible. Untested future platforms are Experimental.
+The runtime fits the active generation context from an 8K minimum through the applicable 64K or 128K cap after it applies the tier budget. macOS and Windows integrated GPUs use combined CPU and GPU estimates and reject a measured allocation above the selected shared-pool budget. Installed RAM sets the maximum Windows integrated tier, and isolated runtime capacity selects the highest 8, 12, or 16 GiB tier that fits. Shared memory needs more than 32 GiB installed RAM for the 128K cap. Windows dedicated GPUs need more than 24 GiB isolated device memory for that cap. The Windows worker maps each runtime device to one DXCore adapter, selects one usable dedicated adapter before an integrated adapter, and uses the largest usable memory in the selected type. It never adds device memory. Brand and measured speed do not decide support. The typed response records measured CPU RAM, GPU memory, memory kind, backend, one selected device, budget, context, cap, and reason. A profile is Certified only after the exact hardware configuration passes the full physical and packaged gates. Other expected configurations are Compatible. Untested future platforms are Experimental.
 
 The goal is reliability on professional documents, not maximum context-window marketing.
 
@@ -216,5 +216,6 @@ Each certified profile needs:
 | 2026-08-01 | Capped automatic context at 64K or 128K using separate Mac unified-memory and Windows VRAM thresholds and exposed the measured allocations, selected cap, and threshold reason through the typed runtime status. |
 | 2026-08-04 | Restricted Windows automatic budgets and context tiers to one device's dedicated VRAM. |
 | 2026-08-15 | Added vendor-neutral Windows dedicated-first selection and integrated 8/12/16 GiB shared-memory tiers. |
+| 2026-08-17 | Made isolated runtime capacity select a lower fixed integrated tier when necessary. |
 | 2026-08-12 | Recorded that the single loaded model supports multiple parallel context sequences (memory-bounded), used for sub-agents in V1, with concurrent conversations planned. |
 | 2026-08-15 | Added the official projector and pinned llama.cpp b9842 as the bounded on-demand M3 image path. |

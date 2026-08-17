@@ -44,7 +44,7 @@ Current community targets:
 - 8 GB Macs do not start local inference and explain the requirement to the user.
 - Macs through 16 GB use a 10 GiB model-plus-context budget; Macs through 24 GB use 12 GiB; Macs above 24 GB use 16 GiB.
 - Windows selects one usable dedicated GPU first. If none is usable, it selects one integrated GPU. Brand and speed do not decide support, and the runtime never adds memory across devices.
-- A Windows dedicated GPU needs at least 8 GiB of isolated device memory and uses that complete memory. An integrated GPU needs at least 16 GiB installed RAM and uses the 8/12/16 GiB shared-pool tier.
+- A Windows dedicated GPU needs at least 8 GiB of isolated device memory and uses that complete memory. An integrated GPU needs at least 16 GiB installed RAM and 8 GiB isolated capacity. Installed RAM sets the maximum 8/12/16 GiB shared-pool tier, and the isolated runtime capacity can select a lower fixed tier.
 - Windows agent execution requires Windows Pro or Enterprise with Hyper-V already enabled. The Windows-only setup helper adds the requesting account to Hyper-V Administrators once; it does not enable or download Windows features. macOS has no administrator prerequisite.
 - Active context is fitted automatically inside the selected budget. Shared-memory systems through 32 GiB installed RAM and Windows dedicated GPUs through 24 GiB are capped at 64K. Systems above the applicable threshold are capped at 128K.
 
@@ -173,3 +173,4 @@ Avoid company-wide exclusivity. Vendor-specific SKUs are acceptable, but the com
 | 2026-08-01 | Added 64K and 128K context caps with separate Mac unified-memory and Windows VRAM thresholds. |
 | 2026-08-04 | Restricted Windows automatic budgets and context tiers to one device's dedicated VRAM. |
 | 2026-08-15 | Added vendor-neutral Windows dedicated-first selection and integrated 8/12/16 GiB shared-memory tiers. |
+| 2026-08-17 | Made the Windows integrated tier use the highest fixed budget allowed by installed RAM and isolated runtime capacity. |

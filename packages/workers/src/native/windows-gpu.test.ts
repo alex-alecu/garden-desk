@@ -47,14 +47,21 @@ function probe(
 
 describe("Windows integrated GPU budgets", () => {
   it.each([
-    [16 * GiB - 1, undefined],
-    [16 * GiB, 8 * GiB],
-    [16 * GiB + 1, 12 * GiB],
-    [24 * GiB, 12 * GiB],
-    [24 * GiB + 1, 16 * GiB],
-  ])("maps %d installed bytes to the required budget", (installed, budget) => {
-    expect(resolveIntegratedGpuBudget(installed)).toBe(budget);
-  });
+    [16 * GiB - 1, 16 * GiB, undefined],
+    [16 * GiB, 8 * GiB - 1, undefined],
+    [16 * GiB, 8 * GiB, 8 * GiB],
+    [16 * GiB + 1, 12 * GiB, 12 * GiB],
+    [24 * GiB, 12 * GiB - 1, 8 * GiB],
+    [24 * GiB + 1, 16 * GiB, 16 * GiB],
+    [34_359_738_368, 16_972_775_424, 12 * GiB],
+    [32 * GiB, 12 * GiB - 1, 8 * GiB],
+    [32 * GiB, 8 * GiB - 1, undefined],
+  ])(
+    "maps installed bytes %d and detected bytes %d to the safe budget",
+    (installed, detected, budget) => {
+      expect(resolveIntegratedGpuBudget(installed, detected)).toBe(budget);
+    },
+  );
 });
 
 describe("Windows dedicated GPU preference", () => {
@@ -216,7 +223,7 @@ describe("Windows GPU identity failures", () => {
       name: "insufficient integrated capacity",
       adapters: [adapter("gpu", "Integrated GPU", true)],
       inventories: [inventory("vulkan", ["Integrated GPU"])],
-      isolated: { "vulkan:0": { name: "Integrated GPU", memory: 16 * GiB - 1 } },
+      isolated: { "vulkan:0": { name: "Integrated GPU", memory: 8 * GiB - 1 } },
     },
   ])("returns unsupported for $name", async ({ adapters, inventories, isolated }) => {
     await expect(

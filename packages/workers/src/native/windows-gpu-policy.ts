@@ -3,6 +3,7 @@ import type { WindowsGpuLaunch } from "./windows.js";
 const GiB = 1024 ** 3;
 const MAX_GPU_DEVICES = 64;
 const DEDICATED_HOST_MEMORY_BYTES = 2 * GiB;
+const INTEGRATED_MEMORY_TIERS_BYTES = [16 * GiB, 12 * GiB, 8 * GiB] as const;
 
 export interface WindowsGpuAdapterInfo {
   id: string;
@@ -117,11 +118,17 @@ export function normalizeGpuName(value: string): string {
     .trim();
 }
 
-export function resolveIntegratedGpuBudget(installedMemoryBytes: number): number | undefined {
+export function resolveIntegratedGpuBudget(
+  installedMemoryBytes: number,
+  detectedMemoryBytes: number,
+): number | undefined {
   if (installedMemoryBytes < 16 * GiB) return undefined;
-  if (installedMemoryBytes === 16 * GiB) return 8 * GiB;
-  if (installedMemoryBytes <= 24 * GiB) return 12 * GiB;
-  return 16 * GiB;
+  let maximumTier = 16 * GiB;
+  if (installedMemoryBytes <= 24 * GiB) maximumTier = 12 * GiB;
+  if (installedMemoryBytes === 16 * GiB) maximumTier = 8 * GiB;
+  return INTEGRATED_MEMORY_TIERS_BYTES.find(
+    (tier) => tier <= maximumTier && tier <= detectedMemoryBytes,
+  );
 }
 
 export function resolveWindowsGpuMemoryProfile(
@@ -130,7 +137,7 @@ export function resolveWindowsGpuMemoryProfile(
   installedMemoryBytes: number,
 ): { hostMemoryReservationBytes: number; memoryBudgetBytes: number } | undefined {
   const memoryBudgetBytes = integrated
-    ? resolveIntegratedGpuBudget(installedMemoryBytes)
+    ? resolveIntegratedGpuBudget(installedMemoryBytes, detectedMemoryBytes)
     : detectedMemoryBytes >= 8 * GiB
       ? detectedMemoryBytes
       : undefined;
@@ -244,10 +251,8 @@ async function resolveCandidate(
 }
 
 function preferenceRank(profile: WindowsGpuProfile): [number, number] {
-  return [
-    profile.selection.memoryKind === "dedicated" ? 0 : 1,
-    -profile.selection.detectedMemoryBytes,
-  ];
+  const memoryKindRank = profile.selection.memoryKind === "dedicated" ? 0 : 1;
+  return [memoryKindRank, -profile.selection.detectedMemoryBytes];
 }
 
 function comparePreference(left: WindowsGpuProfile, right: WindowsGpuProfile): number {
