@@ -83,6 +83,12 @@ function platformPackages(): NoticePackage[] {
   return process.platform === "win32"
     ? [
         {
+          name: "Microsoft windows-rs",
+          version: "0.61.3",
+          license: "MIT OR Apache-2.0",
+          purpose: "DXCore GPU and installed-memory discovery in the Windows inference helper",
+        },
+        {
           name: "Microsoft Visual C++ OpenMP Runtime",
           version: "MSVC 19.50.35721",
           license: "Microsoft Software License Terms",

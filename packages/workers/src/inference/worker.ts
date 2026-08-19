@@ -17,7 +17,7 @@ import { runtime } from "./worker-runtime.js";
 function failure(requestId: RequestId, error: unknown): InferenceWorkerResponse {
   const text = error instanceof Error ? error.message : String(error);
   return {
-    protocolVersion: 1,
+    protocolVersion: 2,
     requestId,
     status: "error",
     error: { code: failureCode(error, text), message: text },
@@ -34,7 +34,9 @@ function failureCode(error: unknown, text: string) {
 function unsupported(text: string): boolean {
   return [
     "supported_gpu_required",
-    "dedicated_gpu_vram_required",
+    "selected_gpu_backend_required",
+    "selected_gpu_changed",
+    "selected_gpu_isolation_failed",
     "context_size_exceeds_hardware_cap",
   ].includes(text);
 }

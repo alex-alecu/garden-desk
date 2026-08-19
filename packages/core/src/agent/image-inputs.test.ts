@@ -68,14 +68,19 @@ describe("agent image input rejection", () => {
     const { root, catalog, store, conversations } = await fixture();
     const selected = join(root, "selected");
     await mkdir(selected);
-    const outside = join(root, "outside.png");
-    await writeFile(outside, PNG);
-    await symlink(outside, join(selected, "escape.png"));
+    const outside = join(root, "outside");
+    await mkdir(outside);
+    await writeFile(join(outside, "outside.png"), PNG);
+    await symlink(
+      outside,
+      join(selected, "escape"),
+      process.platform === "win32" ? "junction" : "dir",
+    );
     const folder = conversations.addFolder(selected);
     const session = conversations.createSession(folder.id);
     const resolver = new AgentImageInputResolver(catalog.database, store);
 
-    await expect(resolver.resolve(session.id, "/source/escape.png")).rejects.toThrow(
+    await expect(resolver.resolve(session.id, "/source/escape/outside.png")).rejects.toThrow(
       "image_path_outside_context",
     );
     catalog.close();

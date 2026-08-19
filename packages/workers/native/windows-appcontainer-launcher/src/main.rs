@@ -1,4 +1,8 @@
 #[cfg(windows)]
+mod cli;
+#[cfg(windows)]
+mod gpu;
+#[cfg(windows)]
 mod process;
 #[cfg(windows)]
 mod sandbox;
@@ -6,179 +10,145 @@ mod sandbox;
 mod win32;
 
 #[cfg(windows)]
-use std::env;
+use cli::{Command, RunArguments, VisionArguments};
 #[cfg(windows)]
 use std::error::Error;
-#[cfg(windows)]
-use std::path::PathBuf;
 
 #[cfg(windows)]
 const PROFILE_NAME: &str = "VaultDesk.M2.Inference";
 
 #[cfg(windows)]
-enum Command {
-    Prepare { read_roots: Vec<PathBuf> },
-    Run(RunArguments),
-    RunVision(VisionArguments),
-}
-
 #[cfg(windows)]
-struct VisionArguments {
-    executable: PathBuf,
-    model: PathBuf,
-    projector: PathBuf,
-    image: PathBuf,
-    prompt_file: PathBuf,
-    scratch: PathBuf,
-    memory_bytes: usize,
-}
-
-#[cfg(windows)]
-struct RunArguments {
-    executable: PathBuf,
-    worker_entry: PathBuf,
-    scratch: PathBuf,
-    model: Option<PathBuf>,
-    memory_bytes: usize,
-}
-
-#[cfg(windows)]
-fn value(values: &[(String, String)], name: &str) -> Result<String, Box<dyn Error>> {
-    values
-        .iter()
-        .find(|(key, _)| key == name)
-        .map(|(_, value)| value.clone())
-        .ok_or_else(|| format!("Missing required argument {name}.").into())
-}
-
-#[cfg(windows)]
-fn parse() -> Result<Command, Box<dyn Error>> {
-    let mut arguments = env::args().skip(1);
-    let action = arguments.next().ok_or("Missing helper action.")?;
-    let mut values = Vec::new();
-    let mut read_roots = Vec::new();
-    while let Some(key) = arguments.next() {
-        let argument = arguments
-            .next()
-            .ok_or("Every helper argument must have a value.")?;
-        if key == "--read" {
-            read_roots.push(PathBuf::from(argument));
-        } else {
-            values.push((key, argument));
+fn run_worker(arguments: RunArguments) -> Result<i32, Box<dyn Error>> {
+    let container = sandbox::AppContainer::open(PROFILE_NAME)?;
+    let executable = arguments.executable.canonicalize()?;
+    let worker_entry = arguments.worker_entry.canonicalize()?;
+    let scratch = arguments.scratch.canonicalize()?;
+    container.grant_scratch(&scratch)?;
+    container.grant_file_read(&worker_entry)?;
+    let model = arguments
+        .model
+        .map(|path| path.canonicalize())
+        .transpose()?;
+    if let Some(path) = model.as_deref() {
+        container.grant_file_read(path)?;
+    }
+    let mut child_arguments = vec![
+        "--conditions=vault-runtime".to_owned(),
+        "--preserve-symlinks".to_owned(),
+        "--preserve-symlinks-main".to_owned(),
+        worker_entry.to_string_lossy().into_owned(),
+        "--memory-budget".to_owned(),
+        arguments.memory_bytes.to_string(),
+    ];
+    if let Some(path) = model {
+        child_arguments.push("--model".to_owned());
+        child_arguments.push(path.to_string_lossy().into_owned());
+    }
+    for (name, value) in [
+        ("--gpu-backend", arguments.gpu.backend_name),
+        ("--expected-gpu-name", arguments.gpu.expected_name),
+        ("--gpu-memory-kind", arguments.gpu.memory_kind),
+        (
+            "--detected-gpu-memory",
+            arguments
+                .gpu
+                .detected_memory_bytes
+                .map(|value| value.to_string()),
+        ),
+        (
+            "--installed-memory",
+            arguments
+                .gpu
+                .installed_memory_bytes
+                .map(|value| value.to_string()),
+        ),
+    ] {
+        if let Some(value) = value {
+            child_arguments.push(name.to_owned());
+            child_arguments.push(value);
         }
     }
-    match action.as_str() {
-        "prepare" if values.is_empty() && !read_roots.is_empty() => {
-            Ok(Command::Prepare { read_roots })
-        }
-        "run" if read_roots.is_empty() => Ok(Command::Run(RunArguments {
-            executable: PathBuf::from(value(&values, "--executable")?),
-            worker_entry: PathBuf::from(value(&values, "--worker")?),
-            scratch: PathBuf::from(value(&values, "--scratch")?),
-            model: values
-                .iter()
-                .find(|(key, _)| key == "--model")
-                .map(|(_, path)| PathBuf::from(path)),
-            memory_bytes: value(&values, "--memory")?.parse()?,
-        })),
-        "run-vision" if read_roots.is_empty() => Ok(Command::RunVision(VisionArguments {
-            executable: PathBuf::from(value(&values, "--executable")?),
-            model: PathBuf::from(value(&values, "--model")?),
-            projector: PathBuf::from(value(&values, "--projector")?),
-            image: PathBuf::from(value(&values, "--image")?),
-            prompt_file: PathBuf::from(value(&values, "--prompt-file")?),
-            scratch: PathBuf::from(value(&values, "--scratch")?),
-            memory_bytes: value(&values, "--memory")?.parse()?,
-        })),
-        _ => Err("Usage: vault-appcontainer-launcher <prepare --read PATH...|run --executable PATH --worker PATH --scratch PATH --memory BYTES [--model PATH]|run-vision --executable PATH --model PATH --projector PATH --image PATH --prompt-file PATH --scratch PATH --memory BYTES>".into()),
+    process::run_sandboxed(
+        &executable,
+        &child_arguments,
+        &scratch,
+        arguments.memory_bytes,
+        container.sid(),
+        &container.profile_path()?,
+        process::GpuEnvironment {
+            backend: arguments.gpu.backend,
+            device_index: arguments.gpu.device_index,
+        },
+    )
+}
+
+#[cfg(windows)]
+fn run_vision(arguments: VisionArguments) -> Result<i32, Box<dyn Error>> {
+    let container = sandbox::AppContainer::open(PROFILE_NAME)?;
+    let executable = arguments.executable.canonicalize()?;
+    let model = arguments.model.canonicalize()?;
+    let projector = arguments.projector.canonicalize()?;
+    let image = arguments.image.canonicalize()?;
+    let prompt_file = arguments.prompt_file.canonicalize()?;
+    let scratch = arguments.scratch.canonicalize()?;
+    container.grant_scratch(&scratch)?;
+    for path in [&model, &projector, &image, &prompt_file] {
+        container.grant_file_read(path)?;
     }
+    let child_arguments = vec![
+        "--offline".to_owned(),
+        "--no-warmup".to_owned(),
+        "--log-verbosity".to_owned(),
+        "1".to_owned(),
+        "--jinja".to_owned(),
+        "--model".to_owned(),
+        model.to_string_lossy().into_owned(),
+        "--mmproj".to_owned(),
+        projector.to_string_lossy().into_owned(),
+        "--image".to_owned(),
+        image.to_string_lossy().into_owned(),
+        "--file".to_owned(),
+        prompt_file.to_string_lossy().into_owned(),
+        "--predict".to_owned(),
+        "2048".to_owned(),
+        "--ctx-size".to_owned(),
+        "8192".to_owned(),
+        "--temperature".to_owned(),
+        "0".to_owned(),
+    ];
+    process::run_sandboxed(
+        &executable,
+        &child_arguments,
+        &scratch,
+        arguments.memory_bytes,
+        container.sid(),
+        &container.profile_path()?,
+        process::GpuEnvironment {
+            backend: arguments
+                .vulkan_device_index
+                .map(|_| process::GpuBackend::Vulkan),
+            device_index: arguments.vulkan_device_index,
+        },
+    )
 }
 
 #[cfg(windows)]
 fn run() -> Result<i32, Box<dyn Error>> {
-    let container = sandbox::AppContainer::open(PROFILE_NAME)?;
-    match parse()? {
+    match cli::parse()? {
+        Command::GpuInfo => {
+            println!("{}", gpu::report()?);
+            Ok(0)
+        }
         Command::Prepare { read_roots } => {
+            let container = sandbox::AppContainer::open(PROFILE_NAME)?;
             for path in read_roots {
                 container.grant_runtime_read(&path)?;
             }
             Ok(0)
         }
-        Command::Run(arguments) => {
-            let executable = arguments.executable.canonicalize()?;
-            let worker_entry = arguments.worker_entry.canonicalize()?;
-            let scratch = arguments.scratch.canonicalize()?;
-            container.grant_scratch(&scratch)?;
-            container.grant_file_read(&worker_entry)?;
-            let model = arguments
-                .model
-                .map(|path| path.canonicalize())
-                .transpose()?;
-            if let Some(path) = model.as_deref() {
-                container.grant_file_read(path)?;
-            }
-            let mut child_arguments = vec![
-                "--conditions=vault-runtime".to_owned(),
-                "--preserve-symlinks".to_owned(),
-                "--preserve-symlinks-main".to_owned(),
-                worker_entry.to_string_lossy().into_owned(),
-                "--memory-budget".to_owned(),
-                arguments.memory_bytes.to_string(),
-            ];
-            if let Some(path) = model {
-                child_arguments.push("--model".to_owned());
-                child_arguments.push(path.to_string_lossy().into_owned());
-            }
-            process::run_sandboxed(
-                &executable,
-                &child_arguments,
-                &scratch,
-                arguments.memory_bytes,
-                container.sid(),
-                &container.profile_path()?,
-            )
-        }
-        Command::RunVision(arguments) => {
-            let executable = arguments.executable.canonicalize()?;
-            let model = arguments.model.canonicalize()?;
-            let projector = arguments.projector.canonicalize()?;
-            let image = arguments.image.canonicalize()?;
-            let prompt_file = arguments.prompt_file.canonicalize()?;
-            let scratch = arguments.scratch.canonicalize()?;
-            container.grant_scratch(&scratch)?;
-            for path in [&model, &projector, &image, &prompt_file] {
-                container.grant_file_read(path)?;
-            }
-            let child_arguments = vec![
-                "--offline".to_owned(),
-                "--no-warmup".to_owned(),
-                "--log-verbosity".to_owned(),
-                "1".to_owned(),
-                "--jinja".to_owned(),
-                "--model".to_owned(),
-                model.to_string_lossy().into_owned(),
-                "--mmproj".to_owned(),
-                projector.to_string_lossy().into_owned(),
-                "--image".to_owned(),
-                image.to_string_lossy().into_owned(),
-                "--file".to_owned(),
-                prompt_file.to_string_lossy().into_owned(),
-                "--predict".to_owned(),
-                "2048".to_owned(),
-                "--ctx-size".to_owned(),
-                "8192".to_owned(),
-                "--temperature".to_owned(),
-                "0".to_owned(),
-            ];
-            process::run_sandboxed(
-                &executable,
-                &child_arguments,
-                &scratch,
-                arguments.memory_bytes,
-                container.sid(),
-                &container.profile_path()?,
-            )
-        }
+        Command::Run(arguments) => run_worker(arguments),
+        Command::RunVision(arguments) => run_vision(arguments),
     }
 }
 

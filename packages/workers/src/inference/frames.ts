@@ -33,7 +33,7 @@ export function encodeInferenceCancel(
   code: "cancelled" | "timeout",
 ): Buffer {
   return encode(
-    InferenceWorkerFrameSchema.parse({ protocolVersion: 1, operation: "cancel", requestId, code }),
+    InferenceWorkerFrameSchema.parse({ protocolVersion: 2, operation: "cancel", requestId, code }),
   );
 }
 

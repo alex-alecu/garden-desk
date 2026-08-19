@@ -47,18 +47,22 @@ try {
   const maximumContextSize = resolveMaximumGenerationContext(
     process.platform,
     totalmem(),
-    memory.detectedGpuVramBytes,
+    memory.detectedGpuMemoryBytes,
+    memory.gpuMemoryKind,
   );
   if (
+    memory.gpuMemoryKind !== "dedicated" ||
+    memory.backend !== "cuda" ||
+    memory.selectedDeviceCount !== 1 ||
     memory.contextSizeTokens !== 65_536 ||
     memory.contextLimitTokens !== 65_536 ||
-    memory.contextLimitReason !== "windows_gpu_vram_at_most_24_gib" ||
+    memory.contextLimitReason !== "dedicated_memory_at_most_24_gib" ||
     maximumContextSize !== 65_536 ||
-    memory.detectedGpuVramBytes > 24 * GiB ||
-    memory.budgetBytes !== memory.detectedGpuVramBytes ||
-    memory.gpuVramBytes > memory.budgetBytes
+    memory.detectedGpuMemoryBytes > 24 * GiB ||
+    memory.budgetBytes !== memory.detectedGpuMemoryBytes ||
+    memory.gpuMemoryBytes > memory.budgetBytes
   ) {
-    throw new Error(`Windows automatic VRAM or context proof failed: ${JSON.stringify(memory)}`);
+    throw new Error(`Windows GPU memory or context proof failed: ${JSON.stringify(memory)}`);
   }
   const report = {
     schemaVersion: 1,

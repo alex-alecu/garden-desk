@@ -17,7 +17,7 @@ describe("M2 macOS native inference boundary", () => {
     await writeFile(sentinel, "must remain unreadable");
     await writeFile(outOfScopeReadPath, "must remain unreadable outside the user home");
     const request = InferenceWorkerRequestSchema.parse({
-      protocolVersion: 1,
+      protocolVersion: 2,
       requestId: "m2-native-probe",
       jobId: "00000000-0000-4000-8000-000000000002",
       operation: "probe",

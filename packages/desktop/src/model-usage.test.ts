@@ -1,6 +1,6 @@
 import type { ModelRuntimeStatus } from "@vault/shared";
 import { describe, expect, it } from "vitest";
-import { contextMeter, vramUsage } from "./model-usage.js";
+import { contextMeter, gpuMemoryUsage } from "./model-usage.js";
 
 const GiB = 1024 ** 3;
 const ready: ModelRuntimeStatus = {
@@ -10,25 +10,34 @@ const ready: ModelRuntimeStatus = {
   thinkingSupported: true,
   memoryBudgetBytes: 16 * GiB,
   cpuRamBytes: 1 * GiB,
-  gpuVramBytes: 11.5 * GiB,
+  gpuMemoryBytes: 11.5 * GiB,
+  gpuMemoryKind: "unified",
   contextSizeTokens: 8_192,
 };
 
-describe("vramUsage", () => {
+describe("gpuMemoryUsage", () => {
   it("collapses to a single model-plus-context value against the budget", () => {
-    expect(vramUsage(ready)).toEqual({
+    expect(gpuMemoryUsage(ready)).toEqual({
       used: "12.5 GiB",
       budget: "16.0 GiB",
+      label: "Unified GPU memory",
       sequences: undefined,
     });
   });
 
   it("reports the sequence count when the runtime allocated more than one", () => {
-    expect(vramUsage({ ...ready, sequenceCount: 2 })?.sequences).toBe(2);
+    expect(gpuMemoryUsage({ ...ready, sequenceCount: 2 })?.sequences).toBe(2);
+  });
+
+  it("shows only the GPU allocation for dedicated memory", () => {
+    expect(gpuMemoryUsage({ ...ready, gpuMemoryKind: "dedicated" })).toMatchObject({
+      used: "11.5 GiB",
+      label: "VRAM",
+    });
   });
 
   it("is unavailable when the model is not resident", () => {
-    expect(vramUsage({ ...ready, state: "unloaded" })).toBeUndefined();
+    expect(gpuMemoryUsage({ ...ready, state: "unloaded" })).toBeUndefined();
   });
 });
 

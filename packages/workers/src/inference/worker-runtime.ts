@@ -1,26 +1,20 @@
-import { totalmem } from "node:os";
 import type {
   ChatGenerationRequest,
   GenerationContextLimitReason,
   StructuredGenerationRequest,
 } from "@vault/shared";
-import type { Llama, LlamaChatSession, LlamaEmbeddingContext, LlamaModel } from "node-llama-cpp";
+import type { LlamaChatSession, LlamaEmbeddingContext, LlamaModel } from "node-llama-cpp";
 import { ChatSequencePool } from "./chat-pool.js";
 import {
   combinedAllocationBytes,
   fitCombinedGenerationContext,
   resolveGenerationContextLimit,
   resolveGenerationContextSize,
-  resolveRuntimeMemoryBudget,
   resolveSequenceCount,
 } from "./memory.js";
-import { loadLlamaRuntime } from "./runtime-loader.js";
+import { loadSelectedRuntime, type SelectedRuntime } from "./worker-launch.js";
 
-export interface LoadedRuntime {
-  budget: number;
-  detectedGpuVramBytes: number;
-  llama: Llama;
-  model: LlamaModel;
+export interface LoadedRuntime extends SelectedRuntime {
   generation?: {
     requestedContextSize: StructuredGenerationRequest["contextSize"];
     contextSize: number;
@@ -41,48 +35,21 @@ export interface LoadedRuntime {
 
 type ChatRuntime = NonNullable<LoadedRuntime["chat"]>;
 
-function argument(name: string): string | undefined {
-  const index = process.argv.indexOf(name);
-  const value = process.argv[index + 1];
-  if (index === -1 || value === undefined) throw new Error(`Missing ${name}.`);
-  return value;
-}
-
 let loadedRuntime: Promise<LoadedRuntime> | undefined;
 
 export async function runtime(operation: "generate" | "embed"): Promise<LoadedRuntime> {
-  loadedRuntime ??= (async () => {
-    const modelPath = argument("--model");
-    const requestedBudget = Number(argument("--memory-budget"));
-    if (modelPath === undefined || !Number.isSafeInteger(requestedBudget) || requestedBudget <= 0) {
-      throw new Error("Invalid worker launch arguments.");
-    }
-    const { llama, detectedGpuVramBytes } = await loadLlamaRuntime();
-    const budget = resolveRuntimeMemoryBudget(
-      requestedBudget,
-      detectedGpuVramBytes,
-      process.platform,
-      operation,
-    );
-    await llama.setVramCap(budget);
-    return {
-      budget,
-      detectedGpuVramBytes,
-      llama,
-      model: await llama.loadModel({ modelPath }),
-    };
-  })();
+  loadedRuntime ??= loadSelectedRuntime(operation);
   return loadedRuntime;
 }
 
-async function automaticMacContextSize(
+async function automaticUnifiedContextSize(
   runtime: LoadedRuntime,
   maximumContextSize: number,
 ): Promise<number> {
   const modelMemory = await runtime.llama.getLlamaMemoryUsage();
   return fitCombinedGenerationContext(
     runtime.budget,
-    { cpuRamBytes: modelMemory.cpuRam, gpuVramBytes: modelMemory.gpuVram },
+    { cpuRamBytes: modelMemory.cpuRam, gpuMemoryBytes: modelMemory.gpuVram },
     maximumContextSize,
     async (contextSize) => {
       const estimate = await runtime.model.fileInsights.estimateContextResourceRequirementsV2({
@@ -92,7 +59,7 @@ async function automaticMacContextSize(
         swaFullCache: runtime.model.defaultContextSwaFullCache,
         useMmap: runtime.model.useMmap,
       });
-      return { cpuRamBytes: estimate.cpuRam, gpuVramBytes: estimate.gpuVram };
+      return { cpuRamBytes: estimate.cpuRam, gpuMemoryBytes: estimate.gpuVram };
     },
   );
 }
@@ -104,18 +71,19 @@ async function createGenerationContext(
 ) {
   const contextLimit = resolveGenerationContextLimit(
     process.platform,
-    totalmem(),
-    runtime.detectedGpuVramBytes,
+    runtime.installedMemoryBytes,
+    runtime.detectedGpuMemoryBytes,
+    runtime.gpuMemoryKind,
   );
   const contextSize =
-    request.contextSize === "auto" && process.platform === "darwin"
-      ? await automaticMacContextSize(runtime, contextLimit.maximumContextTokens)
+    request.contextSize === "auto" && runtime.gpuMemoryKind === "unified"
+      ? await automaticUnifiedContextSize(runtime, contextLimit.maximumContextTokens)
       : resolveGenerationContextSize(request.contextSize, contextLimit.maximumContextTokens);
   const context = await runtime.model.createContext({ contextSize, sequences });
-  if (process.platform === "darwin") {
+  if (runtime.gpuMemoryKind === "unified") {
     const memory = await runtime.llama.getLlamaMemoryUsage();
     if (
-      combinedAllocationBytes({ cpuRamBytes: memory.cpuRam, gpuVramBytes: memory.gpuVram }) >
+      combinedAllocationBytes({ cpuRamBytes: memory.cpuRam, gpuMemoryBytes: memory.gpuVram }) >
       runtime.budget
     ) {
       await context.dispose();
@@ -129,18 +97,18 @@ async function createGenerationContext(
  * Estimates how many parallel chat sequences fit the memory budget by measuring the marginal
  * cost of one additional sequence: it builds a single-sequence context, reads the combined
  * model-plus-context allocation, and asks {@link resolveSequenceCount} how many extra sequences
- * that per-sequence cost allows without exceeding the budget. Non-Darwin platforms cannot read a
- * post-creation allocation the same way, so they stay single-sequence for now.
+ * that per-sequence cost allows without exceeding the budget. Dedicated-memory profiles stay
+ * single-sequence because their CPU and GPU allocations do not share one bounded pool.
  */
 async function resolveChatSequenceCount(
   context: Awaited<ReturnType<LlamaModel["createContext"]>>,
   runtime: LoadedRuntime,
 ): Promise<number> {
-  if (process.platform !== "darwin") return 1;
+  if (runtime.gpuMemoryKind !== "unified") return 1;
   const modelMemory = await runtime.llama.getLlamaMemoryUsage();
   const combined = combinedAllocationBytes({
     cpuRamBytes: modelMemory.cpuRam,
-    gpuVramBytes: modelMemory.gpuVram,
+    gpuMemoryBytes: modelMemory.gpuVram,
   });
   const perSequenceBytes = await perSequenceContextBytes(context, runtime);
   const modelOnlyBytes = Math.max(0, combined - perSequenceBytes);
@@ -158,7 +126,10 @@ async function perSequenceContextBytes(
     swaFullCache: runtime.model.defaultContextSwaFullCache,
     useMmap: runtime.model.useMmap,
   });
-  return combinedAllocationBytes({ cpuRamBytes: estimate.cpuRam, gpuVramBytes: estimate.gpuVram });
+  return combinedAllocationBytes({
+    cpuRamBytes: estimate.cpuRam,
+    gpuMemoryBytes: estimate.gpuVram,
+  });
 }
 
 let pendingChatRuntime: Promise<ChatRuntime> | undefined;

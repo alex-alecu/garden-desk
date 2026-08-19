@@ -7,6 +7,18 @@ use std::os::windows::ffi::OsStrExt;
 use std::path::Path;
 use std::ptr::null_mut;
 
+#[derive(Default)]
+pub(crate) struct GpuEnvironment {
+    pub(crate) backend: Option<GpuBackend>,
+    pub(crate) device_index: Option<u32>,
+}
+
+#[derive(Clone, Copy)]
+pub(crate) enum GpuBackend {
+    Cuda,
+    Vulkan,
+}
+
 fn wide(value: &OsStr) -> Vec<u16> {
     value.encode_wide().chain(Some(0)).collect()
 }
@@ -41,11 +53,11 @@ fn command_line(executable: &Path, arguments: &[String]) -> Vec<u16> {
     wide(OsStr::new(&value))
 }
 
-fn environment(scratch: &Path, profile: &Path) -> Vec<u16> {
+fn environment(scratch: &Path, profile: &Path, gpu: GpuEnvironment) -> Vec<u16> {
     let windows = std::env::var("WINDIR").unwrap_or_else(|_| "C:\\Windows".to_owned());
     let scratch = scratch.to_string_lossy();
     let drive = scratch.get(..2).unwrap_or("C:");
-    let mut values = [
+    let mut values = vec![
         format!("={drive}={scratch}"),
         format!("HOME={scratch}"),
         format!("APPDATA={}", profile.display()),
@@ -61,6 +73,17 @@ fn environment(scratch: &Path, profile: &Path) -> Vec<u16> {
         "LLAMA_ARG_OFFLINE=1".to_owned(),
         "VAULT_APPCONTAINER_LOCKED=1".to_owned(),
     ];
+    if let Some(device_index) = gpu.device_index {
+        match gpu.backend {
+            Some(GpuBackend::Cuda) => {
+                values.push(format!("CUDA_VISIBLE_DEVICES={device_index}"));
+            }
+            Some(GpuBackend::Vulkan) => {
+                values.push(format!("GGML_VK_VISIBLE_DEVICES={device_index}"));
+            }
+            None => {}
+        }
+    }
     values.sort_by_key(|value| value.to_ascii_uppercase());
     values.join("\0").encode_utf16().chain([0, 0]).collect()
 }
@@ -81,11 +104,12 @@ fn create_process(
     arguments: &[String],
     scratch: &Path,
     profile: &Path,
+    gpu: GpuEnvironment,
     startup: &mut StartupInfoEx,
 ) -> Result<ProcessInformation, Box<dyn Error>> {
     let mut information: ProcessInformation = unsafe { zeroed() };
     let mut command = command_line(executable, arguments);
-    let mut environment = environment(scratch, profile);
+    let mut environment = environment(scratch, profile, gpu);
     let application = wide(executable.as_os_str());
     let directory = wide(scratch.as_os_str());
     let flags = EXTENDED_STARTUPINFO_PRESENT
@@ -119,6 +143,7 @@ pub(crate) fn run_sandboxed(
     memory_bytes: usize,
     sid: Pointer,
     profile: &Path,
+    gpu: GpuEnvironment,
 ) -> Result<i32, Box<dyn Error>> {
     let mut capabilities = SecurityCapabilities {
         app_container_sid: sid,
@@ -129,7 +154,7 @@ pub(crate) fn run_sandboxed(
     let mut attributes = AttributeList::new(1)?;
     attributes.update(ATTRIBUTE_SECURITY_CAPABILITIES, &mut capabilities)?;
     let mut startup = startup(attributes.pointer());
-    let information = create_process(executable, arguments, scratch, profile, &mut startup)?;
+    let information = create_process(executable, arguments, scratch, profile, gpu, &mut startup)?;
     let process = Handle::new(information.process, "sandboxed process")?;
     let thread = Handle::new(information.thread, "sandboxed process thread")?;
     let job = job(memory_bytes)?;

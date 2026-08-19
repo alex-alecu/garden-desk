@@ -13,7 +13,7 @@ export async function automaticModelEvidence(core: Core) {
     !policy.supported ||
     model.state !== "ready" ||
     model.memoryBudgetBytes !== policy.memoryBudgetBytes ||
-    (model.cpuRamBytes ?? 0) + (model.gpuVramBytes ?? 0) > policy.memoryBudgetBytes ||
+    (model.cpuRamBytes ?? 0) + (model.gpuMemoryBytes ?? 0) > policy.memoryBudgetBytes ||
     (model.contextSizeTokens ?? 0) <= 8_192 ||
     (model.contextSizeTokens ?? 0) > maximumContextSize
   ) {

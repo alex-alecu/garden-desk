@@ -44,7 +44,7 @@ export function generationCallbacks(
     onResponseChunk(chunk: LlamaChatResponseChunk) {
       if (chunk.type === "segment" && chunk.segmentType === "thought" && chunk.text.length > 0) {
         emit({
-          protocolVersion: 1,
+          protocolVersion: 2,
           requestId,
           status: "stream",
           event: "thinking.delta",
@@ -53,7 +53,7 @@ export function generationCallbacks(
       }
       if (streamResponseText && chunk.type === undefined && chunk.text.length > 0) {
         emit({
-          protocolVersion: 1,
+          protocolVersion: 2,
           requestId,
           status: "stream",
           event: "response.delta",
@@ -81,7 +81,7 @@ export async function embed(
   }
   const embedding = await runtime.embedding.context.getEmbeddingFor(request.input);
   return {
-    protocolVersion: 1,
+    protocolVersion: 2,
     requestId: request.requestId,
     status: "ok",
     operation: "embed",
@@ -111,7 +111,7 @@ export async function generate(
   const completedAt = performance.now();
   const finalMeter = session.sequence.tokenMeter.getState();
   return {
-    protocolVersion: 1,
+    protocolVersion: 2,
     requestId: request.requestId,
     status: "ok",
     operation: "generate",
@@ -145,7 +145,7 @@ export async function chat(
     const completedAt = performance.now();
     const finalMeter = chat.sequence.tokenMeter.getState();
     return {
-      protocolVersion: 1,
+      protocolVersion: 2,
       requestId: request.requestId,
       status: "ok",
       operation: "chat",

@@ -127,12 +127,12 @@ async function installWindowsAgentResources(): Promise<
   };
 }
 
-async function installWindowsInferenceHelper(): Promise<
-  Pick<ResourceHashes, "inferenceHelper" | "inferenceHelperSignature">
-> {
+async function installWindowsInferenceHelper(
+  destinationRoot: string,
+): Promise<Pick<ResourceHashes, "inferenceHelper" | "inferenceHelperSignature">> {
   reportDevelopmentResourceStage("inferenceIsolation");
   runPnpm(["workers:windows-native:build"]);
-  const helper = join(inferenceRoot, "vault-appcontainer-launcher.exe");
+  const helper = join(destinationRoot, "vault-appcontainer-launcher.exe");
   await copyFile(
     join(
       repositoryRoot,
@@ -147,50 +147,69 @@ async function installWindowsInferenceHelper(): Promise<
   };
 }
 
-async function installInferenceResources(): Promise<
+async function buildInferenceWorkers(destinationRoot: string): Promise<[string, string]> {
+  reportDevelopmentResourceStage("inferenceWorker");
+  const worker = join(destinationRoot, "worker.mjs");
+  const hardwareWorker = join(destinationRoot, "hardware-worker.mjs");
+  const entries: [string, string][] = [
+    [join(repositoryRoot, "packages/workers/src/inference/worker.ts"), worker],
+    [join(repositoryRoot, "packages/workers/src/inference/hardware-worker.ts"), hardwareWorker],
+  ];
+  await Promise.all(
+    entries.map(async ([entryPoint, outfile]) => {
+      await build({
+        absWorkingDir: repositoryRoot,
+        entryPoints: [entryPoint],
+        outfile,
+        bundle: true,
+        external: ["node-llama-cpp"],
+        format: "esm",
+        platform: "node",
+        target: "node24",
+      });
+    }),
+  );
+  return [worker, hardwareWorker];
+}
+
+export async function installInferenceResources(
+  destinationRoot = inferenceRoot,
+): Promise<
   Pick<
     ResourceHashes,
     | "inferenceHelper"
     | "inferenceHelperSignature"
     | "inferenceRuntime"
     | "inferenceRuntimeSignature"
+    | "inferenceHardwareWorker"
     | "inferenceWorker"
     | "cudaAssets"
   >
 > {
-  await mkdir(inferenceRoot, { recursive: true });
-  reportDevelopmentResourceStage("inferenceWorker");
-  const worker = join(inferenceRoot, "worker.mjs");
-  await build({
-    absWorkingDir: repositoryRoot,
-    entryPoints: [join(repositoryRoot, "packages/workers/src/inference/worker.ts")],
-    outfile: worker,
-    bundle: true,
-    external: ["node-llama-cpp"],
-    format: "esm",
-    platform: "node",
-    target: "node24",
-  });
+  await mkdir(destinationRoot, { recursive: true });
+  const [worker, hardwareWorker] = await buildInferenceWorkers(destinationRoot);
   reportDevelopmentResourceStage("inferenceRuntime");
   await copyRuntimePackage(
     "node-llama-cpp",
     createRequire(join(repositoryRoot, "packages/workers/package.json")),
-    join(inferenceRoot, "node_modules"),
+    join(destinationRoot, "node_modules"),
     new Set(),
   );
-  const runtime = join(inferenceRoot, process.platform === "win32" ? "node.exe" : "node");
+  const runtime = join(destinationRoot, process.platform === "win32" ? "node.exe" : "node");
   await copyFile(process.execPath, runtime);
   await chmod(runtime, 0o755);
   const inferenceRuntimeSignature = signExecutable(runtime);
-  const isolation = process.platform === "win32" ? await installWindowsInferenceHelper() : {};
+  const isolation =
+    process.platform === "win32" ? await installWindowsInferenceHelper(destinationRoot) : {};
   if (process.platform === "win32") reportDevelopmentResourceStage("cudaRuntime");
   return {
     ...isolation,
     ...(process.platform === "win32"
-      ? { cudaAssets: await installWindowsCudaAssets(inferenceRoot) }
+      ? { cudaAssets: await installWindowsCudaAssets(destinationRoot) }
       : {}),
     inferenceRuntime: await sha256(runtime),
     inferenceRuntimeSignature,
+    inferenceHardwareWorker: await sha256(hardwareWorker),
     inferenceWorker: await sha256(worker),
   };
 }

@@ -171,7 +171,7 @@ async function collectRealAgentEvidence(input: {
       artifacts: snapshot.artifacts.length,
       memoryBudgetBytes: model.memoryBudgetBytes,
       cpuRamBytes: model.cpuRamBytes,
-      gpuVramBytes: model.gpuVramBytes,
+      gpuMemoryBytes: model.gpuMemoryBytes,
       contextSizeTokens: model.contextSizeTokens,
       ...lifecycle,
     },

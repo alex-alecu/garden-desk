@@ -21,7 +21,7 @@ export function createGenerateWorkerRequest(
 ): InferenceWorkerRequest {
   const request = createGenerationRequest(input, identity);
   return {
-    protocolVersion: 1,
+    protocolVersion: 2,
     requestId: request.identity.requestId,
     jobId: request.identity.jobId,
     operation: "generate",
@@ -37,7 +37,7 @@ export function createChatWorkerRequest(
   },
 ): InferenceWorkerRequest {
   return {
-    protocolVersion: 1,
+    protocolVersion: 2,
     requestId: identity.requestId,
     jobId: identity.jobId,
     operation: "chat",
@@ -47,7 +47,7 @@ export function createChatWorkerRequest(
 
 export function createEmbedWorkerRequest(input: EmbeddingInput): InferenceWorkerRequest {
   return {
-    protocolVersion: 1,
+    protocolVersion: 2,
     requestId: randomUUID(),
     jobId: JobIdSchema.parse(randomUUID()),
     operation: "embed",

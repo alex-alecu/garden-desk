@@ -90,13 +90,25 @@ export function visionRuntimeArguments(input: VisionExecution, promptFile: strin
   ];
 }
 
-export function windowsVisionArguments(
-  input: VisionExecution,
-  runtime: string,
-  promptFile: string,
-  scratch: string,
-): string[] {
-  return [
+export interface WindowsVisionLaunch {
+  input: VisionExecution;
+  promptFile: string;
+  runtime: string;
+  scratch: string;
+  vulkanDeviceIndex?: number;
+}
+
+export function windowsVisionArguments(launch: WindowsVisionLaunch): string[] {
+  const { input, runtime, promptFile, scratch, vulkanDeviceIndex } = launch;
+  if (
+    vulkanDeviceIndex !== undefined &&
+    (!Number.isSafeInteger(vulkanDeviceIndex) ||
+      vulkanDeviceIndex < 0 ||
+      vulkanDeviceIndex > 0xffff_ffff)
+  ) {
+    throw new Error("invalid_windows_gpu_selection");
+  }
+  const arguments_ = [
     "run-vision",
     "--executable",
     resolve(runtime),
@@ -113,6 +125,10 @@ export function windowsVisionArguments(
     "--memory",
     String(input.memoryBudgetBytes),
   ];
+  if (vulkanDeviceIndex !== undefined) {
+    arguments_.push("--vulkan-device-index", String(vulkanDeviceIndex));
+  }
+  return arguments_;
 }
 
 export function parseVisionOutput(output: string): string {
@@ -225,6 +241,7 @@ export class LlamaVisionClient {
   constructor(
     private readonly runtimePath: string,
     private readonly windowsHelperPath = defaultWindowsHelper(),
+    private readonly windowsVulkanDeviceIndex?: number,
   ) {}
 
   async inspect(input: VisionExecution): Promise<{ text: string }> {
@@ -243,7 +260,15 @@ export class LlamaVisionClient {
         await prepareWindows(this.windowsHelperPath, runtime, operationSignal);
         operationSignal.throwIfAborted();
         command = this.windowsHelperPath;
-        args = windowsVisionArguments(input, runtime, promptFile, temporaryRoot);
+        args = windowsVisionArguments({
+          input,
+          runtime,
+          promptFile,
+          scratch: temporaryRoot,
+          ...(this.windowsVulkanDeviceIndex === undefined
+            ? {}
+            : { vulkanDeviceIndex: this.windowsVulkanDeviceIndex }),
+        });
       } else if (process.platform === "darwin" && process.arch === "arm64") {
         command = "/usr/bin/sandbox-exec";
         args = [

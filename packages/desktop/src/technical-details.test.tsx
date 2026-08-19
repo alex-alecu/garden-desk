@@ -130,10 +130,11 @@ function renderTechnicalDetails(selectedStepId?: string, nativeActionMessage?: s
         thinkingSupported: true,
         memoryBudgetBytes: 16 * 1024 ** 3,
         cpuRamBytes: 1024 ** 3,
-        gpuVramBytes: 11.5 * 1024 ** 3,
+        gpuMemoryBytes: 11.5 * 1024 ** 3,
+        gpuMemoryKind: "unified",
         contextSizeTokens: 131_072,
         contextLimitTokens: 131_072,
-        contextLimitReason: "windows_gpu_vram_above_24_gib",
+        contextLimitReason: "dedicated_memory_above_24_gib",
       }}
       nativeActionMessage={nativeActionMessage}
       onClose={() => undefined}
@@ -168,9 +169,7 @@ it("keeps the overview separate from step evidence", () => {
   expect(markup).toMatch(/aria-selected="true"[^>]*>Overview/);
   expect(markup).toContain("4 CPUs, 4 GiB memory, 128 MiB persistent workspace");
   expect(markup).toContain("Certified guest capabilities");
-  expect(markup).toMatch(
-    /Certified guest capabilities.*VRAM \/ unified memory.*12.5 GiB of 16.0 GiB/s,
-  );
+  expect(markup).toMatch(/Certified guest capabilities.*Unified GPU memory.*12.5 GiB of 16.0 GiB/s);
   expect(markup).not.toContain("Why this context");
   expect(markup).not.toContain("Total model and context allocation");
   expect(markup).toContain("Python: 3.14.5");

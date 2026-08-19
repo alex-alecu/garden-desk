@@ -10,6 +10,8 @@ Run `VAULT_BUILDROOT_ARCHIVE=/absolute/path/buildroot-2026.05.tar.xz pnpm guest:
 
 Run `VAULT_BUILDROOT_ARCHIVE=/absolute/path/buildroot-2026.05.tar.xz pnpm guest:build:agent` for the macOS M3 agent image. The command performs two independent builds, disables Docker networking for the second build, requires byte-identical outputs, and installs generated artifacts only under the ignored `.generated/agent/` tree.
 
+Run `VAULT_BUILDROOT_ARCHIVE=/absolute/path/buildroot-2026.05.tar.xz pnpm guest:build:agent:windows` for the Windows x86_64 M3 agent image. It applies the same independent online and offline build check and keeps the generated image ignored.
+
 Buildroot was selected over a general distribution image because it emits a smaller immutable root filesystem with an explicit package set. The GPL build system is not shipped, but the repository must retain its license/source-offer obligations for the GPL kernel and BusyBox contents when guest images are distributed.
 
 The manifest records reproducible arm64 and x86_64 kernel and initramfs hashes. Both M1 architecture builds were repeated after the production frame and denial probes were added; each second build had Docker networking disabled and matched byte-for-byte. The certified x86_64 hashes are kernel `ec0364eab93e9a12e4f5ef3008207331b03ef32a23dd9b0fc0f8c197fb126e45` and initramfs `cdf5a631ee8cc7aabb5def990de9beb922221acf5a46dc51ce2492498b225986`. Recording a digest does not by itself certify a platform: the current host must boot that exact guest and pass its no-NIC socket gate.

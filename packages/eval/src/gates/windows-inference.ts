@@ -19,12 +19,12 @@ const inferenceRoots = [
   "packages/desktop/src-tauri/target/release/bundle/windows/Vault Desk/resources/core/inference",
   "packages/desktop/src-tauri/resources/core/inference",
 ];
-
 export async function windowsInferencePaths(): Promise<WindowsInferencePaths> {
   for (const relative of inferenceRoots) {
     const root = join(process.cwd(), relative);
     try {
       await Promise.all([
+        stat(join(root, "hardware-worker.mjs")),
         stat(join(root, "worker.mjs")),
         stat(join(root, "vision", "llama-mtmd-cli.exe")),
       ]);

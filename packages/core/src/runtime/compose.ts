@@ -1,11 +1,10 @@
 import { fileURLToPath } from "node:url";
 import { type InferenceProfile, InferenceProfileSchema } from "@vault/shared";
 import {
+  createWindowsInferenceRuntime,
   InferenceWorkerClient,
   LlamaVisionClient,
   MacOsNativeWorkerLauncher,
-  WindowsNativeWorkerLauncher,
-  windowsNativeWorkerEntryPath,
 } from "@vault/workers";
 import type { AuditLog } from "../audit/log.js";
 import { resolveAgentSessionCapacity, resolveInferenceHardwarePolicy } from "./hardware.js";
@@ -20,6 +19,58 @@ interface InferenceCompositionOptions {
   inferenceHelperPath?: string;
   inferenceRuntimePath?: string;
   visionRuntimePath?: string;
+}
+
+type WindowsRuntime = Awaited<ReturnType<typeof createWindowsInferenceRuntime>>;
+
+function unavailableResult(message: string) {
+  return {
+    service: unavailableInference(message),
+    available: false,
+    agentSessionCapacity: 0,
+  } as const;
+}
+
+function windowsRuntimeOptions(options: InferenceCompositionOptions) {
+  const configured: Parameters<typeof createWindowsInferenceRuntime>[0] = {};
+  if (options.workerEntryPath !== undefined) configured.workerEntryPath = options.workerEntryPath;
+  if (options.inferenceHelperPath !== undefined) {
+    configured.inferenceHelperPath = options.inferenceHelperPath;
+  }
+  if (options.inferenceRuntimePath !== undefined) {
+    configured.inferenceRuntimePath = options.inferenceRuntimePath;
+  }
+  if (options.visionRuntimePath !== undefined)
+    configured.visionRuntimePath = options.visionRuntimePath;
+  return configured;
+}
+
+async function windowsRuntime(
+  options: InferenceCompositionOptions,
+): Promise<WindowsRuntime | undefined> {
+  if (process.platform !== "win32") return undefined;
+  return await createWindowsInferenceRuntime(windowsRuntimeOptions(options));
+}
+
+function windowsRuntimeFailure(error: unknown): ReturnType<typeof unavailableResult> {
+  if (error instanceof Error && error.message === "supported_gpu_required") {
+    return unavailableResult(
+      "This computer does not have a supported local graphics configuration.",
+    );
+  }
+  throw error;
+}
+
+function hardwareProfile(
+  selected: WindowsRuntime | undefined,
+  policy: ReturnType<typeof resolveInferenceHardwarePolicy>,
+) {
+  if (selected !== undefined) return selected.hardwareProfile;
+  if (!policy.supported) throw new Error("unsupported_inference_hardware");
+  return {
+    memoryBudgetBytes: policy.memoryBudgetBytes,
+    hostMemoryReservationBytes: policy.memoryBudgetBytes,
+  };
 }
 
 export function unavailableInference(message?: string) {
@@ -50,35 +101,39 @@ export async function createInferenceService(
   workspaceRoot: string,
   audit: AuditLog,
 ) {
-  const policy = resolveInferenceHardwarePolicy(InferenceProfileSchema.parse(options.profile));
-  if (!policy.supported) {
-    return {
-      service: unavailableInference(policy.message),
-      available: false,
-      agentSessionCapacity: 0,
-    } as const;
+  const profile = InferenceProfileSchema.parse(options.profile);
+  let selectedWindowsRuntime: WindowsRuntime | undefined;
+  try {
+    selectedWindowsRuntime = await windowsRuntime(options);
+  } catch (error) {
+    return windowsRuntimeFailure(error);
   }
+  const policy = resolveInferenceHardwarePolicy(profile);
+  if (!policy.supported && selectedWindowsRuntime === undefined)
+    return unavailableResult(policy.message);
   const modelResolver = await ModelResolver.open(options.modelStoreDir);
-  const launcher =
-    process.platform === "win32"
-      ? new WindowsNativeWorkerLauncher(options.inferenceHelperPath, options.inferenceRuntimePath)
-      : new MacOsNativeWorkerLauncher([workspaceRoot], options.inferenceRuntimePath);
+  const selectedHardware = hardwareProfile(selectedWindowsRuntime, policy);
   const workerEntryPath =
+    selectedWindowsRuntime?.workerEntryPath ??
     options.workerEntryPath ??
-    (process.platform === "win32"
-      ? windowsNativeWorkerEntryPath()
-      : fileURLToPath(new URL("../../../workers/dist/inference/worker.js", import.meta.url)));
+    fileURLToPath(new URL("../../../workers/dist/inference/worker.js", import.meta.url));
+  const launcher =
+    selectedWindowsRuntime?.workerLauncher ??
+    new MacOsNativeWorkerLauncher([workspaceRoot], options.inferenceRuntimePath);
+  const vision =
+    selectedWindowsRuntime?.visionClient ??
+    (options.visionRuntimePath === undefined
+      ? undefined
+      : new LlamaVisionClient(options.visionRuntimePath, options.inferenceHelperPath));
   return {
     service: new InferenceSupervisor(
       new InferenceWorkerClient(launcher, workerEntryPath),
       modelResolver,
-      new ResourceScheduler(policy.memoryBudgetBytes),
+      new ResourceScheduler(selectedHardware.memoryBudgetBytes),
       (event) => audit.append(event),
-      options.visionRuntimePath === undefined
-        ? undefined
-        : new LlamaVisionClient(options.visionRuntimePath, options.inferenceHelperPath),
+      vision,
     ),
     available: true,
-    agentSessionCapacity: resolveAgentSessionCapacity(policy.memoryBudgetBytes),
+    agentSessionCapacity: resolveAgentSessionCapacity(selectedHardware.hostMemoryReservationBytes),
   } as const;
 }

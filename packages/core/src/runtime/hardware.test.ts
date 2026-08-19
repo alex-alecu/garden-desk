@@ -50,7 +50,7 @@ describe("agent VM memory policy", () => {
     [32, 16, 2],
     [48, 16, 5],
   ])("allows %d GiB Macs %d GiB inference and %d agent VMs", (memory, inference, sessions) => {
-    expect(resolveAgentSessionCapacity(inference * GiB, memory * GiB, "darwin")).toBe(sessions);
+    expect(resolveAgentSessionCapacity(inference * GiB, memory * GiB)).toBe(sessions);
   });
 
   it.each([
@@ -58,6 +58,6 @@ describe("agent VM memory policy", () => {
     [64, 12],
     [128, 25],
   ])("keeps discrete GPU VRAM outside the %d GiB Windows host RAM pool", (memory, sessions) => {
-    expect(resolveAgentSessionCapacity(memory * GiB, memory * GiB, "win32")).toBe(sessions);
+    expect(resolveAgentSessionCapacity(2 * GiB, memory * GiB)).toBe(sessions);
   });
 });

@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { structuredValue } from "./structured.js";
 
 const request = {
-  protocolVersion: 1,
+  protocolVersion: 2,
   requestId: "request",
   jobId: JobIdSchema.parse("00000000-0000-4000-8000-000000000001"),
   operation: "generate",

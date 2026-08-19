@@ -44,19 +44,22 @@ process.stdin.on("data", (chunk) => {
     if (pending.length < 4 + length) return;
     const request = JSON.parse(pending.subarray(4, 4 + length));
     pending = pending.subarray(4 + length);
-    send({protocolVersion: 1, requestId: request.requestId, status: "stream", event: "thinking.delta", text: "Checking locally. "});
-    send({protocolVersion: 1, requestId: request.requestId, status: "stream", event: "response.delta", text: "Answering locally. "});
+    send({protocolVersion: 2, requestId: request.requestId, status: "stream", event: "thinking.delta", text: "Checking locally. "});
+    send({protocolVersion: 2, requestId: request.requestId, status: "stream", event: "response.delta", text: "Answering locally. "});
     send({
-      protocolVersion: 1,
+      protocolVersion: 2,
       requestId: request.requestId,
       status: "ok",
       operation: "generate",
       value: {result: "ok"},
       memory: {
         cpuRamBytes: 1,
-        gpuVramBytes: 1,
+        gpuMemoryBytes: 1,
         budgetBytes: 1024,
-        detectedGpuVramBytes: 1024,
+        detectedGpuMemoryBytes: 1024,
+        gpuMemoryKind: "unified" as const,
+        backend: "metal" as const,
+        selectedDeviceCount: 1 as const,
       },
       performance: {promptTokens: 10, outputTokens: 2, promptDurationMs: 5, generationDurationMs: 4, totalDurationMs: 9}
     });
@@ -75,12 +78,20 @@ function send(value) {
 }
 function done(request) {
   send({
-    protocolVersion: 1,
+    protocolVersion: 2,
     requestId: request.requestId,
     status: "ok",
     operation: "generate",
     value: {result: "ok"},
-    memory: {cpuRamBytes: 1, gpuVramBytes: 1, budgetBytes: 1024, detectedGpuVramBytes: 1024},
+    memory: {
+      cpuRamBytes: 1,
+      gpuMemoryBytes: 1,
+      budgetBytes: 1024,
+      detectedGpuMemoryBytes: 1024,
+      gpuMemoryKind: "unified" as const,
+      backend: "metal" as const,
+      selectedDeviceCount: 1 as const,
+    },
     performance: {promptTokens: 10, outputTokens: 2, promptDurationMs: 5, generationDurationMs: 4, totalDurationMs: 9}
   });
 }
@@ -104,7 +115,7 @@ process.stdin.on("data", (chunk) => {
 `;
 
 const probe = InferenceWorkerRequestSchema.parse({
-  protocolVersion: 1,
+  protocolVersion: 2,
   requestId: "test",
   jobId: "00000000-0000-4000-8000-000000000001",
   operation: "probe",
@@ -114,7 +125,7 @@ const probe = InferenceWorkerRequestSchema.parse({
 });
 
 const largeGeneration = InferenceWorkerRequestSchema.parse({
-  protocolVersion: 1,
+  protocolVersion: 2,
   requestId: "large-request",
   jobId: "00000000-0000-4000-8000-000000000003",
   operation: "generate",
@@ -186,6 +197,11 @@ describe("M2 inference worker containment", () => {
 });
 
 describe("resident inference worker", () => {
+  // These cases spawn real Node worker processes, so the timeout must cover process
+  // startup on a loaded runner. The timed-out and cancelled cases above keep their
+  // short budgets because they assert the timeout and cancellation paths themselves.
+  const residentTimeoutMs = 30_000;
+
   it("reuses one process, routes both text streams, and unloads explicitly", async () => {
     const launcher = new ScriptLauncher(residentWorkerScript);
     const client = new InferenceWorkerClient(launcher, "unused");
@@ -195,7 +211,7 @@ describe("resident inference worker", () => {
       request: largeGeneration,
       modelPath: "/approved/model.gguf",
       memoryBudgetBytes: 1024,
-      timeoutMs: 500,
+      timeoutMs: residentTimeoutMs,
       onThinkingDelta: (text: string) => thinking.push(text),
       onResponseDelta: (text: string) => responses.push(text),
     };
@@ -212,7 +228,11 @@ describe("resident inference worker", () => {
   it("cancels one multiplexed request without interrupting its sibling", async () => {
     const client = new InferenceWorkerClient(new ScriptLauncher(parallelWorkerScript), "unused");
     const controller = new AbortController();
-    const common = { modelPath: "/approved/model.gguf", memoryBudgetBytes: 1024, timeoutMs: 500 };
+    const common = {
+      modelPath: "/approved/model.gguf",
+      memoryBudgetBytes: 1024,
+      timeoutMs: residentTimeoutMs,
+    };
     const first = client.execute({
       request: generation("first"),
       signal: controller.signal,
