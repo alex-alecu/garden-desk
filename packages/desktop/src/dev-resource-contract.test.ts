@@ -6,6 +6,17 @@ const desktopRoot = join("repository", "packages", "desktop");
 const repositoryRoot = "repository";
 
 describe("desktop development resource contract", () => {
+  it("tracks the current primary prompt in packaged resources", () => {
+    const contract = developmentResourceContract(desktopRoot, repositoryRoot, "win32", "x64");
+    const primaryPrompt = join("prompts", "agents", "primary.md");
+    expect(contract.requiredOutputs).toContain(
+      join(desktopRoot, "src-tauri", "resources", "core", primaryPrompt),
+    );
+    expect(contract.requiredOutputs).not.toContain(
+      join(desktopRoot, "src-tauri", "resources", "core", "prompts", "system", "agent.md"),
+    );
+  });
+
   it("requires only macOS runtime outputs on Apple silicon", () => {
     const contract = developmentResourceContract(desktopRoot, repositoryRoot, "darwin", "arm64");
     expect(contract.requiredOutputs).toContain(
