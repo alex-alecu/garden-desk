@@ -55,6 +55,16 @@ fn wide_text(value: *const u16) -> String {
 
 struct LocalMemory(Pointer);
 
+fn has_read_execute_grant(output: &[u8], sid: &str) -> bool {
+    let identity = format!("{sid}:");
+    String::from_utf8_lossy(output).lines().any(|line| {
+        let Some((_, permissions)) = line.rsplit_once(&identity) else {
+            return false;
+        };
+        permissions.starts_with("(RX)") || permissions.starts_with("(I)(RX)")
+    })
+}
+
 impl Drop for LocalMemory {
     fn drop(&mut self) {
         unsafe { LocalFree(self.0) };
@@ -158,7 +168,7 @@ impl AppContainer {
         Ok(())
     }
 
-    fn runtime_grant_exists(&self, path: &Path) -> Result<bool, Box<dyn Error>> {
+    fn read_execute_grant_exists(&self, path: &Path) -> Result<bool, Box<dyn Error>> {
         let windows = std::env::var_os("WINDIR").unwrap_or_else(|| "C:\\Windows".into());
         let executable = Path::new(&windows).join("System32").join("icacls.exe");
         let output = Command::new(executable)
@@ -166,16 +176,12 @@ impl AppContainer {
             .stdin(Stdio::null())
             .stderr(Stdio::null())
             .output()?;
-        let exact_read = format!("{}:(RX)", self.sid_text);
-        Ok(
-            output.status.success()
-                && String::from_utf8_lossy(&output.stdout).contains(&exact_read),
-        )
+        Ok(output.status.success() && has_read_execute_grant(&output.stdout, &self.sid_text))
     }
 
     pub(crate) fn grant_runtime_read(&self, path: &Path) -> Result<(), Box<dyn Error>> {
         let path = path.canonicalize()?;
-        if self.runtime_grant_exists(&path)? {
+        if self.read_execute_grant_exists(&path)? {
             return Ok(());
         }
         let directory = path.is_dir();
@@ -187,10 +193,38 @@ impl AppContainer {
     }
 
     pub(crate) fn grant_file_read(&self, path: &Path) -> Result<(), Box<dyn Error>> {
+        if self.read_execute_grant_exists(path)? {
+            return Ok(());
+        }
         self.grant(path, "(RX)", false, true)
     }
 
     pub(crate) fn grant_scratch(&self, path: &Path) -> Result<(), Box<dyn Error>> {
         self.grant(path, "(OI)(CI)(F)", false, true)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::has_read_execute_grant;
+
+    const SID: &str = "S-1-15-2-123";
+
+    #[test]
+    fn accepts_direct_and_inherited_read_execute_grants() {
+        assert!(has_read_execute_grant(b"file S-1-15-2-123:(RX)\r\n", SID));
+        assert!(has_read_execute_grant(
+            b"file S-1-15-2-123:(I)(RX)\r\n",
+            SID
+        ));
+    }
+
+    #[test]
+    fn rejects_other_or_denied_grants() {
+        assert!(!has_read_execute_grant(b"file S-1-15-2-456:(RX)\r\n", SID));
+        assert!(!has_read_execute_grant(
+            b"file S-1-15-2-123:(DENY)(RX)\r\n",
+            SID
+        ));
     }
 }
