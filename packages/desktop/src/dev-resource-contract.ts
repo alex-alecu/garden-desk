@@ -57,7 +57,7 @@ function commonOutputs(resourcesRoot: string): string[] {
     join(resourcesRoot, "inference", "worker.mjs"),
     join(resourcesRoot, "inference", "node_modules", "node-llama-cpp", "package.json"),
     join(resourcesRoot, "workers", "images", "agent", "manifest.json"),
-    join(resourcesRoot, "prompts", "system", "agent.md"),
+    join(resourcesRoot, "prompts", "agents", "primary.md"),
     join(resourcesRoot, "prompts", "skills", "terminal-commands", "SKILL.md"),
   ];
 }
