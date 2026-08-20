@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { openWorkspaceCatalog } from "../workspace/catalog.js";
+import { sameWindowsPathAfterDriveChange } from "./folder-relink.js";
 import { ConversationStore } from "./store.js";
 
 const roots: string[] = [];
@@ -15,6 +16,16 @@ function temporaryRoot(name: string): string {
 
 afterEach(() => {
   for (const root of roots.splice(0)) rmSync(root, { force: true, recursive: true });
+});
+
+describe("Windows folder drive paths", () => {
+  it("recognizes only the same Windows path on another drive", () => {
+    expect(sameWindowsPathAfterDriveChange("E:\\Code\\vault-desk", "D:\\Code\\vault-desk")).toBe(
+      true,
+    );
+    expect(sameWindowsPathAfterDriveChange("E:\\Code\\first", "D:\\Code\\second")).toBe(false);
+    expect(sameWindowsPathAfterDriveChange("/Volumes/first", "/Volumes/second")).toBe(false);
+  });
 });
 
 describe("ConversationStore folder grants", () => {
@@ -60,6 +71,62 @@ describe("ConversationStore folder grants", () => {
     expect(() => store.addFolder(link)).toThrow("folder_grant_invalid");
     catalog.close();
   });
+});
+
+describe("ConversationStore folder drive repair", () => {
+  it.runIf(process.platform === "win32")(
+    "relinks sessions when an unavailable folder is added on its new drive",
+    () => {
+      const stateRoot = temporaryRoot("relink-state");
+      const newRoot = join(temporaryRoot("relink-new"), "project");
+      mkdirSync(newRoot);
+      const catalog = openWorkspaceCatalog(stateRoot);
+      const store = new ConversationStore(catalog.database);
+      const original = store.addFolder(newRoot);
+      const session = store.createSession(original.id);
+      const canonicalPath = realpathSync.native(newRoot);
+      catalog.database
+        .prepare("UPDATE folder_grants SET root_path = ? WHERE id = ?")
+        .run(`Z:${canonicalPath.slice(2)}`, original.id);
+
+      const relinked = store.addFolder(newRoot);
+
+      expect(relinked.id).toBe(original.id);
+      expect(store.resolveFolderPath(relinked.id)).toBe(canonicalPath);
+      expect(store.listSessions(relinked.id).items.map((item) => item.id)).toContain(session.id);
+      catalog.close();
+    },
+  );
+});
+
+describe("ConversationStore folder drive repair ambiguity", () => {
+  it.runIf(process.platform === "win32")(
+    "does not guess when two unavailable grants match the selected path",
+    () => {
+      const stateRoot = temporaryRoot("ambiguous-state");
+      const secondRoot = join(temporaryRoot("ambiguous-second"), "project");
+      const replacementRoot = join(temporaryRoot("ambiguous-replacement"), "project");
+      mkdirSync(secondRoot);
+      mkdirSync(replacementRoot);
+      const catalog = openWorkspaceCatalog(stateRoot);
+      const store = new ConversationStore(catalog.database);
+      const first = store.addFolder(replacementRoot);
+      const second = store.addFolder(secondRoot);
+      const canonicalPath = realpathSync.native(replacementRoot);
+      catalog.database
+        .prepare("UPDATE folder_grants SET root_path = ? WHERE id = ?")
+        .run(`Y:${canonicalPath.slice(2)}`, first.id);
+      catalog.database
+        .prepare("UPDATE folder_grants SET root_path = ? WHERE id = ?")
+        .run(`Z:${canonicalPath.slice(2)}`, second.id);
+
+      const replacement = store.addFolder(replacementRoot);
+
+      expect(replacement.id).not.toBe(first.id);
+      expect(replacement.id).not.toBe(second.id);
+      catalog.close();
+    },
+  );
 });
 
 describe("ConversationStore folder ordering", () => {

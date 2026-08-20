@@ -13,7 +13,7 @@ type Spawn = (
   options: Parameters<typeof spawnSync>[2],
 ) => SpawnSyncReturns<Buffer>;
 
-export function hasWindowsDevelopmentAuthority(
+export function hasWindowsStandardUserAuthority(
   platform: NodeJS.Platform,
   spawn: Spawn = spawnSync,
 ): boolean {
@@ -27,5 +27,5 @@ export function hasWindowsDevelopmentAuthority(
   if (result.status !== 0 && result.status !== 1) {
     throw new Error("Windows administrator status could not be determined.");
   }
-  return result.status === 0;
+  return result.status === 1;
 }

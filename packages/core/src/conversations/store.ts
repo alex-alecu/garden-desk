@@ -13,6 +13,7 @@ import {
 import type { DatabasePort } from "../workspace/database.js";
 import { inspectFolderGrant } from "../workspace/folder-grants.js";
 import { reorderFolderRows } from "./folder-order.js";
+import { unavailableFolderAfterDriveChange } from "./folder-relink.js";
 
 interface FolderRow {
   id: string;
@@ -116,6 +117,13 @@ export class ConversationStore {
           .run(existing.id);
       }
       return folderSummary({ ...existing, revoked_at: null });
+    }
+    const relinkable = unavailableFolderAfterDriveChange(this.database, canonicalPath);
+    if (relinkable !== undefined) {
+      this.database
+        .prepare("UPDATE folder_grants SET root_path = ? WHERE id = ?")
+        .run(canonicalPath, relinkable.id);
+      return folderSummary(relinkable);
     }
     const createdAt = new Date().toISOString();
     const folder = FolderSummarySchema.parse({

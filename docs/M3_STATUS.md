@@ -1,6 +1,6 @@
 # Milestone M3 Status
 
-Updated: 2026-08-15
+Updated: 2026-08-20
 
 The persistent-workspace M3 implementation and canonical headless gate are certified on physical Apple silicon and Windows x64. The installed-Windows UI, live-execution, debug-snapshot, 200 percent display-scale, 64K dedicated-VRAM tier, refreshed guest document probe, and packaging observations also pass. The 14-skill professional review implementation has static catalog, prompt-budget, routing-fixture, load-order, forbidden-skill, forbidden-response, deterministic report-content, and compaction-reload checks. Its 12 domain cases and two negative routing cases on physical macOS and Windows and its qualified legal, finance, and medical-administration reviews are pending. The new image inspection path also has focused and static checks, but its physical gates and packaged-application checks are pending. The cross-platform M3 and Community Desktop V1 launch gate remain open.
 
@@ -105,6 +105,13 @@ The following bullets preserve historical physical evidence for the replaced str
 - The earlier macOS packaged-app stage passed strict ad-hoc signature validation, authenticated sidecar execution, copy-install restoration, and user-state preservation. The persistent-workspace revision is additionally covered by the current physical headless gate and current package/build verification; Developer ID signing and notarization remain release-credential work.
 - The earlier product sidecar resource build completed with the Word, XLSX, PDF, legal-review, and finance-review skill prompts, notices, SBOM, capabilities, and guest manifest. Its bundle SHA-256 is `38da510391e73e78a31bab099ccde4d4c6cad79ed84045615c42db54421014da`. The 2026-08-15 verification-sidecar check copied the complete 18-skill prompt tree and produced bundle SHA-256 `5b6ce0a50672bddd6554d6f35ce1dbc6174e7d640e026c4008641deec4984996`. It did not create or inspect a new signed `.app`; current packaged Open and Save As behavior remains not run rather than inferred from Core, Rust, and DOM coverage.
 - Current `pnpm verify` passes the source limit, repository consistency, TypeScript, 119 unit files with 494 tests passed and two skipped by their declared platform conditions, two native tests, Rust, helper, sidecar, resource, and desktop build checks.
+
+## Current Windows Corrections
+
+- Windows desktop development now refuses an administrator token. The desktop stays at the same integrity level as Explorer, so Windows permits native file and folder drops. The one-time setup helper remains the only elevated process.
+- When the user adds a folder after only its Windows drive letter changed, Core repairs one exact, active, unavailable grant. It keeps the grant ID and all linked sessions. It does not repair the grant when more than one unavailable grant matches.
+- Focused tests pass for the standard-user launch rule, native drop routing, exact drive-letter repair, session preservation, and ambiguous repair rejection. `pnpm verify` also passes with 123 unit files, 537 tests passed, two tests skipped by their declared platform conditions, and all native, TypeScript, Rust, helper, sidecar, and desktop checks. A read-safe SQLite backup of the supplied catalog proved that session `099fb973-e779-40ea-9ff5-32fcc8af99c6` keeps its folder ID and resolves `D:\Code\vault-desk` after the repair. A new installed-application drop check remains manual Windows evidence.
+- The 2026-08-20 real Windows M3 gate passed the primary folder, rehydration, cancellation, execution-limit, timeout, output, and security stages. It then failed in a later Python model fixture because the model wrote the requested script but did not run it before it claimed the expected output. This is an open real-model gate failure. It is not accepted as evidence for this correction.
 
 ## Physical Windows Evidence
 
