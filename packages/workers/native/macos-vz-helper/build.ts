@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { mkdirSync } from "node:fs";
+import { mkdirSync, rmSync } from "node:fs";
 import { join } from "node:path";
 
 function run(command: string, args: string[], environment?: NodeJS.ProcessEnv): void {
@@ -15,6 +15,7 @@ if (process.platform === "darwin") {
   const root = join(process.cwd(), "packages/workers/native/macos-vz-helper");
   const generated = join(root, ".generated");
   const moduleCache = join(generated, "module-cache");
+  rmSync(moduleCache, { force: true, recursive: true });
   mkdirSync(moduleCache, { recursive: true });
   const executable = join(generated, "vault-vz-helper");
   run(
