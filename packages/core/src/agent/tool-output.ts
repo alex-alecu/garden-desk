@@ -14,43 +14,45 @@ interface OutputChunk {
   signal?: AbortSignal;
 }
 
-function takePrefix(text: string, maximumBytes: number): string {
-  let bytes = 0;
-  let result = "";
-  for (const character of text) {
-    const size = Buffer.byteLength(character);
-    if (bytes + size > maximumBytes) break;
-    result += character;
-    bytes += size;
+function encodedByteLength(text: string): number {
+  return Buffer.byteLength(JSON.stringify(text));
+}
+
+function clippedPreview(head: string, tail: string, marker: string): string {
+  const headCharacters = Array.from(head);
+  const tailCharacters = Array.from(tail);
+  let low = 0;
+  let high = headCharacters.length + tailCharacters.length;
+  let result = `\n\n${marker}\n\n`;
+  while (low <= high) {
+    const count = Math.floor((low + high) / 2);
+    let headCount = Math.min(headCharacters.length, Math.ceil(count / 2));
+    let tailCount = Math.min(tailCharacters.length, count - headCount);
+    if (headCount + tailCount < count) {
+      headCount = Math.min(headCharacters.length, count - tailCount);
+      tailCount = Math.min(tailCharacters.length, count - headCount);
+    }
+    const candidate = `${headCharacters.slice(0, headCount).join("")}\n\n${marker}\n\n${tailCharacters
+      .slice(tailCharacters.length - tailCount)
+      .join("")}`;
+    if (encodedByteLength(candidate) <= MAX_BYTES) {
+      result = candidate;
+      low = count + 1;
+    } else {
+      high = count - 1;
+    }
   }
   return result;
 }
 
-function takeSuffix(text: string, maximumBytes: number): string {
-  let bytes = 0;
-  const result: string[] = [];
-  for (const character of Array.from(text).toReversed()) {
-    const size = Buffer.byteLength(character);
-    if (bytes + size > maximumBytes) break;
-    result.unshift(character);
-    bytes += size;
-  }
-  return result.join("");
-}
-
 function preview(text: string, marker: string): string | undefined {
   const lines = text.split("\n");
-  if (lines.length <= MAX_LINES && Buffer.byteLength(text) <= MAX_BYTES) return undefined;
-  const availableBytes = MAX_BYTES - Buffer.byteLength(marker) - 4;
+  if (lines.length <= MAX_LINES && encodedByteLength(text) <= MAX_BYTES) return undefined;
   const headLines = Math.ceil((MAX_LINES - 4) / 2);
   const tailLines = Math.floor((MAX_LINES - 4) / 2);
-  let head = lines.length <= MAX_LINES ? text : lines.slice(0, headLines).join("\n");
-  let tail = lines.length <= MAX_LINES ? text : lines.slice(-tailLines).join("\n");
-  if (Buffer.byteLength(head) + Buffer.byteLength(tail) > availableBytes) {
-    head = takePrefix(head, Math.ceil(availableBytes / 2));
-    tail = takeSuffix(tail, Math.floor(availableBytes / 2));
-  }
-  return `${head}\n\n${marker}\n\n${tail}`;
+  const head = lines.length <= MAX_LINES ? text : lines.slice(0, headLines).join("\n");
+  const tail = lines.length <= MAX_LINES ? text : lines.slice(-tailLines).join("\n");
+  return clippedPreview(head, tail, marker);
 }
 
 async function writeChunk(chunk: OutputChunk): Promise<void> {
@@ -93,7 +95,7 @@ export async function boundedToolOutput(
   text: string,
   signal?: AbortSignal,
 ): Promise<string> {
-  if (text.split("\n").length <= MAX_LINES && Buffer.byteLength(text) <= MAX_BYTES) return text;
+  if (text.split("\n").length <= MAX_LINES && encodedByteLength(text) <= MAX_BYTES) return text;
   const path = await spill(executor, text, signal);
   const marker = `[Output truncated. Full output saved to ${path}. Use grep or read with offset/limit.]`;
   return preview(text, marker) ?? text;

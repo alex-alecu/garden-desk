@@ -33,7 +33,7 @@ interface PrimaryRunInput {
   inspectImage(path: string, prompt: string): Promise<string>;
   onThinking(thinking: string | null): void;
   onResponse(response: string | null): void;
-  onContext(used: number, allocated: number): void;
+  onContext(used: number, allocated: number, measured?: boolean): void;
   askQuestion(questions: AgentQuestion[]): Promise<AgentQuestionOutcome>;
 }
 

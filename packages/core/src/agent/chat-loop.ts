@@ -97,7 +97,11 @@ export class ChatAgentLoop {
         result.memory.contextSizeTokens,
       );
       this.contextTokens = result.memory.contextSizeTokens ?? this.contextTokens;
-      input.onContext?.(result.performance.promptTokens, this.contextTokens);
+      input.onContext?.(
+        result.performance.promptTokens,
+        this.contextTokens,
+        result.memory.contextSizeTokens !== undefined,
+      );
       return { result, ...(turnId === undefined ? {} : { turnId }) };
     } catch (error) {
       this.record(input, turnId, input.signal?.aborted ? "cancelled" : "inference_failed");

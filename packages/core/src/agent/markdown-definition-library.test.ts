@@ -38,6 +38,7 @@ function fixture(): { root: string; remove: () => void } {
   return { root, remove: () => rmSync(root, { recursive: true, force: true }) };
 }
 
+// biome-ignore lint/complexity/noExcessiveLinesPerFunction: the approved catalog is one exact contract.
 function expectApprovedAgents(library: MarkdownDefinitionLibrary): void {
   expect(library.agents.map(({ mode, name }) => ({ mode, name }))).toEqual([
     { mode: "subagent", name: "explore" },
@@ -73,6 +74,15 @@ function expectApprovedAgents(library: MarkdownDefinitionLibrary): void {
   );
   expect(library.agent("primary").body).toContain(
     "Load `review-report` after the evidence work only when",
+  );
+  expect(library.agent("primary").body).toContain(
+    "Use `read` only for plain UTF-8 text, and load an applicable skill before specialized file processing.",
+  );
+  expect(library.agent("primary").body).toContain(
+    "If `read` returns `read_requires_utf8_text`, do not retry it; load an applicable skill or use one bounded program for specialized file processing.",
+  );
+  expect(library.agent("primary").body).toContain(
+    "Omit optional numeric tool arguments unless needed; when used, keep them in the advertised range and paginate instead of using a large sentinel value.",
   );
   expect(library.agent("explore")).toMatchObject({
     steps: 16,

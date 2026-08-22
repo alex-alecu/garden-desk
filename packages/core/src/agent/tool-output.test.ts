@@ -34,6 +34,17 @@ function executor(writes?: string[]): AgentExecutor {
   };
 }
 
+function writtenText(writes: string[]): string {
+  return Buffer.concat(
+    writes.map((write) => {
+      const encoded = write.match(/base64\.b64decode\(("[A-Za-z0-9+/=]+")\)/u)?.[1];
+      expect(encoded).toBeDefined();
+      return Buffer.from(JSON.parse(encoded as string), "base64");
+    }),
+  ).toString("utf8");
+}
+
+// biome-ignore lint/complexity/noExcessiveLinesPerFunction: output boundary cases share one spill decoder.
 describe("bounded tool output", () => {
   it("spills oversized output and gives grep/read recovery guidance", async () => {
     const writes: string[] = [];
@@ -50,6 +61,7 @@ describe("bounded tool output", () => {
     expect(result).not.toContain("line 1000");
     expect(result.match(/line 0(?:\n|$)/gu)).toHaveLength(1);
     expect(result.match(/line 2000(?:\n|$)/gu)).toHaveLength(1);
+    expect(writtenText(writes)).toBe(output);
   });
 
   it("keeps the preview within its byte limit for multibyte text", async () => {
@@ -71,5 +83,34 @@ describe("bounded tool output", () => {
     expect(result.match(/100:/gu)).toHaveLength(1);
     expect(result.match(/900:/gu)).toHaveLength(1);
     expect(result).not.toContain("500:");
+  });
+
+  it("keeps the exact JSON 50 KiB boundary and spills the first byte above it", async () => {
+    const atLimit = "x".repeat(50 * 1_024 - 2);
+    const atLimitWrites: string[] = [];
+    const overLimit = `${atLimit}x`;
+    const overLimitWrites: string[] = [];
+
+    const exact = await boundedToolOutput(executor(atLimitWrites), atLimit);
+    const spilled = await boundedToolOutput(executor(overLimitWrites), overLimit);
+
+    expect(Buffer.byteLength(JSON.stringify(atLimit))).toBe(50 * 1_024);
+    expect(exact).toBe(atLimit);
+    expect(atLimitWrites).toHaveLength(0);
+    expect(Buffer.byteLength(JSON.stringify(overLimit))).toBe(50 * 1_024 + 1);
+    expect(overLimitWrites).toHaveLength(2);
+    expect(writtenText(overLimitWrites)).toBe(overLimit);
+    expect(Buffer.byteLength(JSON.stringify(spilled))).toBeLessThanOrEqual(50 * 1_024);
+  });
+
+  it("spills control-heavy output and keeps its JSON-encoded preview within 50 KiB", async () => {
+    const writes: string[] = [];
+    const output = `${"\u0001".repeat(50 * 1_024)}\nFINAL_SUMMARY=kept`;
+
+    const result = await boundedToolOutput(executor(writes), output);
+
+    expect(Buffer.byteLength(JSON.stringify(result))).toBeLessThanOrEqual(50 * 1_024);
+    expect(result).toContain("FINAL_SUMMARY=kept");
+    expect(writtenText(writes)).toBe(output);
   });
 });

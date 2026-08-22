@@ -19,7 +19,7 @@ import { ArtifactMaterializer } from "./artifact-materialization.js";
 import { prepareArtifacts } from "./artifact-results.js";
 import { materializeAndAuditAttachment } from "./attachment-materialization.js";
 import { AgentInputResolver } from "./inputs.js";
-import { AGENT_MODEL_ID, AGENT_WORKER_LIMITS } from "./limits.js";
+import { AGENT_WORKER_LIMITS } from "./limits.js";
 import { MarkdownDefinitionLibrary } from "./markdown-definition-library.js";
 import { runPrimaryAgent } from "./primary-run.js";
 import { AgentRunCapacity } from "./run-capacity.js";
@@ -31,8 +31,8 @@ import {
   inferenceContextTokens,
   runPerformance,
 } from "./service-results.js";
+import { SessionSummaryQueue } from "./service-summary-queue.js";
 import { AgentSessionManager } from "./session-manager.js";
-import { refreshSessionSummary } from "./session-summary.js";
 import { SessionSummaryStore } from "./session-summary-store.js";
 import type { AgentStore } from "./store.js";
 
@@ -42,6 +42,7 @@ export class AgentService {
   private readonly artifactMaterializer: ArtifactMaterializer;
   private readonly sessions: AgentSessionManager;
   private readonly runCapacity: AgentRunCapacity;
+  private readonly summaryQueue: SessionSummaryQueue;
   private readonly summaries: SessionSummaryStore;
   private readonly images: AgentImageInspector;
 
@@ -70,6 +71,14 @@ export class AgentService {
       maximumConcurrentRuns,
     );
     this.runCapacity = new AgentRunCapacity(maximumConcurrentRuns);
+    this.summaryQueue = new SessionSummaryQueue(
+      inference,
+      conversations,
+      this.definitions,
+      store,
+      audit,
+      this.summaries,
+    );
   }
 
   saveDraft(sessionId: string, content: string): SessionDraft {
@@ -202,7 +211,9 @@ export class AgentService {
   // biome-ignore lint/complexity/noExcessiveLinesPerFunction: the run lifecycle stays linear so cleanup and terminal persistence remain paired.
   private async execute(run: AgentRunSummary, task: string, signal: AbortSignal): Promise<void> {
     let releaseCapacity: (() => void) | undefined;
+    let measuredContextTokens: number | undefined;
     try {
+      await this.summaryQueue.waitFor(run.sessionId, signal);
       releaseCapacity = await this.runCapacity.acquire(signal);
       signal.throwIfAborted();
       this.database.transaction(() => {
@@ -236,8 +247,10 @@ export class AgentService {
         ...(knownContextTokens === "auto" ? {} : { knownContextTokens }),
         onThinking: (thinking) => this.updateActive(run.jobId, { thinking }),
         onResponse: (response) => this.updateActive(run.jobId, { response }),
-        onContext: (contextUsedTokens, contextAllocatedTokens) =>
-          this.updateActive(run.jobId, { contextUsedTokens, contextAllocatedTokens }),
+        onContext: (contextUsedTokens, contextAllocatedTokens, measured) => {
+          if (measured) measuredContextTokens = contextAllocatedTokens;
+          this.updateActive(run.jobId, { contextUsedTokens, contextAllocatedTokens });
+        },
         askQuestion: (questions) =>
           askRunQuestion({ active: this.active, store: this.store, run, signal, questions }),
         run,
@@ -268,21 +281,7 @@ export class AgentService {
         outcome: "succeeded",
         metadata: { runId: run.id, jobId: run.jobId, executions: result.executions.length },
       });
-      const summaryContextTokens = await inferenceContextTokens(this.inference);
-      await refreshSessionSummary(
-        { chat: this.inference.chat.bind(this.inference) },
-        {
-          sessionId: run.sessionId,
-          runId: run.id,
-          contextTokens: summaryContextTokens === "auto" ? 8_192 : summaryContextTokens,
-          loadMessages: () => this.conversations.listMessages(run.sessionId),
-          modelId: AGENT_MODEL_ID,
-          library: this.definitions,
-          store: this.summaries,
-          signal,
-          trace: { runId: run.id, store: this.store.trace },
-        },
-      );
+      this.summaryQueue.enqueue(run, signal, measuredContextTokens);
     } catch (error) {
       this.failRun(run, signal, error);
     } finally {
@@ -294,6 +293,7 @@ export class AgentService {
     const active = [...this.active.values()];
     for (const run of active) run.controller.abort(new DOMException("Core closed.", "AbortError"));
     await Promise.all(active.map((run) => run.finished));
+    await this.summaryQueue.close();
     await this.sessions.close();
   }
 }

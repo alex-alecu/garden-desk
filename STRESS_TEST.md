@@ -10,6 +10,12 @@ Task-specific evaluations use an ignored TypeScript runner under `packages/eval/
 
 ## Latest results
 
+### Current Stage 1–2 cycle — 2026-08-21
+
+- Stage 1 terminal discovery passed. The Stage 2 focused unit set passed: six files and 56 tests.
+- The only valid post-build context result is `packages/eval/.generated/stress/context-session-2026-08-21T19-08-37.269Z.json`: seven runs succeeded, each measured 65,536 tokens, and zero of three required anchors reached later prompts. Status: not ready.
+- Next action: run the ignored real-daemon trace reproduction `packages/eval/.generated/context-session-trace-repro.ts`: start Core and the daemon, send the exact seven context-session turns through RPC, poll each terminal run, call `agent.trace` for each run, and save the complete traces with compaction outcomes and prompt anchor evidence. The repeated detailed attempts remain later as history.
+
 ### Time-boxed physical Windows suite - 2026-08-21
 
 - This run used commit `3a251dd` from `origin/main` on physical Windows x64. The host had 33,408,679,936 memory bytes, one NVIDIA GeForce RTX 5070 Ti, and integrated AMD Radeon graphics. The run started at 14:12 EEST and stopped active stress work at 14:50 EEST to keep the complete verification and reporting task below one hour. The evidence branch made no product or dependency change.
@@ -347,6 +353,56 @@ The backend, daemon, model, guest isolation, audit, and canonical gate remained 
 - Scaled sequential and concurrent runs preserved the separately reported XLSX-folder aggregate limit; the one-million-row workbook and mixed 50-file workflow passed in both modes. Reports: `packages/eval/.generated/stress/scaled-sequential-2026-08-03T15-01-11.980Z.json` and `packages/eval/.generated/stress/scaled-concurrent-2026-08-03T15-16-33.806Z.json`.
 - `pnpm test:m3:macos` remained certified with real Python and Node artifacts, persistence, cancellation, limits, no-NIC confinement, cleanup, two overlapping VM lifetimes, and the 131,072-token context cap. This command emits terminal evidence rather than a JSON report.
 
+### Independent Windows Stage 2 physical check — 2026-08-21
+
+- `pnpm desktop:build-sidecar` completed with exit code 0. The command did not emit an elapsed duration. It emitted target `x86_64-pc-windows-msvc`, Node `v24.18.0`, signing mode `windows-ephemeral-self-signed`, sidecar SHA-256 `801dff199c8ac46ed38fcdfeb47220d260d579d7aa07cc3fa057a033352405cc`, bundle SHA-256 `92e46dfbe2e3f7538899fc0d2cbd2b5fbf4e1e2864d201eee2c361733459a781`, and resource-manifest SHA-256 `2005af4bf092f946d6b5f618bbc5aa02e94b7f5ed257a984fd059832ae0ca309`. The staged resource manifest had `LastWriteTimeUtc` `2026-08-21T19:02:05.6246866Z`.
+
+- Focused unit command: `pnpm test -- packages/core/src/agent/generic-read.test.ts packages/core/src/agent/generic-tools.test.ts packages/core/src/agent/tool-output.test.ts packages/core/src/agent/markdown-definition-library.test.ts packages/core/src/agent/session-summary.test.ts packages/core/src/agent/service-session-summary.test.ts`. Result: six test files and 56 tests passed in 966 ms.
+
+- Real stress command: `pnpm test:stress:m3:context-session`. The command ended with exit code 1 and classification `context_session_limit_found`. Report-clock duration was 68.268 seconds, from report-path timestamp `2026-08-21T19:02:02.888Z` to report `createdAt` `2026-08-21T19:03:11.156Z`; it was within the ten-minute cap. No manual stop was used.
+
+- Run, allocation, anchor, decision, and busy evidence: all seven runs ended `succeeded` with `error: null`: `44b06455-8ea8-41e4-b8eb-8795cb623d03`, `c081ecc4-55dc-404a-bafb-cd6af06b81b2`, `9271bb82-f5a1-45a4-a229-02b13e239fc3`, `4ca70e59-5e57-49ab-b42e-891e0bbf3cc5`, `ba5e3ade-af60-4f0b-9a6d-58437e4de031`, `28bccc51-3c48-4bbd-918c-c8189836c839`, and `fae34573-c8d4-423a-922d-60de210689be`. All seven allocations were 65,536 tokens. No `agent_busy` error occurred. Every turn recorded `anchored: false`; `distinctAnchors` was 0, but the case requires at least 3. `missingTerms` was empty. The final response retained review style `Concise`, unresolved item `vendor approval`, next move `Compare the revised draft`, privacy preference `Keep all work offline`, and delivery format `Plain text`.
+
+- Sidecar selection evidence and limit: the Windows resolver prefers the release bundle, but that root was absent after the run. The stress runtime therefore used the staged development inference root `packages/desktop/src-tauri/resources/core/inference`; its recorded hardware-worker SHA-256 was `80c6d4bceab52d0475f55eba1fe93f5288bba9de0ddc0c44f193ce9a76cf3272`, Node runtime SHA-256 was `61cd9e8caa61df0bf662d730990ca5728cee06fa1e88dbfbd9cd2178c1689c51`, and worker SHA-256 was `b04063de880abe8c89fe8ef0dfeb7e68e0b8a30770740109f71c5a5e2fb79ec3`. The report path was created before the build resource-manifest timestamp, and the runner did not emit its sidecar-selection time. The completed rebuilt sidecar use cannot be proved from this run.
+
+- Report: `packages/eval/.generated/stress/context-session-2026-08-21T19-02-02.888Z.json`. Stage 2 conclusion: not ready. The unit files passed, but real stress failed the required anchor count. This run is not M3 certification evidence.
+
+### Independent Windows Stage 1 check — 2026-08-21
+
+- Focused unit command: `pnpm test -- packages/core/src/agent/generic-read.test.ts packages/core/src/agent/generic-tools.test.ts packages/core/src/agent/tool-output.test.ts packages/core/src/agent/markdown-definition-library.test.ts`. Result: four test files and 35 tests passed in 637 ms.
+
+- Real stress command: `pnpm test:stress:m3:small -- --case terminal-discovery`. Platform: `win32-x64`. Duration: 50.052 seconds. Result: `small_stress_passed`; terminal state `succeeded`; response `SURCHARGE_BPS=275`; audit validation passed. The runner ended 249.948 seconds before its five-minute deadline. Report: `packages/eval/.generated/stress/small-2026-08-21T17-48-06.156Z.json`.
+
+- Tool and bound evidence: one `list` call with `depth: 2` and `path: /source` found `/source/pricing-rules.ts`. One `read` call with `offset: 1`, `limit: 2000`, and the exact source path read `surchargeBasisPoints = 275`. Both calls completed. No bound rejection occurred, so bound recovery was not needed. The run used zero guest program executions, zero failed executions, zero execution milliseconds, zero inference failures, zero context compactions, no artifact, and no error.
+
+- Not run: no second stress attempt, full small suite, context-session suite, scaled suites, `pnpm test:m3:windows`, or `pnpm verify`. The directed scope allowed one focused real stress case only. Conclusion: ready for the Stage 1 focused check; this result is not M3 certification.
+
+### Focused Windows Stage 1 retest — 2026-08-21
+
+- Command: `pnpm test:stress:m3:small -- --case terminal-discovery`. Case: `terminal-discovery` (plain UTF-8 text). Duration: 164.613 seconds. Result: `small_stress_limit_found`; terminal state `succeeded`, but the required `SURCHARGE_BPS=275` token was missing. The run made zero guest program executions and had one inference failure. Failure evidence: after `list` found `/source/pricing-rules.ts`, `read` failed repeatedly with `Error: invalid_limit` and `grep` failed repeatedly with `Error: invalid_include`; the run reached the 24 guest-execution limit. The final response said it could not retrieve the value. Audit validation passed. Report: `packages/eval/.generated/stress/small-2026-08-21T17-30-48.723Z.json`.
+
+- Command: `pnpm test:stress:m3:small -- --case invalid-document`. Case: `invalid-document` (truncated PDF). Duration: 71.585 seconds. Result: `small_stress_passed`; terminal state `succeeded`; expected `invalid` evidence was present; audit validation passed. The run used two bounded Python executions (519 ms total), with one failed execution and no inference failure. Failure evidence: the first bounded Python program stopped with `SyntaxError: unterminated f-string literal`; the replacement program completed, reported `truncated.pdf` as invalid with `Stream has ended unexpectedly`, and emitted the bounded `EOF marker not found` parser diagnostic. This failure occurred during bounded program execution, not before or at `read`, and later model completion succeeded. Report: `packages/eval/.generated/stress/small-2026-08-21T17-34-18.710Z.json`.
+
+### Focused Windows Stage 1 read stress — 2026-08-21
+
+- Command: `pnpm test:stress:m3:small -- --case terminal-discovery`. Case: `terminal-discovery` (plain text). Duration: 80.857 seconds. Result: `small_stress_passed`; terminal state `succeeded`; expected `SURCHARGE_BPS=275` was present; audit validation passed. The run used two guest executions (11 ms total); one failed execution was recorded, with `error: null`, and the case still passed. Report: `packages/eval/.generated/stress/small-2026-08-21T17-12-21.274Z.json`.
+
+- Command: `pnpm test:stress:m3:small -- --case romanian-task`. Case: `romanian-task` (accented task text and binary XLSX input). Duration: 69.564 seconds. Result: `small_stress_limit_found`; terminal state `succeeded`, but the case failed because response token `TOTAL_AVANS=12009` was missing. The run loaded `xlsx-workbooks`, used two guest executions (1,291 ms total), had no failed execution, no inference failure, and `error: null`. Report: `packages/eval/.generated/stress/small-2026-08-21T17-14-21.752Z.json`.
+
+- Command: `pnpm test:stress:m3:small -- --case invalid-document`. Case: `invalid-document` (invalid truncated PDF input). Duration: 5 minutes; the runner stopped it at its declared deadline. Result: failed with `Error: Stress cases timed out after 5 minutes.` The last progress event was at 296.291 seconds during `Retrying the local model once`; it had three guest executions. The runner wrote no terminal classification or JSON report.
+
+- Trace detail: in `terminal-discovery`, `read` rejected model argument `limit: 1000000000000000` with `Error: invalid_limit`, as required by the numeric range contract. The case then recovered with a bounded search. In `romanian-task`, the recorded response was `TOTAL_AVANS=12009.0`; the strict oracle required `TOTAL_AVANS=12009`.
+
+### Focused Windows Stage 1 final retest — 2026-08-21
+
+- Focused unit command: `pnpm test -- packages/core/src/agent/generic-read.test.ts packages/core/src/agent/generic-tools.test.ts packages/core/src/agent/tool-output.test.ts packages/core/src/agent/markdown-definition-library.test.ts`. Result: four test files and 35 tests passed in 687 ms. The first restricted-shell attempt stopped during Vitest configuration with `spawn EPERM`; it did not discover or run a test. The same command then passed outside the restricted shell.
+
+- Real stress command: `pnpm test:stress:m3:small -- --case terminal-discovery`. Platform: `win32-x64`. Duration: 87.981 seconds. Result: `small_stress_limit_found`; terminal state `failed`; error `agent_run_failed`; required `SURCHARGE_BPS=275` was missing. The case used zero guest executions, zero failed guest executions, and two inference failures. Audit validation passed. The runner ended 212.019 seconds before its five-minute deadline. Report: `packages/eval/.generated/stress/small-2026-08-21T17-40-20.753Z.json`.
+
+- Tool-error recovery evidence: three `list` calls failed with `Error: invalid_depth: use an integer from 0 to 8`. A later bounded list call completed, and the next list call found `/source/pricing-rules.ts`. Four `read` calls then failed with `Error: invalid_limit: use an integer from 1 to 2000`; no later call read the file or recovered the required value.
+
+- Not run: no second stress attempt, full small suite, context-session suite, scaled suites, `pnpm test:m3:windows`, or `pnpm verify`. The directed scope allowed one focused real stress case only. Conclusion: not ready.
+
 ### Invalid PDF clean-stop cycle — 2026-08-03
 
 - Focused PDF routing and attachment prompt tests passed: 14 tests across `prompt-library.test.ts` and `loop-attachments.test.ts`.
@@ -367,3 +423,73 @@ The backend, daemon, model, guest isolation, audit, and canonical gate remained 
 - Scaled concurrent passed the one-million-row workbook, 50-workbook, and mixed workflows with `maximumRunning=3` and the same exact totals. The 50-workbook run used four executions and the mixed run used all six; long batches still exceeded the intended 75-second work window. Report: `packages/eval/.generated/stress/scaled-concurrent-2026-08-03T18-00-08.345Z.json`.
 - The non-qualifying iterations exposed and retained exact evidence for a case-sensitive uppercase-XLSX miss, overcomplicated small-corpus checkpoint repair, guessed source extension allowlists, and an overlong combined recovery. Reports: `packages/eval/.generated/stress/realistic-skills-2026-08-03T16-30-56.384Z.json`, `packages/eval/.generated/stress/small-2026-08-03T16-45-16.946Z.json`, `packages/eval/.generated/stress/realistic-skills-2026-08-03T17-01-57.566Z.json`, `packages/eval/.generated/stress/realistic-skills-2026-08-03T17-11-59.149Z.json`, and `packages/eval/.generated/stress/realistic-skills-2026-08-03T17-18-34.096Z.json`.
 - `pnpm test:m3:macos` remained certified with real Python and Node artifacts, persistence, cancellation, limits, no-NIC confinement, cleanup, two overlapping VM lifetimes, and the 131,072-token context cap. This command emits terminal evidence rather than a JSON report.
+
+### Independent Windows Stage 2 context-session check — 2026-08-21
+
+- Focused unit command: `pnpm test -- packages/core/src/agent/session-summary.test.ts packages/core/src/agent/service-session-summary.test.ts packages/core/src/agent/chat-inference-recovery.test.ts`. Result: three test files and 22 tests passed in 819 ms. The first restricted-shell attempt stopped during Vitest configuration with `spawn EPERM`; it did not discover or run a test. The same command then passed outside the restricted shell.
+
+- Real stress command: `pnpm test:stress:m3:context-session`. Result: failed with exit code 1 and `Error: Stress session remained busy after its previous terminal run.` The runner stopped at `startRun` in `packages/eval/src/stress/m3-session-runtime.ts`; it waited for `agent.start` until its internal deadline after a previous run remained busy.
+
+- Duration and stop: the runner did not emit a process duration. The generated model-store record was written at `2026-08-21T17:58:25.890Z`; command exit was observed at `2026-08-21T18:19:21.971Z`, an elapsed observation of 20 minutes 56.081 seconds. This exceeded the assigned 20-minute budget. The command exited by itself before a manual stop could occur. This result is a time-budget failure, not a product pass.
+
+- Terminal state, anchors, decisions, and trace details: not available. The runner wrote no `context-session-*.json` report and emitted no per-turn progress. It did not return an `agent.get` terminal snapshot or an `agent.trace` record. The count of anchors and retained decisions is therefore not available.
+
+- Conclusion: not ready. Do not treat this run as M3 context-session evidence.
+
+### Independent Windows Stage 2 context-session retest — 2026-08-21
+
+- Focused unit command: `pnpm test -- packages/core/src/agent/generic-read.test.ts packages/core/src/agent/generic-tools.test.ts packages/core/src/agent/tool-output.test.ts packages/core/src/agent/markdown-definition-library.test.ts packages/core/src/agent/session-summary.test.ts packages/core/src/agent/service-session-summary.test.ts`. Result: failed during Vitest startup. `vitest.workspace.ts` did not load because Vite returned `Error: spawn EPERM`. The command did not discover or run a test file. The required command was not run again.
+
+- Real stress command: `pnpm test:stress:m3:context-session`. Platform: `win32-x64`; total memory: 33,408,679,936 bytes. The command ended with exit code 1 and classification `context_session_limit_found`. No time-budget stop was needed. The command output did not give one total duration. The observed process-session times were 30.0023799 seconds before the session output and 26.750645 seconds to terminal exit, for 56.7530249 seconds. The generated report path time is `2026-08-21T18:34:42.380Z`; its `createdAt` value is `2026-08-21T18:35:43.763Z`, a 61.383-second interval. Both values are below the 15-minute limit.
+
+- Session-busy and terminal behavior: no `agent_busy` error occurred. All seven runs ended `succeeded` with `error: null`. Run IDs were `28e6df04-da83-4769-8c64-beeef39fd83c`, `cad3806b-53a4-446d-bf99-af614c5af075`, `a6f45bbc-d07e-44fb-b768-ed87cf40f5ac`, `41926864-b287-4f92-a136-f2e3dac5b3df`, `4cfe1f45-fd7a-4cab-9615-c7e2111bb1a7`, `9d2fa473-1ae4-46a0-92aa-38a830ccf5ac`, and `08c6b727-0dd2-4751-828c-f0342bf46436`.
+
+- Anchor, decision, and trace evidence: the run used a 65,536-token context on all seven trace turns. Prompt character counts were 11,587, 5,908, 81,332, 10,449, 81,469, 10,577, and 12,486. Every turn recorded `anchored: false`; `distinctAnchors` was 0, but the case requires at least 3. `missingTerms` was empty. The final response retained all required decisions: review style `Concise`; unresolved item `vendor approval`; next move `Compare the revised draft`; privacy preference `Keep all work offline`; delivery format `Plain text`.
+
+- Report: `packages/eval/.generated/stress/context-session-2026-08-21T18-34-42.380Z.json` was written. It contains the run, context, anchor, and final-decision results. It does not contain full ordered `agent.trace` records. No report is missing.
+
+- Conclusion: not ready. The focused unit check did not run, and the real stress check failed its required anchor count. Do not treat this retest as M3 context-session evidence.
+
+### Independent Windows Stage 1–2 final check — 2026-08-21
+
+- Focused unit command: `pnpm test -- packages/core/src/agent/generic-read.test.ts packages/core/src/agent/generic-tools.test.ts packages/core/src/agent/tool-output.test.ts packages/core/src/agent/markdown-definition-library.test.ts packages/core/src/agent/session-summary.test.ts packages/core/src/agent/service-session-summary.test.ts`. Result: six test files and 54 tests passed in 1.13 seconds.
+
+- Real stress command: `pnpm test:stress:m3:context-session`. Report-clock duration was 60.170 seconds, from the report-path timestamp `2026-08-21T18:44:03.172Z` to `createdAt` `2026-08-21T18:45:03.342Z`; this was within the 10-minute cap. The command ended with exit code 1 and result `context_session_limit_found`.
+
+- Run and session-busy evidence: all seven runs ended `succeeded` with `error: null`: `7a58119f-1eb5-46bd-8d5e-d9cd8d91554f`, `08c8fd84-09b4-429c-acd7-37fca38f1eb6`, `94d7b5a9-8d58-4b91-954a-726615e3a80b`, `b6ff3e83-70a0-4334-9e35-8ac535439fb2`, `09c0b1a8-e559-42d7-bc84-bcdd2cdee428`, `89b6e238-dfed-4ad0-9115-d866ddaaf88f`, and `8fee5b85-2ccf-4b2f-bac1-333da3687dda`. No `agent_busy` error occurred.
+
+- Allocation, anchor, and decision evidence: all seven measured allocations were 65,536 tokens. Every trace prompt recorded `anchored: false`; the distinct-anchor count was 0, but the case requires at least 3. `missingTerms` was empty. The final response retained review style `Concise`, unresolved item `vendor approval`, next move `Compare the revised draft`, privacy preference `Keep all work offline`, and delivery format `Plain text`.
+
+- Trace and report path: `packages/eval/.generated/stress/context-session-2026-08-21T18-44-03.172Z.json`. This report contains run states, allocations, anchors, and final decisions. It does not contain complete ordered `agent.trace` records, and the runner writes no separate trace file.
+
+- Stage 1–2 evidence conclusion: not ready. The Stage 1–2 unit checks passed, but the Stage 2 real stress case failed its required anchor count. Do not treat this check as M3 certification evidence.
+
+### Independent Windows Stage 2 anchor-evidence check — 2026-08-21
+
+- Focused unit command: `pnpm test -- packages/core/src/agent/generic-read.test.ts packages/core/src/agent/generic-tools.test.ts packages/core/src/agent/tool-output.test.ts packages/core/src/agent/markdown-definition-library.test.ts packages/core/src/agent/session-summary.test.ts packages/core/src/agent/service-session-summary.test.ts`. Result: six test files and 55 tests passed in 1.21 seconds.
+
+- Real stress command: `pnpm test:stress:m3:context-session`. Report-clock duration was 59.268 seconds, from the report-path timestamp `2026-08-21T18:51:31.386Z` to `createdAt` `2026-08-21T18:52:30.654Z`; this was within the ten-minute cap. The command ended with exit code 1 and classification `context_session_limit_found`. No time-cap stop was needed.
+
+- Run state and session-busy evidence: all seven runs ended `succeeded` with `error: null`: `6b60b1b9-d95b-4a9c-a3e8-5480cfe4f4a6`, `de9fa1a7-7e34-45a6-beb7-87a32d4bed84`, `2b5bff45-0f0a-41af-a1f6-25a4476473f6`, `a8151474-715c-45f3-a11c-2884b2abdbbe`, `c9283d61-7806-4970-931c-8b16e660292c`, `5f97e34f-4163-4f71-98eb-d2344ea0224b`, and `6c7fe77b-3901-415e-b0e4-be1594609d63`. No `agent_busy` error was emitted.
+
+- Allocation, anchor, and decision evidence: all seven allocations were 65,536 tokens. Every turn recorded `anchored: false`; `distinctAnchors` was 0, but the case requires at least 3. `missingTerms` was empty. The final response retained review style `Concise`, unresolved item `vendor approval`, next move `Compare the revised draft`, privacy preference `Keep all work offline`, and delivery format `Plain text`.
+
+- Report: `packages/eval/.generated/stress/context-session-2026-08-21T18-51-31.386Z.json`. It contains the run states, allocations, anchors, and retained decisions. It does not contain complete ordered `agent.trace` records, and the runner writes no separate trace file.
+
+- Stage 2 conclusion: not ready. The unit checks passed and the run did not remain busy, but the real stress case failed its required anchor count. Do not treat this check as M3 certification evidence.
+
+### Independent Windows Stage 2 post-build check — 2026-08-21
+
+- Prebuilt identity: the completed `pnpm desktop:build-sidecar` record ended with exit code 0 before this test. It recorded target `x86_64-pc-windows-msvc`, Node `v24.18.0`, signing mode `windows-ephemeral-self-signed`, sidecar SHA-256 `801dff199c8ac46ed38fcdfeb47220d260d579d7aa07cc3fa057a033352405cc`, bundle SHA-256 `92e46dfbe2e3f7538899fc0d2cbd2b5fbf4e1e2864d201eee2c361733459a781`, and resource-manifest SHA-256 `2005af4bf092f946d6b5f618bbc5aa02e94b7f5ed257a984fd059832ae0ca309`. The staged resource-manifest `LastWriteTimeUtc` was `2026-08-21T19:02:05.6246866Z`, before this test report path time of `2026-08-21T19:08:37.269Z`. No build command ran in this check.
+
+- Focused unit command: `pnpm test -- packages/core/src/agent/generic-read.test.ts packages/core/src/agent/generic-tools.test.ts packages/core/src/agent/tool-output.test.ts packages/core/src/agent/markdown-definition-library.test.ts packages/core/src/agent/session-summary.test.ts packages/core/src/agent/service-session-summary.test.ts`. Result: six test files and 56 tests passed in 1.33 seconds.
+
+- Real stress command: `pnpm test:stress:m3:context-session`. The command ended with exit code 1 and classification `context_session_limit_found`. Report-clock duration was 59.297 seconds, from report-path time `2026-08-21T19:08:37.269Z` to report `createdAt` `2026-08-21T19:09:36.566Z`. It was within the ten-minute cap. No time-cap stop was used.
+
+- Run state and busy evidence: all seven runs ended `succeeded` with `error: null`: `646bd0de-829c-42cb-acfd-8a215b7fe002`, `206fa9cc-c068-47ad-872c-974c80d8f3d0`, `b82251a3-a83f-41f1-a20c-b175d519dadb`, `9bb4c383-acda-4b07-8248-b3b119941dea`, `6607e546-a5a2-45ca-b057-ba62543adc7d`, `4af64100-add6-40da-8722-1a213230d480`, and `a91fe0aa-5893-4df8-a0de-b91877182853`. No `agent_busy` error occurred.
+
+- Allocation, anchor, and decision evidence: all seven allocations were 65,536 tokens. Every turn recorded `anchored: false`; `distinctAnchors` was 0, but the case requires at least 3. `missingTerms` was empty. The final response retained review style `Concise`, unresolved item `vendor approval`, next move `Compare the revised draft`, privacy preference `keep all work offline`, and delivery format `plain text`.
+
+- Report: `packages/eval/.generated/stress/context-session-2026-08-21T19-08-37.269Z.json`. It contains the run states, allocations, anchors, and retained decisions. It does not contain complete ordered `agent.trace` records, and the runner writes no separate trace file.
+
+- Stage 2 conclusion: not ready. The prebuilt sidecar identity and six focused unit files passed, but the real stress case failed the required anchor count. Do not treat this check as M3 certification evidence.

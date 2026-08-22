@@ -100,7 +100,7 @@ export function optionalText(value: Record<string, unknown>, name: string): stri
   const item = value[name];
   if (item === undefined) return undefined;
   if (typeof item !== "string" || item.length === 0 || item.length > 4_096) {
-    throw new Error(`invalid_${name}`);
+    throw new Error(`invalid_${name}: use non-empty text with at most 4096 characters`);
   }
   return item;
 }
@@ -113,18 +113,50 @@ function optionalBoundedInteger(
 ): number | undefined {
   const item = value[name];
   if (item === undefined) return undefined;
-  if (!Number.isSafeInteger(item)) {
-    throw new Error(`invalid_${name}`);
+  if (typeof item !== "number" || !Number.isSafeInteger(item) || item < minimum || item > maximum) {
+    throw new Error(`invalid_${name}: use an integer from ${minimum} to ${maximum}`);
   }
-  return Math.max(minimum, Math.min(maximum, item as number));
+  return item;
 }
 
+// biome-ignore lint/complexity/noExcessiveLinesPerFunction: this is one bounded generated guest program.
 function inspectionSource(operation: InspectionName, params: unknown): string {
   return [
     "from pathlib import Path",
-    "import fnmatch, json, re",
+    "import codecs, fnmatch, json, re",
     `op = ${JSON.stringify(operation)}`,
     `args = json.loads(${JSON.stringify(JSON.stringify(params))})`,
+    "def read_utf8_lines(path, offset, limit):",
+    "    selected = []",
+    "    current_line = 1",
+    "    line = []",
+    "    after_cr = False",
+    "    line_endings = tuple(map(chr, (10, 13, 11, 12, 28, 29, 30, 133, 8232, 8233)))",
+    "    def consume(text):",
+    "        nonlocal current_line, line, after_cr",
+    "        for character in text:",
+    "            if after_cr:",
+    "                after_cr = False",
+    "                if character == chr(10): continue",
+    "            if character in line_endings:",
+    "                if offset <= current_line < offset + limit:",
+    "                    selected.append(str(current_line) + ': ' + ''.join(line))",
+    "                current_line += 1",
+    "                line = []",
+    "                after_cr = character == chr(13)",
+    "            elif offset <= current_line < offset + limit:",
+    "                line.append(character)",
+    "    try:",
+    "        with path.open('rb') as handle:",
+    "            decoder = codecs.getincrementaldecoder('utf-8')('strict')",
+    "            while chunk := handle.read(65536):",
+    "                if b'\\0' in chunk: raise ValueError('read_requires_utf8_text')",
+    "                consume(decoder.decode(chunk))",
+    "            consume(decoder.decode(b'', final=True))",
+    "            if line and offset <= current_line < offset + limit: selected.append(str(current_line) + ': ' + ''.join(line))",
+    "    except UnicodeDecodeError:",
+    "        raise ValueError('read_requires_utf8_text') from None",
+    "    return selected",
     "def safe(value, default='/source'):",
     "    raw = str(value or default)",
     "    path = Path(raw if raw.startswith('/') else '/source/' + raw)",
@@ -135,10 +167,9 @@ function inspectionSource(operation: InspectionName, params: unknown): string {
     "    return resolved",
     "root = safe(args.get('path'))",
     "if op == 'read':",
-    "    lines = root.read_text(errors='replace').splitlines()",
-    "    offset = max(1, int(args.get('offset', 1)))",
-    "    limit = max(1, min(2000, int(args.get('limit', 2000))))",
-    "    for number, line in enumerate(lines[offset - 1:offset - 1 + limit], offset): print(f'{number}: {line}')",
+    "    offset = args.get('offset', 1)",
+    "    limit = args.get('limit', 2000)",
+    "    for line in read_utf8_lines(root, offset, limit): print(line)",
     "elif op == 'glob':",
     "    pattern = args['pattern']",
     "    for item in sorted(root.glob(pattern)): print(item)",
@@ -152,7 +183,7 @@ function inspectionSource(operation: InspectionName, params: unknown): string {
     "                if regex.search(line): print(f'{item}:{number}:{line}')",
     "        except OSError as error: print(f'{item}: {error}')",
     "else:",
-    "    depth = max(0, min(8, int(args.get('depth', 2))))",
+    "    depth = args.get('depth', 2)",
     "    for item in sorted(root.rglob('*')):",
     "        if len(item.relative_to(root).parts) <= depth: print(str(item) + ('/' if item.is_dir() else ''))",
   ].join("\n");
@@ -205,23 +236,28 @@ function patternParams(value: unknown, include = false) {
   };
 }
 
+// biome-ignore lint/complexity/noExcessiveLinesPerFunction: one tool catalog keeps its schemas visible together.
 export function inspectionTools(): ToolSpec[] {
   return [
     inspectionTool({
       name: "read",
       parse: readParams,
       properties: {
-        path: { type: "string" },
-        offset: { type: "integer", minimum: 1 },
-        limit: { type: "integer", minimum: 1, maximum: 2_000 },
+        path: { type: "string", minLength: 1, maxLength: 4_096 },
+        offset: { type: "integer", minimum: 1, maximum: Number.MAX_SAFE_INTEGER, default: 1 },
+        limit: { type: "integer", minimum: 1, maximum: 2_000, default: 2_000 },
       },
       required: ["path"],
-      description: "Read a guest file by line range.",
+      description:
+        "Read UTF-8 plain text by line range. Offset defaults to 1; limit defaults to 2000 and must be 1-2000.",
     }),
     inspectionTool({
       name: "glob",
       parse: (value) => patternParams(value),
-      properties: { pattern: { type: "string" }, path: { type: "string" } },
+      properties: {
+        pattern: { type: "string", minLength: 1, maxLength: 4_096 },
+        path: { type: "string", minLength: 1, maxLength: 4_096 },
+      },
       required: ["pattern"],
       description: "Find guest paths using a glob pattern.",
     }),
@@ -229,12 +265,13 @@ export function inspectionTools(): ToolSpec[] {
       name: "grep",
       parse: (value) => patternParams(value, true),
       properties: {
-        pattern: { type: "string" },
-        path: { type: "string" },
-        include: { type: "string" },
+        pattern: { type: "string", minLength: 1, maxLength: 4_096 },
+        path: { type: "string", minLength: 1, maxLength: 4_096 },
+        include: { type: "string", minLength: 1, maxLength: 4_096 },
       },
       required: ["pattern"],
-      description: "Search guest file contents with a regular expression.",
+      description:
+        "Search guest file contents with a regular expression. Include defaults to *; when set, use non-empty text up to 4096 characters.",
     }),
     inspectionTool({
       name: "list",
@@ -245,9 +282,13 @@ export function inspectionTools(): ToolSpec[] {
           depth: optionalBoundedInteger(params, "depth", 0, 8),
         };
       },
-      properties: { path: { type: "string" }, depth: { type: "integer", minimum: 0, maximum: 8 } },
+      properties: {
+        path: { type: "string", minLength: 1, maxLength: 4_096 },
+        depth: { type: "integer", minimum: 0, maximum: 8, default: 2 },
+      },
       required: [],
-      description: "List files and directories under a guest path.",
+      description:
+        "List files and directories under a guest path. Depth defaults to 2 and must be 0-8.",
     }),
   ];
 }
