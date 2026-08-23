@@ -1,6 +1,6 @@
 ---
 name: terminal-commands
-description: Guides complete terminal commands for source inspection, folder discovery, text search, and small command-line pipelines. Use when the task requires shell-based evidence in the selected folder.
+description: Terminal commands: source inspection, folder discovery, text search, small pipelines. Load for selected-folder shell evidence.
 ---
 
 # Terminal Commands

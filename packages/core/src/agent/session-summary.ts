@@ -6,6 +6,7 @@ import {
   MAX_ANCHORED_SUMMARY_CHARACTERS,
 } from "@vault/shared";
 import type { InferenceService } from "../runtime/inference.js";
+import { InferenceFailure } from "../runtime/inference-errors.js";
 import { withCurrentTimeContext } from "./chat-current-time.js";
 import { canRetryInference } from "./chat-inference-recovery.js";
 import type { MarkdownDefinitionLibrary } from "./markdown-definition-library.js";
@@ -166,7 +167,11 @@ export async function summarizeSession(
           turnId,
           input.signal?.aborted ? "cancelled" : "inference_failed",
         );
-      if (!canRetryInference(error, retryUsed, input.signal)) return undefined;
+      if (
+        !(error instanceof InferenceFailure) ||
+        !canRetryInference(error, retryUsed, input.signal)
+      )
+        return undefined;
       retryUsed = true;
     }
   }

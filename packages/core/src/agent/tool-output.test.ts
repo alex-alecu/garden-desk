@@ -22,14 +22,14 @@ function source(run: Parameters<AgentExecutor["execute"]>[0]): string {
   return run.language === "shell" ? run.command : run.source;
 }
 
-function executor(writes?: string[]): AgentExecutor {
+function executor(writes?: string[], exitCode = 0): AgentExecutor {
   return {
     async inspect(run) {
       writes?.push(source(run));
-      return completed(source(run));
+      return { ...completed(source(run)), exitCode };
     },
     async execute(run) {
-      return completed(source(run));
+      return { ...completed(source(run)), exitCode };
     },
   };
 }
@@ -112,5 +112,11 @@ describe("bounded tool output", () => {
     expect(Buffer.byteLength(JSON.stringify(result))).toBeLessThanOrEqual(50 * 1_024);
     expect(result).toContain("FINAL_SUMMARY=kept");
     expect(writtenText(writes)).toBe(output);
+  });
+
+  it("fails a spill when its write execution is not successful", async () => {
+    await expect(boundedToolOutput(executor(undefined, 1), "x".repeat(50 * 1_024))).rejects.toThrow(
+      "tool_output_spill_failed",
+    );
   });
 });

@@ -8,6 +8,12 @@ import { WindowsMicroVmLauncher } from "@vault/workers";
 import { prepareAgentModelStore } from "./agent-model-store.js";
 import { runGuestEvidence } from "./m3-guest.js";
 import { realImageEvidence } from "./m3-image-agent.js";
+import {
+  boundedOutputEvidence,
+  hasRunningLiveMarker,
+  matchesTerminalAgentEvidence,
+  selectedAgentEvidence,
+} from "./m3-windows-agent-evidence.js";
 import { windowsInferencePaths } from "./windows-inference.js";
 
 const repositoryRoot = process.cwd();
@@ -66,8 +72,7 @@ async function awaitRun(
   let cancelled = false;
   while (performance.now() < deadline) {
     const snapshot = await core.getAgentRun(runId);
-    const execution = snapshot.executions.find((item) => item.stdout.includes(liveToken));
-    const runningLive = execution?.state === "running" && snapshot.run.state === "running";
+    const runningLive = hasRunningLiveMarker(snapshot, liveToken);
     const runningExecution = snapshot.executions.some(
       (item) =>
         item.state === "running" &&
@@ -91,35 +96,24 @@ function requireAgentEvidence(
   result: { snapshot: AgentRunSnapshot; live: boolean },
   input: AgentEvidenceInput,
 ) {
-  const execution = result.snapshot.executions.find(
-    (item) =>
-      (input.cancel ? item.state === "cancelled" : item.stdout.length > 0) &&
-      (!(input.expectStdoutTruncated ?? false) || item.stdoutTruncated),
-  );
-  const terminalState = expectedTerminalState(result.snapshot, input.expectedError);
-  const hasFinishToken =
-    input.finishToken === undefined ||
-    result.snapshot.executions.some((item) => item.stdout.includes(input.finishToken as string));
+  const request = {
+    cancel: input.cancel ?? false,
+    ...(input.expectedError === undefined ? {} : { expectedError: input.expectedError }),
+    startToken: input.liveToken,
+    ...(input.finishToken === undefined ? {} : { finishToken: input.finishToken }),
+    stdoutTruncated: input.expectStdoutTruncated ?? false,
+  };
+  const execution = input.expectStdoutTruncated
+    ? boundedOutputEvidence(result.snapshot, { startToken: input.liveToken })
+    : selectedAgentEvidence(result.snapshot, request);
   if (
     ((input.expectLiveOutput ?? true) && !result.live) ||
     execution === undefined ||
-    execution.vmDiagnostics.length === 0 ||
-    (input.cancel
-      ? result.snapshot.run.state !== "cancelled" || execution.state !== "cancelled"
-      : !terminalState || !hasFinishToken)
+    !matchesTerminalAgentEvidence(result.snapshot, execution, request)
   ) {
     throw new Error(`Windows agent proof failed: ${JSON.stringify(result.snapshot)}`);
   }
   return execution;
-}
-
-function expectedTerminalState(
-  snapshot: AgentRunSnapshot,
-  expectedError: string | undefined,
-): boolean {
-  return expectedError === undefined
-    ? snapshot.run.state === "succeeded"
-    : snapshot.run.state === "failed" && snapshot.run.error === expectedError;
 }
 
 async function runAgentEvidence(input: AgentEvidenceInput) {
@@ -191,7 +185,6 @@ async function runWindowsEvidence(root: string, artifacts: WindowsArtifacts) {
     prompt:
       "Execute exactly one Python source file. Print 'limit-start' with flush=True, then print 1100000 letter x characters.",
     liveToken: "limit-start",
-    finishToken: "limit-start",
     expectLiveOutput: false,
     expectStdoutTruncated: true,
   });

@@ -1,6 +1,5 @@
 import { randomUUID } from "node:crypto";
 import {
-  type AgentExecutionResult,
   type AgentInferenceOutcome,
   type AgentRunResult,
   AgentRunResultSchema,
@@ -9,13 +8,18 @@ import {
   JobIdSchema,
 } from "@vault/shared";
 import type { InferenceService } from "../runtime/inference.js";
-import { artifactCandidateNames } from "./artifact-results.js";
+import {
+  artifactCompletionRecovery,
+  currentArtifactNames,
+  requiredArtifactNames,
+  reservedArtifactCompletionTurn,
+} from "./artifact-completion.js";
 import { compactChatHistory } from "./chat-compaction.js";
 import { withCurrentTimeContext } from "./chat-current-time.js";
 import { executeGeneratedTools } from "./chat-generated-tools.js";
 import { generateWithInferenceRecovery } from "./chat-inference-recovery.js";
 import { initialChatMessages } from "./chat-initial-messages.js";
-import type { ChatAgentInput, ChatRecoveryState } from "./chat-loop-input.js";
+import type { ChatAgentInput, ChatRecoveryState, ChatTurnOptions } from "./chat-loop-input.js";
 import { createToolRegistry } from "./chat-loop-registry.js";
 import { chatOutputTokens } from "./chat-output-budget.js";
 import { recoverOutputLimit } from "./chat-output-recovery.js";
@@ -30,25 +34,6 @@ export type { ChatAgentInput } from "./chat-loop-input.js";
 
 const HARD_TURN_LIMIT = 40;
 const COMPACTION_RATIO = 0.8;
-function clearResponse(input: ChatAgentInput): undefined {
-  input.onResponse?.(null);
-  return undefined;
-}
-function currentArtifacts(executions: readonly AgentExecutionResult[]): string[] {
-  return artifactCandidateNames(executions).filter(
-    (path) => !path.startsWith(".vault-tools/") && !path.startsWith(".vault-output/"),
-  );
-}
-function activeToolDefinitions(
-  input: ChatAgentInput,
-  state: ChatToolState,
-  registry: GenericToolRegistry,
-) {
-  return registry.definitions(
-    input.agent.tools,
-    liveLoadedSkillNames(state.loadedSkills, state.messages),
-  );
-}
 
 export class ChatAgentLoop {
   private contextTokens = 8_192;
@@ -110,7 +95,6 @@ export class ChatAgentLoop {
       input.onThinking?.(null);
     }
   }
-
   private async compact(
     input: ChatAgentInput,
     messages: ChatMessage[],
@@ -142,7 +126,7 @@ export class ChatAgentLoop {
     );
     return compacted.messages;
   }
-
+  // biome-ignore lint/complexity/noExcessiveLinesPerFunction: response rejection keeps each trace outcome beside its recovery state.
   private finish(
     input: ChatAgentInput,
     generated: { result: ChatGenerationResult; turnId?: string },
@@ -178,17 +162,30 @@ export class ChatAgentLoop {
       });
       return undefined;
     }
+    const artifactRecovery = artifactCompletionRecovery(
+      input.task,
+      state.executions,
+      recovery,
+      finalTurn,
+    );
+    if (artifactRecovery !== undefined) {
+      input.onResponse?.(null);
+      this.record(input, generated.turnId, "invalid_response");
+      if (artifactRecovery === false) throw new Error("agent_required_artifacts_missing");
+      state.messages.pop();
+      state.messages.push({ role: "system", text: artifactRecovery });
+      return undefined;
+    }
     this.record(input, generated.turnId, "accepted_response");
     input.onResponse?.(response);
     input.onEvent?.("assistant.completed", "Response completed.");
     return AgentRunResultSchema.parse({
       response,
-      artifacts: currentArtifacts(state.executions),
+      artifacts: currentArtifactNames(state.executions),
       executions: state.executions,
       inference: performance,
     });
   }
-
   private async recoverContext(
     input: ChatAgentInput,
     state: ChatToolState,
@@ -206,17 +203,16 @@ export class ChatAgentLoop {
       state.checkpoint = state.messages.length;
     }
   }
-
-  private async turn(options: {
-    input: ChatAgentInput;
-    state: ChatToolState;
-    registry: GenericToolRegistry;
-    recovery: ChatRecoveryState;
-    performance: ReturnType<typeof emptyPerformance>;
-    finalTurn: boolean;
-  }): Promise<AgentRunResult | undefined> {
-    const { input, state, registry, recovery, performance, finalTurn } = options;
-    const tools = () => (finalTurn ? [] : activeToolDefinitions(input, state, registry));
+  // biome-ignore lint/complexity/noExcessiveLinesPerFunction: generation, tool execution, and recovery are one ordered model turn.
+  private async turn(options: ChatTurnOptions): Promise<AgentRunResult | undefined> {
+    const { input, state, registry, recovery, performance, forceCompletion, finalTurn } = options;
+    const tools = () =>
+      finalTurn || forceCompletion
+        ? []
+        : registry.definitions(
+            input.agent.tools,
+            liveLoadedSkillNames(state.loadedSkills, state.messages),
+          );
     const generated = await generateWithInferenceRecovery({
       generate: async () => await this.generate(input, state.messages, tools(), "chat"),
       recover: async () => {
@@ -244,7 +240,10 @@ export class ChatAgentLoop {
       result: generated.result,
       state,
     });
-    if (recovered) return clearResponse(input);
+    if (recovered) {
+      input.onResponse?.(null);
+      return undefined;
+    }
     const result = this.finish(input, generated, state, { recovery, performance, finalTurn });
     if (result !== undefined) return result;
     if (generated.result.toolCalls.length === 0) return undefined;
@@ -269,11 +268,13 @@ export class ChatAgentLoop {
     const performance = emptyPerformance();
     const state = initialToolState(initialChatMessages(input));
     const recovery: ChatRecoveryState = {
+      artifactRecoveryPending: false,
       emptyResponsePending: false,
       inferenceRetryUsed: false,
       outputLimitRetryUsed: false,
     };
     const turns = Math.min(HARD_TURN_LIMIT, input.agent.steps);
+    const requiredArtifacts = requiredArtifactNames(input.task);
     for (let turn = 0; turn < turns; turn += 1) {
       input.signal?.throwIfAborted();
       input.onEvent?.(
@@ -286,6 +287,7 @@ export class ChatAgentLoop {
         registry,
         recovery,
         performance,
+        forceCompletion: reservedArtifactCompletionTurn(requiredArtifacts, turn, turns),
         finalTurn: turn === turns - 1,
       });
       if (result !== undefined) return result;

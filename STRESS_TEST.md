@@ -13,7 +13,7 @@ Task-specific evaluations use an ignored TypeScript runner under `packages/eval/
 ### Current Stage 1–2 cycle — 2026-08-21
 
 - Stage 1 terminal discovery passed. The Stage 2 focused unit set passed: six files and 56 tests.
-- The only valid post-build context result is `packages/eval/.generated/stress/context-session-2026-08-21T19-08-37.269Z.json`: seven runs succeeded, each measured 65,536 tokens, and zero of three required anchors reached later prompts. Status: not ready.
+- At this time, the only recorded post-build context result was `packages/eval/.generated/stress/context-session-2026-08-21T19-08-37.269Z.json`: seven runs succeeded, each measured 65,536 tokens, and zero of three required anchors reached later prompts. It is superseded for current Stage 2 status by the later passing decoded-anchor report `packages/eval/.generated/stress/context-session-2026-08-22T07-32-03.491Z.json`, which recorded three distinct anchors. Status for this 2026-08-21 result: not ready.
 - Next action: run the ignored real-daemon trace reproduction `packages/eval/.generated/context-session-trace-repro.ts`: start Core and the daemon, send the exact seven context-session turns through RPC, poll each terminal run, call `agent.trace` for each run, and save the complete traces with compaction outcomes and prompt anchor evidence. The repeated detailed attempts remain later as history.
 
 ### Time-boxed physical Windows suite - 2026-08-21
@@ -493,3 +493,334 @@ The backend, daemon, model, guest isolation, audit, and canonical gate remained 
 - Report: `packages/eval/.generated/stress/context-session-2026-08-21T19-08-37.269Z.json`. It contains the run states, allocations, anchors, and retained decisions. It does not contain complete ordered `agent.trace` records, and the runner writes no separate trace file.
 
 - Stage 2 conclusion: not ready. The prebuilt sidecar identity and six focused unit files passed, but the real stress case failed the required anchor count. Do not treat this check as M3 certification evidence.
+
+### Windows Stage 2 real-daemon trace diagnosis — 2026-08-22
+
+- The initial staged inference-root check failed because no current inference root was present. `pnpm desktop:build-sidecar` then completed before the reproduction. It produced executable SHA-256 `bff8eeec9dad60ceb9aab7ffee006457a0684c27ef90a51c6303c28c452b1bdf`, bundle SHA-256 `2c5f8fc45308652839262bf2a69bcb4dfd96552c1b0c9daeaaceee4392354f62`, and resource-manifest SHA-256 `3a7c1d089b4247c928c5b3649edf4a4635b5df3e6680fce106d28c7704ec0fbf`.
+
+- One bounded real-daemon reproduction ran with `node --import tsx packages/eval/.generated/stage2-context-daemon-repro.ts`. It used `createVaultCore`, `startDaemon`, the current-user Windows pipe, staged models at `packages/eval/.generated/models`, generated HCS helper `packages/workers/native/windows-hcs-helper/.generated/vault-hcs-helper.exe`, image root `packages/workers/images`, and staged development inference resources at `packages/desktop/src-tauri/resources/core/inference`. It ended `completed` in 67.689 seconds, below its 25-minute cap. No second Gemma run started, no cancellation occurred, and no recorded error occurred.
+
+- The real worker was `gemma-4-12b-it-qat-q4_0`, state `ready`, with one 65,536-token sequence and dedicated GPU memory. All seven runs ended `succeeded` with `error: null`: `12c533ce-da1a-4a32-bc04-280f4d7952fb`, `ffd34618-3985-432a-8d2c-48a95014a1a1`, `dff672a6-cc49-4f53-a036-e37f12b899fd`, `67fe589d-fc01-437d-93c1-27c4d05adf0b`, `8bcff657-afc6-4186-8e7d-e4426432a28f`, `3f545b67-79ae-4aed-b348-09902f837fb1`, and `696e091c-372d-4cc5-ad4d-f335e38b6061`. No `agent_busy` result occurred. No run used a guest execution, because every context task required no tool use. The no-NIC guest was configured but its live runtime evidence is unavailable from this run.
+
+- Summary queue timing and persistence: after run 2, run 3 was queued for 1,877 ms while compaction saved at `2026-08-22T07:17:54.135Z`; after run 4, run 5 was queued for 2,134 ms while compaction saved at `2026-08-22T07:18:08.212Z`; after run 6, run 7 was queued for 2,422 ms while compaction saved at `2026-08-22T07:18:22.746Z`. `SessionSummaryStore.save` was reached three times. The stored rows covered message counts 4, 8, and 12, with covered-through IDs `2290a30f-0b02-4612-b4af-37452b33600a`, `b46ecad2-d596-494a-a00d-d086954128f1`, and `ca73a115-15e8-4b9c-aa69-561f04d3e926`; their SHA-256 text hashes were `044f4bc5ca72a1a28db33b925f4d5c0e8daa4e49c0004e410f88b13b22bd6171`, `ef0ff99814d8b170054f36b66c49d66e2b9f493eabc3de1a2274666146038b57`, and `3a8c6d4dfb81883dbf9a0e794eef385076a3ae2282b187f7ceea3edac97c3fe8`.
+
+- The complete ordered trace records three accepted summary turns: run 2 request `48df91b8-90f0-4777-b1bc-0ef09c72d801`, run 4 request `b7d2c212-d147-4c3a-a37d-043b12a030d2`, and run 6 request `124808fd-dbc7-463f-9b14-b616f6d6fede`. Each had outcome `accepted_compaction`, measured allocation 65,536, a captured response, and a completed time. The later chat prompts for runs 3, 5, and 7 each contain the exact preceding stored summary after the trace JSON is decoded. The final response retained review style `Concise`, unresolved item `vendor approval`, next move `Compare the revised draft`, privacy preference `Keep all work offline`, and delivery format `Plain text`.
+
+- Root cause: `AgentTraceStore` records chat messages as canonical JSON, so its prompt contains escaped `\\n` characters. `m3-context-session.ts` searches that serialized JSON with the raw heading `Anchored summary of earlier turns:\n`; its raw detector therefore returns 0 of 3 even though all three decoded prompt messages contain the exact stored anchor. The smallest generic fix is in the stress evaluator: parse the recorded canonical chat-message JSON, then inspect the decoded message text for the heading and summary. Do not change Vault Core summary storage or agent prompts for this issue.
+
+- Preserved evidence: report `packages/eval/.generated/stage2-context-2026-08-22T07-17-25.083Z-fcbe4abe/report.json` (SHA-256 `c08395b8fbc4ea6933cab71413f09de9713e042f515dd7007197a07b19cd980c`); catalog `packages/eval/.generated/stage2-context-2026-08-22T07-17-25.083Z-fcbe4abe/state/.vault/catalog.sqlite` (SHA-256 `aad9b24e8290616013b6bcbe9acde85aaef3f6b8d35de233cf3399545d53d551`); source workspace `packages/eval/.generated/stage2-context-2026-08-22T07-17-25.083Z-fcbe4abe/source`. At this time, the raw detector was a draft merge blocker at 0 of 3. It is superseded by the JSON-decoder fix and the later passing report `packages/eval/.generated/stress/context-session-2026-08-22T07-32-03.491Z.json`. The decoded real-daemon evidence is 3 of 3.
+
+### Independent Windows Stage 2 context-session physical check — 2026-08-22
+
+- Build command: `pnpm desktop:build-sidecar`. Result: exit code 0. Build identity: Node `v24.18.0`; target `x86_64-pc-windows-msvc`; signing mode `windows-ephemeral-self-signed`; sidecar SHA-256 `b10d70718c58a28f46c600bec2694ebd7a784c84ee993e1c6e805d2000bf2f87`; bundle SHA-256 `d4bcdf7e02ea9c89198a3207af9674c97f88901ab13903c775ef7f57e0be8c87`; resource-manifest SHA-256 `77e6410909754818c0f703ab5eec10d37dc691184d8306815e0159f791aaf4d8`. The staged sidecar time was `2026-08-22T07:30:27.8196862Z`; the staged resource-manifest time was `2026-08-22T07:31:19.9744605Z`.
+
+- Focused evaluator command: `pnpm test -- packages/eval/src/stress/m3-context-session-reporting.test.ts`. Result: exit code 0; one test file and seven tests passed in 307 ms.
+
+- Real stress command: `pnpm test:stress:m3:context-session`. Result: exit code 0; classification `context_session_passed`. Report-clock duration was 60.298 seconds, from report-path time `2026-08-22T07:32:03.491Z` to report `createdAt` `2026-08-22T07:33:03.789Z`. This was below the 15-minute cap. No time-cap stop was used.
+
+- Run state and busy behavior: all seven runs ended `succeeded` with `error: null`: `2fc084d0-5289-498e-b2ab-ef27189a5c70`, `33499ccd-bf3a-45b6-82de-c943351deaf8`, `001b1c7a-f500-452f-b0b1-5683d82c518d`, `44541966-ed20-434d-8f78-311a52735454`, `c3f4eae2-387e-4ee8-8802-4c9e0edccca1`, `9aafa903-5c3b-44e6-92d0-7164299ac5ca`, and `5a3a1101-04ab-4929-a3a7-0ff02826baf1`. No `agent_busy` error was emitted.
+
+- Context, anchors, and decisions: all seven allocations were 65,536 tokens. The anchor results were `false`, `false`, `true`, `false`, `true`, `false`, and `true`; `distinctAnchors` was 3. `missingTerms` was empty. The final response retained review style `Concise`, unresolved item `vendor approval`, next move `Compare the revised draft`, privacy preference `Keep all work offline`, and delivery format `Plain text`.
+
+- Report: `packages/eval/.generated/stress/context-session-2026-08-22T07-32-03.491Z.json`, SHA-256 `88ea3793271d07694432d6569d71779847de2c425101074f7ea08a6e13f7361b`.
+
+- Stage 2 physical conclusion: ready for this context-session check. This result does not certify other M3 gates.
+
+### Independent Windows Stage 4 prompt-skill check — 2026-08-22
+
+- Build command: `pnpm desktop:build-sidecar`. Observed duration: 47.118 seconds. Result: exit code 0; terminal classification `passed`. Report path: none. Exact failure: none. This build-only record does not show loaded skill order, guest execution, or artifact verification. Build identity: Node `v24.18.0`; target `x86_64-pc-windows-msvc`; signing mode `windows-ephemeral-self-signed`; sidecar SHA-256 `fc2343d50c6f055724c5f55072a7f0a62494c27d757e40b33e4705d3ee6c767b`; bundle SHA-256 `748b4e20df40e62fee95ca32bc8f8f2f81f1f1bd5e200cbe2b02d372e9f9fb68`; resource-manifest SHA-256 `7b0c189d120b305ad0775483a55455024c5109403c0179a6b8f88e03dae2e01f`.
+
+- Focused unit command: `pnpm test -- packages/core/src/agent/markdown-definition-library.test.ts packages/core/src/agent/markdown-definition-library-format.test.ts`. Result: exit code 0; 2 test files and 4 tests passed in 196 ms.
+
+- Real command: `pnpm test:stress:m3:small -- --case legacy-doc-read` (first independent run). Observed command duration: 44.703 seconds; case duration: 36.775 seconds, below the declared 5-minute limit. Result: exit code 1; terminal classification `small_stress_limit_found`; case state `failed`. Loaded skill order: none; required `word-documents` was not loaded. Guest executions: 0; artifact verification: no artifacts, no verified deliverables. Report path: `packages/eval/.generated/stress/small-2026-08-22T07-53-18.264Z.json`. Exact failure: `agent_run_failed` after two `inference_failed` chat turns. Both required exact values, `/usr/bin/antiword`, and `UTF-8.txt` were absent. The real Gemma model was `gemma-4-12b-it-qat-q4_0`; its initial state was `unloaded` and no final model state was recorded.
+
+- Real command: `pnpm test:stress:m3:small -- --case legacy-doc-read` (second independent run). Observed command duration: 43.047 seconds; case duration: 35.770 seconds, below the declared 5-minute limit. Result: exit code 1; terminal classification `small_stress_limit_found`; case state `failed`. Loaded skill order: none; required `word-documents` was not loaded. Guest executions: 0; artifact verification: no artifacts, no verified deliverables. Report path: `packages/eval/.generated/stress/small-2026-08-22T07-54-42.250Z.json`. Exact failure: `agent_run_failed` after two `inference_failed` chat turns. Both required exact values, `/usr/bin/antiword`, and `UTF-8.txt` were absent. The turns ended at `2026-08-22T07:55:06.836Z` and `2026-08-22T07:55:23.894Z`. The worker and runner were absent after terminal exit.
+
+- Real command: `pnpm test:stress:m3:small -- --case romanian-task`. Observed command duration: 40.814 seconds; case duration: 33.711 seconds, below the declared 5-minute limit. Result: exit code 1; terminal classification `small_stress_limit_found`; case state `failed`. Loaded skill order: none. Guest executions: 0; artifact verification: no artifacts, no verified deliverables. Report path: `packages/eval/.generated/stress/small-2026-08-22T07-55-48.980Z.json`. Exact failure: `agent_run_failed` after two `inference_failed` chat turns. The required exact scalar `TOTAL_AVANS=12009` was absent. The turns ended at `2026-08-22T07:56:11.098Z` and `2026-08-22T07:56:28.357Z`. The worker and runner were absent after terminal exit.
+
+- Real command: `pnpm test:stress:m3:small -- --case large-corpus-continuation`. The profile ID exists. Observed command duration: 47.276 seconds; case duration: 39.831 seconds. This was below its internal unchanged 5-minute deadline and the directed 8-minute cap. Result: exit code 1; terminal classification `small_stress_limit_found`; case state `failed`. Loaded skill order: none. Guest executions: 0; artifact verification: no artifacts, no verified deliverables. Report path: `packages/eval/.generated/stress/small-2026-08-22T07-57-00.262Z.json`. Exact failure: `agent_run_failed` after two `inference_failed` chat turns. The turns ended at `2026-08-22T07:57:25.694Z` and `2026-08-22T07:57:46.134Z`. No checkpoint or output report was created. The worker and runner were absent after terminal exit.
+
+- Real command: `pnpm test:stress:m3:scaled:sequential -- --case pdf-report`. Observed command duration: 40.662 seconds; case duration: 33.735 seconds, below the 12-minute cap. Result: exit code 1; terminal classification `runner_error`. Loaded skill order: none. Guest executions: 0; artifact verification: no artifacts, no verified deliverables. Report path: none; the runner stopped before report write. Exact failure: `agent_run_failed` after two `inference_failed` chat turns, then `Error: Full Gemma model is not ready: {"modelId":"gemma-4-12b-it-qat-q4_0","name":"Gemma 4 12B QAT","state":"unloaded","thinkingSupported":true}` from `requireRealModel` in `m3-stress-runtime.ts:132`. The worker and runner were absent after terminal exit.
+
+- Real command: `pnpm test:stress:m3:scaled:sequential -- --case excel-report`. Observed command duration: 60.531 seconds; fixture generation was 15.558 seconds for 50 XLSX files, 10 sheets each, 10,000,000 rows, and 178,071,307 bytes. Case duration: 37.814 seconds, below the 12-minute cap. Result: exit code 1; terminal classification `runner_error`. Loaded skill order: none. Guest executions: 0; artifact verification: no artifacts, no verified deliverables. Report path: none; the runner stopped before report write. Exact failure: `agent_run_failed` after two `inference_failed` chat turns, then `Error: Full Gemma model is not ready: {"modelId":"gemma-4-12b-it-qat-q4_0","name":"Gemma 4 12B QAT","state":"unloaded","thinkingSupported":true}` from `requireRealModel` in `m3-stress-runtime.ts:132`. The worker and runner were absent after terminal exit.
+
+- Real command: `pnpm test:stress:m3:scaled:sequential -- --case cross-format-report`. Observed command duration: 62.276 seconds; fixture generation was 15.425 seconds for 20 XLSX files with 10,000,000 rows total, 29 DOCX files, one PDF, 50 files total, and 177,401,725 bytes. Case duration: 39.805 seconds, below the 12-minute cap. Result: exit code 1; terminal classification `runner_error`. Loaded skill order: none. Guest executions: 0; artifact verification: no artifacts, no verified deliverables. Report path: none; the runner stopped before report write. Exact failure: `agent_run_failed` after two `inference_failed` chat turns, then `Error: Full Gemma model is not ready: {"modelId":"gemma-4-12b-it-qat-q4_0","name":"Gemma 4 12B QAT","state":"unloaded","thinkingSupported":true}` from `requireRealModel` in `m3-stress-runtime.ts:132`. The worker and runner were absent after terminal exit.
+
+### Independent Windows Stage 4 cold-load and legacy DOC check — 2026-08-22
+
+- Build command: `pnpm desktop:build-sidecar`. Terminal time: 45.267 seconds. Result: exit code 0. Report path: none. Exact failure: none. Build identity: Node `v24.18.0`; target `x86_64-pc-windows-msvc`; signing mode `windows-ephemeral-self-signed`; sidecar SHA-256 `3b3bc48835c43a1bba8c89a54d6b6f3da92827bc9a4955d06a5f6efd37e27c63`; bundle SHA-256 `fb3aa7a11e6a4592578606abbbc0b211679f4f584e8e9fd59fb60979623080e6`; resource-manifest SHA-256 `17f8eaa0b25b095f1a98ed230f06d63f5a49e9f0fd658aea5eccbf97eadba3e4`; generation-model SHA-256 `faff1a63667fac17ac5e777f47114688fcefea96e220e211aaa8d62c2c4561f1`; Windows inference-helper SHA-256 `2c2af2fd65d34495605e0a76f8dc299d418f9e9e9f656c16b27161696c58e597`; inference-worker SHA-256 `b04063de880abe8c89fe8ef0dfeb7e68e0b8a30770740109f71c5a5e2fb79ec3`.
+
+- Memory preflight command: `pnpm test:m3:windows:memory`. Terminal time: 17.031 seconds, below the directed 20-minute maximum. Result: exit code 0; `status: ok`; clean shutdown: `true`; report path: none; exact failure: none. Platform: `win32` `x64`; runtime build: `node-llama-cpp@3.19.0`; backend: `cuda`; selected device count: `1`; total system memory: `33408679936` bytes; detected dedicated GPU memory: `17094475776` bytes; GPU memory used by runtime: `9175791872` bytes; CPU RAM used by runtime: `910614240` bytes; budget: `17094475776` bytes; context: `65536` tokens of `65536`, reason `dedicated_memory_at_most_24_gib`.
+
+- Real command: `pnpm test:stress:m3:small -- --case legacy-doc-read` (first cold-load run). Terminal time: 36.248 seconds; case time: 33.756 seconds, below its unchanged five-minute deadline. Result: exit code 1; classification `small_stress_limit_found`; case state `failed`; audit chain: valid. Report: `packages/eval/.generated/stress/small-2026-08-22T08-13-00.441Z.json`, SHA-256 `cf00cb90a6c91b425576172847a0727d32a9b01eed0d7edd2dca9bff8fcc4e31`.
+
+- Case evidence: run `066ff5ce-83af-4dbe-835c-db7d2ca0f6a8` started at `2026-08-22T08:13:06.903Z`, ended `failed` at `2026-08-22T08:13:39.998Z`, and returned `agent_run_failed`. It made two chat turns, both `inference_failed`, with no guest execution, artifact, verified deliverable, context compaction, response, or recorded context allocation. No skill was loaded; required `word-documents` was missing. Required `/usr/bin/antiword` and `UTF-8.txt` execution text was absent. The required exact title and publisher values were absent. The report records no lower-level worker message for either failed inference turn. It records the final model error: `Full Gemma model is not ready: {"modelId":"gemma-4-12b-it-qat-q4_0","name":"Gemma 4 12B QAT","state":"unloaded","thinkingSupported":true}`. The model was `unloaded` before the run. The second legacy DOC run is not run because the first run did not pass.
+
+### Independent Windows Stage 3 physical gate check — 2026-08-22
+
+- Build command: `pnpm desktop:build-sidecar`. Result: exit code 0. Observed log-clock duration: 57.216 seconds, from `2026-08-22T08:17:19.5753819Z` to `2026-08-22T08:18:16.7917528Z`. Build identity: Node `v24.18.0`; target `x86_64-pc-windows-msvc`; signing mode `windows-ephemeral-self-signed`; sidecar SHA-256 `9713bcf0caf1e783c22ea0baab6a8c0f5d596ba9c715d086991203591259d37e`; bundle SHA-256 `4d888c3de913eb5b53f9d824bac949802390e708b72f12d972f6476a9d0013ee`; resource-manifest SHA-256 `26c668b0bbaa785000b5742cf341a0c44b03bf40634ebee712f2c360a87c63172`. The staged resource manifest was last written at `2026-08-22T08:18:16.7781220Z`.
+
+- Focused unit command: `pnpm test -- packages/core/src/agent/artifact-completion.test.ts packages/core/src/agent/artifact-completion-service.test.ts packages/eval/src/gates/m3-windows-agent-evidence.test.ts`. Result: exit code 0; 3 test files and 36 tests passed. Vitest duration: 798 ms. The preserved log-clock duration was 1.058 seconds.
+
+- Physical gate command: `pnpm test:m3:windows`. Result: exit code 1. Observed log-clock duration: 561.605 seconds, from `2026-08-22T08:18:39.9442644Z` to `2026-08-22T08:28:01.5495396Z`. This was below the directed 35-minute cap. The terminal output did not return `certified_headless`; gate classification is failed. No time-cap stop was used and no second Windows gate run started.
+
+- Isolation and gate progress: terminal output reached `m3_guest_stage:primary`, `rehydration`, `cancellation`, `execution_limits`, `execution_timeout`, `execution_output`, and `security` before the real agent evidence failed. The terminal failure contains no model status, backend, VM diagnostic, or detailed guest execution record. The gate source uses the staged model store, but the terminal output does not identify a real model or backend. Do not infer either value from this failed command.
+
+- Exact failed node evidence: `runWindowsEvidence` failed at its Node.js proof call. Run `d5c27656-f008-47e2-a6f8-4ad382abf4f0` had job `60c6263b-676a-48d4-bc58-2db32b8ef304`, state `failed`, error `agent_generation_limit`, null response, null performance, no executions, no artifacts, null measured context values, and no question. It started at `2026-08-22T08:23:19.737Z` and ended at `2026-08-22T08:28:01.422Z`. Its recorded events were `run.started`, `inference.started` at `2026-08-22T08:23:19.742Z`, `inference.started` at `2026-08-22T08:24:26.708Z`, and `run.failed` at `2026-08-22T08:28:01.422Z`. The exact terminal error was `Windows agent proof failed` for this snapshot, with `agent_generation_limit`: `The local model reached its output limit twice without completing the next action.` No named-artifact recovery applied to this gate task. No trace or audit record was emitted in the terminal output, and the gate removes its temporary root; these records are unavailable.
+
+- Preserved evidence: build log `packages/eval/.generated/stage3-physical-2026-08-22T11-17-10.895/build-sidecar.log`, SHA-256 `3bc0312bca207802c9864c487992f9491ca9965f86c876d868e3ab058623f93e`; focused-test log `packages/eval/.generated/stage3-physical-2026-08-22T11-17-10.895/focused-tests.log`, SHA-256 `e053a7d59baa62c7f007ec9433ee4d013d2bbcf77eae254c3b5f3366241a78a9`; gate log `packages/eval/.generated/stage3-physical-2026-08-22T11-17-10.895/windows-gate.log`, SHA-256 `c9c85cdcfec74d71d18ff7922eaf747d20bdcba915ba8e0d2099d2e20be191ea`. No gate JSON report path was written.
+
+- Held-out real-daemon artifact task: not run. The required condition was a passing Windows gate. It failed. No held-out fixture, task script, or second real Gemma process was created.
+
+- Stage 3 physical conclusion: not ready. The build and focused Stage 3 unit tests passed, but the only permitted Windows gate failed during real Node.js agent evidence. Do not treat this result as Windows M3 certification evidence.
+
+### Windows Stage 3 Node proof trace reproduction — 2026-08-22
+
+- One diagnostic command ran: `node --import tsx packages/eval/.generated/stage3-node-proof-repro.ts`. It used one fresh preserved root, `createVaultCore`, `startDaemon`, the current-user daemon, CLI RPC calls, the generated Windows HCS helper, the Windows no-NIC guest image, staged models, and the staged packaged Windows inference worker. No warm-up, retry, second agent task, or second Gemma run occurred. The command ended with exit code 0 after 59.262 seconds, below its 15-minute cap. This is diagnostic evidence, not a replacement M3 gate.
+
+- Prebuilt identity: the existing completed sidecar build was used without a rebuild. Its package identity records sidecar SHA-256 `9713bcf0caf1e783c22ea0baab6a8c0f5d596ba9c715d086991203591259d37e` and resource-manifest SHA-256 `26c668b0bbaa785000b5742cf341a0c44b03bf40634ebee712f2c360a87c63172`. The run selected model `gemma-4-12b-it-qat-q4_0`, state `ready`, one 65,536-token dedicated-GPU sequence, and the staged package worker. The final run performance was 6,813 prompt tokens, 304 output tokens, 67.51054852320675 output tokens per second, and 52,981 ms model duration.
+
+- Terminal result: run `4b2f8635-cb87-410b-94c0-c7046cc0ba1c` succeeded with response `node-start` then `node-finish`; error was null. It had three ordered chat traces at 65,536 allocated context tokens. Their request IDs were `4f6ca1a4-feca-4145-a64c-23014c4c9508`, `4bd527f5-d0a3-4b0e-ae60-7d4a3754acd0`, and `e19ccb23-c14c-45ff-898f-65a9f4150238`. Their output caps were 4,096, 16,384, and 16,384 tokens. Their trace outcomes were `accepted_tool_calls`, `accepted_tool_calls`, and `accepted_response`. The first and second chat responses had zero text characters and one `bash` tool call each; the final response had 23 recorded text characters, no tool call, and stop reason `text`. No output-limit recovery occurred in this successful run.
+
+- Guest and artifact evidence: the first tool call created `/workspace/task.js`; the second ran `node /workspace/task.js`. The completed Node execution had exit code 0, duration 3,027 ms, stdout `node-start` and `node-finish`, empty stderr, and no stdout, stderr, or diagnostics truncation. It retained guest `process_start` and `process_exit` diagnostics. The current-run artifact was `task.js`, 108 bytes, content SHA-256 `0957b816f43b35aa554e72569c56fa41a0026d6530ee8017ca645d830f29df7d`.
+
+- Trace and audit evidence: the preserved catalog contains the complete ordered traces, every retained event, sampled current-user-daemon response and thinking changes, tool calls, executions, artifact record, request IDs, and audit events. `verifyAudit()` returned true. The audit head was sequence 10, SHA-256 `f8aee3f4c6c15225d4ce42ee103c419c01a631477ea5bb35e5f81fe9fcaff661`; there were 11 audit events. Report: `packages/eval/.generated/stage3-node-proof-2026-08-22T08-38-25.078Z-5b9d6409/report.json`, SHA-256 `46eba4bd81ad09377fb7d007a169fd3f9bbb7ad82374c42cd1f6d5f64fcaee37`. Catalog: `packages/eval/.generated/stage3-node-proof-2026-08-22T08-38-25.078Z-5b9d6409/node-workspace/.vault/catalog.sqlite`, SHA-256 `ecd62428988d9e5ea8f2ea234358fde736c6b802469673ff9c41cdd37ad88fba`. The ignored capture script SHA-256 is `3b234934fde139295619c4a2a1800fa829c7f0e1f842563ec89dd62f5a01c1a4`.
+
+- Prior `agent_generation_limit` diagnosis: the earlier failed gate retained only its terminal snapshot, not its trace or worker responses. Its exact recorded condition was two no-tool output-limit failures. `chat-output-recovery.ts` throws `agent_generation_limit` only when a response has stop reason `maxTokens`, has no tool calls, and the one output-limit retry was already used or the turn is final. Therefore the old error proves that condition, but it does not expose the two response contents, individual prompt-token counts, tool-call data, or worker termination. Those values remain unavailable for the old failure.
+
+- Stage 4 prompt evidence: the new trace prompt sizes were 11,784, 12,187, and 12,480 serialized characters; the first prompt contained 11,449 system-prompt characters and 221 task characters. No current source, prompt, or captured prompt used the literal `Stage 4` label. One successful run has no alternate prompt baseline, so it cannot establish that prompt size caused or did not cause the old output-limit failure.
+
+- Smallest generic next action: preserve a failed gate run root and its ordered trace before changing product output-limit behavior. This successful reproduction gives no evidence for a product-code change. The original physical Windows gate remains failed until its required gate is rerun under separately authorized work.
+
+### Independent Windows Stage 3 acceptance retry — 2026-08-22
+
+- Sidecar build command: `pnpm desktop:build-sidecar`. Result: exit code 0. It started at `2026-08-22T08:44:42.8229779Z`, ended at `2026-08-22T08:45:40.1135277Z`, and took 57,290.550 ms. Identity: Node `v24.18.0`; target `x86_64-pc-windows-msvc`; signing mode `windows-ephemeral-self-signed`; sidecar SHA-256 `c993879d97b96fb9d38ff1cab996c6807237508e694ac65b581320deaf181ce1`; bundle SHA-256 `4d888c3de913eb5b53f9d824bac949802390e708b72f12d972f6476a9d0013ee`; resource-manifest SHA-256 `ed78b4ed63d12e39cb75dacde8bd301c2cb0607aef11fde8416d6c309c798d72`. The staged generation-model SHA-256 was `faff1a63667fac17ac5e777f47114688fcefea96e220e211aaa8d62c2c4561f1`; the Windows HCS-helper SHA-256 was `32e7301cb4d83455172f888118705e9511013aac88ecb66853a9c9554e8fbcd1`.
+
+- Focused unit command: `pnpm test -- packages/core/src/agent/artifact-completion.test.ts packages/core/src/agent/artifact-completion-service.test.ts packages/eval/src/gates/m3-windows-agent-evidence.test.ts`. Result: exit code 0. It started at `2026-08-22T08:46:03.9343832Z`, ended at `2026-08-22T08:46:05.3393758Z`, and took 1,404.993 ms. Vitest reported 3 passed files and 36 passed tests in 810 ms.
+
+- Physical gate command: `pnpm test:m3:windows`. Result: exit code 1. It started at `2026-08-22T08:46:34.6864667Z`, ended at `2026-08-22T08:54:44.2985435Z`, and took 489,612.077 ms. This was below the 35-minute cap. The command did not return `certified_headless`; classification: failed. It reached `m3_guest_stage:primary`, `rehydration`, `cancellation`, `execution_limits`, `execution_timeout`, `execution_output`, and `security` before the real agent evidence stopped it.
+
+- Terminal failure: `Windows agent proof failed` in `runWindowsEvidence` at the bounded-output proof. The terminal snapshot run was `70cb144f-1a33-4480-ab1b-7d4bd69e4187`, job `f8376dc1-b683-4381-a2d4-5dfaead63b5c`, state `succeeded`, error `null`, and response `The Python script was executed successfully. It printed 'limit-start' followed by 1,100,000 'x' characters.` Its recorded inference performance was 22,422 prompt tokens, 1,565 output tokens, 70.83050463905862 output tokens per second, and 74,505 ms. The terminal snapshot included a truncated output execution with `limit-start`, exit code 0, exactly 1,000,000 retained stdout bytes, `stdoutTruncated: true`, empty stderr, and `process_start` and `process_exit` diagnostics. The gate still rejected its selected evidence. No terminal JSON classification was written, and the gate deleted its temporary root.
+
+- Held-out real-daemon artifact task: not run. The required condition was a passing gate with `certified_headless`; this single permitted gate did not pass. No held-out fixture, script, second agent task, or additional real-model run was created.
+
+- Stage 3 acceptance-retry conclusion: not ready. The rebuild and focused tests passed, but the only permitted Windows gate failed in real output-limit agent evidence. Do not treat this run as Windows M3 certification.
+
+### Preserved Windows legacy DOC real-daemon reproduction — 2026-08-22
+
+- Sidecar build command: `pnpm desktop:build-sidecar`. Result: exit code 0. Identity: Node `v24.18.0`; target `x86_64-pc-windows-msvc`; signing mode `windows-ephemeral-self-signed`; sidecar SHA-256 `d96398a22590eaf6a679632bc763767698cc4d9c9173bf1568fe4f52302727a1`; bundle SHA-256 `4a1f07a5f1982a374377ee566d2385c7d563ab3bf319188478a41faf615f96a3`; resource-manifest SHA-256 `714eda06e3f3d52daa797565cc0237d8730df09c8a08c406987f32619e9719f5`.
+
+- One cold-load real-daemon run used the exact small-profile `legacy-doc-read` task, the generated Windows HCS helper, the no-NIC guest image, the staged Gemma worker, and current-user daemon RPC. The one preserved root is `packages/eval/.generated/legacy-doc-real-daemon-2026-08-22T09-18-49.962Z-460cf4fa`. It contains the fixture, `state/.vault/catalog.sqlite`, report, full prompt traces, events, and audit records. The pinned fixture is `legacy-sample.doc`, 23,552 bytes, SHA-256 `4ea5fe94a8ff9d8cd1e21a5e233efb681f2026de48ab1ac2cbaabdb953ca25ac`. The capture script SHA-256 is `ce601f6796e9999eb4142b9758e3b097ec203fc90911830b377e3fde48bde15e`.
+
+- The run started with model `gemma-4-12b-it-qat-q4_0` in `unloaded` state and ended with the same `unloaded` state. It ended after 39,658 ms with run `acfa565f-91de-444d-9135-df688d438526` in `failed` state, error `agent_run_failed`, no response, and no performance record. Therefore, this one cold-load attempt did not prove a successful first model load. The generation model SHA-256 was `faff1a63667fac17ac5e777f47114688fcefea96e220e211aaa8d62c2c4561f1`; projector SHA-256 was `e70b0e5cd80323d5d588b4ed06780356b7b1ba03995a4b8164c6ae9db0ff5989`; worker SHA-256 was `b04063de880abe8c89fe8ef0dfeb7e68e0b8a30770740109f71c5a5e2fb79ec3`; inference helper SHA-256 was `c4cde3dd887d07a8f9ad0d7f57240c3e12c5a1928ad015bbce3069f892b83767`; and the packaged `word-documents` skill file SHA-256 was `dfa05a54a9bc0e30646080521dc18b1d149cb550f834bb2d9b97167df7b5d370`.
+
+- The immutable trace has two chat turns, both `inference_failed`: request IDs `06c1d057-c801-4c48-b04e-6d6f2f6ecb7e` and `8e6a04ed-2bd5-4f9e-ba08-1fb04fce8fac`. Each audit event recorded code `internal`. Each trace has `responseCapturedAt: null`, `responseHash: null`, and no stop reason. Thus, no lower-level worker result or termination datum is available in this safe typed capture. The audit chain verified before and after close. The final audit head is sequence 8, SHA-256 `1129aebd3f38531972bbb2e3bb775d16d2cd3e873c3196aa8ef30c172afea992`. The preserved catalog SHA-256 is `1a45d472a352d35c3c82818665ef0a3d8f5cda5c68dfe292f97de4e280c62060`; report SHA-256 is `6d5c75682da6010a00301d4920b1ab6124f1c8f5014dfbd82e914ecec5be6dfd`.
+
+- Loaded skill order: none. Guest executions: 0. No Antiword command was run; the exact required arguments `/usr/bin/antiword -m UTF-8.txt -w 0` and strict UTF-8 decode were not observed. The required title `LEGACY_DOC_TITLE=This is just a small test document.` and publisher `LEGACY_DOC_PUBLISHER=O’Reilly` were absent. No artifact was created, which agrees with the no-file task requirement. This is failure evidence only. It does not prove Windows M3 certification and does not authorize a product change.
+
+### Windows legacy DOC direct worker boundary — 2026-08-22
+
+- One direct AppContainer worker request reconstructed the first preserved legacy-DOC chat turn from its read-only catalog and content-addressed prompt and tool records. It used no daemon, warm-up, or second model request. The request was `chat`, profile `auto`, UUID-v4 request ID shape, two canonical messages, 11 canonical tools, `auto` context, a 4,096-token cap, and temperature 0. Its prompt hash was `sha256:27cae28c420720f03bb5d707dbec5686ad9a560d1b0b6b4ca6c87304eb8a0249`; its tool-schema hash was `sha256:993122dc295db5268b893e602df91b0185871905d8860b2c5eb92f15fb9908c3`.
+
+- The staged model hash was `faff1a63667fac17ac5e777f47114688fcefea96e220e211aaa8d62c2c4561f1`; worker hash `b04063de880abe8c89fe8ef0dfeb7e68e0b8a30770740109f71c5a5e2fb79ec3`; runtime hash `bdda293bc9068c4e65bd22d58ab7fba30d4b35dcfb348ec0948c67b351653687`; and launcher hash `c4cde3dd887d07a8f9ad0d7f57240c3e12c5a1928ad015bbce3069f892b83767`. The selected memory budget was 17,094,475,776 bytes. These match the staged passing context and Node evidence.
+
+- The worker exited with code 0 and no signal. It returned one structured `internal` error after 148 thinking updates and before any response update. Stderr was not saved; its safe evidence was 744 bytes with SHA-256 `91c59330f59e7ebbdf35bf9171fcc2006b8431aed17e6474ef4313aa3919611e`. The safe classification is `unclassified`: this one request proves that the worker boundary is reached, but it does not prove an exact GPU, driver, AppContainer, runtime, model-open, or prompt/schema cause. The ignored safe report and script are under `packages/eval/.generated/worker-boundary-legacy-doc/` and `packages/eval/.generated/worker-boundary-legacy-doc.ts`.
+
+- Smallest next action: make no product change. Before another authorized direct reproduction, extend only the ignored probe's safe classifier for the observed worker error condition; keep raw stderr and host paths out of all saved evidence. This result is failure evidence only and is not Windows M3 certification.
+
+### Independent Windows Stage 3 final acceptance — 2026-08-22
+
+- Sidecar build command: `pnpm desktop:build-sidecar`. It started at `2026-08-22T09:33:37.5774599Z`, ended at `2026-08-22T09:34:31.7649009Z`, took 54,187 ms, and exited with code 0. Identity: Node `v24.18.0`; target `x86_64-pc-windows-msvc`; signing mode `windows-ephemeral-self-signed`; sidecar SHA-256 `08637161c995fdd2c413b377e679c5bfcd44dbd087468049c002853676c753ab`; bundle SHA-256 `9ad9ae07d849bd4061b37cd51d20565fb631830724a6a49e62b10e3f660930b0`; resource-manifest SHA-256 `a7c524da280ce5ed17475546ef5ef387c4e0ea839628d6d7a74ddb8e3df32c96`; generation-model SHA-256 `faff1a63667fac17ac5e777f47114688fcefea96e220e211aaa8d62c2c4561f1`; inference-worker SHA-256 `b04063de880abe8c89fe8ef0dfeb7e68e0b8a30770740109f71c5a5e2fb79ec3`; agent-helper SHA-256 `0bdc719df48a186c8a50cde645e8130a31405fc1368a81507a826279d10cd85e`; agent kernel SHA-256 `9fabee42a89b8128aa9f16dee4d43289c113f8b2aea398cabc904b6911a41dea`; and agent initramfs SHA-256 `b73c7d9b2ed473fa8a77c2b60457c61b43882a6378b51190bb4403cea47b1d31`. Complete log: `packages/eval/.generated/stage3-final-2026-08-22T/build-sidecar.log`, SHA-256 `3489200cd54a9010f828c6e68fb45e72d6bd40a39fe9183f6f220d4a6dd80ff2`.
+
+- Focused test command: `pnpm test -- packages/core/src/agent/artifact-completion.test.ts packages/core/src/agent/artifact-completion-service.test.ts packages/core/src/agent/artifact-results.test.ts packages/core/src/agent/generic-read.test.ts packages/core/src/agent/markdown-definition-library-format.test.ts packages/core/src/agent/tool-output.test.ts packages/eval/src/gates/m3-windows-agent-evidence.test.ts`. It started at `2026-08-22T09:35:12.2072248Z`, ended at `2026-08-22T09:35:13.6347860Z`, took 1,428 ms, and exited with code 0. Seven test files and 72 tests passed. It covers required-artifact recovery, current-artifact filtering, streamed guest reads, Markdown-definition formatting, bounded tool output, and the Windows running, normal, cancellation, and 1,000,000-byte output-evidence selection. Complete log: `packages/eval/.generated/stage3-final-2026-08-22T/focused-tests.log`, SHA-256 `1796f6d3871689cedb3d41438bf3068fb71b183fed5b99d2cf1e466667b1a41e`.
+
+- Physical gate command: `pnpm test:m3:windows`. It started at `2026-08-22T09:35:51.4477530Z`, ended at `2026-08-22T09:42:44.0550884Z`, took 412,607 ms, and exited with code 1. This was below the 35-minute cap. It did not return `certified_headless`; gate classification: failed. No time-cap stop and no second Windows gate run occurred. The gate reached `m3_guest_stage:primary`, `rehydration`, `cancellation`, `execution_limits`, `execution_timeout`, `execution_output`, and `security` before real Node.js evidence failed.
+
+- Exact terminal Node evidence: run `c003fe28-7e86-44f7-b0e3-d9352affd5e1`, job `b6ff44e6-a554-4618-9fdf-dea541da1ff1`, started at `2026-08-22T09:40:46.115Z` and ended at `2026-08-22T09:42:43.539Z`. It failed with `agent_required_artifacts_missing`, null response, null performance, no recorded artifacts, null measured context values, and no question. One shell execution wrote `/workspace/task.js` successfully. The first Node execution used a generated `.vault-tools` source and failed with `spawn EPERM`; the second Node execution succeeded with exit code 0 in 3,031 ms, retained `node-start` and `node-finish`, empty stderr, and `process_start` and `process_exit` diagnostics. The final required-artifact guard rejected the run because the terminal artifact collection was empty. Complete gate log: `packages/eval/.generated/stage3-final-2026-08-22T/windows-gate.log`, SHA-256 `b97878ae775c7e82ddefbddd06db7a472819ae1e37902eaac4c9eb668b778b18`. No gate JSON classification was written because the gate failed.
+
+- Held-out real-daemon task: not run. The required `certified_headless` condition was false. No held-out script, fixture, catalog, daemon task, model task, trace, audit record, artifact, or recovery-message capture was created. The specified input and output guard was therefore not exercised.
+
+- Stage 3 final-acceptance conclusion: not ready. The fresh build and focused tests passed, and the physical gate passed its output-limit stage, but its only permitted real Node.js proof failed at the current required-artifact guard. This result is not Windows M3 certification evidence.
+
+### Windows legacy DOC direct worker failure-stage probe — 2026-08-22
+
+- `pnpm desktop:build-sidecar` completed before this probe. It exited with code 0 and staged worker SHA-256 `76926f99ecbb0501938220f43bd25fd0684a860ddb13e31c2cf5df0dec8c0a98`, runtime SHA-256 `7b505fb4974f71fd61be68a5d5d9d19005cd90a8d9f2d89bb8373ae2d9dd54cc`, and inference-helper SHA-256 `847ed05713691b9f3080023937451d5a2d311bb5e5042bd7587d49e8c6d2d60d`.
+
+- One direct AppContainer request replayed the preserved first legacy-DOC chat request. It used no daemon, warm-up, retry, or second model request. The request was `chat`, profile `auto`, UUID-v4 request ID shape, two canonical messages, 11 canonical tools, `auto` context, a 4,096-token cap, and the staged generation model SHA-256 `faff1a63667fac17ac5e777f47114688fcefea96e220e211aaa8d62c2c4561f1`.
+
+- The worker exited with code 0 and no signal. It returned error code `internal` with safe `details.failureStage` `chat_generate_response`. It sent 148 thinking updates and zero response updates. Stderr was not saved; its safe count was 744 bytes and its SHA-256 was `91c59330f59e7ebbdf35bf9171fcc2006b8431aed17e6474ef4313aa3919611e`. No raw stderr, host path, task text, tool argument, or model output was saved.
+
+- The worker tagged `chat_generate_response` as its safe stage. This tag does not prove an exact native `chat.generateResponse` cause; that cause remains unproved. The later safe field reports `failureSource` `native_or_unknown`. The smallest generic change is the staged fixed safe failure-stage field; do not make a behavior change from this one result. The ignored script and safe report are under `packages/eval/.generated/worker-boundary-legacy-doc.ts` and `packages/eval/.generated/worker-boundary-legacy-doc/`. This is failure evidence only and is not Windows M3 certification.
+
+### Windows Stage 3 physical certification gate — 2026-08-22
+
+- Sidecar build command: `pnpm desktop:build-sidecar`. It started at `2026-08-22T10:00:09.7214844Z`, ended at `2026-08-22T10:01:03.3081186Z`, took 53,587 ms, and exited with code 0. Identity: Node `v24.18.0`; target `x86_64-pc-windows-msvc`; signing mode `windows-ephemeral-self-signed`; sidecar SHA-256 `cd58cf31b4deaea1d0e27480131f05485e27343525e6f123899fe79c77cdeefd`; resource-manifest SHA-256 `2d47ece6d67fbd533682e969693fa239bee7d9d6d149aa6f6e1ce4f7f62e2773`; generation-model SHA-256 `faff1a63667fac17ac5e777f47114688fcefea96e220e211aaa8d62c2c4561f1`; inference-worker SHA-256 `76926f99ecbb0501938220f43bd25fd0684a860ddb13e31c2cf5df0dec8c0a98`; agent-helper SHA-256 `d8643e5ae4ee700a26aca7f0ceef803f10bd13b1ee262239aea6a707a017d221`; agent kernel SHA-256 `9fabee42a89b8128aa9f16dee4d43289c113f8b2aea398cabc904b6911a41dea`; and agent initramfs SHA-256 `b73c7d9b2ed473fa8a77c2b60457c61b43882a6378b51190bb4403cea47b1d31`.
+
+- Focused test command: `pnpm test -- packages/core/src/agent/artifact-completion.test.ts packages/core/src/agent/artifact-completion-service.test.ts packages/core/src/agent/artifact-results.test.ts packages/core/src/agent/generic-read.test.ts packages/core/src/agent/markdown-definition-library-format.test.ts packages/core/src/agent/tool-output.test.ts packages/eval/src/gates/m3-windows-agent-evidence.test.ts`. It started at `2026-08-22T10:01:30.8592251Z`, ended at `2026-08-22T10:01:32.3224619Z`, took 1,463 ms, and exited with code 0. Vitest reported 7 passed files and 78 passed tests.
+
+- Physical gate command: `pnpm test:m3:windows`. It started at `2026-08-22T10:01:50.8175944Z`, ended at `2026-08-22T10:11:24.9583206Z`, took 574,141 ms, and exited with code 0, below the 35-minute cap. It returned `certified_headless`. Guest evidence passed live read-only source, host and guest out-of-scope write denial, no-NIC IPv4, IPv6, DNS, vsock, Unix-socket, and socket-pair denial, package-manager absence, credentials and host-path absence, DOC, DOCX, PDF, XLSX, repair, persistence, cancellation, timeout, output limit, process, memory, quota, crash, symlink, and artifact checks. The real Python run succeeded with 27 stdout bytes and HCS teardown; the real Node run succeeded with 33 stdout bytes and retained staging, VM-start, guest-connection, process-start, and process-exit diagnostics plus HCS teardown; cancellation returned `cancelled`; the output-limit run succeeded with exactly 1,000,000 retained stdout bytes and `stdoutTruncated: true`; image evidence passed; and malformed-frame HCS teardown passed with helper exit code 1.
+
+- Preserved logs: `packages/eval/.generated/stage3-cert-2026-08-22T13-00-09.699+03-00/build-sidecar.log`, SHA-256 `f0a020a5ccf3e5bff1914fdcf0e65d514fd190bf3906995c85b10efcdcd8f8b6`; `build-hashes.json`, SHA-256 `bd163a066a4f4f1078457d5ef2d090798ff099efe3e76bd4acfc51c05a1a238e`; `focused-tests.log`, SHA-256 `0d20ff03ddfaf65af943e0e0735d3bf2ba6c3d5e0a47452c429bdd2d38ba3a2a`; and `windows-gate.log`, SHA-256 `35637fc888ebd0d18809a18f2c9a4137825483b58ba7cc84281028c16e371430`.
+
+### Windows Stage 3 held-out current-run artifact check — 2026-08-22
+
+- One ignored real-daemon task command ran after the passing `certified_headless` gate: `node --import tsx packages/eval/.generated/stage3-held-out-daemon.ts`. It started at `2026-08-22T10:15:44.6947956Z`, ended at `2026-08-22T10:16:23.8029635Z`, took 39,108 ms, and exited with code 1, below its 10-minute cap. It used one current-user daemon, `folders.add`, `sessions.create`, `agent.start`, repeated `agent.get`, and the staged package resources. No second held-out task or other model run started.
+
+- The exact task had `field-notes.zeta` and `summary-note.txt` in `Required deliverables`, then named `source-ledger.input` only in a separate `Input files` section. The static requirement parser returned exactly `field-notes.zeta` and `summary-note.txt`, and excluded `source-ledger.input`. The preserved input was 26 bytes with SHA-256 `79a8ff956b0bfe51ce2f5cf38af63b458775b1c102bf8d917c5a065484120c48`.
+
+- Terminal evidence: run `e389092d-265d-40d4-9cc3-044b6a16b6a1`, job `f7d2017f-22cd-4be2-add3-ca6659a50416`, ended `failed` with `agent_run_failed`, null response, zero guest executions, and zero current-run artifacts. It made two recorded chat turns, both `inference_failed`. Therefore, neither required artifact was created, no artifact bytes or hashes exist to validate, and the requested current-run artifact proof did not pass.
+
+- Read-only state inspection after daemon and Core shutdown reported a valid audit chain, trace status `recorded` with capture version 1, two `inference_failed` outcomes, and zero generic required-artifact recovery messages. The preserved catalog is 200,704 bytes with SHA-256 `de56b467baf964cfa033c663df585109a0892c7587ba45e993a490995d85c9e4`. State was preserved at `packages/eval/.generated/stage3-held-out-2026-08-22T10-15-46.174Z-ebe11663/`.
+
+- Preserved evidence: held-out daemon script SHA-256 `e3afb00ad6df4efdfea52cac46fbe63eb68b5c155ef2b6dd37f3ed0a546d90f5`; read-only inspection script SHA-256 `b1052ef5d485dc3a7ae7825d907f23857edfbedb77cc3b4be274f04ae9cb2a60`; report `packages/eval/.generated/stage3-held-out-2026-08-22T10-15-46.174Z-ebe11663/report.json`, SHA-256 `ad21129a9a6efe15ba2bda392bc86644f46fa519494efb8da04126260d439e61`; inspection report, SHA-256 `c6fd6229b56240101bd2315c370ed69b9f6a1852b78ada2e30497f88e282fa60`; and gate-run log `packages/eval/.generated/stage3-cert-2026-08-22T13-00-09.699+03-00/held-out-daemon.log`, SHA-256 `bbd8d1bff37348ad72cbac3ed7a0a3669334eca76514364f021a6d78d5a7b540`.
+
+- Stage 3 certification conclusion: the named physical Windows gate passed, but the required single held-out current-run artifact task did not complete. The full Stage 3 evidence sequence is not ready for certification. No product-code, prompt, evaluator, test, dependency, Git, or GitHub change was made.
+
+### Windows legacy DOC direct worker post-implementation probe — 2026-08-22
+
+- Sidecar build command: `pnpm desktop:build-sidecar`. It ran once before the probe and staged a new resource manifest. The observed staging interval was 61 seconds, from the first build process at `13:21:31` local time to the resource-manifest update at `13:22:32` UTC. The terminal wrapper did not retain a separate build exit record. No build failure occurred before the probe started.
+
+- Direct probe command: `node --import tsx packages/eval/.generated/worker-boundary-legacy-doc.ts`, in a PowerShell wrapper with a 1,200,000 ms outer limit. It ran once, exited with code 0, took 10,735 ms, and did not reach its outer limit. The probe used one reconstructed direct `chat` request, with `auto` context, a 4,096-token output limit, temperature 0, two canonical messages, and 11 canonical tools. It used no daemon, warm-up, retry, or second worker request.
+
+- Safe worker result: process exit code 0; signal absent; worker response `error`; worker error code `internal`; fixed failure stage `chat_generate_response`; fixed generation source absent. It had 148 thought updates, zero response updates, and one terminal message. The decoder and stdin write both completed without a recorded failure.
+
+- Safe stderr evidence: raw stderr and host paths were not persisted. Stderr byte count was 744 and its SHA-256 was `91c59330f59e7ebbdf35bf9171fcc2006b8431aed17e6474ef4313aa3919611e`.
+
+- Safe report: `packages/eval/.generated/worker-boundary-legacy-doc/result-2026-08-22T10-23-45.943Z.json`, SHA-256 `b2a412a4600396579e1583ba10b76b6fec384b4bae2b1e9c52fbd821f5e554d3`.
+
+- Diagnostic conclusion: the refined fixed-stage field repeats the safe stage tag from the earlier probe. It does not prove an exact native cause. The later safe failure-source record reports `native_or_unknown`. This is failure evidence only and is not Windows M3 certification.
+
+### Independent Windows legacy DOC failure-source projection probe — 2026-08-22
+
+- Projection check: the ignored probe projects the safe `failureSource` field from the terminal worker details. Its allowed values are `abort`, `disposed`, and `native_or_unknown`.
+
+- One direct probe command ran: `node --import tsx packages/eval/.generated/worker-boundary-legacy-doc.ts`. The PowerShell outer limit was 1,200,000 ms. The command ran once, took 9,985 ms, exited with code 0, and did not reach the outer limit. No retry, build, daemon, warm-up, or other model request ran.
+
+- Safe structured worker result: worker error code `internal`; failure stage `chat_generate_response`; failure source `native_or_unknown`; 148 thinking updates; zero response updates; and one terminal message. Raw prompt, model output, stderr, error message, stack, arguments, and sensitive paths were not saved.
+
+- Safe stderr evidence: 744 bytes; SHA-256 `91c59330f59e7ebbdf35bf9171fcc2006b8431aed17e6474ef4313aa3919611e`.
+
+- Safe report: `packages/eval/.generated/worker-boundary-legacy-doc/result-2026-08-22T10-38-16.146Z.json`, SHA-256 `c472b1329986d6abc6e98ad1cb78ea8d8abfb8cefea0ae640a2dbf761f3b841a`.
+
+- Diagnostic conclusion: the fixed safe failure-source projection is present and reports `native_or_unknown`. It does not prove an exact native cause. This is failure evidence only and is not Windows M3 certification.
+
+### Ignored fixed-category diagnostic probe (2026-08-22)
+
+- The no-model self-test passed: `pnpm exec tsx packages/eval/.generated/legacy-doc-chat-failure-self-test.ts`.
+
+- One direct probe command ran: `pnpm exec tsx packages/eval/.generated/legacy-doc-chat-failure-probe.ts`. It ran once, finished in 13,226 ms, and exited with code 0. It did not reach the 20-minute outer limit. No retry, build, gate, or other model request ran.
+
+- Safe fixed diagnostic: category `native_or_unknown`; failure stage `chat_generate_response`; process exit code 0. The probe standard output had only the safe category, stage, and report location. It had no event-count or duration field.
+
+- Safe stderr evidence: 744 bytes; SHA-256 `91c59330f59e7ebbdf35bf9171fcc2006b8431aed17e6474ef4313aa3919611e`.
+
+- Safe report: `packages/eval/.generated/legacy-doc-chat-failure-diagnostic/result-2026-08-22T10-58-13.475Z.json`, SHA-256 `b9e75ee4a11f43841e081bc71dfc91b11c3abfbf24582b9f73b3f75243363d7b`.
+
+- Diagnostic conclusion: the probe gives the fixed safe category and stage. The missing event-count and duration fields mean that this output is limited diagnostic evidence. It is not Windows M3 certification.
+
+### Independent Windows legacy DOC prompt-budget focused case — 2026-08-23
+
+- One sidecar build command ran before this case: `pnpm desktop:build-sidecar`. The new packaged identity records sidecar SHA-256 `b3ace35a89ad30a8f8aa2c8ea8de3db4c22e9c0f2829278a914ee6e86c3e4dfd`; resource-manifest SHA-256 `a12029028e306e1755d7d0b3a7b58534e0cc44a2ea96a3aa7a92405cafb7810e`. The terminal session did not retain a separate build exit record. No second build ran.
+
+- One existing-evaluator command ran: `pnpm test:stress:m3:small -- --case legacy-doc-read`. Its PowerShell outer limit was 900,000 ms. It ended with exit code 0 after 267,287 ms, before that limit. The existing fixture took 12 ms, had 23,552 bytes and one file, and the case took 258,339 ms. The exact report is `packages/eval/.generated/stress/small-2026-08-23T09-58-30.927Z.json`, SHA-256 `6bcbb796d905dadb725b7c1254b85f30cb3f062cee8c5b955c9f8a9137a2d799`.
+
+- The evaluator classification was `small_stress_passed`; run `e12ffcc2-b1c7-4f40-924e-f7c1e783e2f2` ended `succeeded`; error was null; and the audit chain was valid. The real pinned Gemma model changed from `unloaded` to `ready`. The final response contained both required facts: `LEGACY_DOC_TITLE=This is just a small test document.` and `LEGACY_DOC_PUBLISHER=O’Reilly`. The report required `/usr/bin/antiword` and `UTF-8.txt`; both were present in execution evidence.
+
+- This trace does not prove the required Word load order. It loaded `terminal-commands` at event 2, then ran `cat /source/legacy-sample.doc` at events 7-10. It loaded `word-documents` only at events 12-13, after the binary DOC read. It then loaded `pdf-documents` at events 15-16. Thus `word-documents` was not loaded before DOC processing.
+
+- Six guest executions occurred. `cat /source/legacy-sample.doc` completed with exit 0; the first Python program failed with a syntax error; the second Python program exited 0 but reported an Antiword exit-1 error; the Antiword lookup completed; `antiword -m UTF-8.txt -w 0 /source/legacy-sample.doc` failed with exit 1; and `LC_ALL=C antiword -m UTF-8.txt -w 0 /source/legacy-sample.doc` completed with exit 0. The final successful command used the required option and input arguments, but it was shell text with `antiword` from `PATH`, not the required absolute Python argument list. Therefore, the exact command-contract evidence is not valid.
+
+- There were no produced, retained, or verified artifacts. The case recorded one inference failure, two failed guest executions, zero context compactions, and no terminal error. This is one real-run result only. It is not a valid legacy-DOC contract pass and is not Windows M3 certification evidence. No second model command ran.
+
+### Independent Windows legacy DOC contract-evaluator run — 2026-08-23
+
+- Review and focused verification completed before the model run. `pnpm exec vitest run packages/eval/src/stress/legacy-doc-evidence.test.ts packages/eval/src/stress/m3-stress-reporting.test.ts packages/eval/src/stress/m3-context-session-reporting.test.ts packages/eval/src/gates/m3-windows-agent-evidence.test.ts packages/core/src/agent/markdown-definition-library.test.ts packages/core/src/agent/markdown-definition-library-format.test.ts` passed 6 files and 33 tests. Eval and Core TypeScript `--noEmit`, focused Biome, `pnpm check:source`, and `git diff --check` also passed. No P0 or P1 review finding blocked the real run.
+
+- One sidecar build command ran: `pnpm desktop:build-sidecar`. It exited with code 0 after 43.807 seconds. Identity: Node `v24.18.0`; target `x86_64-pc-windows-msvc`; signing mode `windows-ephemeral-self-signed`; sidecar SHA-256 `ba3ae15e0958726ea249d5d3a45ea9e4c5da33fc25c7a936ba14b9878ae1fd6f`; bundle SHA-256 `456c6d5453ff449a2a53fdf1267e615b6e6d24f3a83da36a233e122e7c3f2172`; resource-manifest SHA-256 `a57a4916b6e0cd838f8092331cded33d717ecd433bbd5dcf2f941d344f0ea150`; inference-worker SHA-256 `0187ba0e5e2147360b750cdad888640bd1720cf40392dee27f3d9382e85fec2f`; agent-helper SHA-256 `74abe58dad21c626cb5c8af8578a1489858861238582a1f8809314c9afb9261e`; agent kernel SHA-256 `9fabee42a89b8128aa9f16dee4d43289c113f8b2aea398cabc904b6911a41dea`; and agent initramfs SHA-256 `b73c7d9b2ed473fa8a77c2b60457c61b43882a6378b51190bb4403cea47b1d31`.
+
+- Exactly one real command ran: `pnpm test:stress:m3:small -- --case legacy-doc-read`. Its outer limit was 15 minutes. It did not reach that limit and no retry ran. The existing case deadline stopped it after five minutes. The fixture completed in 7 ms with 23,552 bytes and one file. Run ID: `0091a402-181f-45b9-be34-295b4c493967`.
+
+- Safe ordered console evidence was: fixture start; fixture ready; initial inference; first execution start; later inference; execution counts 2, 3, 4, 5, and 6; context compaction; later inference; execution count 7; then timeout. The final progress record was at 299,615 ms, with run state `running`, seven executions, latest event `inference.started`, and summary `Choosing the next action.` The command then exited with code 1 and exact harness error `Stress cases timed out after 5 minutes.`
+
+- Terminal contract evidence was not available. The timeout occurred before `stressResultFor` returned and before `m3-small.ts` wrote its JSON report. Thus there is no report path or report SHA-256, no evaluator classification, no terminal run snapshot, no retained trace, and no exact command list. The temporary runtime state was removed by normal harness cleanup. The exact Antiword argument list, strict UTF-8 decode, Word-skill-before-DOC order, and the two required facts are not proved by this run.
+
+- Post-run process inspection found no Vault, llama, or model-worker process. No second model command ran. Conclusion: this focused legacy DOC contract check failed by timeout and is not Windows M3 certification evidence.
+
+### Independent preserved legacy DOC reproduction — 2026-08-23
+
+- The no-model structural self-test ran one time and passed: `node --import tsx packages/eval/.generated/legacy-doc-preserved-repro.ts --self-test`.
+
+- One real command ran: `node --import tsx packages/eval/.generated/legacy-doc-preserved-repro.ts`, in a PowerShell wrapper with a 420,000 ms outer limit. It ended before the limit. The case deadline was 300,000 ms. No build, retry, gate, suite, or other model command ran.
+
+- The run lasted 43,583 ms. It started at `2026-08-23T10:42:39.283Z` and ended at `2026-08-23T10:43:22.865Z`. The run state was `failed`, with error `agent_model_failed`. The wrapper terminal state was `observed`. The model state was `unloaded` before and after observation.
+
+- The required skill load order was empty. No DOC access occurred. No typed tool call or guest execution occurred. Thus there were no execution status records and no repeated action. The required minimum was seven executions; the observed count was zero.
+
+- The approved Python Antiword argument list was not observed. Strict UTF-8 decode was not observed. The approved-method check was false. Both required fact checks were false: `LEGACY_DOC_TITLE=This is just a small test document.` and `LEGACY_DOC_PUBLISHER=O’Reilly`.
+
+- Trace capture was `recorded`, version 1. It had two `chat` turns. Both turn outcomes were `inference_failed`; neither turn had a response capture or an execution sequence. The public event order was run start, first inference start, one local-model retry inference start, then run failure.
+
+- The artifact guard passed: zero published artifacts for an artifact-forbidden task. It recorded zero recovery events. The preserved catalog has zero agent artifacts, four agent events, zero agent executions, two agent inference turns, and one agent run. The audit check passed before close.
+
+- Preserved run directory: `packages/eval/.generated/legacy-doc-preserved-2026-08-23T10-42-39.282Z-361ed9dc/`. Safe report: `packages/eval/.generated/legacy-doc-preserved-2026-08-23T10-42-39.282Z-361ed9dc/report.json`, SHA-256 `2007a8e9fa59b094bb2d2bbca5c2034ad5c41d86d0ca76bbf56846fe859fa333`. Catalog SHA-256: `055acec6a1a02e68287ef634b3ad581b4fbebbb81942cd5523b661ff096ae691`.
+
+- Conclusion: not ready. This is safe failure evidence only. It is not Windows M3 certification evidence.
+
+### Independent Windows legacy DOC retry-message check — 2026-08-23
+
+- Review found no P0 or P1 issue in the retry-message change. The message is format-neutral. It is added only to the recovered request, does not change the retryable codes, output limits, or tool list, and does not copy a private worker error into the request. The recovery flag still permits one retry for the complete run. Request state and trace state stay separate. The prompt-budget test includes the retry message in all 36 format/domain paths and requires each path to be at or below 4,096 estimated tokens.
+
+- Focused checks passed before the real run: `pnpm test -- packages/core/src/agent/chat-inference-recovery.test.ts packages/core/src/agent/chat-loop.test.ts packages/core/src/agent/chat-loop-skills.test.ts packages/core/src/agent/markdown-definition-library.test.ts packages/core/src/agent/markdown-definition-library-format.test.ts` passed 5 files and 25 tests; `pnpm exec tsc -p packages/core/tsconfig.json --noEmit`; focused Biome on the retry and prompt-budget files; `pnpm check:source`; and `git diff --check`. The source limit reported 300 lines per hand-written source file.
+
+- One `pnpm desktop:build-sidecar` command ran before the real run. The later real run used its package identity: target `x86_64-pc-windows-msvc`, signing mode `windows-ephemeral-self-signed`, and sidecar SHA-256 `348891cd6bf0c9876bdf360634309bdc690d091682c7162e57578c2732561378`.
+
+- Exactly one real command ran: `node --import tsx packages/eval/.generated/legacy-doc-preserved-repro.ts`. Its outer limit was 420,000 ms and its internal deadline was 300,000 ms. It exited with code 0 in 41,875 ms and did not reach the outer limit. The preserved run elapsed time was 41,569 ms. The wrapper retained no raw standard output or standard error; it recorded only 182 standard-output bytes and zero standard-error bytes.
+
+- Terminal run evidence: run `eac5d0ea-1f56-4739-9fde-316e4f619ff9`, job `8cd60a55-7094-429e-8742-407f2f2c755b`, ended `failed` with safe error `agent_model_failed`. The model was `unloaded` before and after observation. The fixed retry message was used once: the ordered public event record contains `Retrying the local model once.`
+
+- Ordered safe events were: 0 `run.started`; 1 `inference.started` with `Understanding the task.`; 2 `inference.started` with `Retrying the local model once.`; and 3 `run.failed` with `The local model could not be loaded or did not respond.` No raw thought, response, standard output, standard error, stack, trace prompt, trace response, or unrestricted path was saved.
+
+- Trace and audit evidence: audit verification passed before close. Trace capture was `recorded`, version 1, with two ordered `chat` turns. Both outcomes were `inference_failed`; both had no response capture and no execution sequence. The two safe prompt hashes were `sha256:46e0a807262d65b73427ae21cc5b0e0ff84e6d05718662d58335fe710546b2e2` and `sha256:a8d8e7c8d072e31f955b0b74df6471284ab5209de941d06d494d9cca306d2ce6`.
+
+- No skill load, DOC access, typed tool call, or guest execution occurred. Therefore, there was no invalid repeated DOC access, but the required Word-skill-before-DOC proof, the exact absolute Python Antiword list, strict UTF-8 decode, and both required facts were not observed. The required fact checks were false for `LEGACY_DOC_TITLE=This is just a small test document.` and `LEGACY_DOC_PUBLISHER=O’Reilly`.
+
+- Preserved evidence: run directory `packages/eval/.generated/legacy-doc-preserved-2026-08-23T11-00-54.077Z-59f7e4ce/`; report `packages/eval/.generated/legacy-doc-preserved-2026-08-23T11-00-54.077Z-59f7e4ce/report.json`, SHA-256 `a564760a7bd673351fe924e19dd5dafca619ffb29e338c69439c65c8ddfea133`; catalog SHA-256 `4eb36ad793dd604ad9f5ebaf8940e5f4c1c8c865b5d7cbf31cfb47175b092fe2`. The artifact guard passed with zero published artifacts for this artifact-forbidden task.
+
+- Conclusion: not ready. The retry message works as designed, but the real model failed on both allowed attempts before the DOC contract work could start. This is safe failure evidence only. It is not Windows M3 certification evidence.
+
+### Independent Windows legacy DOC post-removal check — 2026-08-23
+
+- Focused no-model checks passed before the real case: `pnpm exec vitest run packages/core/src/agent/chat-inference-recovery.test.ts packages/core/src/agent/artifact-completion.test.ts packages/core/src/agent/artifact-completion-service.test.ts packages/core/src/agent/markdown-definition-library.test.ts packages/core/src/agent/markdown-definition-library-format.test.ts packages/eval/src/stress/legacy-doc-evidence.test.ts packages/eval/src/stress/m3-stress-reporting.test.ts packages/eval/src/stress/m3-context-session-reporting.test.ts packages/eval/src/gates/m3-windows-agent-evidence.test.ts` passed 9 files and 84 tests.
+- One `pnpm desktop:build-sidecar` build completed before the real case. Its staged Windows sidecar SHA-256 was `640963a84d39a142611686cab73a0a9ca0fdda16882ce65b6536c5f9a9e45f99`. The staged resource-manifest SHA-256 was `cad38b62eea190bebe98a3954dbf84aae15c73acb3463c0cdde1a825bcfcb65b`.
+- Exactly one existing-evaluator command ran: `pnpm test:stress:m3:small -- --case legacy-doc-read`. Its outer limit was 420 seconds. It exited with code 1 in 40.724 seconds; its one case took 33.742 seconds, below the unchanged five-minute deadline. No second evaluator command ran.
+- Result: `small_stress_limit_found`; terminal state `failed`; safe error `agent_model_failed`; audit validation `true`. Report: `packages/eval/.generated/stress/small-2026-08-23T11-28-46.344Z.json`, SHA-256 `0431b102b91d33c441290f29e879e7dcdda6c76385f2aa64cdd0f022d82ef3b2`.
+- The pinned Gemma model was `unloaded` before the case and remained not ready after it. The case loaded zero skills and made zero guest executions. Thus the Word-before-DOC order, exact absolute Python Antiword argument list, strict UTF-8 decode, and both required facts were not observed. No artifact was produced or verified.
+- Post-run process cleanup passed: no Gemma, llama, Vault, or worker process remained. This is failure evidence only and is not Windows M3 certification evidence.
+
+### Independent fixed diagnostic-category probe — 2026-08-23
+
+- The no-Gemma self-test ran once. It exited with code 0 in 488 ms. Its standard output and standard error were discarded.
+
+- The probe ran once with a 120,000 ms outer limit. It exited with code 1 in 70 ms and did not reach the limit. No retry, build, gate, suite, or other model command ran. Standard error was discarded.
+
+- Fixed diagnostic category: unavailable. The probe standard output did not contain one valid fixed diagnostic category. No prohibited raw field appeared in the discarded standard output.
+
+- Conclusion: failed safe diagnostic evidence only. This result is not Windows M3 certification evidence.
+
+## 2026-08-23 Windows tracked worker category probe
+
+- Process: exit `0`; duration `10.682 s`; the 120 s outer bound did not expire.
+- Worker: code `internal`; failure stage `chat_generate_response`; failure source `unknown_standard_error`.
+- Updates: thought `148`; response `0`.
+- Safe report: `packages/eval/.generated/worker-boundary-legacy-doc/result-2026-08-23T11-44-09.636Z.json`; SHA-256 `8b5cf293a3b356a5b76bb47e46b4df5cac01bf0741faaf654e3f1bdbb791d20f`.
+- Sidecar SHA-256: `08ced80ea0953e2e6ebed25a583695a95eda8df3b85d167506fa46f56a17d299`.
+- Prohibited raw fields appeared: no.
+
+## 2026-08-23 Windows final worker category probe
+
+- Process: exit `0`; duration `11.904 s`.
+- Worker: code `internal`; fixed failure stage `chat_generate_response`; fixed failure source `unknown_standard_error`.
+- Updates: thought `148`; response `0`.
+- Sidecar SHA-256: `7897c50ce10b9092199412bd2f95c001a066bc4a20b96f3dfefef8d3108c2b7a`.
+- Safe report: `packages/eval/.generated/worker-boundary-legacy-doc/result-2026-08-23T12-01-03.245Z.json`; SHA-256 `897fafd41ef731c88c6db3e6f09a915ea47b9970a73b4e7aca0d3beb3162352e`.
+- Prohibited raw fields appeared: no.

@@ -1,6 +1,13 @@
 import type { AgentEventDetail, AgentEventType, AgentQuestion } from "@vault/shared";
 import type { AgentExecutor } from "./agent-executor.js";
-import type { AgentQuestionOutcome, SkillReader, SubagentRequest } from "./generic-tools.js";
+import type { ChatToolState } from "./chat-tool-turn.js";
+import type {
+  AgentQuestionOutcome,
+  GenericToolRegistry,
+  SkillReader,
+  SubagentRequest,
+} from "./generic-tools.js";
+import type { emptyPerformance } from "./inference-performance.js";
 import type { AgentDefinition } from "./markdown-definition-library.js";
 import type { AgentTraceStore } from "./trace-store.js";
 
@@ -12,10 +19,21 @@ export interface ChatAttachmentInput {
 }
 
 export type ChatRecoveryState = {
+  artifactRecoveryPending: boolean;
   emptyResponsePending: boolean;
   inferenceRetryUsed: boolean;
   outputLimitRetryUsed: boolean;
 };
+
+export interface ChatTurnOptions {
+  input: ChatAgentInput;
+  state: ChatToolState;
+  registry: GenericToolRegistry;
+  recovery: ChatRecoveryState;
+  performance: ReturnType<typeof emptyPerformance>;
+  forceCompletion: boolean;
+  finalTurn: boolean;
+}
 
 export interface ChatAgentInput {
   agent: AgentDefinition;

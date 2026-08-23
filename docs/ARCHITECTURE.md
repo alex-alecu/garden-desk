@@ -1,6 +1,6 @@
 # Architecture
 
-Updated: 2026-08-04
+Updated: 2026-08-22
 
 Vault Desk V1 is a local desktop application with three isolated layers: a thin Tauri interface, an authoritative Node.js control plane, and session-scoped no-NIC agent microVMs plus a narrow host-native inference worker.
 
@@ -67,7 +67,7 @@ The guest receives:
 
 The guest does not receive credentials, user home, writable host mounts, arbitrary host paths, a host shell, package installation, an external broker, a generic Vault Core API, approval authority, export authority, or a generic model endpoint.
 
-Vault Core treats only verified regular files created or changed by successful guest executions as candidate session-owned deliverables. At finalization it selects the latest observed bytes, excludes internal tool state and intermediate code, and validates path, size, bytes, hash, and protocol before persistence. It never lets the guest commit authoritative state or write the selected host folder.
+Vault Core treats only verified regular files created or changed by successful guest executions as candidate session-owned deliverables. A task-named output must be a safe current-run artifact before the final response can complete. Core gives one generic recovery turn when it is missing. It then returns a stable failure. Core excludes internal tool, output-spill, and checkpoint paths. It does not use a suffix or format allowlist for a safe task-named artifact. At finalization it selects the latest observed bytes and validates path, size, bytes, hash, and protocol before persistence. It never lets the guest commit authoritative state or write the selected host folder.
 
 ## Agent Loop
 
@@ -76,9 +76,9 @@ Vault Core owns the loop; the guest owns execution.
 1. Core resolves the session, canonical folder grant, attachments, and durable history.
 2. Core starts or reuses the guest and hydrates `/workspace`.
 3. Core sends persistent chat history plus generic JSON-Schema tool definitions to the constrained inference worker.
-4. The model returns text and zero or more native tool calls. Core validates each typed call and applies only generic loop limits, cancellation, and the repeated-call guard.
-5. Execution and inspection tools run inside the guest; skill bodies load on demand; a depth-one child agent gets an isolated history while sharing the same session VM.
-6. Tool results, including real interpreter failures, return to the model as conversation history. Core compacts that history at the measured context threshold without deleting durable trace or execution evidence.
+4. The model returns text and zero or more native tool calls. Core validates each typed call and applies only generic loop limits, cancellation, and the repeated-call guard. The `read` tool streams bytes and decodes strict UTF-8 plain text. Invalid UTF-8, NUL bytes, and invalid numeric arguments fail. Tool-result previews are at most 50 KiB after JSON encoding. Complete oversized output goes to the internal spill path.
+5. Execution and inspection tools run inside the guest; skill bodies load on demand through the generic `skill` tool; a depth-one child agent gets an isolated history while sharing the same session VM.
+6. Tool results, including real interpreter failures, return to the model as conversation history. Core compacts that history at the measured context threshold without deleting durable trace or execution evidence. A completed run can also enter the ordered per-session summary queue only when it reports a measured chat allocation of at least 16,384 tokens. Each summary attempt has a new request identity and trace. One retry is allowed only for an approved worker failure. Summary failure does not fail the completed run, and Core cancels pending summary work at shutdown. The queue does not use profile or model-status fallback values.
 7. Core records observable activity, validates and commits the workspace manifest, and retains the guest in a least-recently-used warm pool bounded by total RAM, the inference cap, a host reserve, and the fixed guest limit.
 8. On successful finalization, Core commits the assistant response and valid observed deliverables in one logical completion flow. `artifacts.materialize` creates a verified owner-only temporary copy. `artifacts.export` performs an atomic host write chosen through the native dialog; the webview never receives the destination path.
 
@@ -144,3 +144,4 @@ The same control-plane boundaries may later support supported personal computers
 | 2026-08-04 | Restricted Windows memory budgets and context tiers to one selected device's dedicated VRAM. |
 | 2026-08-12 | Recorded that the resident worker exposes multiple parallel context sequences so several model turns generate concurrently on one loaded model, with user turns prioritized over sub-agent turns and overflow queued. |
 | 2026-08-15 | Added neutral Windows dedicated-first GPU selection and shared-memory tiers without vendor rules. |
+| 2026-08-22 | Recorded strict streamed text inspection, bounded output spill, task-named artifact completion, and measured summary-queue behavior. |

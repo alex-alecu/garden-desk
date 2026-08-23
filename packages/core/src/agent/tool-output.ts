@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type { AgentSessionExecution } from "@vault/workers";
 import type { AgentExecutor } from "./agent-executor.js";
+import { isSuccessfulExecution } from "./execution-success.js";
 
 const MAX_LINES = 2_000;
 const MAX_BYTES = 50 * 1_024;
@@ -70,7 +71,7 @@ async function writeChunk(chunk: OutputChunk): Promise<void> {
     source,
   };
   const result = await (chunk.executor.inspect ?? chunk.executor.execute)(execution, chunk.signal);
-  if (result.termination !== "completed" || result.exitCode !== 0) {
+  if (!isSuccessfulExecution(result)) {
     throw new Error("tool_output_spill_failed");
   }
 }

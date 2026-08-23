@@ -1,6 +1,6 @@
 # Implementation Structure
 
-Updated: 2026-08-14
+Updated: 2026-08-22
 
 This blueprint accompanies [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md). M0, M1, and M2 source exists, and the M3 macOS implementation is complete. M3 remains active for its Windows product integration and cross-platform launch gate. Paths not yet present remain authority, not evidence of implementation.
 
@@ -62,8 +62,9 @@ and read-locks every packaged prompt before starting Core.
 M3 contains four format and command skills plus 14 professional review skills. Each product skill
 contains only `SKILL.md`; it has no script, reference, asset, UI metadata, or executable authority.
 `document-review` contains shared evidence and safety rules. The 12 focused domain skills do not
-repeat those rules. `review-report` owns formal result structure and optional DOCX or PDF output.
-Core does not load a bundle or select a domain.
+repeat those rules. The prompt-only `review-report` guidance gives formal result structure and
+optional DOCX or PDF output. Core does not load a bundle, select a domain, select a skill body,
+route a format, or parse a document format.
 
 ## M3 Package Shape
 
@@ -211,8 +212,8 @@ The existing workspace catalog remains the one authoritative database. M3 adds n
 - Agent runs, terminal state, observable events, and bounded numeric response-performance evidence.
 - Normalized execution attempts with identity, ordering, source or command, terminal evidence, 1 MB stdout, 1 MB stderr, 256 KiB allowlisted VM diagnostics, truncation flags, and recovery timestamps. Catalog migration v7 backfills historical execution events. Those durable 1 MB stream caps are independent of the smaller middle-elided excerpt each stream contributes to the next decision prompt.
 - Versioned inference turns linked to runs, with prompt, schema, and pre-parse structured-result content hashes; worker request metadata; decision outcomes; execution links; and recovery timestamps. Catalog migration v8 leaves historical runs explicitly unrecorded.
-- One anchored session summary per session, replaced in place as later runs merge the largest allocation-fitting prefix of new turns into it and removed with its session. Catalog migration v12 adds it; the summary carries continuity prose only, never authoritative values, and has one bounded structured-call retry before deterministic fallback.
-- Declared generated-file metadata and immutable bytes accepted only at successful finalization; undeclared workspace intermediates remain recoverable without artifact rows.
+- One anchored session summary per session, replaced in place as later runs merge the largest allocation-fitting prefix of new turns into it and removed with its session. Catalog migration v12 adds it. Summary work starts only from a measured chat allocation of at least 16,384 tokens. It uses a per-session ordered non-fatal queue, fresh request identities and traces, and one retry only for an approved worker failure. Core cancels pending summary work at shutdown. The summary carries continuity prose only, never authoritative values.
+- Generated-file metadata and immutable bytes are accepted only at successful finalization. A task-named output must be a safe current-run artifact; one generic recovery is allowed before a stable failure. Internal tool, output-spill, and checkpoint paths are excluded. Other workspace intermediates remain recoverable without artifact rows.
 - Session-scoped content-addressed workspace manifests stored under the private `.vault` state root.
 
 The newest-five sidebar query is ordered by last activity plus stable ID. Expansion uses an opaque stable cursor. Removing a grant does not delete session history or host files.
@@ -257,3 +258,4 @@ The existing source-limit gate remains authoritative. Prefer files below 300 lin
 | 2026-08-04 | Added final-response deliverable declarations, Core materialization/export adapters, and pinned DOCX/XLSX/PDF skill assets. |
 | 2026-08-14 | Added the reviewed guest Antiword package and replaced the DOCX-only skill with one Word document skill. |
 | 2026-08-15 | Added the 14 prompt-only professional review skills and kept domain selection outside Core. |
+| 2026-08-22 | Recorded generic skill loading, measured summary-queue behavior, and task-named artifact completion. |

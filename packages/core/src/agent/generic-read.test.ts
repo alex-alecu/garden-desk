@@ -36,16 +36,48 @@ async function readSource(params: Record<string, unknown>): Promise<string> {
   return source(runs[0] as (typeof runs)[number]);
 }
 
-async function executeRead(bytes: Uint8Array, params: Record<string, unknown> = {}) {
+// biome-ignore lint/complexity/noExcessiveLinesPerFunction: focused read fixture prepares and runs one guest program.
+async function executeRead(
+  bytes: Uint8Array,
+  params: Record<string, unknown> = {},
+  maximumWrite?: number,
+  secondPassBytes?: Uint8Array,
+) {
   const root = await mkdtemp(join(tmpdir(), "vault-generic-read-"));
   try {
     await writeFile(join(root, "input"), bytes);
     const guestRoot = root.replaceAll("\\", "/");
+    const stdoutLimit =
+      maximumWrite === undefined
+        ? ""
+        : [
+            "class LimitedStdout:",
+            "    def __init__(self, target): self.target = target",
+            "    def write(self, text):",
+            `        if len(text) > ${maximumWrite}: raise ValueError('read_output_not_streamed')`,
+            "        return self.target.write(text)",
+            "    def flush(self): return self.target.flush()",
+            "sys.stdout = LimitedStdout(sys.stdout)",
+          ].join("\n");
+    const secondPassMutation =
+      secondPassBytes === undefined
+        ? ""
+        : [
+            "            with path.open('r+b') as updated:",
+            "                updated.seek(0)",
+            `                updated.write(bytes(${JSON.stringify([...secondPassBytes])}))`,
+            "                updated.flush()",
+          ].join("\n");
     const script = (await readSource({ path: "input", ...params }))
       .replaceAll("/source", guestRoot)
       .replace(
         "resolved not in roots and not str(resolved).startswith(tuple(str(root) + '/' for root in roots))",
         "resolved not in roots and not any(resolved.is_relative_to(root) for root in roots)",
+      )
+      .replace("root = safe(args.get('path'))", `${stdoutLimit}\nroot = safe(args.get('path'))`)
+      .replace(
+        "            handle.seek(0)\n            stream(handle)",
+        `            handle.seek(0)\n${secondPassMutation}\n            stream(handle)`,
       );
     const path = join(root, "read.py");
     await writeFile(path, script);
@@ -74,13 +106,22 @@ describe("generic read", () => {
     expect(program).toContain("limit = args.get('limit', 2000)");
     expect(program).toContain("codecs.getincrementaldecoder('utf-8')('strict')");
     expect(program).toContain("with path.open('rb') as handle:");
+    expect(program).toContain("def stream(handle):");
     expect(program).toContain("def consume(text):");
-    expect(program).toContain("nonlocal current_line, line, after_cr");
+    expect(program).toContain("sys.stdout.write(text)");
     expect(program).toContain("if offset <= current_line < offset + limit:");
-    expect(program).toContain("for line in read_utf8_lines(root, offset, limit): print(line)");
+    expect(program).toContain("handle.seek(0)");
+    expect(program).toContain("read_utf8_lines(root, offset, limit)");
     expect(readProgram.match(/path\.open\(/gu)).toHaveLength(1);
+    expect(readProgram.indexOf("handle.seek(0)")).toBeGreaterThan(
+      readProgram.indexOf("decoder.decode(b'', final=True)"),
+    );
     expect(readProgram).not.toContain("read_text(");
     expect(readProgram).not.toContain("splitlines()");
+    expect(readProgram).not.toContain("selected = []");
+    expect(readProgram).not.toContain("selected.append");
+    expect(readProgram).not.toContain("line = []");
+    expect(readProgram).not.toContain("''.join(");
 
     await expect(
       executeRead(Buffer.from("first\nă second\nthird\n"), { offset: 2, limit: 1 }),
@@ -110,11 +151,51 @@ describe("generic read", () => {
       },
     );
   });
-
+  it("keeps CR, LF, and CRLF line boundaries", async () => {
+    await expect(
+      executeRead(Buffer.from("first\rsecond\nthird\r\nlast"), { offset: 2, limit: 3 }),
+    ).resolves.toEqual({
+      code: 0,
+      stderr: "",
+      stdout: "2: second\n3: third\n4: last\n",
+    });
+  });
   it("discards an unrequested long line without returning it", async () => {
     const result = await executeRead(Buffer.alloc(2 * 65_536, "x"), { offset: 2, limit: 1 });
 
     expect(result).toEqual({ code: 0, stderr: "", stdout: "" });
+  });
+
+  it("streams a requested long single line without retaining it", async () => {
+    const length = 2 * 65_536;
+    const result = await executeRead(Buffer.alloc(length, "x"), {}, 65_536);
+
+    expect(result).toMatchObject({ code: 0, stderr: "" });
+    expect(result.stdout).toHaveLength(length + 4);
+    expect(result.stdout.startsWith("1: ")).toBe(true);
+    expect(result.stdout.endsWith("x\n")).toBe(true);
+  });
+
+  it("rejects a NUL byte added after validation and before the second pass", async () => {
+    const result = await executeRead(
+      Buffer.from("first line\n"),
+      {},
+      undefined,
+      Buffer.from("\0irst line\n"),
+    );
+
+    expect(result).toMatchObject({ code: 1, stdout: "" });
+    expect(result.stderr).toContain("ValueError: read_requires_utf8_text");
+  });
+
+  it("streams a valid live-file update in the second pass", async () => {
+    await expect(
+      executeRead(Buffer.from("first\nsecond\n"), {}, undefined, Buffer.from("third\nfourth\n")),
+    ).resolves.toEqual({
+      code: 0,
+      stderr: "",
+      stdout: "1: third\n2: fourth\n",
+    });
   });
 
   it.each([
@@ -132,7 +213,7 @@ describe("generic read", () => {
     expect(program).toContain("while chunk := handle.read(65536)");
     expect(program).toContain("if b'\\0' in chunk: raise ValueError('read_requires_utf8_text')");
     expect(program).toContain("except UnicodeDecodeError:");
-    expect(program.match(/read_requires_utf8_text/gu)).toHaveLength(2);
+    expect(program.match(/read_requires_utf8_text/gu)).toHaveLength(3);
     expect(result).toMatchObject({ code: 1, stdout: "" });
     expect(result.stderr).toContain("ValueError: read_requires_utf8_text");
   });

@@ -1,5 +1,10 @@
-import type { AgentArtifactSummary, AgentExecutionResult } from "@vault/shared";
+import {
+  type AgentArtifactSummary,
+  type AgentExecutionResult,
+  AgentWorkspacePathSchema,
+} from "@vault/shared";
 import type { ArtifactStore } from "../workspace/artifacts.js";
+import { isSuccessfulExecution } from "./execution-success.js";
 import { attachmentMediaType } from "./records.js";
 
 export interface ArtifactOutput {
@@ -7,29 +12,40 @@ export interface ArtifactOutput {
   bytesBase64: string;
 }
 
-function internal(path: string): boolean {
+export function isUserArtifactPath(path: string): boolean {
   return (
-    path.startsWith(".vault-tools/") ||
-    path.startsWith(".vault-output/") ||
-    /(?:^|\/)checkpoints?\.json$/iu.test(path)
+    AgentWorkspacePathSchema.safeParse(path).success &&
+    !(
+      path === ".vault-tools" ||
+      path.startsWith(".vault-tools/") ||
+      path === ".vault-output" ||
+      path.startsWith(".vault-output/") ||
+      /(?:^|\/)checkpoints?\.json$/iu.test(path)
+    )
   );
+}
+
+function applyExecutionArtifacts(
+  current: Map<string, ArtifactOutput>,
+  execution: AgentExecutionResult,
+): void {
+  for (const path of execution.invalidatedArtifactPaths ?? []) current.delete(path);
+  if (!isSuccessfulExecution(execution)) return;
+  for (const artifact of execution.artifacts) {
+    if (isUserArtifactPath(artifact.name)) {
+      current.set(artifact.name, {
+        name: artifact.name,
+        bytesBase64: artifact.bytesBase64,
+      });
+    }
+  }
 }
 
 export function currentArtifactOutputs(
   executions: readonly AgentExecutionResult[],
 ): ReadonlyMap<string, ArtifactOutput> {
   const current = new Map<string, ArtifactOutput>();
-  for (const execution of executions) {
-    for (const path of execution.invalidatedArtifactPaths ?? []) current.delete(path);
-    for (const artifact of execution.artifacts) {
-      if (!internal(artifact.name)) {
-        current.set(artifact.name, {
-          name: artifact.name,
-          bytesBase64: artifact.bytesBase64,
-        });
-      }
-    }
-  }
+  for (const execution of executions) applyExecutionArtifacts(current, execution);
   return current;
 }
 

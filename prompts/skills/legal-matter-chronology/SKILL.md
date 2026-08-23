@@ -1,19 +1,12 @@
 ---
 name: legal-matter-chronology
-description: Build a cited chronology from legal correspondence, agreements, notices, notes, and records. Use after document-review when the task asks what happened and when. Do not use for contract terms, version comparison, diligence status, legal effect, or credibility decisions.
+description: Cited legal chronology. Load after document-review. Exclude: contract terms, version comparison, diligence status, legal effect, credibility decisions.
 ---
-
-# Legal Matter Chronology
 
 Use only the supplied records. Do not infer intent, legal effect, credibility, causation, or a missing event.
 
-Extract each event date, time, actor, action, document type, subject, and exact source location. Preserve the difference between an event date, document date, signature date, sent date, received date, filed date, and date mentioned in text. Keep undated events in a separate section.
+Extract each event date, time, actor, action, document type, subject, and exact source location. Distinguish event, document, signature, sent, received, filed, and text-mentioned dates. Keep undated events separate.
 
-Order events by the best supported date. When dates conflict, keep each value and source in one conflict row. Do not select one date as correct without supplied evidence. Mark an inferred order as `sequence inferred from supplied records` and state the basis.
+Order events by the best supported date. For a conflict, keep each value and source in one row. Do not select a correct date without supplied evidence. Mark inferred order `sequence inferred from supplied records` and state its basis.
 
-Use this table:
-
-| Date or range | Event | Actor | Source fact | Evidence location | Status or conflict |
-|---|---|---|---|---|---|
-
-Finish with missing periods, unresolved date conflicts, and questions for qualified human review. Do not state a legal conclusion.
+Output one table: date or range; event; actor; source fact; evidence location; status or conflict. Finish with missing periods, unresolved date conflicts, and questions for qualified human review. Do not state a legal conclusion.

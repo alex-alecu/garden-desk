@@ -1,0 +1,40 @@
+import { describe, expect, it } from "vitest";
+import { encodeInferenceResponse, InferenceResponseDecoder } from "./frames.js";
+import { inferenceFailureResponse } from "./worker-errors.js";
+
+const privateData =
+  'stderr=/private/worker.log args={"path":"/private/input"} modelOutput=secret stack=private';
+
+describe("inference worker failures", () => {
+  it("returns a fixed private error response", () => {
+    const response = inferenceFailureResponse(new Error(privateData));
+    const frame = encodeInferenceResponse({
+      protocolVersion: 2,
+      requestId: "00000000-0000-4000-8000-000000000001",
+      status: "error",
+      error: response,
+    });
+    const [decoded] = new InferenceResponseDecoder().push(frame);
+
+    expect(response).toEqual({ code: "internal", message: "Inference failed." });
+    expect(decoded).toEqual({
+      protocolVersion: 2,
+      requestId: "00000000-0000-4000-8000-000000000001",
+      status: "error",
+      error: response,
+    });
+    expect(JSON.stringify(decoded)).not.toContain(privateData);
+    expect(response).not.toHaveProperty("details");
+  });
+
+  it("keeps the checkpoint worker error codes", () => {
+    expect(inferenceFailureResponse(new DOMException("stop", "AbortError")).code).toBe("cancelled");
+    expect(inferenceFailureResponse(new DOMException("timeout", "TimeoutError")).code).toBe(
+      "timeout",
+    );
+    expect(inferenceFailureResponse(new Error("supported_gpu_required")).code).toBe("unsupported");
+    expect(inferenceFailureResponse(new Error("memory allocation failed")).code).toBe(
+      "out_of_memory",
+    );
+  });
+});

@@ -11,34 +11,17 @@ import {
   InferenceRequestDecoder,
 } from "./frames.js";
 import { probe } from "./probe.js";
+import { inferenceFailureResponse } from "./worker-errors.js";
 import { chat, embed, generate } from "./worker-operations.js";
 import { runtime } from "./worker-runtime.js";
 
 function failure(requestId: RequestId, error: unknown): InferenceWorkerResponse {
-  const text = error instanceof Error ? error.message : String(error);
   return {
     protocolVersion: 2,
     requestId,
     status: "error",
-    error: { code: failureCode(error, text), message: text },
+    error: inferenceFailureResponse(error),
   };
-}
-
-function failureCode(error: unknown, text: string) {
-  if (error instanceof DOMException && error.name === "AbortError") return "cancelled" as const;
-  if (error instanceof DOMException && error.name === "TimeoutError") return "timeout" as const;
-  if (unsupported(text)) return "unsupported" as const;
-  return /memory|allocation|out of memory/iu.test(text) ? "out_of_memory" : "internal";
-}
-
-function unsupported(text: string): boolean {
-  return [
-    "supported_gpu_required",
-    "selected_gpu_backend_required",
-    "selected_gpu_changed",
-    "selected_gpu_isolation_failed",
-    "context_size_exceeds_hardware_cap",
-  ].includes(text);
 }
 
 async function infer(

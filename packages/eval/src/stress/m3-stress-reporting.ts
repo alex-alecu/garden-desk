@@ -1,5 +1,6 @@
 import type { AgentRunSnapshot, AgentTrace } from "@vault/shared";
 import type { ExpectedTableRow } from "./document-workloads.js";
+import { legacyDocEvidence } from "./legacy-doc-evidence.js";
 import type { ActiveCase, StressCaseResult } from "./m3-stress-runtime.js";
 
 export function terminal(snapshot: AgentRunSnapshot): boolean {
@@ -220,6 +221,7 @@ function stressError(active: ActiveCase, snapshot: AgentRunSnapshot): string | n
   return snapshot.run.error;
 }
 
+// biome-ignore lint/complexity/noExcessiveLinesPerFunction: one result keeps all acceptance gates visible.
 export function stressResultFor(
   active: ActiveCase,
   snapshot: AgentRunSnapshot,
@@ -235,6 +237,7 @@ export function stressResultFor(
   const response = responseEvidence(active, snapshot);
   const skills = skillEvidence(active, verification.trace);
   const executionText = executionTextEvidence(active, snapshot);
+  const legacyDoc = legacyDocEvidence(active.fixture.id, snapshot, verification.trace);
   const error = stressError(active, snapshot);
   const passed =
     snapshot.run.state === "succeeded" &&
@@ -246,6 +249,8 @@ export function stressResultFor(
     skills.skillOrderValid &&
     skills.calledForbiddenSkills.length === 0 &&
     executionText.missingExecutionText.length === 0 &&
+    legacyDoc.orderValid &&
+    legacyDoc.methodValid &&
     verifiedDeliverables.length === (active.fixture.deliverables?.length ?? 0) &&
     error === null;
   return {
@@ -261,6 +266,8 @@ export function stressResultFor(
     ...response,
     ...executionText,
     ...skills,
+    legacyDocMethodValid: legacyDoc.methodValid,
+    legacyDocOrderValid: legacyDoc.orderValid,
     producedArtifacts: snapshot.artifacts.map((artifact) => artifact.name),
     error,
     inferenceFailures: inferenceFailures(verification.trace),

@@ -1,6 +1,6 @@
 # Workflows
 
-Updated: 2026-08-14
+Updated: 2026-08-22
 
 Vault Desk V1 is a general-purpose local file agent with a limited prompt-only professional review set. The skill set gives the agent focused instructions; it does not add predefined workflow state machines, domain policy in Core, or the post-V1 document-intelligence system.
 
@@ -26,14 +26,20 @@ Examples:
 - Package installation and runtime network access are unavailable.
 - The guest can write only to its persistent 128 MiB workspace and ephemeral `/run`; it cannot change host source files.
 - Vault Core mediates model completions, limits, cancellation, audit, and results.
-- Only explicitly requested files declared by a successful final response become deliverables. They are proposals, not silent host mutations; Open uses a verified temporary copy and Save As requires a native user-selected destination.
+- Safe current-run workspace files can become deliverables only with a successful final response. A task-named output must exist at its safe named path. Core gives one generic recovery turn when it is absent, then returns a stable failure. Internal tool, output-spill, and checkpoint paths are excluded. Safe task-named outputs have no suffix or format allowlist. Deliverables are proposals, not silent host mutations; Open uses a verified temporary copy and Save As requires a native user-selected destination.
 - Observable code and activity are reviewable; hidden reasoning is not persisted.
 
 ## Session Model
 
 Each folder is a sidebar group. Its five newest sessions are immediately visible and older sessions load through Show more. New chat is a separate global area for conversations with optional file attachments and no implicit folder grant.
 
-Sessions persist user messages, assistant messages, observable agent activity, declared deliverable metadata and immutable bytes, warnings, drafts, and terminal outcomes. Undeclared intermediates remain in the bounded session workspace and debug snapshot. Sessions do not persist hidden model reasoning.
+Sessions persist user messages, assistant messages, observable agent activity, accepted deliverable metadata and immutable bytes, warnings, drafts, and terminal outcomes. Other workspace intermediates remain in the bounded session workspace and debug snapshot. Sessions do not persist hidden model reasoning.
+
+## Prompt-Only Format Methods
+
+The Word, PDF, XLSX, and review-report skills give prompt-only guest methods. Core advertises skill metadata and returns a body only when the model calls the generic `skill` tool. Core does not route file formats, select skill bodies, or parse document formats.
+
+For multi-step format work, a skill can require a guest-workspace checkpoint. The final output program must reread source facts, derive values again, compare them with the saved verified state, create each requested output, reopen it, and verify it before completion. This is a prompt method. It is not a Core format workflow.
 
 ## Post-V1 Workflow Specialization
 
@@ -49,7 +55,7 @@ The V1 workflow suite covers:
 - Restart, reconnect, cancellation, timeout, and guest crash.
 - Traversal, escaping links, host-write attempts, credential access, package installation, network access, process storms, and resource exhaustion.
 - Bounded generated source, commands, stdout, stderr, artifacts, observations, model turns, time, memory, CPU, and persistent workspace. The live read-only source folder is not copied or size-limited.
-- Trusted task text, attachment names, and typed workflow state route product-owned Word, XLSX, and PDF skills without exposing a skill picker or routing from file contents, logs, or model output. The Word skill reads legacy DOC files as plain text through guest Antiword, but it creates and edits only DOCX files.
+- The generic `skill` tool loads product-owned Word, XLSX, PDF, review-report, and professional-review guidance on demand. Core has no format router, skill-body selection rule, or format parser. The Word guidance reads legacy DOC files as plain text through guest Antiword, but it creates and edits only DOCX files.
 - Packaged macOS and Windows behavior with zero-download first launch.
 
 Task-quality cases use deterministic development and held-out inputs. Security invariants require complete detection; general answer quality is reported honestly rather than hidden behind one aggregate score.
@@ -62,5 +68,6 @@ Task-quality cases use deterministic development and held-out inputs. Security i
 | 2026-07-20 | Replaced the pre-V1 vertical workflow sequence with the generic offline dev-agent interaction. |
 | 2026-08-15 | Added limited prompt-only legal, finance, and medical-administration review without adding vertical workflow state machines. |
 | 2026-07-23 | Added the live read-only folder, guest shell tools, session VM, and persistent bounded workspace workflow. |
-| 2026-08-04 | Added declared generated-file deliverables, explicit Open and Save As actions, and invisible DOCX, XLSX, and PDF skill routing. |
+| 2026-08-04 | Added generated-file deliverables and explicit Open and Save As actions. |
 | 2026-08-14 | Replaced the DOCX-only skill with one Word skill and added legacy DOC plain-text input through guest Antiword. |
+| 2026-08-22 | Recorded generic skill loading, prompt-only format checkpoints, and task-named artifact completion. |
