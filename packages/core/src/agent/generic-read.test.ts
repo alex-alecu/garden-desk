@@ -1,7 +1,7 @@
 // biome-ignore lint/style/noRestrictedImports: this focused test runs the generated guest script.
 import { execFile } from "node:child_process";
 // biome-ignore lint/style/noRestrictedImports: this focused test creates guest input bytes.
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, realpath, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { promisify } from "node:util";
@@ -46,7 +46,7 @@ async function executeRead(
   const root = await mkdtemp(join(tmpdir(), "vault-generic-read-"));
   try {
     await writeFile(join(root, "input"), bytes);
-    const guestRoot = root.replaceAll("\\", "/");
+    const guestRoot = (await realpath(root)).replaceAll("\\", "/");
     const stdoutLimit =
       maximumWrite === undefined
         ? ""
