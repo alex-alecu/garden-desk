@@ -111,7 +111,7 @@ function expectWord(library: MarkdownDefinitionLibrary): void {
   expect(skill.description).toContain("never use generic read or cat for binary DOC");
   expect(skill.body).toContain("Load this skill before any DOC access");
   expect(skill.body).toContain("never use generic `read` or `cat`");
-  expect(skill.body).toContain("the only approved extraction is Python `subprocess.run");
+  expect(skill.body).toContain("use this complete Python pattern");
   expect(skill.body).toContain('["/usr/bin/antiword", "-m", "UTF-8.txt", "-w", "0", str(source)]');
   expect(skill.body).toContain('result.stdout.decode("utf-8", errors="strict")');
   expect(skill.body).toContain("Never create/edit `.doc`");
