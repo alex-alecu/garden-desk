@@ -60,6 +60,18 @@ function negatedCreation(task: string, match: RegExpMatchArray): boolean {
   return NEGATED_CREATION.test(task.slice(0, match.index));
 }
 
+function acceptedFilename(
+  text: string,
+  match: RegExpMatchArray,
+  candidate: { name: string; quoted: boolean },
+  allowExtensionless: boolean,
+): boolean {
+  const namedTarget = !fileDestinationText(text, match) && explicitTarget(text, match);
+  if (namedTarget) return true;
+  if (pathLike(candidate.name)) return candidate.quoted || trailingTarget(text, match);
+  return allowExtensionless && (candidate.quoted || standaloneTarget(text, match));
+}
+
 function filenameTokens(text: string, allowExtensionless: boolean): string[] {
   const names: string[] = [];
   for (const match of text.matchAll(FILENAME_TOKEN)) {
@@ -67,14 +79,9 @@ function filenameTokens(text: string, allowExtensionless: boolean): string[] {
     const token = quoted ?? match[4];
     if (token === undefined) continue;
     const name = safeUserArtifactPath(token);
-    const namedTarget = !fileDestinationText(text, match) && explicitTarget(text, match);
     if (
       name !== undefined &&
-      ((allowExtensionless &&
-        !pathLike(name) &&
-        (quoted !== undefined || standaloneTarget(text, match) || namedTarget)) ||
-        (pathLike(name) && (quoted !== undefined || trailingTarget(text, match))) ||
-        namedTarget)
+      acceptedFilename(text, match, { name, quoted: quoted !== undefined }, allowExtensionless)
     ) {
       names.push(name);
     }
