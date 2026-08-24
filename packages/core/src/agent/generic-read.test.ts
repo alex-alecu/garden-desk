@@ -40,9 +40,13 @@ async function readSource(params: Record<string, unknown>): Promise<string> {
 async function executeRead(
   bytes: Uint8Array,
   params: Record<string, unknown> = {},
-  maximumWrite?: number,
-  secondPassBytes?: Uint8Array,
+  options: {
+    maximumSecondPassReads?: number;
+    maximumWrite?: number;
+    secondPassBytes?: Uint8Array;
+  } = {},
 ) {
+  const { maximumSecondPassReads, maximumWrite, secondPassBytes } = options;
   const root = await mkdtemp(join(tmpdir(), "vault-generic-read-"));
   try {
     await writeFile(join(root, "input"), bytes);
@@ -68,6 +72,18 @@ async function executeRead(
             `                updated.write(bytes(${JSON.stringify([...secondPassBytes])}))`,
             "                updated.flush()",
           ].join("\n");
+    const secondPassStream =
+      maximumSecondPassReads === undefined
+        ? "            stream(handle)"
+        : [
+            "            class LimitedReads:",
+            "                def __init__(self, target): self.target, self.reads = target, 0",
+            "                def read(self, size):",
+            "                    self.reads += 1",
+            `                    if self.reads > ${maximumSecondPassReads}: raise ValueError('read_range_scanned_to_eof')`,
+            "                    return self.target.read(size)",
+            "            stream(LimitedReads(handle))",
+          ].join("\n");
     const script = (await readSource({ path: "input", ...params }))
       .replaceAll("/source", guestRoot)
       .replace(
@@ -77,7 +93,7 @@ async function executeRead(
       .replace("root = safe(args.get('path'))", `${stdoutLimit}\nroot = safe(args.get('path'))`)
       .replace(
         "            handle.seek(0)\n            stream(handle)",
-        `            handle.seek(0)\n${secondPassMutation}\n            stream(handle)`,
+        `            handle.seek(0)\n${secondPassMutation}\n${secondPassStream}`,
       );
     const path = join(root, "read.py");
     await writeFile(path, script);
@@ -166,9 +182,34 @@ describe("generic read", () => {
     expect(result).toEqual({ code: 0, stderr: "", stdout: "" });
   });
 
+  it("stops the second pass after the requested final line ending", async () => {
+    const bytes = Buffer.concat([Buffer.from("selected\n"), Buffer.alloc(3 * 65_536, "x")]);
+
+    await expect(
+      executeRead(bytes, { offset: 1, limit: 1 }, { maximumSecondPassReads: 1 }),
+    ).resolves.toEqual({
+      code: 0,
+      stderr: "",
+      stdout: "1: selected\n",
+    });
+  });
+
+  it("validates the complete file before it returns a short range", async () => {
+    const bytes = Buffer.concat([
+      Buffer.from("selected\n"),
+      Buffer.alloc(2 * 65_536, "x"),
+      Buffer.from([0xc3, 0x28]),
+    ]);
+
+    const result = await executeRead(bytes, { offset: 1, limit: 1 });
+
+    expect(result).toMatchObject({ code: 1, stdout: "" });
+    expect(result.stderr).toContain("ValueError: read_requires_utf8_text");
+  });
+
   it("streams a requested long single line without retaining it", async () => {
     const length = 2 * 65_536;
-    const result = await executeRead(Buffer.alloc(length, "x"), {}, 65_536);
+    const result = await executeRead(Buffer.alloc(length, "x"), {}, { maximumWrite: 65_536 });
 
     expect(result).toMatchObject({ code: 0, stderr: "" });
     expect(result.stdout).toHaveLength(length + 4);
@@ -180,8 +221,7 @@ describe("generic read", () => {
     const result = await executeRead(
       Buffer.from("first line\n"),
       {},
-      undefined,
-      Buffer.from("\0irst line\n"),
+      { secondPassBytes: Buffer.from("\0irst line\n") },
     );
 
     expect(result).toMatchObject({ code: 1, stdout: "" });
@@ -190,7 +230,13 @@ describe("generic read", () => {
 
   it("streams a valid live-file update in the second pass", async () => {
     await expect(
-      executeRead(Buffer.from("first\nsecond\n"), {}, undefined, Buffer.from("third\nfourth\n")),
+      executeRead(
+        Buffer.from("first\nsecond\n"),
+        {},
+        {
+          secondPassBytes: Buffer.from("third\nfourth\n"),
+        },
+      ),
     ).resolves.toEqual({
       code: 0,
       stderr: "",
