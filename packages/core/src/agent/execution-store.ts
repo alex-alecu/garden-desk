@@ -7,6 +7,7 @@ import {
   AgentVmDiagnosticSchema,
 } from "@vault/shared";
 import type { DatabasePort } from "../workspace/database.js";
+import { isSuccessfulExecution } from "./execution-success.js";
 import { type ExecutionRow, executionFromRow } from "./records.js";
 
 export type ExecutionInput =
@@ -51,7 +52,7 @@ function newExecution(runId: string, input: ExecutionInput, sequence: number) {
 
 function terminalState(result: AgentExecutionResult) {
   if (result.termination === "cancelled") return "cancelled";
-  return result.termination === "completed" && result.exitCode === 0 ? "completed" : "failed";
+  return isSuccessfulExecution(result) ? "completed" : "failed";
 }
 
 function outputTruncated(previous: number, terminalFlag: boolean | undefined): number {

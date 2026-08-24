@@ -16,6 +16,35 @@ This document is the canonical implementation and contribution workflow for Vaul
 
 The repository does not require a universal test-coverage percentage, test-driven development for every edit, proactive delegation, blanket immutability, or a generic application architecture. The milestone gates and the risk-based test policy define what is required.
 
+## Development Inference Diagnostics
+
+Development desktop resources compile a raw inference diagnostic path. The confined worker can send
+bounded raw failure data only to stderr. The host collector writes at most 1 MiB per native worker
+to `packages/eval/.generated/inference-diagnostics/<run-id>/worker-stderr.log`. The worker cannot
+write this path directly.
+
+Before a native worker exists, the development Core writes a bounded host failure record to
+`packages/eval/.generated/inference-diagnostics/<run-id>/inference-host.log`. It has the failed
+stage and operation plus bounded error details. This private file is not a product record.
+
+The generated development headless bundle and copied migrations use
+`packages/eval/.generated/development-inference-headless`. They never share the private diagnostic
+root.
+
+Before this bundle starts Core, the development wrapper removes only the obsolete
+`packages/eval/.generated/inference-diagnostics/headless` directory. It does not remove UUID
+diagnostic directories.
+
+The named local M3 and stress commands first build fixed development headless artifacts. They use a
+development Core bundle and a development inference worker automatically. Windows keeps the
+packaged runtime and AppContainer path. macOS keeps the current Seatbelt path. A release desktop
+build and staged public resources always use production artifacts.
+
+The normal desktop build compiles this path out. It does not create raw diagnostic files and keeps
+the fixed private inference error. There is no runtime flag, environment variable, command option,
+or user control for diagnostics. These local files can contain private data. Do not add them to
+reports, catalog records, audit records, debug snapshots, user-interface data, or Git.
+
 ## 1. Confirm The Active Milestone
 
 Before changing a file:

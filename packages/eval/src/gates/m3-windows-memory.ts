@@ -4,14 +4,14 @@ import { join } from "node:path";
 import { createVaultCore } from "@vault/core";
 import { resolveMaximumGenerationContext } from "@vault/workers";
 import { generationModelId, prepareAgentModelStore } from "./agent-model-store.js";
-import { windowsInferencePaths } from "./windows-inference.js";
+import { developmentWindowsInferencePaths } from "./windows-inference.js";
 
 const modelId = generationModelId;
 const modelRoot = join(process.cwd(), "packages/eval/.generated/models");
 const GiB = 1024 * 1024 * 1024;
 
 async function generate(workspaceDir: string) {
-  const inference = await windowsInferencePaths();
+  const inference = await developmentWindowsInferencePaths();
   const core = await createVaultCore({
     workspaceDir,
     modelStoreDir: modelRoot,

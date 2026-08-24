@@ -2,6 +2,7 @@ import { mkdir, rm, writeFile } from "node:fs/promises";
 import { totalmem } from "node:os";
 import { join } from "node:path";
 import type { AgentTrace } from "@vault/shared";
+import { anchoredSummaryFromTracePrompt } from "./m3-context-session-reporting.js";
 import {
   createStressSession,
   deleteStressSession,
@@ -41,22 +42,6 @@ function pressureTask(decision: string, characters: number): string {
 
 function latestPrompt(trace: AgentTrace): string {
   return trace.turns.at(-1)?.prompt ?? "";
-}
-
-function anchoredSummary(prompt: string): string | undefined {
-  const heading = "Anchored summary of earlier turns:\n";
-  const start = prompt.indexOf(heading);
-  if (start === -1) return undefined;
-  const contentStart = start + heading.length;
-  const endings = [
-    "\nOlder execution summary:",
-    "\nNewest unsuperseded failed execution:",
-    "\nRecent conversation:",
-  ]
-    .map((marker) => prompt.indexOf(marker, contentStart))
-    .filter((index) => index !== -1);
-  const end = endings.length === 0 ? prompt.length : Math.min(...endings);
-  return prompt.slice(contentStart, end).trim();
 }
 
 function reportPath(): string {
@@ -115,7 +100,7 @@ async function runContextSession(endpoint: string, sessionId: string) {
 function sessionReport(session: Awaited<ReturnType<typeof runContextSession>>) {
   const { contextTokens, fillerCharacters, final, turns } = session;
   const anchors = turns.flatMap((turn) => {
-    const summary = anchoredSummary(latestPrompt(turn.trace));
+    const summary = anchoredSummaryFromTracePrompt(latestPrompt(turn.trace));
     return summary === undefined ? [] : [summary];
   });
   const distinctAnchors = [...new Set(anchors)];
@@ -149,7 +134,7 @@ function sessionReport(session: Awaited<ReturnType<typeof runContextSession>>) {
       state: turn.snapshot.run.state,
       error: turn.snapshot.run.error,
       promptCharacters: latestPrompt(turn.trace).length,
-      anchored: anchoredSummary(latestPrompt(turn.trace)) !== undefined,
+      anchored: anchoredSummaryFromTracePrompt(latestPrompt(turn.trace)) !== undefined,
     })),
   };
 }

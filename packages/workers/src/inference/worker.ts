@@ -6,39 +6,36 @@ import type {
   RequestId,
 } from "@vault/shared";
 import {
+  writeDevelopmentOperationFailure,
+  writeDevelopmentWorkerFailure,
+  writeDevelopmentWorkerStderrReady,
+} from "./development-diagnostics.js";
+import {
   encodeInferenceMessage,
   encodeInferenceResponse,
   InferenceRequestDecoder,
 } from "./frames.js";
 import { probe } from "./probe.js";
+import { inferenceFailureResponse } from "./worker-errors.js";
 import { chat, embed, generate } from "./worker-operations.js";
 import { runtime } from "./worker-runtime.js";
 
+if (globalThis.__VAULT_DEVELOPMENT_BUILD__ === true) writeDevelopmentWorkerStderrReady();
+
+function recordDevelopmentFailure(error: unknown, operation?: "chat" | "generate" | "embed"): void {
+  if (globalThis.__VAULT_DEVELOPMENT_BUILD__ === true) {
+    if (operation === undefined) writeDevelopmentWorkerFailure(error);
+    else writeDevelopmentOperationFailure(operation, error);
+  }
+}
+
 function failure(requestId: RequestId, error: unknown): InferenceWorkerResponse {
-  const text = error instanceof Error ? error.message : String(error);
   return {
     protocolVersion: 2,
     requestId,
     status: "error",
-    error: { code: failureCode(error, text), message: text },
+    error: inferenceFailureResponse(error),
   };
-}
-
-function failureCode(error: unknown, text: string) {
-  if (error instanceof DOMException && error.name === "AbortError") return "cancelled" as const;
-  if (error instanceof DOMException && error.name === "TimeoutError") return "timeout" as const;
-  if (unsupported(text)) return "unsupported" as const;
-  return /memory|allocation|out of memory/iu.test(text) ? "out_of_memory" : "internal";
-}
-
-function unsupported(text: string): boolean {
-  return [
-    "supported_gpu_required",
-    "selected_gpu_backend_required",
-    "selected_gpu_changed",
-    "selected_gpu_isolation_failed",
-    "context_size_exceeds_hardware_cap",
-  ].includes(text);
 }
 
 async function infer(
@@ -47,11 +44,16 @@ async function infer(
   signal: AbortSignal,
 ): Promise<InferenceWorkerResponse> {
   if (request.operation === "probe") return probe(request);
-  const loaded = await runtime(request.operation === "embed" ? "embed" : "generate");
-  // Manual unload terminates the worker so the OS safely reclaims all native resources.
-  if (request.operation === "embed") return await embed(request, loaded);
-  if (request.operation === "chat") return await chat(request, loaded, emit, signal);
-  return await generate(request, loaded, emit, signal);
+  try {
+    const loaded = await runtime(request.operation === "embed" ? "embed" : "generate");
+    // Manual unload terminates the worker so the OS safely reclaims all native resources.
+    if (request.operation === "embed") return await embed(request, loaded);
+    if (request.operation === "chat") return await chat(request, loaded, emit, signal);
+    return await generate(request, loaded, emit, signal);
+  } catch (error) {
+    recordDevelopmentFailure(error, request.operation);
+    throw error;
+  }
 }
 
 let requestId: RequestId = "00000000-0000-4000-8000-000000000000";
@@ -106,5 +108,6 @@ try {
   await Promise.allSettled([...inFlight]);
   decoder.finish();
 } catch (error) {
+  recordDevelopmentFailure(error);
   process.stdout.write(encodeInferenceResponse(failure(requestId, error)));
 }

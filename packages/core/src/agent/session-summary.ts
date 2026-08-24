@@ -6,12 +6,14 @@ import {
   MAX_ANCHORED_SUMMARY_CHARACTERS,
 } from "@vault/shared";
 import type { InferenceService } from "../runtime/inference.js";
+import { InferenceFailure } from "../runtime/inference-errors.js";
 import { withCurrentTimeContext } from "./chat-current-time.js";
+import { canRetryInference } from "./chat-inference-recovery.js";
 import type { MarkdownDefinitionLibrary } from "./markdown-definition-library.js";
 import type { AgentTraceStore } from "./trace-store.js";
 
 const SUMMARY_OUTPUT_TOKENS = 2_048;
-const MINIMUM_CONTEXT_TOKENS = 8_192;
+const MINIMUM_CONTEXT_TOKENS = 16_384;
 const MINIMUM_SUMMARIZED_MESSAGES = 4;
 const MAX_MESSAGE_CHARACTERS = 4_000;
 
@@ -112,6 +114,8 @@ function summaryCandidate(input: SessionSummaryInput) {
   return last === undefined ? undefined : { last, selected };
 }
 
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: retry and trace outcomes form one bounded summary transaction.
+// biome-ignore lint/complexity/noExcessiveLinesPerFunction: retry and trace outcomes form one bounded summary transaction.
 export async function summarizeSession(
   inference: Pick<InferenceService, "chat">,
   input: SessionSummaryInput,
@@ -119,7 +123,6 @@ export async function summarizeSession(
   const candidate = summaryCandidate(input);
   if (candidate === undefined) return undefined;
   const { last, selected } = candidate;
-  const identity = { requestId: randomUUID(), jobId: JobIdSchema.parse(randomUUID()) };
   const request = {
     modelId: input.modelId,
     messages: withCurrentTimeContext([
@@ -131,34 +134,46 @@ export async function summarizeSession(
     maxTokens: SUMMARY_OUTPUT_TOKENS,
     temperature: 0,
   };
-  const turnId = await input.trace?.store.begin(input.trace.runId, "compaction", {
-    input: request,
-    ...identity,
-  });
-  try {
-    const generated = await inference.chat(request, input.signal, undefined, identity);
-    const text = generated.text.trim().slice(0, MAX_ANCHORED_SUMMARY_CHARACTERS);
-    if (text.length === 0) return undefined;
-    if (turnId !== undefined) {
-      await input.trace?.store.captureResponse(
-        turnId,
-        { text },
-        generated.memory.contextSizeTokens,
-      );
-      input.trace?.store.recordOutcome(turnId, "accepted_compaction");
+  let retryUsed = false;
+  while (true) {
+    const identity = { requestId: randomUUID(), jobId: JobIdSchema.parse(randomUUID()) };
+    const turnId = await input.trace?.store.begin(input.trace.runId, "compaction", {
+      input: request,
+      ...identity,
+    });
+    try {
+      const generated = await inference.chat(request, input.signal, undefined, identity);
+      const text = generated.text.trim().slice(0, MAX_ANCHORED_SUMMARY_CHARACTERS);
+      if (turnId !== undefined) {
+        await input.trace?.store.captureResponse(
+          turnId,
+          { text },
+          generated.memory.contextSizeTokens,
+        );
+        input.trace?.store.recordOutcome(
+          turnId,
+          text.length === 0 ? "invalid_response" : "accepted_compaction",
+        );
+      }
+      if (text.length === 0) return undefined;
+      return {
+        text,
+        coveredMessageId: last.id,
+        coveredMessageCount: input.messages.findIndex((message) => message.id === last.id) + 1,
+      };
+    } catch (error) {
+      if (turnId !== undefined)
+        input.trace?.store.recordOutcome(
+          turnId,
+          input.signal?.aborted ? "cancelled" : "inference_failed",
+        );
+      if (
+        !(error instanceof InferenceFailure) ||
+        !canRetryInference(error, retryUsed, input.signal)
+      )
+        return undefined;
+      retryUsed = true;
     }
-    return {
-      text,
-      coveredMessageId: last.id,
-      coveredMessageCount: input.messages.findIndex((message) => message.id === last.id) + 1,
-    };
-  } catch {
-    if (turnId !== undefined)
-      input.trace?.store.recordOutcome(
-        turnId,
-        input.signal?.aborted ? "cancelled" : "inference_failed",
-      );
-    return undefined;
   }
 }
 

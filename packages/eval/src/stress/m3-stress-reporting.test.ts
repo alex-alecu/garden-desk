@@ -78,8 +78,8 @@ function snapshot(
 
 const wordSkillActive: ActiveCase = {
   fixture: {
-    id: "legacy-doc-read",
-    source: "/tmp/legacy-doc-read",
+    id: "word-document-read",
+    source: "/tmp/word-document-read",
     task: "Read the legacy Word file.",
     fixtureMs: 1,
     evidence: { bytes: 1, files: 1, expected: {} },

@@ -1,25 +1,42 @@
 ---
 name: pdf-documents
-description: Guides local PDF reading, page operations, and creation. Use when the task explicitly identifies a PDF file or PDF deliverable.
+description: PDF reading, page work, creation. Load for PDF input or deliverable.
 ---
 
 # PDF Documents
 
-Explore the PDF first: locate the actual input, inspect page text and document structure, and confirm the requested page order or facts before changing anything.
+Use `pypdf` for text, structure, order, facts; no `try`, exception wrapper, or trailing brace. `PdfWriter.add_metadata()` uses slash keys: `{"/Title": "Report"}`. ReportLab Platypus: headings/page breaks/margins/fitting tables.
 
-For a read-only review, use one short Python program in this form. Replace only the input path. Do not add a `try` block, an exception wrapper, or a trailing brace.
+Without PDF output: inspect/reopen with `pypdf` only. Do not create `/workspace/report.pdf` or require `/source/values.txt`:
 
 ```python
 from pypdf import PdfReader
 
 reader = PdfReader("/source/input.pdf")
-for page_number, page in enumerate(reader.pages, 1):
-    print(f"--- Page {page_number} ---")
+for page in reader.pages:
     print(page.extract_text() or "")
 ```
 
-Use `pypdf` for reading and page operations. Pass standard metadata names to `PdfWriter.add_metadata()` with their required leading slash, such as `{\"/Title\": \"Report\"}`. Use ReportLab Platypus for a new styled PDF with real headings, page breaks, margins, and fitting tables. Keep source facts and requested names literal.
+Only for requested PDF output: run the derive/create program. Requested `facts`: exact `LABEL=value`; derive `COUNT`/`TOTAL`, create, reopen, and assert:
 
-When the PDF presents values derived from `/source` files, read and compute those values in the same program that builds the PDF. Do not paste numbers, rows, or tables from earlier output or conversation text into the generation code.
+```python
+from pathlib import Path
+from pypdf import PdfReader
+from xml.sax.saxutils import escape
+from reportlab.lib.pagesizes import letter
+from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.platypus import Paragraph, SimpleDocTemplate
 
-Save under `/workspace`, reopen the PDF, and verify text, page count/order, rotations, sizes, and requested metadata before declaring the requested output.
+values = list(map(int, Path("/source/values.txt").read_text(encoding="utf-8").split()))
+facts={"COUNT":len(values),"TOTAL":sum(values)}
+output = "/workspace/report.pdf"
+styles = getSampleStyleSheet()
+story = [Paragraph(escape(f"{label}={value}"), styles["BodyText"]) for label, value in facts.items()]
+document = SimpleDocTemplate(output, pagesize=letter)
+document.build(story)
+visible = "\n".join(page.extract_text() or "" for page in PdfReader(output).pages)
+for label, value in facts.items():
+    assert f"{label}={value}" in visible
+```
+
+Do not copy prior values. Reopen/verify text, page count/order, rotation, size, metadata, and every requested pair before completion.

@@ -177,10 +177,18 @@ M3 uses the worker's actual reported allocation rather than fixed context-size a
 - Rebuild task state before every model turn.
 - Give successful source, commands, stdout, and stderr together at most half of the remaining prompt space, capped at 8,000 estimated tokens. If they exceed that allocation-derived budget, add the compacted ledgers before the turn; keep failed repair source exact and fail closed when it cannot fit.
 - Keep up to two newest user turns in the allocation-derived recent-history budget. Use the anchored summary when verbatim older turns no longer fit; otherwise preserve them verbatim.
-- Refresh the summary after four newly uncovered messages at contexts of at least 16,384 tokens. Fit only the largest pending prefix that leaves its 1,024-token output reserve inside the actual allocation, then continue the backlog on a later refresh.
+- Refresh the summary after four newly uncovered messages at contexts of at least 16,384 tokens. Fit only the largest pending prefix that leaves its 2,048-token output reserve inside the actual allocation, then continue the backlog on a later refresh.
 - Retain exact exports, approvals, execution records, artifacts, and audit state outside the prompt regardless of compaction.
 
 A manual compact command is not part of the active M3 desktop contract. If added later, it must use the same ledgers and must not discard citations, pending work, or approvals.
+
+### Current M3 Session Summary
+
+The session-summary queue starts only after a completed run reports a measured chat allocation. It requires at least 16,384 tokens. It does not use a model-status, profile, or estimated-allocation fallback.
+
+The queue keeps one ordered non-fatal sequence per session. Each summary attempt has a new request identity and a new trace. Core retries once only for an approved worker failure. A summary failure records its outcome but does not fail its completed run. Core cancels pending queue work during shutdown.
+
+The official M3 context-session stress evidence is in [STRESS_TEST.md](../STRESS_TEST.md). That evidence is separate from platform certification and does not make an unrun platform gate pass.
 
 ## Long-Running Session Acceptance Test
 
@@ -274,3 +282,4 @@ Do not:
 | 2026-08-04 | Restricted Windows automatic budgets and context tiers to one device's dedicated VRAM. |
 | 2026-08-15 | Added Windows integrated shared-memory budgets and kept one-device isolation for all Windows profiles. |
 | 2026-08-17 | Made the Windows integrated budget fall back through fixed tiers when isolated capacity is below the installed-RAM maximum. |
+| 2026-08-22 | Recorded measured session-summary queue rules and the separate official context-session stress evidence. |

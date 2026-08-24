@@ -4,11 +4,11 @@ Created: 2026-07-10
 
 This file is the control document for future agents working in this repository.
 
-Vault Desk completed implementation milestone M0 on 2026-07-17, cross-platform milestone M1 on 2026-07-18, and cross-platform milestone M2 on 2026-07-20. The repository owner activated M3 Offline Dev-Agent Desktop V1 on 2026-07-20. The macOS M3 stage is complete; Windows product integration and certification are the active platform handoff.
+Vault Desk completed implementation milestone M0 on 2026-07-17, cross-platform milestone M1 on 2026-07-18, and cross-platform milestone M2 on 2026-07-20. The repository owner activated M3 Offline Dev-Agent Desktop V1 on 2026-07-20.
 
 ## Current Phase Rules
 
-- M0, M1, and M2 are complete. M3 is active for the generic offline dev-agent desktop, its named gate, and the owner-approved prompt-only professional review skill set. The macOS stage is complete for the earlier generic-agent scope. The professional skill set needs new macOS, Windows, and qualified domain-review evidence. Do not begin the post-V1 document-intelligence follow-up or other later work without a new explicit owner request.
+- M0, M1, and M2 are complete. M3 is active for the generic offline dev-agent desktop, its named gate, and the owner-approved prompt-only professional review skill set. Earlier M3 platform evidence is historical. The cross-platform M3 and Community Desktop V1 launch gate remains open. The professional skill set still needs current physical macOS and Windows cases plus qualified domain-review evidence. Do not begin the post-V1 document-intelligence follow-up or other later work without a new explicit owner request.
 - Preserve the completed M1 shared contracts, workspace state and security primitives, daemon and CLI health path, current-user local transports, common microVM protocol, signed native helpers, guest images, and passing platform evidence.
 - Preserve the completed M2 inference contracts, verified model staging, scheduler and supervisor, typed worker protocol, platform-native confinement, pinned runtime patch, and passing authority and model evidence.
 - Treat [docs/M1_STATUS.md](docs/M1_STATUS.md) and [docs/M2_STATUS.md](docs/M2_STATUS.md) as completed milestone evidence records and [docs/M3_STATUS.md](docs/M3_STATUS.md) as the active product and platform evidence record.
@@ -29,6 +29,8 @@ Minimum implementation does not mean incomplete implementation. Keep required se
 ## Real Headless M3 Test Rule
 
 Use the real Gemma worker and no-NIC guest when diagnosing agent-loop behavior; a fake inference test or desktop-only reproduction is not sufficient evidence.
+
+Raw development inference diagnostics are private and must not enter reports, product records, debug snapshots, user-interface data, or Git.
 
 - Run `pnpm test:m3:macos` on physical Apple silicon for the canonical headless M3 gate. It verifies the pinned Gemma 4 model, real multi-step Python and Node tasks, artifacts, automatic context and memory evidence, guest isolation, timeout, and output limits without launching the desktop UI.
 - For a task-specific daemon reproduction, create an ignored script under `packages/eval/.generated/`. Use `createVaultCore` with `packages/eval/.generated/models`, the generated macOS helper, and `packages/workers/images`; start the real current-user server with `startDaemon`; then call it through `packages/cli/src/client.ts` using `folders.add`, `sessions.create`, `agent.start`, and repeated `agent.get` requests until the run is terminal.
@@ -65,6 +67,7 @@ Keep the repository internally consistent after every change. Code, tests, fixtu
 - When documentation changes a current requirement or contract, reconcile the affected implementation and tests in the same change. If the behavior is planned rather than implemented, label it clearly with its milestone or research status; do not present it as current behavior.
 - Search for related references before editing and inspect the complete diff afterward. Do not leave stale names, defaults, examples, diagrams, commands, or contradictory guidance elsewhere in the repository.
 - Treat `AGENTS.md` as authoritative, followed by accepted ADRs, [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md), and [docs/DEVELOPMENT_WORKFLOW.md](docs/DEVELOPMENT_WORKFLOW.md). Keep lower-level documentation and code aligned with those sources.
+- After a change to milestone scope, architecture, a security boundary, or the development workflow, review `AGENTS.md` and related repository-local skills. Update only instructions that are no longer current. Make the minimum changes.
 - Do not silently choose between conflicting code and documentation. Resolve the conflict within the authorized milestone and issue scope, or stop and report the inconsistency and the maintainer decision required.
 - A change is not complete while known repository drift remains. Verification and review must explicitly check code-documentation consistency for every affected surface.
 

@@ -1,15 +1,16 @@
 import { mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { windowsInferencePaths } from "../gates/windows-inference.js";
+import { developmentInferenceWorkerEntryPath } from "../gates/development-inference-path.js";
+import { developmentWindowsInferencePaths } from "../gates/windows-inference.js";
 
 export interface StressPlatform {
   helper: string;
   visionRuntimePath: string;
   inference?: {
-    inferenceHelperPath: string;
-    inferenceRuntimePath: string;
     workerEntryPath: string;
+    inferenceHelperPath?: string;
+    inferenceRuntimePath?: string;
   };
 }
 
@@ -26,7 +27,7 @@ export async function stressPlatform(): Promise<StressPlatform> {
         repositoryRoot,
         "packages/eval/.generated/vision/windows-vulkan-x64/llama-mtmd-cli.exe",
       ),
-      inference: await windowsInferencePaths(),
+      inference: await developmentWindowsInferencePaths(),
     };
   }
   return {
@@ -38,6 +39,7 @@ export async function stressPlatform(): Promise<StressPlatform> {
       repositoryRoot,
       "packages/eval/.generated/vision/macos-arm64/llama-mtmd-cli",
     ),
+    inference: { workerEntryPath: developmentInferenceWorkerEntryPath() },
   };
 }
 

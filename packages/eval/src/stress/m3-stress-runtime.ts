@@ -56,6 +56,8 @@ export interface StressCaseResult {
   requiredSkillSequence: string[];
   firstLoadedSkills: string[];
   skillOrderValid: boolean;
+  legacyDocMethodValid: boolean;
+  legacyDocOrderValid: boolean;
   forbiddenSkills: string[];
   calledForbiddenSkills: string[];
   missingTokens: string[];

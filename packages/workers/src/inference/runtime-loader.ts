@@ -1,6 +1,14 @@
-import type { Llama, LlamaGpuType } from "node-llama-cpp";
+import type { Llama, LlamaGpuType, LlamaLogLevel } from "node-llama-cpp";
+import { writeDevelopmentLlamaLog } from "./development-diagnostics.js";
 
 export const windowsGpuOrder: readonly LlamaGpuType[] = ["cuda", "vulkan"];
+
+export function llamaRuntimeLogOptions(levels: { debug: LlamaLogLevel; error: LlamaLogLevel }) {
+  if (globalThis.__VAULT_DEVELOPMENT_BUILD__ === true) {
+    return { logLevel: levels.debug, logger: writeDevelopmentLlamaLog };
+  }
+  return { logLevel: levels.error };
+}
 
 async function tryWindowsGpu(gpu: LlamaGpuType): Promise<Llama | undefined> {
   try {
@@ -9,7 +17,7 @@ async function tryWindowsGpu(gpu: LlamaGpuType): Promise<Llama | undefined> {
       gpu,
       build: "never",
       skipDownload: true,
-      logLevel: LlamaLogLevel.error,
+      ...llamaRuntimeLogOptions(LlamaLogLevel),
     });
     if (llama.gpu === gpu) return llama;
     await llama.dispose();
@@ -72,5 +80,5 @@ export async function loadLlamaRuntime(
     return await runtimeWithGpuMemory(llama, options.expectedDeviceName);
   }
   const { getLlama, LlamaLogLevel } = await import("node-llama-cpp");
-  return await runtimeWithGpuMemory(await getLlama({ logLevel: LlamaLogLevel.error }));
+  return await runtimeWithGpuMemory(await getLlama(llamaRuntimeLogOptions(LlamaLogLevel)));
 }

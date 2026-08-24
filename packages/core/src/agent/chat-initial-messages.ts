@@ -18,7 +18,7 @@ export function initialChatMessages(input: ChatAgentInput): ChatMessage[] {
   if (input.history?.summary) {
     messages.push({
       role: "user",
-      text: `<anchored-summary>\n${input.history.summary}\n</anchored-summary>`,
+      text: `Anchored summary of earlier turns:\n<anchored-summary>\n${input.history.summary}\n</anchored-summary>`,
     });
   } else {
     for (const item of input.history?.messages ?? []) {

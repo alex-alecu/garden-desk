@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { InferenceFailure } from "../runtime/inference-errors.js";
 import { agentFailureEvent, agentFailureText } from "./service-results.js";
 
 describe("agent failure privacy", () => {
@@ -13,6 +14,9 @@ describe("agent failure privacy", () => {
     expect(agentFailureText(new Error("missing_model"))).toBe("agent_model_failed");
     expect(agentFailureText(new Error("model_integrity_failed"))).toBe("agent_model_failed");
     expect(agentFailureText(new Error("combined_memory_budget_exceeded"))).toBe(
+      "agent_memory_unavailable",
+    );
+    expect(agentFailureText(new InferenceFailure("out_of_memory", "Inference failed."))).toBe(
       "agent_memory_unavailable",
     );
   });
