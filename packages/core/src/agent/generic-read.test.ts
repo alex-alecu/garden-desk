@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import type { AgentExecutor } from "./agent-executor.js";
 import { executeRead, readRegistry, readSource } from "./generic-read-test-support.js";
 
 // biome-ignore lint/complexity/noExcessiveLinesPerFunction: focused read contracts share one guest fixture.
