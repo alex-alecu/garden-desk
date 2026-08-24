@@ -16,4 +16,11 @@ describe("artifact requirement parsing regressions", () => {
   ])("accepts one %s extensionless deliverable", (_name, task) => {
     expect(requiredArtifactNames(task)).toEqual(["report"]);
   });
+
+  it.each(["pdf", "docx", "xlsx"])("accepts a named %s stress report", (extension) => {
+    const name = `management-report.${extension}`;
+    const task = `Create a polished report named ${name} in the private workspace.`;
+
+    expect(requiredArtifactNames(task)).toEqual([name]);
+  });
 });
