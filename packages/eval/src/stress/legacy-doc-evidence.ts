@@ -1,4 +1,5 @@
 import type { AgentExecutionSnapshot, AgentTrace, ChatToolCall } from "@vault/shared";
+import { approvedAntiwordLocale } from "./legacy-doc-locale.js";
 import {
   approvedDocumentPath,
   hasApprovedGlobDiscovery,
@@ -179,10 +180,16 @@ function approvedRun(statement: PythonStatement): ApprovedRun | undefined {
   const input = antiwordInput(arguments_[0] ?? "");
   const checks = valuesFor(arguments_, "check");
   const captured = valuesFor(arguments_, "capture_output");
+  const environments = valuesFor(arguments_, "env");
+  const timeouts = valuesFor(arguments_, "timeout");
   if (
     input === undefined ||
     captured.length !== 1 ||
     compact(captured[0] ?? "") !== "True" ||
+    environments.length !== 1 ||
+    !approvedAntiwordLocale(environments[0] ?? "") ||
+    timeouts.length !== 1 ||
+    compact(timeouts[0] ?? "") !== "5" ||
     valuesFor(arguments_, "shell").some((value) => compact(value) !== "False") ||
     checks.length > 1
   ) {

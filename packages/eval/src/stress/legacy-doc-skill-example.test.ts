@@ -14,13 +14,16 @@ function documentedSource(): string {
 }
 
 it("accepts the legacy DOC extraction example from the Word skill", () => {
+  const source = documentedSource();
   const execution = {
     language: "python",
     state: "completed",
     exitCode: 0,
-    source: documentedSource(),
+    source,
   } as AgentExecutionSnapshot;
 
+  expect(source).toContain('env={**os.environ, "LANG": "C", "LC_ALL": "C", "LC_CTYPE": "C"}');
+  expect(source).toContain("timeout=5");
   expect(
     legacyDocEvidence("legacy-doc-read", { executions: [execution] }, undefined),
   ).toMatchObject({

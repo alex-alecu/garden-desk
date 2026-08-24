@@ -6,36 +6,17 @@ import {
   type ChatToolCall,
 } from "@vault/shared";
 import { describe, expect, it } from "vitest";
+import {
+  approvedSource,
+  cLocale,
+  discoveredSource,
+  returnCodeGuardSource,
+} from "./legacy-doc-test-fixtures.js";
 import { stressResultFor } from "./m3-stress-reporting.js";
 import type { ActiveCase } from "./m3-stress-runtime.js";
 
 const timestamp = "2026-08-23T10:00:00.000Z";
 const sourcePath = "/source/legacy-sample.doc";
-const approvedSource = [
-  "from pathlib import Path",
-  "import subprocess",
-  `source = Path("${sourcePath}")`,
-  'result = subprocess.run(["/usr/bin/antiword", "-m", "UTF-8.txt", "-w", "0", str(source)], capture_output=True, check=True)',
-  'text = result.stdout.decode("utf-8", errors="strict")',
-  "if not text.strip():",
-  '    raise RuntimeError("Antiword returned no text")',
-].join("\n");
-
-const returnCodeGuardSource = approvedSource.replace(
-  ", check=True)\ntext",
-  ')\nif result.returncode != 0:\n    raise RuntimeError("Antiword failed")\ntext',
-);
-
-const discoveredSource = [
-  "from pathlib import Path",
-  "import subprocess",
-  'candidates = sorted(Path("/source").glob("*.doc"))',
-  "document = candidates[0]",
-  'result = subprocess.run(["/usr/bin/antiword", "-m", "UTF-8.txt", "-w", "0", str(document)], capture_output=True, check=True)',
-  'text = result.stdout.decode("utf-8", errors="strict")',
-  "if not text.strip():",
-  '    raise RuntimeError("Antiword returned no text")',
-].join("\n");
 
 const active: ActiveCase = {
   fixture: {
@@ -188,9 +169,7 @@ describe("legacy DOC stress method evidence", () => {
   it("accepts default and explicit return-code failure guards", () => {
     expect(pythonResult(returnCodeGuardSource)).toMatchObject({ passed: true });
     expect(
-      pythonResult(
-        returnCodeGuardSource.replace("capture_output=True)", "capture_output=True, check=False)"),
-      ),
+      pythonResult(returnCodeGuardSource.replace("timeout=5)", "timeout=5, check=False)")),
     ).toMatchObject({
       passed: true,
     });
@@ -239,6 +218,19 @@ describe("legacy DOC stress method evidence", () => {
       "",
     );
     expect(pythonResult(blankAccepted)).toMatchObject({
+      passed: false,
+      legacyDocMethodValid: false,
+    });
+  });
+});
+
+describe("legacy DOC process controls", () => {
+  it("rejects a missing C locale or timeout", () => {
+    expect(pythonResult(approvedSource.replace(`, ${cLocale}`, ""))).toMatchObject({
+      passed: false,
+      legacyDocMethodValid: false,
+    });
+    expect(pythonResult(approvedSource.replace(", timeout=5", ""))).toMatchObject({
       passed: false,
       legacyDocMethodValid: false,
     });
