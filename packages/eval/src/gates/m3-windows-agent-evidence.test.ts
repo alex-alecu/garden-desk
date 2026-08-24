@@ -153,6 +153,14 @@ describe("Windows agent evidence", () => {
     ).toBe(limit);
   });
 
+  it("accepts the guest exit code for a killed bounded-output process", () => {
+    const limit = boundedOutput({ exitCode: 255 });
+
+    expect(
+      boundedOutputEvidence(snapshot([limit], "succeeded"), { startToken: "limit-start" }),
+    ).toBe(limit);
+  });
+
   it("does not combine bounded-output evidence across executions", () => {
     const started = boundedOutput({ vmDiagnostics: [] });
     const exited = boundedOutput({

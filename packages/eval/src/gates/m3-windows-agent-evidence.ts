@@ -50,7 +50,6 @@ export function boundedOutputEvidence(
     (execution) =>
       execution.state === "failed" &&
       execution.termination === "resource_limit" &&
-      execution.exitCode === 0 &&
       execution.stdoutBytes === 1_000_000 &&
       execution.stdoutTruncated &&
       execution.stdout.includes(request.startToken) &&

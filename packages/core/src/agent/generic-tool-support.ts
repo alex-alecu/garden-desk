@@ -147,7 +147,7 @@ function inspectionSource(operation: InspectionName, params: unknown): string {
     "                if offset <= current_line < offset + limit:",
     "                    write(text[start:])",
     "        while chunk := handle.read(65536):\n            if b'\\0' in chunk: raise ValueError('read_requires_utf8_text')",
-    "            consume(decoder.decode(chunk))",
+    "            consume(decoder.decode(chunk))\n            if current_line >= offset + limit: return",
     "        consume(decoder.decode(b'', final=True))",
     "        if has_content and offset <= current_line < offset + limit:",
     "            sys.stdout.write(chr(10))",

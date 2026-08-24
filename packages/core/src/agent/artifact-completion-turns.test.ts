@@ -50,6 +50,22 @@ function nearLimitInput(outputs: string[][], task = "Create result.unknown.") {
 
 // biome-ignore lint/complexity/noExcessiveLinesPerFunction: focused near-limit cases share one turn fixture.
 describe("required artifact turn reserve", () => {
+  it("keeps tools on the first turn of a three-step run", async () => {
+    const { loop, requests } = loopResults([
+      generated("", [tool("python", "create", { source: "print('result')" })]),
+      generated("Finished."),
+    ]);
+    const request = input(executor([["result.unknown"]]), ["python"], {
+      task: "Create result.unknown.",
+    });
+    request.agent = { ...request.agent, steps: 3 };
+
+    const result = await loop.run(request);
+
+    expect(result.artifacts).toEqual(["result.unknown"]);
+    expect(requests[0]?.tools.map((item) => item.name)).toContain("python");
+  });
+
   it("uses a tool-free completion turn, a recovery turn, and a tool-free final turn", async () => {
     const { loop, requests } = loopResults([
       ...progressTurns(),

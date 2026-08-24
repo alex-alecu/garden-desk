@@ -1,5 +1,6 @@
 import type { AgentRunPerformance, AgentRunResult } from "@vault/shared";
 import type { InferenceService } from "../runtime/inference.js";
+import { inferenceFailureCode } from "../runtime/inference-errors.js";
 
 export async function inferenceContextTokens(
   inference: Partial<Pick<InferenceService, "modelStatus">>,
@@ -35,6 +36,7 @@ export function runPerformance(
 }
 
 export function agentFailureText(error: unknown): string {
+  if (inferenceFailureCode(error) === "out_of_memory") return "agent_memory_unavailable";
   const message = error instanceof Error ? error.message : "";
   if (/memory/iu.test(message)) return "agent_memory_unavailable";
   if (/model|inference/iu.test(message)) return "agent_model_failed";

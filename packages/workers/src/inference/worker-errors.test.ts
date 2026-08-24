@@ -40,4 +40,15 @@ describe("inference worker failures", () => {
       "out_of_memory",
     );
   });
+
+  it("keeps an allowlisted unsupported reason for the caller", () => {
+    expect(inferenceFailureResponse(new Error("context_size_exceeds_hardware_cap"))).toEqual({
+      code: "unsupported",
+      message: "context_size_exceeds_hardware_cap",
+    });
+    expect(inferenceFailureResponse(new Error(`out of memory ${privateData}`))).toEqual({
+      code: "out_of_memory",
+      message: "Inference failed.",
+    });
+  });
 });

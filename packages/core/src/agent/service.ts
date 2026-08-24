@@ -80,7 +80,6 @@ export class AgentService {
       this.summaries,
     );
   }
-
   saveDraft(sessionId: string, content: string): SessionDraft {
     return this.store.saveDraft(sessionId, content);
   }
@@ -182,6 +181,7 @@ export class AgentService {
       active.controller.abort(new DOMException("Session closed.", "AbortError"));
       await active.finished;
     }
+    await this.summaryQueue.closeSession(sessionId);
     await this.sessions.closeSession(sessionId, deleteWorkspace);
   }
   cancel(jobId: string): boolean {

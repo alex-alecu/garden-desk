@@ -1,26 +1,25 @@
 ---
 name: word-documents
-description: Local Word reading, DOCX editing, and creation. Before any legacy .doc access, load this skill; never use generic read or cat for binary DOC. Use it for DOCX files, Microsoft Word documents, and Word deliverables.
+description: Use for DOCX files, Word documents, and Word deliverables. Before any legacy .doc access, load this skill; never use generic read or cat for binary DOC.
 ---
 
 # Word Documents
 
-`.doc` is read-only. Load before DOC access; do not use generic `read` or `cat`. `python-docx` is for DOCX. Do not edit `.doc`; output is `.docx`.
+Suffix: legacy binary `.doc` is read-only. Load this skill before any DOC access; never use generic `read` or `cat`. Use `python-docx` for DOCX. Never create/edit `.doc`; create `.docx`.
 
-Top-level Python: `source` is a `Path` under `/source` or `/run/attachments`.
+Legacy: use this complete Python pattern with an absolute `/source` or `/run/attachments` path. No shell. Require zero exit, strict UTF-8, and nonblank text. Tables become text; layout and embedded content are lost. On encrypted, corrupt, mislabeled, or text failure, stop. No fallback. DOC edit is unsupported; DOCX states layout loss.
 
 ```python
 import os, subprocess
 from pathlib import Path
 source=next(iter([*Path("/source").glob("*.doc"),*Path("/run/attachments").glob("*.doc")]))
-result=subprocess.run(["/usr/bin/antiword", "-m", "UTF-8.txt", "-w", "0", str(source)], capture_output=True, check=False, env={**os.environ, "LANG": "C", "LC_ALL": "C", "LC_CTYPE": "C"})
+result=subprocess.run(["/usr/bin/antiword", "-m", "UTF-8.txt", "-w", "0", str(source)], capture_output=True, check=False, env={**os.environ, "LANG": "C", "LC_ALL": "C", "LC_CTYPE": "C"}, timeout=5)
 if result.returncode != 0: raise RuntimeError("read failed")
 text=result.stdout.decode("utf-8", errors="strict")
 if not text.strip(): raise RuntimeError("No text")
+print(text)
 ```
 
-Submit this unchanged unwrapped top-level Python program. Do not add a fallback program or `try`/`except` wrapper, change strict UTF-8 decode, use `text=True`, or turn extraction, decode, or blank failure into output. Keep both terminal raises.
+Submit unchanged at top level. No fallback, `try`/`except`, `text=True`, decode change, or failure output. Keep both raises.
 
-Tables: plain text. Stop on encrypted, corrupt, HTML/XML/ZIP, or text failure. No `python-docx`, `strings`, OLE, network, installer, or converter fallback. DOC edit: unsupported; request DOCX; state layout loss.
-
-DOCX: inspect paragraphs, tables, styles, sections, headers, footers; one program makes the request, saves `/workspace`, and reopens/asserts text/styles. Derive facts; exact `LABEL=value` or `LABEL: value` is one paragraph or row. Preserve unrelated content, format, setup, relationships; use structures, not layout newlines. Separate `print()`/`\n`; after syntax error use a shorter program.
+DOCX: inspect paragraphs, tables, styles, sections, headers, footers. One program edits, saves `/workspace`, reopens, and asserts text/styles. Keep each exact `LABEL=value` or `LABEL: value` in one paragraph or row. Preserve other content, format, setup, and relationships; use structures, not layout newlines. Separate `print()`/`\n`; after syntax error use a shorter program.

@@ -34,6 +34,10 @@ describe("M3 context-session trace evidence", () => {
     expect(() => anchoredSummaryFromTracePrompt("[{")).toThrow();
   });
 
+  it("treats an empty zero-turn trace prompt as no anchor", () => {
+    expect(anchoredSummaryFromTracePrompt("")).toBeUndefined();
+  });
+
   it("rejects a trace message with an invalid shape", () => {
     expect(() => anchoredSummaryFromTracePrompt(JSON.stringify([{ role: "user" }]))).toThrow();
   });

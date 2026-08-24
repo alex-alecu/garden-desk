@@ -8,10 +8,10 @@ const FILENAME_TOKEN =
   /`([^`]+)`|"([^"]+)"|'([^']+)'|(?<!\S)([^\s,;:()[\]{}]+?)(?=[,;:()[\]{}]|\.(?=\s|$)|\s|$)/gu;
 const DIRECT_OBJECT_END = /\r?\n|;|[.!?](?=\s|$)/u;
 const INPUT_REFERENCE =
-  /(?<!\S)(?:after\b|based\s+on\b|from\b|using\b|with\b|(?:source|input|attachment)(?=\s|:|$))/iu;
+  /(?<!\S)(?:after\b|based\s+on\b|from\b|of\b|using\b|with\b|(?:source|input|attachment)(?=\s|:|$))/iu;
 const LIST_ITEM = /^\s*(?:[-*+]\s+|\d+[.)]\s+)(.*)$/u;
 const EXPLICIT_TARGET_BEFORE =
-  /\b(?:file|path|name|deliverable)\b(?:\s+(?:called|named|at|to))?\s*(?::|=)?\s*$/iu;
+  /\b(?:(?:file|path|name|deliverable)\b(?:\s+(?:called|named|at|to))?|called|named)\s*(?::|=)?\s*$/iu;
 const EXPLICIT_TARGET_AFTER = /^\s+(?:as\s+(?:a|the)\s+)?(?:file|path|name|deliverable)\b/iu;
 const FILE_DESTINATION_BEFORE = /\bto\s+(?:(?:a|the)\s+)?(?:[^\s,;:()[\]{}]+\s+)*$/iu;
 const FILE_DESTINATION_AFTER = /^\s+files?\b/iu;
@@ -35,6 +35,18 @@ function explicitTarget(text: string, match: RegExpMatchArray): boolean {
   );
 }
 
+function trailingTarget(text: string, match: RegExpMatchArray): boolean {
+  const start = match.index ?? 0;
+  return text.slice(start + match[0].length).trim().length === 0;
+}
+
+function standaloneTarget(text: string, match: RegExpMatchArray): boolean {
+  const start = match.index ?? 0;
+  const before = text.slice(0, start).trim();
+  const after = text.slice(start + match[0].length).trim();
+  return (before.length === 0 || before === ":" || before === "=") && after.length === 0;
+}
+
 function fileDestinationText(text: string, match: RegExpMatchArray): boolean {
   const start = match.index ?? 0;
   const end = start + match[0].length;
@@ -48,6 +60,18 @@ function negatedCreation(task: string, match: RegExpMatchArray): boolean {
   return NEGATED_CREATION.test(task.slice(0, match.index));
 }
 
+function acceptedFilename(
+  text: string,
+  match: RegExpMatchArray,
+  candidate: { name: string; quoted: boolean },
+  allowExtensionless: boolean,
+): boolean {
+  const namedTarget = !fileDestinationText(text, match) && explicitTarget(text, match);
+  if (namedTarget) return true;
+  if (pathLike(candidate.name)) return candidate.quoted || trailingTarget(text, match);
+  return allowExtensionless && (candidate.quoted || standaloneTarget(text, match));
+}
+
 function filenameTokens(text: string, allowExtensionless: boolean): string[] {
   const names: string[] = [];
   for (const match of text.matchAll(FILENAME_TOKEN)) {
@@ -57,9 +81,7 @@ function filenameTokens(text: string, allowExtensionless: boolean): string[] {
     const name = safeUserArtifactPath(token);
     if (
       name !== undefined &&
-      (allowExtensionless ||
-        pathLike(name) ||
-        (!fileDestinationText(text, match) && explicitTarget(text, match)))
+      acceptedFilename(text, match, { name, quoted: quoted !== undefined }, allowExtensionless)
     ) {
       names.push(name);
     }
@@ -177,7 +199,7 @@ export function reservedArtifactCompletionTurn(
   turn: number,
   turns: number,
 ): boolean {
-  return requiredArtifacts.length > 0 && turns >= 3 && turn === turns - 3;
+  return requiredArtifacts.length > 0 && turns >= 4 && turn === turns - 3;
 }
 
 export function missingRequiredArtifacts(task: string, currentNames: readonly string[]): string[] {

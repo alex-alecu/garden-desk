@@ -1,99 +1,6 @@
-// biome-ignore lint/style/noRestrictedImports: this focused test runs the generated guest script.
-import { execFile } from "node:child_process";
-// biome-ignore lint/style/noRestrictedImports: this focused test creates guest input bytes.
-import { mkdtemp, realpath, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
-import { promisify } from "node:util";
 import { describe, expect, it } from "vitest";
 import type { AgentExecutor } from "./agent-executor.js";
-import { execution, source } from "./chat-loop-test-support.js";
-import { GenericToolRegistry } from "./generic-tools.js";
-
-const run = promisify(execFile);
-
-function readRegistry(runs: Parameters<AgentExecutor["execute"]>[0][]): GenericToolRegistry {
-  return new GenericToolRegistry({
-    executor: {
-      async execute(run) {
-        runs.push(run);
-        return execution(source(run));
-      },
-      async inspect(run) {
-        runs.push(run);
-        return execution(source(run));
-      },
-    },
-    skills: { metadata: () => [], read: () => "" },
-  });
-}
-
-async function readSource(params: Record<string, unknown>): Promise<string> {
-  const runs: Parameters<AgentExecutor["execute"]>[0][] = [];
-  const result = await readRegistry(runs).execute("read", params);
-  expect(result).toMatchObject({ failed: false });
-  expect(runs).toHaveLength(1);
-  return source(runs[0] as (typeof runs)[number]);
-}
-
-// biome-ignore lint/complexity/noExcessiveLinesPerFunction: focused read fixture prepares and runs one guest program.
-async function executeRead(
-  bytes: Uint8Array,
-  params: Record<string, unknown> = {},
-  maximumWrite?: number,
-  secondPassBytes?: Uint8Array,
-) {
-  const root = await mkdtemp(join(tmpdir(), "vault-generic-read-"));
-  try {
-    await writeFile(join(root, "input"), bytes);
-    const guestRoot = (await realpath(root)).replaceAll("\\", "/");
-    const stdoutLimit =
-      maximumWrite === undefined
-        ? ""
-        : [
-            "class LimitedStdout:",
-            "    def __init__(self, target): self.target = target",
-            "    def write(self, text):",
-            `        if len(text) > ${maximumWrite}: raise ValueError('read_output_not_streamed')`,
-            "        return self.target.write(text)",
-            "    def flush(self): return self.target.flush()",
-            "sys.stdout = LimitedStdout(sys.stdout)",
-          ].join("\n");
-    const secondPassMutation =
-      secondPassBytes === undefined
-        ? ""
-        : [
-            "            with path.open('r+b') as updated:",
-            "                updated.seek(0)",
-            `                updated.write(bytes(${JSON.stringify([...secondPassBytes])}))`,
-            "                updated.flush()",
-          ].join("\n");
-    const script = (await readSource({ path: "input", ...params }))
-      .replaceAll("/source", guestRoot)
-      .replace(
-        "resolved not in roots and not str(resolved).startswith(tuple(str(root) + '/' for root in roots))",
-        "resolved not in roots and not any(resolved.is_relative_to(root) for root in roots)",
-      )
-      .replace("root = safe(args.get('path'))", `${stdoutLimit}\nroot = safe(args.get('path'))`)
-      .replace(
-        "            handle.seek(0)\n            stream(handle)",
-        `            handle.seek(0)\n${secondPassMutation}\n            stream(handle)`,
-      );
-    const path = join(root, "read.py");
-    await writeFile(path, script);
-    try {
-      const result = await run(process.platform === "win32" ? "python" : "python3", [path], {
-        env: { ...process.env, PYTHONIOENCODING: "utf-8" },
-      });
-      return { code: 0, stderr: result.stderr, stdout: result.stdout.replaceAll("\r\n", "\n") };
-    } catch (error) {
-      const result = error as { code?: number; stderr?: string; stdout?: string };
-      return { code: result.code ?? 1, stderr: result.stderr ?? "", stdout: result.stdout ?? "" };
-    }
-  } finally {
-    await rm(root, { recursive: true, force: true });
-  }
-}
+import { executeRead, readRegistry, readSource } from "./generic-read-test-support.js";
 
 // biome-ignore lint/complexity/noExcessiveLinesPerFunction: focused read contracts share one guest fixture.
 describe("generic read", () => {
@@ -166,9 +73,34 @@ describe("generic read", () => {
     expect(result).toEqual({ code: 0, stderr: "", stdout: "" });
   });
 
+  it("stops the second pass after the requested final line ending", async () => {
+    const bytes = Buffer.concat([Buffer.from("selected\n"), Buffer.alloc(3 * 65_536, "x")]);
+
+    await expect(
+      executeRead(bytes, { offset: 1, limit: 1 }, { maximumSecondPassReads: 1 }),
+    ).resolves.toEqual({
+      code: 0,
+      stderr: "",
+      stdout: "1: selected\n",
+    });
+  });
+
+  it("validates the complete file before it returns a short range", async () => {
+    const bytes = Buffer.concat([
+      Buffer.from("selected\n"),
+      Buffer.alloc(2 * 65_536, "x"),
+      Buffer.from([0xc3, 0x28]),
+    ]);
+
+    const result = await executeRead(bytes, { offset: 1, limit: 1 });
+
+    expect(result).toMatchObject({ code: 1, stdout: "" });
+    expect(result.stderr).toContain("ValueError: read_requires_utf8_text");
+  });
+
   it("streams a requested long single line without retaining it", async () => {
     const length = 2 * 65_536;
-    const result = await executeRead(Buffer.alloc(length, "x"), {}, 65_536);
+    const result = await executeRead(Buffer.alloc(length, "x"), {}, { maximumWrite: 65_536 });
 
     expect(result).toMatchObject({ code: 0, stderr: "" });
     expect(result.stdout).toHaveLength(length + 4);
@@ -180,8 +112,7 @@ describe("generic read", () => {
     const result = await executeRead(
       Buffer.from("first line\n"),
       {},
-      undefined,
-      Buffer.from("\0irst line\n"),
+      { secondPassBytes: Buffer.from("\0irst line\n") },
     );
 
     expect(result).toMatchObject({ code: 1, stdout: "" });
@@ -190,7 +121,13 @@ describe("generic read", () => {
 
   it("streams a valid live-file update in the second pass", async () => {
     await expect(
-      executeRead(Buffer.from("first\nsecond\n"), {}, undefined, Buffer.from("third\nfourth\n")),
+      executeRead(
+        Buffer.from("first\nsecond\n"),
+        {},
+        {
+          secondPassBytes: Buffer.from("third\nfourth\n"),
+        },
+      ),
     ).resolves.toEqual({
       code: 0,
       stderr: "",

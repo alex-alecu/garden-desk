@@ -11,6 +11,7 @@ import type { AgentStore } from "./store.js";
 export class SessionSummaryQueue {
   private readonly lifecycle = new AbortController();
   private readonly pending = new Set<Promise<void>>();
+  private readonly sessionLifecycles = new Map<string, AbortController>();
   private readonly tails = new Map<string, Promise<void>>();
   // biome-ignore lint/complexity/useMaxParams: explicit ports retain the summary boundary.
   constructor(
@@ -24,19 +25,23 @@ export class SessionSummaryQueue {
 
   enqueue(run: AgentRunSummary, signal: AbortSignal, measuredContextTokens?: number): void {
     if (measuredContextTokens === undefined) return;
-    const refreshSignal = AbortSignal.any([signal, this.lifecycle.signal]);
+    const sessionLifecycle = this.sessionLifecycle(run.sessionId);
+    const refreshSignal = AbortSignal.any([signal, this.lifecycle.signal, sessionLifecycle.signal]);
     const work = (this.tails.get(run.sessionId) ?? Promise.resolve())
       .then(async () => await this.refresh(run, refreshSignal, measuredContextTokens))
-      .catch(() => this.recordFailure(run));
+      .catch(() => {
+        if (!refreshSignal.aborted) this.recordFailure(run);
+      });
     this.tails.set(run.sessionId, work);
     this.pending.add(work);
-    void work.then(() => this.complete(run.sessionId, work));
+    void work.then(() => this.complete(run.sessionId, work, sessionLifecycle));
   }
 
   async waitFor(sessionId: string, signal: AbortSignal): Promise<void> {
     const waitSignal = AbortSignal.any([signal, this.lifecycle.signal]);
+    waitSignal.throwIfAborted();
     const work = this.tails.get(sessionId);
-    if (work === undefined) return waitSignal.throwIfAborted();
+    if (work === undefined) return;
     await Promise.race([
       work,
       new Promise<never>((_resolve, reject) => {
@@ -46,9 +51,27 @@ export class SessionSummaryQueue {
     waitSignal.throwIfAborted();
   }
 
+  async closeSession(sessionId: string): Promise<void> {
+    const lifecycle = this.sessionLifecycles.get(sessionId);
+    lifecycle?.abort(new DOMException("Session closed.", "AbortError"));
+    await this.tails.get(sessionId);
+    if (this.sessionLifecycles.get(sessionId) === lifecycle) {
+      this.sessionLifecycles.delete(sessionId);
+    }
+  }
+
   async close(): Promise<void> {
     this.lifecycle.abort(new DOMException("Service closed.", "AbortError"));
     await Promise.all([...this.pending]);
+    this.sessionLifecycles.clear();
+  }
+
+  private sessionLifecycle(sessionId: string): AbortController {
+    const current = this.sessionLifecycles.get(sessionId);
+    if (current !== undefined && !current.signal.aborted) return current;
+    const lifecycle = new AbortController();
+    this.sessionLifecycles.set(sessionId, lifecycle);
+    return lifecycle;
   }
 
   private async refresh(
@@ -73,9 +96,13 @@ export class SessionSummaryQueue {
     );
   }
 
-  private complete(sessionId: string, work: Promise<void>): void {
+  private complete(sessionId: string, work: Promise<void>, lifecycle: AbortController): void {
     this.pending.delete(work);
-    if (this.tails.get(sessionId) === work) this.tails.delete(sessionId);
+    if (this.tails.get(sessionId) !== work) return;
+    this.tails.delete(sessionId);
+    if (this.sessionLifecycles.get(sessionId) === lifecycle) {
+      this.sessionLifecycles.delete(sessionId);
+    }
   }
 
   private recordFailure(run: AgentRunSummary): void {
