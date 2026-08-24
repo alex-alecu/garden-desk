@@ -80,7 +80,6 @@ export class AgentService {
       this.summaries,
     );
   }
-
   saveDraft(sessionId: string, content: string): SessionDraft {
     return this.store.saveDraft(sessionId, content);
   }

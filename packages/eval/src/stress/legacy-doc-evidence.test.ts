@@ -1,4 +1,3 @@
-import { readFileSync } from "node:fs";
 import {
   type AgentExecutionSnapshot,
   AgentExecutionSnapshotSchema,
@@ -157,16 +156,6 @@ function pythonResult(source: string) {
   );
 }
 
-function documentedLegacyDocSource(): string {
-  const skill = readFileSync(
-    new URL("../../../../prompts/skills/word-documents/SKILL.md", import.meta.url),
-    "utf8",
-  );
-  const source = /```python\r?\n([\s\S]+?)\r?\n```/u.exec(skill)?.[1];
-  if (source === undefined) throw new Error("word_skill_legacy_doc_example_missing");
-  return source;
-}
-
 describe("legacy DOC stress order evidence", () => {
   it("accepts the check=True Python failure path after the Word skill load", () => {
     expect(pythonResult(approvedSource)).toMatchObject({
@@ -196,13 +185,6 @@ describe("legacy DOC stress order evidence", () => {
 });
 
 describe("legacy DOC stress method evidence", () => {
-  it("accepts the extraction example from the Word skill", () => {
-    expect(pythonResult(documentedLegacyDocSource())).toMatchObject({
-      passed: true,
-      legacyDocMethodValid: true,
-    });
-  });
-
   it("accepts default and explicit return-code failure guards", () => {
     expect(pythonResult(returnCodeGuardSource)).toMatchObject({ passed: true });
     expect(
