@@ -30,5 +30,10 @@ function unsupported(text: string): boolean {
 }
 
 export function inferenceFailureResponse(error: unknown): InferenceFailure {
-  return { code: failureCode(error), message: "Inference failed." };
+  const code = failureCode(error);
+  const text = errorText(error);
+  return {
+    code,
+    message: code === "unsupported" && unsupported(text) ? text : "Inference failed.",
+  };
 }
