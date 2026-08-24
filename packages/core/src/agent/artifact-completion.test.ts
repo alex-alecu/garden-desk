@@ -201,6 +201,13 @@ describe("named artifact completion", () => {
     ["accepts an explicit extensionless file", "Create file report.", ["report"]],
     ["accepts a trailing extensionless file", "Write report as a file.", ["report"]],
     ["accepts an extensionless required deliverable", "Required deliverables: report", ["report"]],
+    ["accepts a quoted extensionless deliverable", 'Required deliverables: "report"', ["report"]],
+    ["accepts an explicit extensionless deliverable", "Required deliverables: file report", ["report"]],
+    [
+      "does not treat required-deliverable prose as extensionless files",
+      "Required deliverables: a summary of the key findings.",
+      [],
+    ],
     ["does not require quoted response text", 'Write "OK" in the response.', []],
     ["does not require to-a-file prose", "Write notes to a file.", []],
     ["does not require to-the-file prose", "Write notes to the file.", []],

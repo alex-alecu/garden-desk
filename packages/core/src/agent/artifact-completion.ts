@@ -40,6 +40,13 @@ function trailingTarget(text: string, match: RegExpMatchArray): boolean {
   return text.slice(start + match[0].length).trim().length === 0;
 }
 
+function standaloneTarget(text: string, match: RegExpMatchArray): boolean {
+  const start = match.index ?? 0;
+  const before = text.slice(0, start).trim();
+  const after = text.slice(start + match[0].length).trim();
+  return (before.length === 0 || before === ":" || before === "=") && after.length === 0;
+}
+
 function fileDestinationText(text: string, match: RegExpMatchArray): boolean {
   const start = match.index ?? 0;
   const end = start + match[0].length;
@@ -60,11 +67,14 @@ function filenameTokens(text: string, allowExtensionless: boolean): string[] {
     const token = quoted ?? match[4];
     if (token === undefined) continue;
     const name = safeUserArtifactPath(token);
+    const namedTarget = !fileDestinationText(text, match) && explicitTarget(text, match);
     if (
       name !== undefined &&
-      (allowExtensionless ||
+      ((allowExtensionless &&
+        !pathLike(name) &&
+        (quoted !== undefined || standaloneTarget(text, match) || namedTarget)) ||
         (pathLike(name) && (quoted !== undefined || trailingTarget(text, match))) ||
-        (!fileDestinationText(text, match) && explicitTarget(text, match)))
+        namedTarget)
     ) {
       names.push(name);
     }
