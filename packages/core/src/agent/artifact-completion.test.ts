@@ -206,6 +206,12 @@ describe("named artifact completion", () => {
     ["does not require to-the-file prose", "Write notes to the file.", []],
     ["does not require plural file prose", "Write notes to files.", []],
     ["does not require plural article file prose", "Write notes to the files.", []],
+    ["does not require an input named after of", "Write a summary of data.csv.", []],
+    [
+      "does not require a dotted technology term inside prose",
+      "Create Node.js and Python versions of the tool.",
+      [],
+    ],
     [
       "does not require code write text",
       "Run one script. Call channel.write('phase-a.txt'), then channel.write('phase-b.txt'). Do not write these signals to a file.",

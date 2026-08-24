@@ -8,7 +8,7 @@ const FILENAME_TOKEN =
   /`([^`]+)`|"([^"]+)"|'([^']+)'|(?<!\S)([^\s,;:()[\]{}]+?)(?=[,;:()[\]{}]|\.(?=\s|$)|\s|$)/gu;
 const DIRECT_OBJECT_END = /\r?\n|;|[.!?](?=\s|$)/u;
 const INPUT_REFERENCE =
-  /(?<!\S)(?:after\b|based\s+on\b|from\b|using\b|with\b|(?:source|input|attachment)(?=\s|:|$))/iu;
+  /(?<!\S)(?:after\b|based\s+on\b|from\b|of\b|using\b|with\b|(?:source|input|attachment)(?=\s|:|$))/iu;
 const LIST_ITEM = /^\s*(?:[-*+]\s+|\d+[.)]\s+)(.*)$/u;
 const EXPLICIT_TARGET_BEFORE =
   /\b(?:file|path|name|deliverable)\b(?:\s+(?:called|named|at|to))?\s*(?::|=)?\s*$/iu;
@@ -35,6 +35,11 @@ function explicitTarget(text: string, match: RegExpMatchArray): boolean {
   );
 }
 
+function trailingTarget(text: string, match: RegExpMatchArray): boolean {
+  const start = match.index ?? 0;
+  return text.slice(start + match[0].length).trim().length === 0;
+}
+
 function fileDestinationText(text: string, match: RegExpMatchArray): boolean {
   const start = match.index ?? 0;
   const end = start + match[0].length;
@@ -58,7 +63,7 @@ function filenameTokens(text: string, allowExtensionless: boolean): string[] {
     if (
       name !== undefined &&
       (allowExtensionless ||
-        pathLike(name) ||
+        (pathLike(name) && (quoted !== undefined || trailingTarget(text, match))) ||
         (!fileDestinationText(text, match) && explicitTarget(text, match)))
     ) {
       names.push(name);
