@@ -8,6 +8,7 @@ const PROTOCOL_TRANSITION =
 const LEAKED_TOOL_SUFFIX = /\}\}\s*(?:<tool_call\|>|<\/(?:tool_call|function_call)>)[\s\S]*$/iu;
 const LEADING_RESPONSE_CHANNEL =
   /^\s*(?:<\|"\|>\s*(?:thought|analysis|final)\s*(?:<channel\|>)?|<\|channel\|?>\s*(?:thought|analysis|final)\s*:?\s*(?:<channel\|>|<\|message\|?>)?)\s*/iu;
+const LEADING_EMPTY_RESPONSE_CHANNEL = /^\s*<\|channel>[^\S\r\n]*(?:\r?\n|$)/u;
 
 export function containsRawProtocolCall(value: string): boolean {
   return (
@@ -25,7 +26,9 @@ export function containsProtocolTransition(value: unknown): boolean {
 }
 
 export function visibleResponseText(value: string, streaming = false): string {
-  const visible = value.replace(LEADING_RESPONSE_CHANNEL, "");
+  const visible = value
+    .replace(LEADING_RESPONSE_CHANNEL, "")
+    .replace(LEADING_EMPTY_RESPONSE_CHANNEL, "");
   if (visible !== value) return visible;
   const trimmed = value.trimStart();
   if (streaming && trimmed.startsWith("<") && !trimmed.includes("\n") && trimmed.length < 256) {

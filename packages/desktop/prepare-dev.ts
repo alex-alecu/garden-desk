@@ -1,7 +1,7 @@
-import { spawnSync } from "node:child_process";
-import { lstat, readdir, stat } from "node:fs/promises";
+import { lstat, readdir, readFile, stat } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { buildSidecar } from "./build-sidecar.js";
 import { developmentResourceContract } from "./src/dev-resource-contract.js";
 
 const desktopRoot = fileURLToPath(new URL(".", import.meta.url));
@@ -27,7 +27,10 @@ async function resourcesAreCurrent(): Promise<boolean> {
       Promise.all(inputRoots.map(newestModifiedAt)).then((values) => Math.max(...values)),
       ...requiredOutputs.slice(1).map(stat),
     ]);
-    return manifest.mtimeMs >= latestInput;
+    const record = JSON.parse(
+      await readFile(join(desktopRoot, ".generated", "sidecar", "build-record.json"), "utf8"),
+    ) as { buildMode?: unknown };
+    return manifest.mtimeMs >= latestInput && record.buildMode === "development";
   } catch {
     return false;
   }
@@ -39,13 +42,6 @@ if (await resourcesAreCurrent()) {
   console.log(
     "[Vault Desk startup] Offline resources changed; rebuilding the self-contained development package.",
   );
-  const result = spawnSync(
-    process.execPath,
-    ["--import", "tsx", join(desktopRoot, "build-sidecar.ts")],
-    { cwd: desktopRoot, stdio: "inherit" },
-  );
-  if (result.error !== undefined) throw result.error;
-  if (result.status !== 0)
-    throw new Error(`Development resource preparation exited ${result.status}.`);
+  await buildSidecar("development");
   console.log("[Vault Desk startup] Offline resources are ready; starting the frontend.");
 }

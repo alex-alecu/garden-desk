@@ -24,6 +24,12 @@ it("removes only a leading model channel prelude from visible response text", ()
   expect(visibleResponseText("<|channel|>analysis<|message|>Visible answer.")).toBe(
     "Visible answer.",
   );
+  expect(visibleResponseText("<|channel>\nVisible answer.")).toBe("Visible answer.");
+  expect(visibleResponseText("<|channel>Visible answer.")).toBe("<|channel>Visible answer.");
+  expect(visibleResponseText("Visible answer.\n<|channel>")).toBe("Visible answer.\n<|channel>");
+  expect(visibleResponseText("<|channel>\n<|channel>\nVisible answer.")).toBe(
+    "<|channel>\nVisible answer.",
+  );
   expect(visibleResponseText("The literal marker is `<|channel|>`.")).toBe(
     "The literal marker is `<|channel|>`.",
   );

@@ -14,7 +14,7 @@ import {
   matchesTerminalAgentEvidence,
   selectedAgentEvidence,
 } from "./m3-windows-agent-evidence.js";
-import { windowsInferencePaths } from "./windows-inference.js";
+import { developmentWindowsInferencePaths } from "./windows-inference.js";
 
 const repositoryRoot = process.cwd();
 const helper = join(
@@ -120,7 +120,7 @@ async function runAgentEvidence(input: AgentEvidenceInput) {
   const source = join(input.root, `${input.name}-source`);
   const workspace = join(input.root, `${input.name}-workspace`);
   await Promise.all([mkdir(source), mkdir(workspace)]);
-  const inference = await windowsInferencePaths();
+  const inference = await developmentWindowsInferencePaths();
   const core = await createVaultCore({
     workspaceDir: workspace,
     modelStoreDir: modelRoot,
@@ -199,7 +199,7 @@ async function runWindowsEvidence(root: string, artifacts: WindowsArtifacts) {
 async function runWindowsImageEvidence(root: string): Promise<Record<string, unknown>> {
   const imageWorkspace = join(root, "image-workspace");
   await mkdir(imageWorkspace);
-  const inference = await windowsInferencePaths();
+  const inference = await developmentWindowsInferencePaths();
   const imageCore = await createVaultCore({
     workspaceDir: imageWorkspace,
     modelStoreDir: modelRoot,

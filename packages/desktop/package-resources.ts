@@ -147,7 +147,10 @@ async function installWindowsInferenceHelper(
   };
 }
 
-async function buildInferenceWorkers(destinationRoot: string): Promise<[string, string]> {
+async function buildInferenceWorkers(
+  destinationRoot: string,
+  developmentBuild: boolean,
+): Promise<[string, string]> {
   reportDevelopmentResourceStage("inferenceWorker");
   const worker = join(destinationRoot, "worker.mjs");
   const hardwareWorker = join(destinationRoot, "hardware-worker.mjs");
@@ -166,6 +169,11 @@ async function buildInferenceWorkers(destinationRoot: string): Promise<[string, 
         format: "esm",
         platform: "node",
         target: "node24",
+        define: {
+          "globalThis.__VAULT_DEVELOPMENT_BUILD__": String(developmentBuild),
+          "globalThis.__VAULT_DEVELOPMENT_DIAGNOSTIC_ROOT__": '""',
+        },
+        minifySyntax: true,
       });
     }),
   );
@@ -174,6 +182,7 @@ async function buildInferenceWorkers(destinationRoot: string): Promise<[string, 
 
 export async function installInferenceResources(
   destinationRoot = inferenceRoot,
+  developmentBuild = false,
 ): Promise<
   Pick<
     ResourceHashes,
@@ -187,7 +196,7 @@ export async function installInferenceResources(
   >
 > {
   await mkdir(destinationRoot, { recursive: true });
-  const [worker, hardwareWorker] = await buildInferenceWorkers(destinationRoot);
+  const [worker, hardwareWorker] = await buildInferenceWorkers(destinationRoot, developmentBuild);
   reportDevelopmentResourceStage("inferenceRuntime");
   await copyRuntimePackage(
     "node-llama-cpp",
@@ -215,15 +224,13 @@ export async function installInferenceResources(
 }
 
 function productBuild(): boolean {
-  return (
-    !process.argv.includes("--check") &&
-    (process.platform === "darwin" || process.platform === "win32")
-  );
+  return !process.argv.includes("--check") && ["darwin", "win32"].includes(process.platform);
 }
-
-async function installProductResources(): Promise<Omit<ResourceHashes, "migrations">> {
+async function installProductResources(
+  mode: "development" | "production",
+): Promise<Omit<ResourceHashes, "migrations">> {
   return {
-    ...(await installInferenceResources()),
+    ...(await installInferenceResources(inferenceRoot, mode === "development")),
     ...(await installVisionResources(sha256)),
     ...(process.platform === "win32"
       ? {
@@ -255,6 +262,7 @@ async function installWindowsPipeGuard(): Promise<string | undefined> {
 export async function installResources(
   identity: { executableSha256: string; signingMode: string },
   targetTriple: string,
+  mode: "development" | "production" = "production",
 ): Promise<ResourceHashes> {
   const promptResources = join(resourcesRoot, "prompts");
   await rm(promptResources, { force: true, recursive: true });
@@ -267,7 +275,7 @@ export async function installResources(
     migrations[name] = await sha256(destination);
   }
   const windowsPipeGuard = await installWindowsPipeGuard();
-  const productResources = productBuild() ? await installProductResources() : {};
+  const productResources = productBuild() ? await installProductResources(mode) : {};
   await writePackageIdentity(resourcesRoot, {
     schemaVersion: 1,
     targetTriple,

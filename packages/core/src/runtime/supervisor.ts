@@ -1,4 +1,9 @@
 import type { AuditEventInput, InferenceOperation, InferenceWorkerRequest } from "@vault/shared";
+import {
+  type InferenceDiagnosticOperation,
+  recordDevelopmentHostFailure,
+  waitForDevelopmentHostRecord,
+} from "@vault/workers";
 import type {
   ChatInput,
   EmbeddingInput,
@@ -38,6 +43,30 @@ import {
 type AuditAppender = (event: AuditEventInput) => void;
 type ResourceLease = ReturnType<ResourceScheduler["reserve"]>;
 type StagedModel = Awaited<ReturnType<ModelResolver["resolve"]>>;
+async function recordModelPreparationFailure(
+  operation: InferenceDiagnosticOperation,
+  error: unknown,
+): Promise<void> {
+  try {
+    if (globalThis.__VAULT_DEVELOPMENT_BUILD__ === true)
+      await waitForDevelopmentHostRecord(
+        recordDevelopmentHostFailure("model_prepare", operation, error),
+      );
+  } catch {
+    // Diagnostics must not change inference behavior.
+  }
+}
+function modelPreparationFailure(error: unknown): InferenceFailure {
+  try {
+    if (error instanceof Error && error.message === "missing_model")
+      return new InferenceFailure("not_found", "Inference model unavailable.");
+    if (error instanceof Error && /memory/iu.test(error.message))
+      return new InferenceFailure("out_of_memory", "Inference memory unavailable.");
+  } catch {
+    // Return the fixed inference error below.
+  }
+  return new InferenceFailure("internal", "Inference failed.");
+}
 
 export class InferenceSupervisor extends ImageInferenceController implements InferenceService {
   private readonly residency = new AsyncSerial();
@@ -98,7 +127,11 @@ export class InferenceSupervisor extends ImageInferenceController implements Inf
     });
     return response;
   }
-  private async prepareModel(modelId: string, operation: InferenceOperation, signal: AbortSignal) {
+  private async prepareModel(
+    modelId: string,
+    operation: InferenceDiagnosticOperation,
+    signal: AbortSignal,
+  ) {
     if (this.resident?.modelId === modelId && this.resident.operation === operation) {
       return this.resident;
     }
@@ -110,7 +143,8 @@ export class InferenceSupervisor extends ImageInferenceController implements Inf
       return this.resident;
     } catch (error) {
       lease.release();
-      throw error;
+      await recordModelPreparationFailure(operation, error);
+      throw modelPreparationFailure(error);
     }
   }
 
@@ -127,7 +161,6 @@ export class InferenceSupervisor extends ImageInferenceController implements Inf
     }
     return true;
   }
-
   private async resources(request: InferenceWorkerRequest, signal: AbortSignal) {
     if (request.operation === "probe") {
       return { lease: this.scheduler.reserve(request.operation), stagedModel: undefined };

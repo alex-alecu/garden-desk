@@ -1,5 +1,6 @@
 import { stat } from "node:fs/promises";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
+import { developmentInferenceWorkerEntryPath } from "./development-inference-path.js";
 
 export interface WindowsInferencePaths {
   inferenceHelperPath: string;
@@ -41,4 +42,15 @@ export async function windowsInferencePaths(): Promise<WindowsInferencePaths> {
   throw new Error(
     "Build the packaged Windows inference resources with `pnpm desktop:build-sidecar` before running this gate.",
   );
+}
+
+export async function developmentWindowsInferencePaths(): Promise<WindowsInferencePaths> {
+  const production = await windowsInferencePaths();
+  return {
+    ...production,
+    workerEntryPath: developmentInferenceWorkerEntryPath(
+      "win32",
+      dirname(production.workerEntryPath),
+    ),
+  };
 }

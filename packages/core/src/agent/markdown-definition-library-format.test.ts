@@ -109,12 +109,32 @@ function expectWord(library: MarkdownDefinitionLibrary): void {
   const skill = library.skill("word-documents");
   expect(skill.description).toContain("Before any legacy .doc access, load this skill");
   expect(skill.description).toContain("never use generic read or cat for binary DOC");
-  expect(skill.body).toContain("Load this skill before any DOC access");
-  expect(skill.body).toContain("never use generic `read` or `cat`");
-  expect(skill.body).toContain("the only approved extraction is Python `subprocess.run");
-  expect(skill.body).toContain('["/usr/bin/antiword", "-m", "UTF-8.txt", "-w", "0", str(source)]');
-  expect(skill.body).toContain('result.stdout.decode("utf-8", errors="strict")');
-  expect(skill.body).toContain("Never create/edit `.doc`");
+  expect(skill.body).toContain("Load before DOC access");
+  expect(skill.body).toContain("do not use generic `read` or `cat`");
+  const programs = [...skill.body.matchAll(/```python\n([\s\S]*?)```/g)].map((match) => match[1]);
+  expect(programs).toHaveLength(1);
+  const [legacy] = programs;
+  expect(legacy).toContain(
+    'source=next(iter([*Path("/source").glob("*.doc"),*Path("/run/attachments").glob("*.doc")]))',
+  );
+  expect(legacy).toContain('Path("/run/attachments").glob("*.doc")');
+  expect(legacy).toContain('["/usr/bin/antiword", "-m", "UTF-8.txt", "-w", "0", str(source)]');
+  expect(legacy).toContain('env={**os.environ, "LANG": "C", "LC_ALL": "C", "LC_CTYPE": "C"}');
+  expect(legacy).toContain("capture_output=True");
+  expect(legacy).toContain("check=False");
+  expect(legacy).not.toContain("text=True");
+  expect(legacy).toContain('if result.returncode != 0: raise RuntimeError("read failed")');
+  expect(legacy).toContain('text=result.stdout.decode("utf-8", errors="strict")');
+  expect(legacy).toContain('if not text.strip(): raise RuntimeError("No text")');
+  expect(legacy).not.toContain("try:");
+  expect(legacy).not.toContain("except");
+  expect(legacy).not.toContain("print(");
+  expect(skill.body).toContain("Submit this unchanged unwrapped top-level Python program.");
+  expect(skill.body).toContain("Do not add a fallback program or `try`/`except` wrapper");
+  expect(skill.body).toContain("change strict UTF-8 decode");
+  expect(skill.body).toContain("turn extraction, decode, or blank failure into output.");
+  expect(skill.body).toContain("Keep both terminal raises.");
+  expect(skill.body).toContain("Do not edit `.doc`");
   expect(() => library.skill("docx-documents")).toThrow("Unknown skill");
 }
 

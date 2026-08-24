@@ -5,8 +5,22 @@ description: Local Word reading, DOCX editing, and creation. Before any legacy .
 
 # Word Documents
 
-Suffix: binary legacy `.doc` is read-only input. Load this skill before any DOC access; never use generic `read` or `cat`. `python-docx` is for DOCX. Never create/edit `.doc`; new Word output is `.docx`.
+`.doc` is read-only. Load before DOC access; do not use generic `read` or `cat`. `python-docx` is for DOCX. Do not edit `.doc`; output is `.docx`.
 
-Legacy: the only approved extraction is Python `subprocess.run(["/usr/bin/antiword", "-m", "UTF-8.txt", "-w", "0", str(source)])` with one discovered absolute `/source` or `/run/attachments` path, never shell text. Accept only zero exit, `result.stdout.decode("utf-8", errors="strict")`, and nonblank text. Tables become plain text; layout, images, comments, macros, and objects are not preserved. Encrypted, corrupt, HTML, XML, ZIP, or text failure: unsupported and stop; no `python-docx`, `strings`, OLE, network, installer, or converter fallback. DOC edit: unsupported; requested DOCX from text states layout loss.
+Top-level Python: `source` is a `Path` under `/source` or `/run/attachments`.
 
-DOCX: inspect paragraphs, tables, styles, sections, headers, and footers; one program makes only the request, saves `/workspace`, and reopens/asserts text/styles. Derive source facts in it; exact `LABEL=value` or `LABEL: value` is one paragraph or row. Preserve unrelated content, format, setup, and relationships; use real structures, not layout newlines. Separate `print()`/`\n`; after syntax error use a shorter complete program. Reopen and verify facts and structure.
+```python
+import os, subprocess
+from pathlib import Path
+source=next(iter([*Path("/source").glob("*.doc"),*Path("/run/attachments").glob("*.doc")]))
+result=subprocess.run(["/usr/bin/antiword", "-m", "UTF-8.txt", "-w", "0", str(source)], capture_output=True, check=False, env={**os.environ, "LANG": "C", "LC_ALL": "C", "LC_CTYPE": "C"})
+if result.returncode != 0: raise RuntimeError("read failed")
+text=result.stdout.decode("utf-8", errors="strict")
+if not text.strip(): raise RuntimeError("No text")
+```
+
+Submit this unchanged unwrapped top-level Python program. Do not add a fallback program or `try`/`except` wrapper, change strict UTF-8 decode, use `text=True`, or turn extraction, decode, or blank failure into output. Keep both terminal raises.
+
+Tables: plain text. Stop on encrypted, corrupt, HTML/XML/ZIP, or text failure. No `python-docx`, `strings`, OLE, network, installer, or converter fallback. DOC edit: unsupported; request DOCX; state layout loss.
+
+DOCX: inspect paragraphs, tables, styles, sections, headers, footers; one program makes the request, saves `/workspace`, and reopens/asserts text/styles. Derive facts; exact `LABEL=value` or `LABEL: value` is one paragraph or row. Preserve unrelated content, format, setup, relationships; use structures, not layout newlines. Separate `print()`/`\n`; after syntax error use a shorter program.

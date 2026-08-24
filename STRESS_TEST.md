@@ -816,6 +816,14 @@ The backend, daemon, model, guest isolation, audit, and canonical gate remained 
 - Sidecar SHA-256: `08ced80ea0953e2e6ebed25a583695a95eda8df3b85d167506fa46f56a17d299`.
 - Prohibited raw fields appeared: no.
 
+## 2026-08-24 Windows development-headless legacy DOC run
+
+- Scope: one existing `legacy-doc-read` case ran with `pnpm test:stress:m3:small -- --case legacy-doc-read`. No second case, separate `pnpm desktop:build-sidecar` build, unit test, full stress suite, full M3 gate, install, download, or guest-image build ran. The normal wrapper built its ignored development worker and headless artifact. This corrects the known P2 documentation statement that said no build ran.
+- Result: exit code `1`; reported case duration 61.519 s; fixture duration 15 ms; one fixture file with 23,552 bytes. The 12-minute limit did not expire. The terminal agent state was `succeeded`; the evaluator failed because `legacyDocMethodValid` was false. The safe terminal error value was null.
+- Runtime evidence: live console events showed inference start and five guest executions. The real Gemma worker and no-NIC guest started. The run completed the required fact and execution-text checks, but did not meet the required legacy-DOC method contract.
+- Safe diagnostics: no `worker-stderr.log` existed under the ignored inference-diagnostics output after this run. Therefore its byte size, current-user DACL verification, and failure record were not recorded. No raw diagnostic content was inspected or recorded.
+- This is one focused failure result only. No full gate ran. It is not Windows M3 certification evidence.
+
 ## 2026-08-23 Windows final worker category probe
 
 - Process: exit `0`; duration `11.904 s`.
@@ -824,3 +832,105 @@ The backend, daemon, model, guest isolation, audit, and canonical gate remained 
 - Sidecar SHA-256: `7897c50ce10b9092199412bd2f95c001a066bc4a20b96f3dfefef8d3108c2b7a`.
 - Safe report: `packages/eval/.generated/worker-boundary-legacy-doc/result-2026-08-23T12-01-03.245Z.json`; SHA-256 `897fafd41ef731c88c6db3e6f09a915ea47b9970a73b4e7aca0d3beb3162352e`.
 - Prohibited raw fields appeared: no.
+
+## 2026-08-24 Windows development-headless legacy DOC verification rerun
+
+- Scope: exactly one existing `legacy-doc-read` case ran with `pnpm test:stress:m3:small -- --case legacy-doc-read`. No second case, separate `pnpm desktop:build-sidecar` build, guest-image build, retry, full suite, or M3 gate ran. The normal wrapper built its ignored development worker and headless artifact.
+- Result: exit code `1`; case duration 52.264 s; fixture duration 7 ms; one fixture file with 23,552 bytes. The 12-minute limit did not expire. The terminal agent state was `succeeded`; safe terminal error was null; and `legacyDocMethodValid` was false.
+- Runtime evidence: the real Gemma worker and the no-NIC guest started. The required Word skill order and required response and execution text checks passed. The method contract did not pass.
+- Safe diagnostics: no newest ignored `worker-stderr.log` existed. Byte size, current-user DACL, library logger lines, and a failure record were not recorded.
+- This is one focused failure result only. It is not Windows M3 certification evidence.
+
+## 2026-08-24 Windows development-headless legacy DOC marker verification
+
+- Scope: exactly one existing `legacy-doc-read` case ran directly with `pnpm test:stress:m3:small -- --case legacy-doc-read`. No second case, manual build, full stress suite, or M3 gate ran. The strict 12-minute limit did not expire.
+- Outcome: the report classification was `small_stress_limit_found`. The case run duration was 59.374 s; fixture duration was 7 ms with one 23,552-byte file. The Gemma model changed from `unloaded` to `ready`. Three no-NIC guest executions completed with exit code 0. The terminal agent state was `succeeded`; the evaluator result failed because `legacyDocMethodValid` was false. `legacyDocOrderValid` was true. The safe terminal error was null.
+- Safe diagnostics: no new ignored UUID `worker-stderr.log` was created. Therefore the `[vault-inference] worker-stderr-ready` marker, byte size, current-user DACL, library logger lines, and a failure record were not recorded.
+- This is one focused failure result only. No full gate ran. It is not Windows M3 certification evidence.
+
+## 2026-08-24 Windows development-headless legacy DOC final focus
+
+- Scope: exactly one existing `legacy-doc-read` case ran directly with `pnpm test:stress:m3:small -- --case legacy-doc-read`. No second case, unit test, install, download, full stress suite, full verification, or M3 gate ran. No separate/manual `pnpm desktop:build-sidecar` or guest-image build ran; the normal fixed development wrapper built its ignored development worker and headless artifact. The strict 12-minute limit did not expire.
+- Result: the command exited with code `0`. The case duration was 51.401 s; fixture duration was 7 ms. The terminal agent state was `succeeded` and the safe terminal error was null. The real Gemma worker and no-NIC guest started.
+- Legacy DOC result: `legacyDocMethodValid` was true and `legacyDocOrderValid` was true. Two guest executions completed. The evaluator classification was `small_stress_passed`.
+- Safe diagnostics: the newest ignored UUID worker-stderr file was present. It was 38 bytes, had the development stderr-ready marker, and had a protected current-user DACL. It had zero safe library logger lines. No operation or failure record was present. No raw diagnostic content was recorded.
+- Generated diagnostic and stress outputs were ignored and absent from Git status. This is one focused result only. No full gate ran. It is not Windows M3 certification evidence.
+
+## 2026-08-24 Windows M3 small full stress suite
+
+- Resource stage: `pnpm desktop:build-sidecar` ran one time before the suite. It exited with code `0` in 56.0 seconds. The staged Windows inference workers, Node runtime, AppContainer helper, vision executable, HCS helper, guest kernel and initramfs, Gemma generation model, vision projector, and package hashes were present and matched the package resource manifest. No model download, dependency install, or guest-image build ran.
+
+- Exact suite command: `pnpm test:stress:m3:small`. It ran one time with the complete five-case scope and no `--case` option. It exited with code `1` after 268,948 ms of case time and 14 ms of fixture time, below the 40-minute limit. The classification was `small_stress_limit_found`; the audit check passed. Two cases passed, three cases failed, three terminal runs succeeded, and two terminal runs failed.
+
+- Case results: `terminal-discovery` failed in 34,826 ms with safe error `agent_model_failed`, zero guest executions, and two inference failures. `legacy-doc-read` ended `succeeded` in 53,338 ms with two guest executions, but the evaluator failed because `legacyDocMethodValid` was false. `xlsx-edit` passed in 67,143 ms with two guest executions, one recovered inference failure, and one verified deliverable. `docx-edit` passed in 110,523 ms with eight guest executions, six safe failed executions, one recovered inference failure, and one verified deliverable. `invalid-document` failed in 3,118 ms with safe error `agent_model_failed` and zero guest executions.
+
+- Real-runtime evidence: the staged pinned Gemma model was present. Its initial state was `unloaded`; the final required-ready check was unavailable because it returned a safe post-suite model-state error. The suite recorded 12 guest executions and two verified deliverables. This is real Gemma and no-NIC guest suite evidence, but it is not a passing Windows M3 result.
+
+- Safe diagnostics: the newest three ignored diagnostic directories had zero `worker-stderr.log` files. Thus no ready marker, worker-log byte size, worker-log DACL, operation record, failure record, or library log line was recorded. The directories were Git-ignored, but their current-user protected-directory DACL check was false. No raw log, prompt, thought text, response, customer data, or private path was recorded here.
+
+- Optional scaled and context suites did not run. No retry, second case command, full M3 gate, product-source edit, commit, or push ran. Conclusion: not ready. This is safe full-suite failure evidence only and is not Windows M3 certification evidence.
+
+## 2026-08-24 Windows terminal-discovery focused case
+
+- Scope: exactly one existing `terminal-discovery` case ran directly with `pnpm test:stress:m3:small -- --case terminal-discovery`. No other case, build, install, download, retry, full suite, or M3 gate ran. The 12-minute limit did not expire.
+- Result: the command exited with code `1`. Terminal-session duration was about 38.5 s. The case duration was 33.804 s; fixture duration was 0 ms. The terminal state was `failed`; safe error was `agent_model_failed`; there were zero guest executions and two inference failures. The evaluator classification was `small_stress_limit_found`.
+- Runtime evidence: console events recorded inference start. A Gemma worker start and a no-NIC guest start were not observed. No guest execution started.
+- Safe diagnostics: no newest ignored UUID `worker-stderr.log` existed after the case. The diagnostic root is Git-ignored. File byte size, ready marker, protected current-user DACL, operation, failure record, and library logger lines were not recorded. No raw diagnostic content was recorded.
+- This is one focused failure result only. It is not Windows M3 certification evidence.
+
+## 2026-08-24 Windows terminal-discovery host-log verification
+
+- Scope: exactly one `terminal-discovery` case ran directly with `pnpm test:stress:m3:small -- --case terminal-discovery`. No retry, second case, build, install, download, full suite, full verification, or M3 gate ran. The strict 12-minute limit did not expire.
+- Outcome: exit code `1`; terminal-session duration was about 36.4 s; reported case duration was 34.790 s. The terminal state was `failed`; the safe error was `agent_model_failed`; guest execution count was zero; and inference failure count was two. The evaluator classification was `small_stress_limit_found`.
+- Runtime state: no Gemma worker or no-NIC guest start was observed. After the case, no Gemma, Vault Core, HCS helper, AppContainer worker, Node worker, or live guest process remained. The normal `vmcompute.exe` service remained active.
+- Safe diagnostics: the newest private UUID diagnostic directory was absent. Therefore `inference-host.log` and `worker-stderr.log` were absent, and their byte-size limit, protected current-user DACL, ready marker, host stage and operation, failure record, and library lines were not recorded. The inferred diagnostic-output location is Git-ignored.
+- This is one focused failure result only. It is not Windows M3 certification evidence.
+
+## 2026-08-24 Windows terminal-discovery final host-log check
+
+- Scope: exactly one `terminal-discovery` case ran directly with `pnpm test:stress:m3:small -- --case terminal-discovery`. No retry, second case, build, install, download, full suite, full verification, or M3 gate ran. The 12-minute limit did not expire.
+- Outcome: the command exited with code `1`. Terminal command time was about 40.2 s; reported case duration was 35.843 s. The terminal state was `failed`; the safe error was `agent_model_failed`; execution failure count was zero; and inference failure count was two. The evaluator classification was `small_stress_limit_found`.
+- Runtime state: inference started, but a Gemma worker start and a no-NIC guest start were not observed. The normal `vmcompute.exe` service was allowed. No active Vault Desk Core, worker, HCS helper, AppContainer worker, or live guest process remained.
+- Safe diagnostics: the ignored diagnostic root existed, but it contained no private UUID directory. Therefore no newest `inference-host.log` or `worker-stderr.log` was available. The byte-size limit, protected current-user DACL, worker-start marker, host stage and operation, failure record, and library lines were not recorded. The safe diagnostic cause is that no diagnostic record was persisted before terminal failure.
+- Git check: generated diagnostic output is ignored and absent from Git status. This is one focused failure result only. It is not Windows M3 certification evidence.
+
+## 2026-08-24 Windows terminal-discovery grammar diagnostic verification
+
+- Scope: exactly one `terminal-discovery` case ran directly with `pnpm test:stress:m3:small -- --case terminal-discovery`. No retry, second case, separate build, install, download, full suite, full verification, or M3 gate ran. The 12-minute limit did not expire.
+- Outcome: the command exited with code `1`. The terminal-session duration was about 35.0 s; the reported case duration was 35.810 s. The terminal state was `failed`; the safe error was `agent_model_failed`; execution failure count was zero; and inference failure count was two. The evaluator classification was `small_stress_limit_found`.
+- Runtime state: the real Gemma worker started. The no-NIC guest did not start. No guest execution started.
+- Safe diagnostics: the newest private UUID `worker-stderr.log` was present. It was 133,743 bytes, below the 1 MiB limit, had a protected current-user-only DACL, was Git-ignored, and had the development stderr-ready marker. No `inference-host.log` was present. Stage was not recorded. Operation was `chat`. Private development diagnostics identified a native grammar-construction failure; raw Error and library details remain only in the ignored protected log. No raw private log content was recorded here.
+- This is one focused failure result only. It is not Windows M3 certification evidence.
+
+## 2026-08-24 Windows terminal-discovery after grammar fix
+
+- Scope: one `terminal-discovery` case ran directly with `pnpm test:stress:m3:small -- --case terminal-discovery`. No retry, other case, build, install, download, full suite, full verification, or M3 gate ran. The 12-minute limit did not expire.
+- Result: the command exited with code `1`. The reported case duration was 50.233 s. The terminal state was `succeeded`; the safe terminal error was null; guest executions were 0; and inference failures were 0. The evaluator failed because the required response token was absent. The classification was `small_stress_limit_found`.
+- Runtime evidence: the real Gemma worker started and wrote the stderr-ready marker. The console recorded inference and a tool start. No completed no-NIC guest execution was recorded.
+- Safe diagnostics: the newest private worker stderr log was 108,927 bytes, below 1 MiB. It had a protected current-user DACL and was Git-ignored. It had no worker operation or failure record. It had 1,382 safe library records at levels `info`, `log`, `debug`, and `warn`. The newest private host log was 163 bytes, below 1 MiB, had a protected current-user DACL, and was Git-ignored. It recorded a safe `worker_launch` stage and `chat` operation. No raw message, cause, stack, prompt, thought, response, customer data, or private path is recorded here.
+- This is one focused failure result only. It is not Windows M3 certification evidence.
+
+## 2026-08-24 Windows invalid-document focused verification after grammar fix
+
+- Scope: exactly one `invalid-document` case ran directly with `pnpm test:stress:m3:small -- --case invalid-document`. No retry, other case, manual build, install, download, full suite, full verification, or M3 gate ran. The 12-minute limit did not expire.
+- Result: the command exited with code `0` in about 58.2 s. The reported case duration was 54.243 s. The fixture had one 34-byte file. The terminal state was `succeeded`; the safe terminal error was null; there were two guest executions, zero failed executions, and zero inference failures. The evaluator classification was `small_stress_passed`; audit validation passed.
+- Safe invalid-document result: the required `invalid` response token was present. No required token was missing. No forbidden response text or pattern was present. No artifact was produced or retained.
+- Runtime evidence: the pinned Gemma model changed from `unloaded` to `ready`. Two guest executions completed in 590 ms. This is focused real Gemma and no-NIC guest evidence only. It is not Windows M3 certification evidence.
+- Safe diagnostics: the newest private UUID directory had one `worker-stderr.log`. It was 123,338 bytes, below 1 MiB, had the stderr-ready marker, and its file and directory had protected current-user DACLs. The log was Git-ignored. It had no operation or failure record. It had 1,642 safe library records at levels `debug`, `info`, `log`, and `warn`. No new host log was in that newest directory. No prompt, thought, response, customer data, raw stack, raw error text, or private path is recorded here.
+- Post-run process check found no Vault Desk Core, worker, HCS helper, AppContainer worker, or live guest process. The normal `vmcompute.exe` service was left active.
+
+## 2026-08-24 Windows terminal-discovery final-response verification
+
+- Scope: exactly one existing `terminal-discovery` case ran directly with `pnpm test:stress:m3:small -- --case terminal-discovery`. No retry, other case, manual build, install, download, full suite, full verification, or M3 gate ran. The 12-minute outer limit did not expire.
+- Result: the command exited with code `0`. The reported case duration was 49.370 s; fixture time was 0 ms. The terminal state was `succeeded`, audit validation passed, and the evaluator classification was `small_stress_passed`. The required visible token `SURCHARGE_BPS=275` was present. Guest execution count, failed guest execution count, and inference failure count were all zero.
+- Runtime evidence: the focused runner used pinned `gemma-4-12b-it-qat-q4_0`; its model state changed from `unloaded` to `ready`. The private worker log recorded the development stderr-ready marker and 1,323 safe library records. The run recorded inference and tool activity. No no-NIC guest execution was required or recorded for this terminal-discovery case.
+- Safe diagnostics: the newest private `worker-stderr.log` was 105,585 bytes, below 1 MiB. The diagnostic root, newest private directory, and file had protected current-user DACLs, and the file was Git-ignored. No host log was created. The worker log had no operation failure or failure-detail field. Its safe library log levels were `debug`, `info`, `log`, and `warn`; no raw log content was recorded.
+- This is one passing focused result only. It is not Windows M3 certification evidence.
+
+## 2026-08-24 Windows legacy DOC final focused verification
+
+- Scope: exactly one existing `legacy-doc-read` case ran directly with `pnpm test:stress:m3:small -- --case legacy-doc-read`. No retry, other case, separate build, install, download, full suite, full verification, or M3 gate ran. The 12-minute limit did not expire.
+- Result: the command exited with code `0` in about 58.0 s. The reported case duration was 51.497 s; fixture time was 14 ms. The terminal state was `succeeded`; audit validation passed; and the evaluator classification was `small_stress_passed`.
+- Legacy DOC result: `legacyDocMethodValid` and `legacyDocOrderValid` were true. The `word-documents` skill loaded first. The required Antiword and UTF-8 execution evidence was present. One no-NIC guest execution completed in 26 ms; no guest execution failed; and no inference failed.
+- Runtime evidence: the focused runner used pinned `gemma-4-12b-it-qat-q4_0`. Its state changed from `unloaded` to `ready`. Console events recorded real inference and one guest execution. This is focused real Gemma and no-NIC guest evidence only. It is not Windows M3 certification evidence.
+- Safe diagnostics: the newest private worker stderr log was 114,182 bytes, below 1 MiB. Its directory and file had protected current-user DACLs. The log was Git-ignored and had the development stderr-ready marker. No host log or failure record was present. It had 1,480 safe library records at levels `debug`, `info`, `log`, and `warn`. No raw private content was recorded.

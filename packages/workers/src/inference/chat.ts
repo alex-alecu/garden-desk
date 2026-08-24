@@ -8,6 +8,22 @@ import type {
   Token,
 } from "node-llama-cpp";
 
+const NATIVE_GRAMMAR_MAX_REPETITIONS = 1_999;
+
+function grammarSafeToolParams(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(grammarSafeToolParams);
+  if (typeof value !== "object" || value === null) return value;
+  return Object.fromEntries(
+    Object.entries(value).flatMap(([name, item]) =>
+      name === "maxLength" &&
+      typeof item === "number" &&
+      Math.floor(item) >= NATIVE_GRAMMAR_MAX_REPETITIONS + 1
+        ? []
+        : [[name, grammarSafeToolParams(item)]],
+    ),
+  );
+}
+
 /**
  * Converts Core's owned conversation into the model's native chat history. Tool
  * calls and their results are folded back into the assistant/function-call shape
@@ -78,7 +94,10 @@ function parseResult(result: string | undefined): unknown {
 export function chatFunctions(request: ChatGenerationRequest): ChatModelFunctions {
   const functions: Record<string, { description: string; params: unknown }> = {};
   for (const tool of request.tools) {
-    functions[tool.name] = { description: tool.description, params: tool.params };
+    functions[tool.name] = {
+      description: tool.description,
+      params: grammarSafeToolParams(tool.params),
+    };
   }
   return functions as ChatModelFunctions;
 }

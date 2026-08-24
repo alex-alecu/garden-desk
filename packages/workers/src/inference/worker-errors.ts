@@ -11,9 +11,20 @@ function errorText(error: unknown): string {
   }
 }
 
+function interruptionCode(error: unknown): "cancelled" | "timeout" | undefined {
+  try {
+    if (!(error instanceof DOMException)) return undefined;
+    if (error.name === "AbortError") return "cancelled";
+    if (error.name === "TimeoutError") return "timeout";
+  } catch {
+    return undefined;
+  }
+  return undefined;
+}
+
 function failureCode(error: unknown): ErrorCode {
-  if (error instanceof DOMException && error.name === "AbortError") return "cancelled";
-  if (error instanceof DOMException && error.name === "TimeoutError") return "timeout";
+  const interruption = interruptionCode(error);
+  if (interruption !== undefined) return interruption;
   const text = errorText(error);
   if (unsupported(text)) return "unsupported";
   return /memory|allocation|out of memory/iu.test(text) ? "out_of_memory" : "internal";

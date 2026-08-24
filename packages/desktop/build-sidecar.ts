@@ -18,6 +18,8 @@ const generatedRoot = join(desktopRoot, ".generated", "sidecar");
 const resourcesRoot = join(tauriRoot, "resources", "core");
 const binariesRoot = join(tauriRoot, "binaries");
 
+export type DesktopBuildMode = "development" | "production";
+
 function run(command: string, args: string[], env?: NodeJS.ProcessEnv): void {
   const result = spawnSync(command, args, { encoding: "utf8", env, stdio: "pipe" });
   if (result.status === 0) return;
@@ -51,7 +53,19 @@ async function sha256(path: string): Promise<string> {
   return digest.digest("hex");
 }
 
-async function buildBundle(): Promise<string> {
+function buildDefines(mode: DesktopBuildMode): Record<string, string> {
+  const developmentBuild = mode === "development";
+  return {
+    "globalThis.__VAULT_DEVELOPMENT_BUILD__": String(developmentBuild),
+    "globalThis.__VAULT_DEVELOPMENT_DIAGNOSTIC_ROOT__": JSON.stringify(
+      developmentBuild
+        ? join(repositoryRoot, "packages", "eval", ".generated", "inference-diagnostics")
+        : "",
+    ),
+  };
+}
+
+async function buildBundle(mode: DesktopBuildMode): Promise<string> {
   const output = join(generatedRoot, "vault-core.cjs");
   await build({
     absWorkingDir: repositoryRoot,
@@ -59,10 +73,11 @@ async function buildBundle(): Promise<string> {
     outfile: output,
     bundle: true,
     conditions: ["vault-runtime"],
-    define: { "import.meta.url": '"file:///vault-core.cjs"' },
+    define: { "import.meta.url": '"file:///vault-core.cjs"', ...buildDefines(mode) },
     format: "cjs",
     platform: "node",
     target: "node24",
+    minifySyntax: true,
   });
   return output;
 }
@@ -98,34 +113,40 @@ async function prepareSea(bundle: string): Promise<string> {
   return executable;
 }
 
-await rm(generatedRoot, { recursive: true, force: true });
-await rm(resourcesRoot, { recursive: true, force: true });
-await mkdir(generatedRoot, { recursive: true });
-await mkdir(join(resourcesRoot, "migrations"), { recursive: true });
-await mkdir(binariesRoot, { recursive: true });
-reportDevelopmentResourceStage("coreBundle");
-compileSharedRuntime();
-const bundle = await buildBundle();
-reportDevelopmentResourceStage("coreExecutable");
-const executable = await prepareSea(bundle);
-await chmod(executable, 0o755);
-const signingMode = signExecutable(executable);
-const extension = process.platform === "win32" ? ".exe" : "";
-const installed = join(binariesRoot, `vault-core-${targetTriple()}${extension}`);
-await copyFile(executable, installed);
-await chmod(installed, 0o755);
-if (process.argv.includes("--check"))
-  run(process.execPath, debugSidecarCheckArguments(repositoryRoot, installed));
-const executableSha256 = await sha256(installed);
-const resources = await installResources({ executableSha256, signingMode }, targetTriple());
-const record = {
-  schemaVersion: 1,
-  nodeVersion: process.version,
-  targetTriple: targetTriple(),
-  signingMode,
-  executableSha256,
-  bundleSha256: await sha256(bundle),
-  resources,
-};
-await writeFile(join(generatedRoot, "build-record.json"), `${JSON.stringify(record, null, 2)}\n`);
-console.log(JSON.stringify(record));
+export async function buildSidecar(mode: DesktopBuildMode, check = false): Promise<void> {
+  await rm(generatedRoot, { recursive: true, force: true });
+  await rm(resourcesRoot, { recursive: true, force: true });
+  await mkdir(generatedRoot, { recursive: true });
+  await mkdir(join(resourcesRoot, "migrations"), { recursive: true });
+  await mkdir(binariesRoot, { recursive: true });
+  reportDevelopmentResourceStage("coreBundle");
+  compileSharedRuntime();
+  const bundle = await buildBundle(mode);
+  reportDevelopmentResourceStage("coreExecutable");
+  const executable = await prepareSea(bundle);
+  await chmod(executable, 0o755);
+  const signingMode = signExecutable(executable);
+  const extension = process.platform === "win32" ? ".exe" : "";
+  const installed = join(binariesRoot, `vault-core-${targetTriple()}${extension}`);
+  await copyFile(executable, installed);
+  await chmod(installed, 0o755);
+  if (check) run(process.execPath, debugSidecarCheckArguments(repositoryRoot, installed));
+  const executableSha256 = await sha256(installed);
+  const resources = await installResources({ executableSha256, signingMode }, targetTriple(), mode);
+  const record = {
+    schemaVersion: 1,
+    buildMode: mode,
+    nodeVersion: process.version,
+    targetTriple: targetTriple(),
+    signingMode,
+    executableSha256,
+    bundleSha256: await sha256(bundle),
+    resources,
+  };
+  await writeFile(join(generatedRoot, "build-record.json"), `${JSON.stringify(record, null, 2)}\n`);
+  console.log(JSON.stringify(record));
+}
+
+if (process.argv[1] !== undefined && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  await buildSidecar("production", process.argv.includes("--check"));
+}

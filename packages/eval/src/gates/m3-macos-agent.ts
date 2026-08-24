@@ -5,6 +5,7 @@ import { createVaultCore } from "@vault/core";
 import type { AgentRunSnapshot } from "@vault/shared";
 import { MacOsMicroVmLauncher } from "@vault/workers";
 import { prepareAgentModelStore } from "./agent-model-store.js";
+import { developmentInferenceWorkerEntryPath } from "./development-inference-path.js";
 import { runGuestEvidence } from "./m3-guest.js";
 import { realImageEvidence } from "./m3-image-agent.js";
 import { automaticModelEvidence } from "./m3-macos-model-evidence.js";
@@ -178,6 +179,7 @@ async function collectRealAgentEvidence(input: {
   ] as const;
 }
 
+// biome-ignore lint/complexity/noExcessiveLinesPerFunction: the development worker entry remains explicit.
 async function runRealAgents(root: string) {
   const workspace = join(root, "agent-workspace");
   await mkdir(workspace);
@@ -187,6 +189,7 @@ async function runRealAgents(root: string) {
     profile: "auto",
     agentHelperPath: helper,
     agentImageRoot: images,
+    workerEntryPath: developmentInferenceWorkerEntryPath(),
     visionRuntimePath: visionRuntime,
   });
   try {

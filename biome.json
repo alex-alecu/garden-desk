@@ -105,6 +105,8 @@
         "packages/workers/src/native/macos.ts",
         "packages/workers/src/native/windows.ts",
         "packages/workers/src/inference/client.test.ts",
+        "packages/workers/src/inference/development-diagnostics.ts",
+        "packages/workers/src/inference/development-diagnostics.test.ts",
         "packages/workers/src/inference/probe.ts",
         "packages/workers/src/inference/worker.ts",
         "packages/workers/images/build.ts",

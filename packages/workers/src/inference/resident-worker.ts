@@ -5,6 +5,7 @@ import type {
   RequestId,
 } from "@vault/shared";
 import type { NativeWorkerHandle } from "../native/launcher.js";
+import { createDevelopmentDiagnosticSink } from "./development-diagnostics.js";
 import {
   encodeInferenceCancel,
   encodeInferenceRequest,
@@ -12,6 +13,7 @@ import {
 } from "./frames.js";
 
 const CANCELLATION_GRACE_MS = 1_000;
+const WORKER_CRASH_MESSAGE = "Inference worker stopped.";
 
 export interface InferenceExecution {
   request: InferenceWorkerRequest;
@@ -57,8 +59,8 @@ interface PendingExchange {
 /** Multiplexes framed requests over one resident worker process, keyed by request ID. */
 export class ResidentWorker {
   private readonly decoder = new InferenceResponseDecoder();
+  private readonly diagnostics = createDevelopmentDiagnosticSink();
   private readonly pending = new Map<RequestId, PendingExchange>();
-  private stderr = "";
   private stopped = false;
 
   constructor(
@@ -105,23 +107,27 @@ export class ResidentWorker {
       });
       execution.signal?.addEventListener("abort", cancelled, { once: true });
       this.handle.process.stdin.write(frame, (error) => {
-        if (error != null) this.fail("worker_crash", error.message);
+        if (error != null) this.fail("worker_crash", WORKER_CRASH_MESSAGE);
       });
     });
   }
 
   async dispose(): Promise<void> {
-    if (this.stopped) return;
+    if (this.stopped) {
+      await this.diagnostics?.close();
+      return;
+    }
     this.stopped = true;
     await this.handle.dispose();
+    await this.diagnostics?.close();
     this.onStopped();
   }
 
-  private readonly errorOutput = (chunk: Buffer): void => {
-    if (this.stderr.length < 65_536) this.stderr += String(chunk);
-  };
-  private readonly inputError = (error: Error): void => this.fail("worker_crash", error.message);
-  private readonly workerError = (error: Error): void => this.fail("worker_crash", error.message);
+  private readonly errorOutput = (chunk: Buffer): void => this.diagnostics?.append(chunk);
+  private readonly inputError = (_error: Error): void =>
+    this.fail("worker_crash", WORKER_CRASH_MESSAGE);
+  private readonly workerError = (_error: Error): void =>
+    this.fail("worker_crash", WORKER_CRASH_MESSAGE);
   private readonly responseOutput = (chunk: Buffer): void => {
     try {
       for (const message of this.decoder.push(chunk)) this.message(message);
@@ -144,9 +150,10 @@ export class ResidentWorker {
     this.finish(message.requestId, () => pending.accept(message));
   }
 
-  private readonly closed = (code: number | null): void => {
+  private readonly closed = (_code: number | null): void => {
     if (this.stopped) return;
     this.stopped = true;
+    void this.diagnostics?.close();
     try {
       this.decoder.finish();
     } catch (error) {
@@ -156,12 +163,7 @@ export class ResidentWorker {
       );
       return;
     }
-    const exit = `worker exit=${String(code)} signal=${String(this.handle.process.signalCode)}`;
-    if (this.pending.size > 0)
-      this.fail(
-        "worker_crash",
-        this.stderr.trim() === "" ? exit : `${this.stderr.trim()}\n${exit}`,
-      );
+    if (this.pending.size > 0) this.fail("worker_crash", WORKER_CRASH_MESSAGE);
     this.onStopped();
   };
 
@@ -190,14 +192,14 @@ export class ResidentWorker {
     pending.execution.signal?.removeEventListener("abort", pending.cancelled);
     try {
       this.handle.process.stdin.write(encodeInferenceCancel(requestId, code), (error) => {
-        if (error != null) this.fail("worker_crash", error.message);
+        if (error != null) this.fail("worker_crash", WORKER_CRASH_MESSAGE);
       });
-    } catch (error) {
-      this.fail("worker_crash", error instanceof Error ? error.message : "Cancellation failed.");
+    } catch {
+      this.fail("worker_crash", WORKER_CRASH_MESSAGE);
       return;
     }
     pending.cancellationTimer = setTimeout(
-      () => this.fail("worker_crash", "Inference worker did not acknowledge cancellation."),
+      () => this.fail("worker_crash", WORKER_CRASH_MESSAGE),
       CANCELLATION_GRACE_MS,
     );
   }

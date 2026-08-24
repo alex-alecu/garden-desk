@@ -1,5 +1,11 @@
 import type { InferenceWorkerResponse } from "@vault/shared";
-import type { NativeWorkerLauncher } from "../native/launcher.js";
+import {
+  type NativeWorkerHandle,
+  NativeWorkerLaunchError,
+  type NativeWorkerLauncher,
+} from "../native/launcher.js";
+import { recordDevelopmentHostFailure } from "./development-diagnostics.js";
+import { waitForDevelopmentHostRecord } from "./development-host-record-wait.js";
 import {
   type InferenceExecution,
   InferenceWorkerError,
@@ -21,6 +27,31 @@ function abortedExecution(signal: AbortSignal | undefined): InferenceWorkerError
     code,
     code === "timeout" ? "Inference timed out." : "Inference cancelled.",
   );
+}
+
+function launchFailure(error: unknown): Error {
+  try {
+    if (error instanceof NativeWorkerLaunchError && error.code === "unsupported")
+      return new NativeWorkerLaunchError("unsupported", "unsupported_native_worker_platform");
+  } catch {
+    // Return the fixed worker error below.
+  }
+  return new InferenceWorkerError("worker_crash", "Inference worker stopped.");
+}
+
+async function recordLaunchFailure(execution: InferenceExecution, error: unknown): Promise<void> {
+  try {
+    if (
+      globalThis.__VAULT_DEVELOPMENT_BUILD__ === true &&
+      execution.request.operation !== "probe"
+    ) {
+      await waitForDevelopmentHostRecord(
+        recordDevelopmentHostFailure("worker_launch", execution.request.operation, error),
+      );
+    }
+  } catch {
+    // Diagnostics must not change inference behavior.
+  }
 }
 
 export class InferenceWorkerClient {
@@ -71,11 +102,7 @@ export class InferenceWorkerClient {
       await this.resident.dispose();
       this.resident = undefined;
     }
-    const handle = await this.launcher.launch({
-      workerEntryPath: this.workerEntryPath,
-      ...(execution.modelPath === undefined ? {} : { modelPath: execution.modelPath }),
-      memoryBudgetBytes: execution.memoryBudgetBytes,
-    });
+    const handle = await this.launch(execution);
     const worker = new ResidentWorker(
       handle,
       execution.modelPath,
@@ -86,5 +113,18 @@ export class InferenceWorkerClient {
     );
     if (execution.request.operation !== "probe") this.resident = worker;
     return worker;
+  }
+
+  private async launch(execution: InferenceExecution): Promise<NativeWorkerHandle> {
+    try {
+      return await this.launcher.launch({
+        workerEntryPath: this.workerEntryPath,
+        ...(execution.modelPath === undefined ? {} : { modelPath: execution.modelPath }),
+        memoryBudgetBytes: execution.memoryBudgetBytes,
+      });
+    } catch (error) {
+      await recordLaunchFailure(execution, error);
+      throw launchFailure(error);
+    }
   }
 }

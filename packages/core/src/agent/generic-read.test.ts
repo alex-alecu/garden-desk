@@ -219,6 +219,7 @@ describe("generic read", () => {
   });
 
   it.each([
+    ["read path above maximum", "read", { path: "x".repeat(4_097) }],
     ["read offset below minimum", "read", { path: "text.txt", offset: 0 }],
     [
       "read offset above safe range",

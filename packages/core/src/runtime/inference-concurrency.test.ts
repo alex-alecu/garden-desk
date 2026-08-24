@@ -6,6 +6,7 @@ import { ResourceScheduler } from "./scheduler.js";
 import { InferenceSupervisor } from "./supervisor.js";
 
 const GiB = 1024 ** 3;
+const PRIVATE_MODEL_SENTINEL = "private-model-preparation-sentinel";
 const generationInput = {
   modelId: "test-model",
   prompt: "ready",
@@ -20,6 +21,14 @@ function modelResolver(): ModelResolver {
   return {
     async resolve() {
       return { path: "model.gguf", async dispose() {} };
+    },
+  } as unknown as ModelResolver;
+}
+
+function failingModelResolver(): ModelResolver {
+  return {
+    async resolve() {
+      throw new Error(PRIVATE_MODEL_SENTINEL);
     },
   } as unknown as ModelResolver;
 }
@@ -99,6 +108,29 @@ describe("M3 queued resident worker", () => {
     await expect(second).resolves.toMatchObject({ value: { result: "ready" } });
     expect(executions).toHaveLength(2);
     expect(timeouts).toEqual([300_000, 300_000]);
+  });
+});
+
+describe("M3 model preparation containment", () => {
+  it("returns a fixed error when model preparation fails", async () => {
+    const inference = new InferenceSupervisor(
+      {
+        async unload() {
+          return false;
+        },
+        async execute() {
+          throw new Error("unexpected worker execution");
+        },
+      },
+      failingModelResolver(),
+      new ResourceScheduler(12 * GiB),
+      () => {},
+    );
+
+    await expect(inference.generate(generationInput)).rejects.toMatchObject({
+      code: "internal",
+      message: "Inference failed.",
+    });
   });
 });
 
