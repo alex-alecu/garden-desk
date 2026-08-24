@@ -192,7 +192,7 @@ export function reservedArtifactCompletionTurn(
   turn: number,
   turns: number,
 ): boolean {
-  return requiredArtifacts.length > 0 && turns >= 3 && turn === turns - 3;
+  return requiredArtifacts.length > 0 && turns >= 4 && turn === turns - 3;
 }
 
 export function missingRequiredArtifacts(task: string, currentNames: readonly string[]): string[] {
