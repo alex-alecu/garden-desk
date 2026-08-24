@@ -17,6 +17,7 @@ function summaryFrom(text: string, start: number): string {
 }
 
 export function anchoredSummaryFromTracePrompt(prompt: string): string | undefined {
+  if (prompt.length === 0) return undefined;
   const messages = ChatMessageSchema.array().parse(JSON.parse(prompt));
   const message = messages.find(
     (item) => item.role === "user" && item.text.includes(ANCHORED_SUMMARY_HEADING),
