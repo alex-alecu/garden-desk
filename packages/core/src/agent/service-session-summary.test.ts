@@ -288,4 +288,73 @@ describe("anchored session summary lifecycle", () => {
     expect(service.snapshot(run.id).run.state).toBe("succeeded");
     catalog.close();
   });
+
+  it("cancels a pending summary when its session closes without a failure audit", async () => {
+    const { promise: summaryStarted, resolve: startSummary } = Promise.withResolvers<void>();
+    let releaseSummary: (() => void) | undefined;
+    let summarySignal: AbortSignal | undefined;
+    const { catalog, conversations, service } = await summaryFixture({
+      summarize: async (signal) => {
+        summarySignal = signal;
+        startSummary();
+        return await new Promise<ChatGenerationResult>((resolve, reject) => {
+          releaseSummary = () => resolve(result("## Objective\n- Released", 65_536));
+          const abort = () => reject(signal?.reason);
+          if (signal?.aborted) abort();
+          else signal?.addEventListener("abort", abort, { once: true });
+        });
+      },
+    });
+    const session = conversations.createSession(null);
+    conversations.appendMessage(session.id, "user", "Earlier");
+    conversations.appendMessage(session.id, "assistant", "Earlier");
+    const run = await startWhenIdle(service, session.id, "First");
+    await terminal(service, run.id);
+    await summaryStarted;
+
+    await service.closeSession(session.id);
+    const summaryWasAborted = summarySignal?.aborted === true;
+    releaseSummary?.();
+    await service.close();
+
+    const failedSummaryAudits = (
+      catalog.database
+        .prepare("SELECT event_json FROM audit_events ORDER BY sequence")
+        .all() as Array<{ event_json: string }>
+    )
+      .map((row) => JSON.parse(row.event_json) as { outcome: string; type: string })
+      .filter((event) => event.type === "agent.session_summary" && event.outcome === "failed");
+    expect(summaryWasAborted).toBe(true);
+    expect(failedSummaryAudits).toEqual([]);
+    catalog.close();
+  });
+
+  it("does not wait on a summary after the next run is already cancelled", async () => {
+    const { promise: summaryStarted, resolve: startSummary } = Promise.withResolvers<void>();
+    const { promise: summaryPending, resolve: releaseSummary } = Promise.withResolvers<void>();
+    const { catalog, conversations, service } = await summaryFixture({
+      summarize: async () => {
+        startSummary();
+        await summaryPending;
+        return result("## Objective\n- Released", 65_536);
+      },
+    });
+    const session = conversations.createSession(null);
+    conversations.appendMessage(session.id, "user", "Earlier");
+    conversations.appendMessage(session.id, "assistant", "Earlier");
+    const first = await startWhenIdle(service, session.id, "First");
+    await terminal(service, first.id);
+    await summaryStarted;
+
+    const second = service.start(session.id, "Second");
+    expect(service.cancel(second.jobId)).toBe(true);
+    await new Promise((resolve) => setImmediate(resolve));
+    const stateBeforeSummaryFinished = service.snapshot(second.id).run.state;
+
+    releaseSummary();
+    await terminal(service, second.id);
+    await service.close();
+    expect(stateBeforeSummaryFinished).toBe("cancelled");
+    catalog.close();
+  });
 });
