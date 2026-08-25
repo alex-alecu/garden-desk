@@ -148,9 +148,9 @@ const assets = (await files(output)).filter((path) => [".js", ".css"].includes(e
 const assetText = (await Promise.all(assets.map((path) => readFile(path, "utf8")))).join("\n");
 requireText(assetText, ".skip-link:focus-visible", "home skip link");
 requireText(assetText, ".technical-details-action{display:none}", "demo technical details control");
-requireText(assetText, "max(690px,100svh - 96px)", "home demo viewport height");
-requireText(assetText, "min-width:760px", "demo minimum width");
-requireText(assetText, "min-height:600px", "demo minimum height");
+requireText(assetText, "max(790px,100svh - 96px)", "home demo viewport height");
+requireText(assetText, "min-width:1120px", "demo minimum width");
+requireText(assetText, "min-height:700px", "demo minimum height");
 requireText(assetText, "prefers-reduced-motion", "home reduced-motion fallback");
 if (!/IntersectionObserver/u.test(assetText)) {
   failures.push("home motion: missing scroll reveal observer");
@@ -189,7 +189,7 @@ if (bundledFonts.length !== 8)
 const demoHtml = await text("demo/index.html");
 requireText(demoHtml, 'href="../"', "demo back link");
 requireText(demoHtml, 'target="_top"', "demo back link");
-requireText(demoHtml, 'content="width=760"', "demo minimum viewport");
+requireText(demoHtml, 'content="width=1120"', "demo minimum viewport");
 const demoScript = demoHtml.match(/src="([^"]+\.js)"/u)?.[1];
 if (demoScript === undefined) {
   failures.push("demo: missing bundled script");

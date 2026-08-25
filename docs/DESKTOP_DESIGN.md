@@ -122,7 +122,7 @@ Runtime, quantization, context-window, endpoint, and model-file vocabulary stays
 - Screen-reader labels for folders, sessions, status, attachments, inline activity, Technical details, and composer actions. Each activity step names the step it reveals, and the expanded step is exposed as the current step.
 - Focus restoration after dialogs, session switches, cancellation, and reconnect.
 - Reduced-motion support.
-- Usable at 200 percent scaling and narrow supported window widths.
+- Usable at 200 percent scaling at the supported 1,120 × 700 minimum window size.
 - Native title-bar and window controls appropriate to macOS and Windows.
 
 ## Revision History

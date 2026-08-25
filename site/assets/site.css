@@ -1588,17 +1588,17 @@ html.motion-ready [data-reveal].is-revealed {
 .demo-wrap iframe {
   display: block;
   width: 100%;
-  min-width: 760px;
-  height: max(690px, calc(100svh - 96px));
-  min-height: 600px;
+  min-width: 1120px;
+  height: max(790px, calc(100svh - 96px));
+  min-height: 742px;
   border: 0;
   background: #fff;
 }
 
 .demo-viewport {
   position: relative;
-  height: max(690px, calc(100svh - 96px));
-  min-height: 690px;
+  height: max(790px, calc(100svh - 96px));
+  min-height: 790px;
   overflow: hidden;
   background: #e3e6de;
 }
@@ -2791,7 +2791,7 @@ html.motion-ready [data-reveal].is-revealed {
   }
 }
 
-@media (max-width: 759px), (hover: none) and (pointer: coarse) {
+@media (max-width: 1119px), (hover: none) and (pointer: coarse) {
   .demo-viewport {
     height: 430px;
     min-height: 430px;
@@ -2801,8 +2801,8 @@ html.motion-ready [data-reveal].is-revealed {
     position: absolute;
     top: 0;
     left: 50%;
-    width: 760px;
-    height: 600px;
+    width: 1120px;
+    height: 742px;
     transform: translateX(-50%);
     filter: saturate(0.65);
     opacity: 0.24;

@@ -1,14 +1,14 @@
 html,
 body,
 #root {
-  min-width: 760px;
+  min-width: 1120px;
 }
 
 body {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
   height: 100dvh;
-  min-height: 642px;
+  min-height: 742px;
   overflow: auto;
 }
 
@@ -73,7 +73,7 @@ body {
 
 #root {
   height: auto;
-  min-height: 600px;
+  min-height: 700px;
 }
 
 .technical-details-action {
@@ -88,64 +88,6 @@ body {
   70%,
   100% {
     box-shadow: 0 0 0 8px rgb(224 119 80 / 0%);
-  }
-}
-
-@media (min-width: 760px) and (max-width: 1120px) {
-  .app-shell {
-    flex-direction: row;
-  }
-
-  .sidebar {
-    width: var(--sidebar-width, 244px);
-    min-height: 0;
-    max-height: none;
-    max-width: 360px;
-    flex: 0 0 auto;
-    overflow: hidden;
-    border-right: 1px solid var(--reading-border);
-    border-bottom: 0;
-  }
-
-  .sidebar-resize-handle {
-    display: block;
-  }
-
-  .workspace {
-    overflow: visible;
-  }
-}
-
-@media (max-width: 700px) {
-  .sidebar {
-    width: 174px;
-    min-width: 154px;
-    padding-inline: 7px;
-    resize: none;
-  }
-
-  .brand {
-    font-size: 16px;
-  }
-
-  .workspace {
-    --chat-content-gutter: 28px;
-  }
-
-  .unload-action span {
-    display: none;
-  }
-
-  .guided-examples {
-    padding-inline: 14px;
-  }
-}
-
-@media (max-width: 470px) {
-  .demo-frame {
-    align-items: flex-start;
-    flex-direction: column;
-    padding-block: 9px;
   }
 }
 
