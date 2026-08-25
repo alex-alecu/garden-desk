@@ -20,6 +20,6 @@ if not text.strip(): raise RuntimeError("No text")
 print(text)
 ```
 
-Submit unchanged at top level. No fallback, `try`/`except`, `text=True`, decode change, or failure output. Keep both raises.
+Run this block exactly. Keep `source`, `result`, `text`, and both `if` statements at column zero. Do not add a path check, path fallback, wrapper, function, `try`/`except`, `text=True`, decode change, or failure output.
 
 DOCX: inspect paragraphs, tables, styles, sections, headers, footers. One program edits, saves `/workspace`, reopens, and asserts text/styles. Keep each exact `LABEL=value` or `LABEL: value` in one paragraph or row. Preserve other content, format, setup, and relationships; use structures, not layout newlines. Separate `print()`/`\n`; after syntax error use a shorter program.

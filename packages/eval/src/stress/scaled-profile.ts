@@ -76,7 +76,7 @@ function deliverables(names: string[]) {
 function task(names: string[], sources: string, labels: string): string {
   return [
     `Review the complete selected corpus containing ${sources}.`,
-    `Create the requested polished management reports in the private workspace and visibly label ${labels}.`,
+    `Create the requested polished management reports in the private workspace. In each deliverable, visibly include each requested label exactly as LABEL=value, with the value derived from the selected corpus. For each requested value, count all source items with the stated marker. For a requested total, instead sum the numeric amount values of all matching records. Requested labels: ${labels}.`,
     `Required deliverables: ${names.join(", ")}.`,
   ].join(" ");
 }
