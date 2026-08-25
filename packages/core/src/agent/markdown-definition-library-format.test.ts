@@ -115,6 +115,11 @@ function expectWord(library: MarkdownDefinitionLibrary): void {
   const programs = [...skill.body.matchAll(/```python\n([\s\S]*?)```/g)].map((match) => match[1]);
   expect(programs).toHaveLength(1);
   const [legacy] = programs;
+  expect(legacy).toMatch(/^source=/mu);
+  expect(legacy).toMatch(/^result=subprocess\.run\(/mu);
+  expect(legacy).toMatch(/^text=result\.stdout\.decode\(/mu);
+  expect(legacy).toMatch(/^if result\.returncode != 0:/mu);
+  expect(legacy).toMatch(/^if not text\.strip\(\):/mu);
   expect(legacy).toContain(
     'source=next(iter([*Path("/source").glob("*.doc"),*Path("/run/attachments").glob("*.doc")]))',
   );
@@ -131,9 +136,12 @@ function expectWord(library: MarkdownDefinitionLibrary): void {
   expect(legacy).not.toContain("try:");
   expect(legacy).not.toContain("except");
   expect(legacy).toContain("print(text)");
-  expect(skill.body).toContain("Submit unchanged at top level.");
-  expect(skill.body).toContain("No fallback, `try`/`except`, `text=True`, decode change");
-  expect(skill.body).toContain("failure output. Keep both raises.");
+  expect(skill.body).toContain("Run this block exactly.");
+  expect(skill.body).toContain(
+    "Keep `source`, `result`, `text`, and both `if` statements at column zero.",
+  );
+  expect(skill.body).toContain("Do not add a path check, path fallback, wrapper, function");
+  expect(skill.body).toContain("`try`/`except`, `text=True`, decode change, or failure output.");
   expect(skill.body).toContain("Never create/edit `.doc`");
   expect(() => library.skill("docx-documents")).toThrow("Unknown skill");
 }
@@ -141,28 +149,31 @@ function expectWord(library: MarkdownDefinitionLibrary): void {
 function expectPdf(library: MarkdownDefinitionLibrary): void {
   const skill = library.skill("pdf-documents");
   const programs = [...skill.body.matchAll(/```python\n([\s\S]*?)```/g)].map((match) => match[1]);
-  expect(programs).toHaveLength(2);
-  const [inspection, output] = programs;
+  expect(programs).toHaveLength(1);
+  const [inspection] = programs;
   expect(skill.body).toContain("Without PDF output: inspect/reopen with `pypdf` only.");
   expect(skill.body).toContain(
-    "Do not create `/workspace/report.pdf` or require `/source/values.txt`",
+    "In one `pypdf` program, derive requested labels directly from the actual source PDF.",
   );
-  expect(skill.body).toContain("Only for requested PDF output: run the derive/create program.");
+  expect(skill.body).toContain(
+    "Do not assume `/source/values.txt`, `COUNT`, `TOTAL`, or `report.pdf`.",
+  );
+  expect(skill.body).toContain(
+    "Use the task-specified output name. Put each derived result in visible ReportLab PDF text as exact `LABEL=value`; keep the requested label unchanged.",
+  );
+  expect(skill.body).toContain("ReportLab Platypus: headings/page breaks/margins/fitting tables.");
+  expect(skill.body).toContain(
+    "Reopen/verify text, page count/order, rotation, size, metadata, and every requested pair before completion.",
+  );
   expect(inspection).toContain("from pypdf import PdfReader");
-  expect(inspection).toContain('PdfReader("/source/input.pdf")');
+  expect(inspection).toContain(
+    'for source in sorted(path for path in Path("/source").rglob("*") if path.is_file() and path.suffix.lower() == ".pdf"):',
+  );
+  expect(inspection).toContain("PdfReader(source)");
+  expect(inspection).not.toContain("next(");
   expect(inspection).not.toContain("report.pdf");
   expect(inspection).not.toContain("values.txt");
   expect(inspection).not.toContain("reportlab");
-  expect(output).toContain("from pathlib import Path");
-  expect(output).toContain("from pypdf import PdfReader");
-  expect(output).toContain("from reportlab.platypus import Paragraph, SimpleDocTemplate");
-  expect(output).toContain('Path("/source/values.txt").read_text(encoding="utf-8")');
-  expect(output).toContain('facts={"COUNT":len(values),"TOTAL":sum(values)}');
-  expect(output).toContain('Paragraph(escape(f"{label}={value}"), styles["BodyText"])');
-  expect(output).toContain("document = SimpleDocTemplate(output, pagesize=letter)");
-  expect(output).toContain("document.build(story)");
-  expect(output).toContain("PdfReader(output)");
-  expect(output).toContain('assert f"{label}={value}" in visible');
   expect(skill.body).toContain("no `try`, exception wrapper, or trailing brace");
 }
 

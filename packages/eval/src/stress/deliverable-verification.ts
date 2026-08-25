@@ -89,6 +89,51 @@ async function materialize(
 }
 
 type DeliverableExpectation = NonNullable<PreparedStressCase["deliverables"]>[number];
+const VISIBLE_FACT_CHARACTER = /[\p{L}\p{N}_]/u;
+const NUMERIC_FACT_VALUE = /^[+-]?(?:\p{N}+(?:\.\p{N}+)?|\.\p{N}+)(?:[eE][+-]?\p{N}+)?$/u;
+const NUMERIC_CONTINUATION =
+  /^(?:[.,'’]\p{N}|(?:\*\*|\/\/|<<|>>|[+\-−*/×÷·∙%^&|=])\s*[+\-−]?\s*\p{N})/u;
+
+function codePointBefore(value: string, index: number): string | undefined {
+  if (index === 0) return undefined;
+  const previous = value.charCodeAt(index - 1);
+  const start = previous >= 0xdc00 && previous <= 0xdfff ? index - 2 : index - 1;
+  const point = value.codePointAt(start);
+  return point === undefined ? undefined : String.fromCodePoint(point);
+}
+
+function codePointAt(value: string, index: number): string | undefined {
+  const point = value.codePointAt(index);
+  return point === undefined ? undefined : String.fromCodePoint(point);
+}
+
+function hasNumericContinuation(extracted: string, after: number, fact: string): boolean {
+  const separator = fact.indexOf("=");
+  if (separator === -1) return false;
+  const value = fact.slice(separator + 1);
+  return NUMERIC_FACT_VALUE.test(value) && NUMERIC_CONTINUATION.test(extracted.slice(after));
+}
+
+export function hasExactVisibleFact(extracted: string, fact: string): boolean {
+  if (fact.length === 0) return false;
+  let offset = 0;
+  while (offset <= extracted.length - fact.length) {
+    const index = extracted.indexOf(fact, offset);
+    if (index === -1) return false;
+    const afterIndex = index + fact.length;
+    const before = codePointBefore(extracted, index);
+    const after = codePointAt(extracted, afterIndex);
+    if (
+      (before === undefined || !VISIBLE_FACT_CHARACTER.test(before)) &&
+      (after === undefined || !VISIBLE_FACT_CHARACTER.test(after)) &&
+      !hasNumericContinuation(extracted, afterIndex, fact)
+    ) {
+      return true;
+    }
+    offset = index + 1;
+  }
+  return false;
+}
 
 function missingOrderedFacts(extracted: string, facts: string[]): string[] {
   let offset = -1;
@@ -154,7 +199,7 @@ async function deterministicMismatches(
   const [archive, archiveForbidden] = await archiveMismatches(item, path);
   const [metadata, rotations] = await pdfMismatches(item, path);
   return [
-    `missing:${item.facts.filter((fact) => !extracted.includes(fact)).join(",")}`,
+    `missing:${item.facts.filter((fact) => !hasExactVisibleFact(extracted, fact)).join(",")}`,
     `alternatives:${missingFactAlternatives(extracted, item.factAlternatives ?? []).join(",")}`,
     `labels:${missingVisibleLabelValues(extracted, item.visibleLabelValues ?? []).join(",")}`,
     `forbidden:${(item.forbiddenFacts ?? []).filter((fact) => extracted.includes(fact)).join(",")}`,
@@ -240,7 +285,7 @@ export async function verifyDeliverables(
     const verified = expectations
       .filter((item, index) => {
         const line = verifiedFactLine(output, index);
-        return line !== undefined && item.facts.every((fact) => line.includes(fact));
+        return line !== undefined && item.facts.every((fact) => hasExactVisibleFact(line, fact));
       })
       .map((item, index) => item.name ?? paths[index]?.name)
       .filter((name): name is string => name !== undefined);

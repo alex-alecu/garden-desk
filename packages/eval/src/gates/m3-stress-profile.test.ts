@@ -32,6 +32,16 @@ describe("M3 scaled document workload", () => {
     expect(xlsx?.task).not.toContain("meeting");
     expect(xlsx?.task).not.toContain("PDF");
   });
+
+  it("requires corpus-derived exact labels in every scaled deliverable", () => {
+    expect(
+      SCALED_CASES.every(({ task }) =>
+        task.includes(
+          "In each deliverable, visibly include each requested label exactly as LABEL=value, with the value derived from the selected corpus. For each requested value, count all source items with the stated marker. For a requested total, instead sum the numeric amount values of all matching records.",
+        ),
+      ),
+    ).toBe(true);
+  });
 });
 
 describe("M3 XLSX row-filter regression workload", () => {

@@ -23,7 +23,7 @@ function hostPython(): string {
 async function runHostPython(script: string, args: string[], wheels: string[]): Promise<string> {
   const result = await execFileAsync(hostPython(), ["-c", script, ...args], {
     encoding: "utf8",
-    env: { ...process.env, PYTHONPATH: wheels.join(delimiter) },
+    env: { ...process.env, PYTHONIOENCODING: "utf-8", PYTHONPATH: wheels.join(delimiter) },
     maxBuffer: MAX_EXTRACTED_BYTES,
   });
   return result.stdout;
