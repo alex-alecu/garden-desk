@@ -52,6 +52,12 @@ async function supervisor(port: InferencePort, events: AuditEventInput[]) {
   );
 }
 
+function expectFailureAudit(events: AuditEventInput[], code: string) {
+  expect(events).toMatchObject([
+    { type: "inference.generate", outcome: "failed", metadata: { code } },
+  ]);
+}
+
 afterEach(async () => {
   await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
 });
@@ -164,9 +170,11 @@ describe("M2 inference failure audit", () => {
     "audits typed %s worker failures",
     async (code) => {
       const events: AuditEventInput[] = [];
+      let unloads = 0;
       const port: InferencePort = {
         async unload() {
-          return false;
+          unloads += 1;
+          return true;
         },
         async execute() {
           throw Object.assign(new Error(code), { code });
@@ -174,20 +182,24 @@ describe("M2 inference failure audit", () => {
       };
       const inference = await supervisor(port, events);
       await expect(inference.generate(generationInput)).rejects.toMatchObject({ code });
-      expect(events).toMatchObject([
-        { type: "inference.generate", outcome: "failed", metadata: { code } },
-      ]);
+      expectFailureAudit(events, code);
+      expect(unloads).toBe(1);
+      await expect(inference.modelStatus()).resolves.toMatchObject({ state: "unloaded" });
     },
   );
+});
 
+describe("M2 inference shutdown", () => {
   it("cancels and waits for active inference during supervisor shutdown", async () => {
     const events: AuditEventInput[] = [];
+    let unloads = 0;
     let markStarted!: () => void;
     const started = new Promise<void>((accept) => {
       markStarted = () => accept();
     });
     const port: InferencePort = {
       async unload() {
+        unloads += 1;
         return true;
       },
       execute(execution) {
@@ -206,9 +218,8 @@ describe("M2 inference failure audit", () => {
     const closing = inference.close();
     await expect(pending).rejects.toMatchObject({ code: "cancelled" });
     await closing;
-    expect(events).toMatchObject([
-      { type: "inference.generate", outcome: "failed", metadata: { code: "cancelled" } },
-    ]);
+    expectFailureAudit(events, "cancelled");
+    expect(unloads).toBeGreaterThan(0);
   });
 });
 
