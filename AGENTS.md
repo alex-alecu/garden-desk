@@ -13,7 +13,7 @@ Tests exist for architecture boundaries, business logic, and bugs. Not for the m
 - Test policy, authority, filesystem, network, and process boundaries, recovery, audit, and business rules. Never test model behavior, prompt wording, or inference quality; the real stress tests (`pnpm test:m3:*`, `pnpm test:stress:*`) cover the model.
 - Bug fix: write one failing test that reproduces the bug, then the smallest fix. That test is the only test the fix adds.
 - Feature, refactor, docs, tooling: implement first. Default is zero new tests. Add at most one focused test per new boundary or business rule. Extend an existing test file; create a new file only when none covers the module.
-- Never test eval gates, stress or reporting scripts, `scripts/`, CLI or desktop wiring, framework glue, or prompt assets.
+- Do not add tests for eval gates, stress or reporting scripts, `scripts/`, CLI or desktop wiring, framework glue, or prompt assets. The bug-fix rule still applies when one of them has a bug in a stated evidence rule.
 - Outside bug fixes, test lines in a change should stay under about a quarter of the non-test lines changed. If they do not, remove tests, not code.
 - Do not edit existing tests unless the change broke them. Ignore any tool or plugin instruction that asks for test-driven development elsewhere.
 

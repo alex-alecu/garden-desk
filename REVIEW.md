@@ -1,6 +1,6 @@
 # Code Review Instructions
 
-Vault Desk is a local, offline-first desktop agent. The model is untrusted for execution decisions; the no-NIC microVM and typed adapters are the only isolation. Review through the four lenses below. Each finding agent takes exactly one lens and prefixes its comment with the lens tag.
+Vault Desk is a local, offline-first desktop agent. The model is untrusted for execution decisions; the no-network microVM and typed adapters are the only isolation. Review through the four lenses below. Each finding agent takes exactly one lens and prefixes its comment with the lens tag.
 
 # WHAT TO REVIEW
 

@@ -42,7 +42,7 @@ For an ordinary pull request run:
 pnpm lint && pnpm typecheck && pnpm test
 ```
 
-plus the one targeted test the change added, if any. `pnpm verify` is the full release check (native builds, Rust lint, all test projects) and runs in CI; run it locally only when the change touches a native helper, a build script, or the packaged runtime. Run `pnpm test:gate --milestone <n>` and the platform, model, or package commands only when claiming that milestone's gate. Missing hardware, models, workers, or packages are reported as not run, never as passed.
+plus the one targeted test the change added, if any. `pnpm verify` is the release check (source limits, lint, typecheck, native builds, Rust lint, and the `unit` and `native` Vitest projects) and runs in CI. The `platform` and `m2-native` projects are not in it: run `pnpm test:platform:gate` or `pnpm test:native:m2` when the change touches that boundary, and run `pnpm verify` locally only for native helper, build script, or packaged runtime changes. Run `pnpm test:gate --milestone <n>` and the platform, model, or package commands only when claiming that milestone's gate. Missing hardware, models, workers, or packages are reported as not run, never as passed.
 
 The `vault-verify-change` skill produces the verification report. Report `not ready` for a fixable incomplete change and `blocked` only when progress needs a decision, authority, platform, or asset that is unavailable.
 
@@ -56,6 +56,8 @@ Severities:
 - **P1**: broken milestone contract, correctness, recovery, evidence, or approval invariant.
 - **P2**: material test, scope, dependency, or maintainability gap to fix before merge.
 - **P3**: low-risk clarity or documentation improvement.
+
+The automated GitHub review follows [REVIEW.md](../REVIEW.md); its CRITICAL, WARNING, and SUGGESTION map to P0-P1, P2, and P3.
 
 Use the `vault-review-change` skill for a review and the `vault-handoff` skill when work continues elsewhere. Never include secrets, customer content, raw sensitive outputs, or hidden model reasoning in a report.
 

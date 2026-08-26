@@ -46,7 +46,7 @@ A typed, versioned operation over canonical document data, such as search, filte
 
 ## No-Network MicroVM
 
-A small virtual machine started without any network interface (no NIC), so the guest has no network path at all. Vault Desk runs hostile document processing and agent-authored code only inside one.
+A small virtual machine started without any network interface (no NIC), route, DNS, or proxy. Its only connection to the host is one typed socket for host/guest messages (plus the read-only folder share on Windows), which is not a network path. Vault Desk runs hostile document processing and agent-authored code only inside one.
 
 ## Code Interpreter
 
