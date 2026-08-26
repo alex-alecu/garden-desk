@@ -934,3 +934,166 @@ The backend, daemon, model, guest isolation, audit, and canonical gate remained 
 - Legacy DOC result: `legacyDocMethodValid` and `legacyDocOrderValid` were true. The `word-documents` skill loaded first. The required Antiword and UTF-8 execution evidence was present. One no-NIC guest execution completed in 26 ms; no guest execution failed; and no inference failed.
 - Runtime evidence: the focused runner used pinned `gemma-4-12b-it-qat-q4_0`. Its state changed from `unloaded` to `ready`. Console events recorded real inference and one guest execution. This is focused real Gemma and no-NIC guest evidence only. It is not Windows M3 certification evidence.
 - Safe diagnostics: the newest private worker stderr log was 114,182 bytes, below 1 MiB. Its directory and file had protected current-user DACLs. The log was Git-ignored and had the development stderr-ready marker. No host log or failure record was present. It had 1,480 safe library records at levels `debug`, `info`, `log`, and `warn`. No raw private content was recorded.
+
+## 2026-08-25 Windows M3 small stress-suite prerequisite failure
+
+- Scope: exactly one complete-suite command ran: `pnpm test:stress:m3:small`. No case filter, retry, resource build, optional stress suite, full M3 gate, product-code change, commit, or push ran.
+- Result: the command exited with code `1` after 1.41 seconds. It stopped before fixture or case execution because the packaged Windows inference resources were not present. The harness requires `pnpm desktop:build-sidecar` before this gate.
+- Case results: `terminal-discovery`, `legacy-doc-read`, `xlsx-edit`, `docx-edit`, and `invalid-document` did not run. The result count is zero passed, zero failed, and five not run.
+- No real Gemma worker or no-NIC guest started. No stress report or private inference diagnostic was produced or inspected.
+- Optional scaled and context suites did not run. The full M3 gate did not run. Conclusion: blocked by a missing local prerequisite. This run is not final green evidence and is not Windows M3 certification evidence.
+
+## 2026-08-25 Windows M3 small full stress-suite staged-sidecar result
+
+- Scope: exactly one complete-suite command ran after the Windows sidecar was staged: `pnpm test:stress:m3:small`. No case filter, retry, optional stress suite, full M3 gate, product-code change, commit, or push ran. No separate sidecar or guest-image build ran. The normal wrapper built the ignored development worker and headless entry.
+- Result: the command exited with code `1` after 142.294 seconds. The classification was `small_stress_limit_found`. The audit check passed. The policy checks passed. The result count is zero passed, five failed, and zero not run.
+- Case results: `terminal-discovery` failed in 25,583 ms with safe error `agent_model_failed`, zero guest executions, and two inference failures. `legacy-doc-read` failed in 26,647 ms with the same safe error, zero guest executions, and two inference failures. `xlsx-edit` failed in 26,610 ms with the same safe error, zero guest executions, and two inference failures. `docx-edit` failed in 26,635 ms with the same safe error, zero guest executions, and two inference failures. `invalid-document` failed in 26,598 ms with the same safe error, zero guest executions, and two inference failures.
+- Runtime result: no no-NIC guest execution completed. The model state was `unloaded` before the cases. The final model-state check returned a safe error. No raw inference output or private diagnostic data is recorded here.
+- Optional scaled and context suites did not run. The full M3 gate did not run. Conclusion: not ready and not final green. This is Windows small-suite failure evidence only; it is not Windows M3 certification evidence.
+
+## 2026-08-25 Windows terminal-discovery focused case after VRAM recovery
+
+- Scope: exactly one existing `terminal-discovery` case ran with `pnpm test:stress:m3:small -- --case terminal-discovery`. The runner also completed its four required policy checks. The other four small stress cases, optional context and scaled suites, and the full M3 gate did not run. No product code changed. No retry, commit, or push ran.
+- Result: exit code `0`. The selected case duration was 46.900 seconds. The terminal state was `succeeded`; the evaluator classification was `small_stress_passed`; and audit validation passed.
+- Case assertions: the required `SURCHARGE_BPS=275` token was present. No required token, table row, required execution text, or skill was missing. No forbidden response text, forbidden response pattern, or forbidden skill call was present. Skill order was valid.
+- Runtime evidence: the model state changed from `unloaded` to `ready`. One no-NIC guest execution completed. No guest execution failed. The inference failure count was zero. No raw development inference diagnostic is recorded here.
+- This is one passing focused result only. It is not Windows M3 certification evidence.
+
+## 2026-08-25 Windows M3 small full stress suite after VRAM recovery
+
+- Scope: exactly one complete-suite command ran: `pnpm test:stress:m3:small`. No case filter, retry, optional stress suite, full M3 gate, product-code change, commit, or push ran. No separate sidecar or guest-image build ran. The normal wrapper built the ignored development worker and headless entry.
+- Result: exit code `1`. The five cases had 186.155 seconds of reported case time and 16 ms of fixture time. The evaluator classification was `small_stress_limit_found`. Three cases passed, two cases failed, and zero cases did not run.
+- `terminal-discovery` passed in 46.868 seconds. The terminal state was `succeeded`. The required result was present. Guest executions were zero, failed guest executions were zero, and inference failures were zero.
+- `legacy-doc-read` failed its method contract in 37.754 seconds. The terminal state was `succeeded`, the safe terminal error was null, the required result and execution evidence were present, and skill order was valid. `legacyDocMethodValid` was false and `legacyDocOrderValid` was true. One guest execution completed, no guest execution failed, and no inference failed.
+- `xlsx-edit` passed in 47.466 seconds. The terminal state was `succeeded`, and one deliverable was verified. One guest execution completed, no guest execution failed, and no inference failed.
+- `docx-edit` failed in 1.049 seconds with safe error `agent_memory_unavailable`. The terminal state was `failed`. No guest execution started, no guest execution failed, and one inference failed.
+- `invalid-document` passed in 53.018 seconds. The terminal state was `succeeded`, and the required invalid-document result was present. Two guest executions completed, no guest execution failed, and no inference failed.
+- Suite totals were four completed guest executions, zero failed guest executions, and one inference failure. Four terminal runs succeeded and one terminal run failed. No raw development inference diagnostic is recorded here.
+- Optional scaled and context suites did not run. The full M3 gate did not run. Conclusion: the suite is not final green. This is Windows small-suite failure evidence only; it is not Windows M3 certification evidence.
+
+## 2026-08-25 Windows legacy DOC focused case after full stress suite
+
+- Scope: exactly one existing `legacy-doc-read` case ran with `pnpm test:stress:m3:small -- --case legacy-doc-read`. No other small stress case, optional stress suite, full M3 gate, product-code change, commit, or push ran.
+- Result: exit code `1`; reported case duration `55.106` seconds; fixture duration `11` ms. The terminal agent state was `succeeded`; the safe terminal error was null; and the evaluator classification was `small_stress_limit_found`.
+- Legacy DOC contract: `legacyDocMethodValid` was false and `legacyDocOrderValid` was true. All required facts and required Antiword and UTF-8 execution text were present. The required `word-documents` skill was present and loaded first. Skill order was valid.
+- Runtime evidence: two no-NIC guest executions completed; one guest execution failed; and the inference failure count was zero. No raw development inference diagnostic is recorded here.
+- This is one focused failure result only. It is not Windows M3 certification evidence.
+
+## 2026-08-25 Windows DOCX edit focused case after memory failure
+
+- Scope: exactly one existing `docx-edit` case ran with `pnpm test:stress:m3:small -- --case docx-edit`. No other small stress case, optional stress suite, full M3 gate, product-code change, commit, or push ran.
+- Result: exit code `0`; reported case duration `76.469` seconds; fixture duration `4` ms. The terminal state was `succeeded`; the evaluator classification was `small_stress_passed`; and the prior safe memory failure did not recur.
+- Deliverable and runtime evidence: `revised-risk-brief.docx` was produced and verified. Four no-NIC guest executions completed; three guest executions failed; and the inference failure count was zero. The safe memory status was available for this run.
+- This is one passing focused result only. It is not Windows M3 certification evidence. No raw development inference diagnostic is recorded here.
+
+## 2026-08-25 Windows legacy DOC focused case after the column-zero prompt change
+
+- Scope: exactly one existing `legacy-doc-read` case ran with `pnpm test:stress:m3:small -- --case legacy-doc-read`. No other small stress case, optional stress suite, full M3 gate, retry, product-code edit, commit, or push ran.
+- Result: exit code `0`; terminal-command duration `54.513` seconds; reported case duration `47.926` seconds; fixture duration `7` ms for one `23,552`-byte file. The terminal agent state was `succeeded`, the safe terminal error was null, audit validation passed, and the evaluator classification was `small_stress_passed`.
+- Legacy DOC contract: `legacyDocMethodValid` and `legacyDocOrderValid` were true. Both required facts were present. No required fact, execution text, skill, table row, or response token was missing. No forbidden response text, response pattern, or skill call was present. The required `word-documents` skill loaded first, and skill order was valid.
+- Runtime evidence: one no-NIC guest execution completed; zero guest executions failed; and the inference failure count was zero. No raw development inference diagnostic is recorded here.
+- This is one passing focused result only. It is not Windows M3 certification evidence.
+
+## 2026-08-25 Windows M3 small full stress-suite final result
+
+- Scope: pre-run free GPU memory was 14,462 MiB. Exactly one complete-suite command ran: `pnpm test:stress:m3:small`. No case filter, retry, optional stress suite, full M3 gate, product-code change, commit, or push ran. No separate sidecar or guest-image build ran. The normal wrapper built the ignored development worker and headless entry.
+- Result: exit code `0`. The five cases had 215.714 seconds of reported case time and 15 ms of fixture time. The evaluator classification was `small_stress_passed`; all policy checks and audit validation passed. Five cases passed, zero cases failed, and zero cases did not run.
+- Case results: `terminal-discovery` passed in 48.969 seconds with zero guest executions, zero failed guest executions, and zero inference failures. `legacy-doc-read` passed in 38.750 seconds with one guest execution, zero failed guest executions, and zero inference failures. `xlsx-edit` passed in 45.397 seconds with a verified `revised-budget.xlsx` deliverable, one guest execution, zero failed guest executions, and zero inference failures. `docx-edit` passed in 41.806 seconds with a verified `revised-risk-brief.docx` deliverable, one guest execution, zero failed guest executions, and zero inference failures. `invalid-document` passed in 40.792 seconds with two guest executions, zero failed guest executions, and zero inference failures.
+- Runtime result: the model state changed from `unloaded` to `ready`. Suite totals were five completed guest executions, zero failed guest executions, and zero inference failures. The final state is green.
+- Optional scaled and context suites did not run. The full M3 gate did not run. This is Windows small-suite evidence only; it is not Windows M3 certification evidence. No raw development inference diagnostic is recorded here.
+
+## 2026-08-25 Windows M3 context-session stress result
+
+- Scope: pre-run free GPU memory was `14,462 MiB`, above the required `12,500 MiB`. Exactly one command ran: `pnpm test:stress:m3:context-session`. No retry, other stress command, optional suite, full M3 gate, product-code change, commit, or push ran.
+- Result: exit code `0`; classification `context_session_passed`; final state `succeeded`. The terminal-command duration was `46.548` seconds. The report-clock interval was `48.841` seconds, from `2026-08-25T09:26:00.725Z` to `2026-08-25T09:26:49.566Z`.
+- Exact evaluator checks: all seven terminal runs succeeded with `error: null`; three distinct anchors met the minimum of three; `missingTerms` was empty; and all seven recorded context allocations were `65,536` tokens, equal to the reported context size.
+- Report-visible runtime counts: seven terminal model runs and seven recorded inference allocations; zero guest executions were recorded. The report path is `packages/eval/.generated/stress/context-session-2026-08-25T09-26-00.725Z.json`.
+- This is Windows context-session evidence only. It is not Windows M3 certification evidence. No raw development inference diagnostic is recorded here.
+
+## 2026-08-25 Windows M3 context-session second stress result
+
+- Scope: pre-run free GPU memory was `14,462 MiB`, above the required `12,500 MiB`. Exactly one command ran: `pnpm test:stress:m3:context-session`. No retry, other stress command, optional suite, full M3 gate, product-code change, commit, or push ran.
+- Result: exit code `0`; classification `context_session_passed`; final state `succeeded`. The terminal-command duration was `43.491` seconds.
+- Exact evaluator checks: all seven terminal runs succeeded with `error: null`; three distinct required anchors met the minimum of three; `missingTerms` was empty; and all seven recorded context allocations were `65,536` tokens, equal to the reported context size.
+- Report-visible runtime counts: seven terminal model runs and seven recorded inference allocations; zero guest executions were recorded.
+- This is Windows context-session evidence only. It is not Windows M3 certification evidence. No raw development inference diagnostic is recorded here.
+
+## 2026-08-25 Windows scaled PDF report focused result
+
+- Scope: pre-run free GPU memory was `14,462 MiB`, above the required `12,500 MiB`. Exactly one command ran: `pnpm test:stress:m3:scaled:sequential -- --case pdf-report`. No retry, other scaled case, complete scaled suite, context suite, full M3 gate, product-code change, commit, or push ran.
+- Result: the command exited with code `1` after `230.200` seconds. Fixture preparation took `8` ms and created one `29,766`-byte file. The selected case ran for `223.546` seconds and ended `failed` with the safe error `agent_memory_unavailable`.
+- Case checks: no expected token, table-row, execution-text, or required-skill check was missing. No forbidden response text, pattern, or skill call was present. The loaded skill order was valid: `document-review`, `pdf-documents`, then `review-report`.
+- Artifact verification: no artifact was produced, retained, or verified. The final worker-readiness check found the safe `unloaded` state, so the runner stopped before it wrote a scaled JSON report.
+- Runtime result: nineteen no-NIC guest executions were recorded; eighteen failed. One inference failure was recorded. The final model state was `unloaded`. This is focused Windows failure evidence only. It is not Windows M3 certification evidence. No raw development inference diagnostic is recorded here.
+
+## 2026-08-25 Windows scaled PDF report focused result after PDF prompt change
+
+- Scope: pre-run free GPU memory was `14,462 MiB`, above the required `12,500 MiB`. Exactly one command ran: `pnpm test:stress:m3:scaled:sequential -- --case pdf-report`. No retry, other scaled case, complete scaled suite, context suite, full M3 gate, commit, or push ran.
+- Result: exit code `1`. Fixture preparation took `8` ms and created one `29,766`-byte file. The selected case ran for `73.447` seconds and ended `failed` with the safe error `agent_memory_unavailable`.
+- Case checks: no configured expected-token, table-row, execution-text, or required-skill check was missing. No forbidden response text, pattern, or skill call was present. The loaded skill order was valid: `document-review`, `pdf-documents`, then `review-report`.
+- Artifact verification: no artifact was produced, retained, or verified. The final model-readiness check found the safe `unloaded` state, so the runner stopped before it wrote a scaled JSON report.
+- Runtime result: six no-NIC guest executions were recorded; all six failed. One inference failure was recorded. The final model state was `unloaded`. This is focused Windows failure evidence only. It is not Windows M3 certification evidence. No raw development inference diagnostic is recorded here.
+
+## 2026-08-25 Windows scaled PDF report focused result after source discovery fix
+
+- Scope: pre-run free GPU memory was `14,462 MiB`, above the required `12,500 MiB`. Exactly one command ran: `pnpm test:stress:m3:scaled:sequential -- --case pdf-report`. No retry, other scaled case, complete scaled suite, context suite, full M3 gate, product-code edit, commit, or push ran.
+- Result: exit code `1`. Fixture preparation took `8` ms and created one `29,766`-byte file. The selected case ran for `108.687` seconds. The agent terminal state was `succeeded`, the safe terminal error was null, and the evaluator classification was `scaled_stress_limit_found`.
+- Case checks: no configured expected-token, table-row, execution-text, or required-skill check was missing. No forbidden response text, response pattern, or skill call was present. The loaded skill order was valid: `document-review`, `pdf-documents`, then `review-report`.
+- Artifact verification: the run produced `scaled-policy-report.pdf` and `corpus_content.txt`. No artifact was retained or verified. PDF verification failed because the required `POLICY_PAGES=100` label was missing.
+- Runtime result: eleven no-NIC guest executions were recorded; seven failed. The inference failure count was zero. The final model state was `ready`. This is focused Windows failure evidence only. It is not Windows M3 certification evidence. No raw development inference diagnostic is recorded here.
+
+## 2026-08-25 Windows scaled PDF report focused result after exact-label prompt change
+
+- Scope: pre-run free GPU memory was `14,462 MiB`, above the required `12,500 MiB`. Exactly one command ran: `pnpm test:stress:m3:scaled:sequential -- --case pdf-report`. No retry, other scaled case, complete scaled suite, context suite, full M3 gate, product-code edit, commit, or push ran.
+- Result: exit code `1`; terminal-command duration `115.145` seconds. Fixture preparation took `9` ms and created one `29,766`-byte file. The selected case ran for `108.530` seconds. The agent terminal state was `succeeded`, the safe terminal error was null, and the evaluator classification was `scaled_stress_limit_found`.
+- Required checks: no configured expected-token, table-row, execution-text, or required-skill check was missing. No forbidden response text, response pattern, or skill call was present. The loaded skill order was valid: `document-review`, `pdf-documents`, then `review-report`.
+- Artifact verification: the run produced the task-specified `scaled-policy-report.pdf`. No artifact was retained or verified. The exact visible-label check failed: `POLICY_PAGES=100` was missing, and the verifier found no matching labels. This result does not prove the required exact `LABEL=value` PDF output.
+- Runtime result: twelve no-NIC guest executions were recorded; nine failed. The inference failure count was zero. The model state changed from `unloaded` to `ready`; the final agent state was `succeeded`. This is focused Windows failure evidence only. It is not Windows M3 certification evidence. No raw development inference diagnostic is recorded here.
+
+## 2026-08-25 Windows scaled PDF focused result after shared exact-label and PDF source-discovery change
+
+- Scope: pre-run free GPU memory was `14,462 MiB`, above the required `12,500 MiB`. Exactly one command ran: `pnpm test:stress:m3:scaled:sequential -- --case pdf-report`. No retry, other scaled case, complete scaled suite, context suite, full M3 gate, product-code change, commit, or push ran.
+- Result: exit code `1`. The recorded command interval was `103.333` seconds. Fixture preparation took `8` ms and created one `29,766`-byte file. The selected case ran for `97.342` seconds. The agent terminal state was `succeeded`, the safe terminal error was null, and the evaluator classification was `scaled_stress_limit_found`.
+- Required checks: no configured expected-token, table-row, execution-text, or required-skill check was missing. No forbidden response text, response pattern, or skill call was present. The first loaded skills were `pdf-documents`, then `document-review`; the runner reported a valid skill order.
+- Artifact verification: the run produced the task-specified `scaled-policy-report.pdf`. No artifact was retained or verified. The independent PDF text extractor failed before it could match labels because the Windows default text encoding could not encode one non-ASCII character. Therefore the required exact visible `POLICY_PAGES=100` label was not verified. This result does not prove the required exact `LABEL=value` PDF output.
+- Runtime result: five no-NIC guest executions were recorded; two failed. The inference failure count was zero. The model state changed from `unloaded` to `ready`. This is focused Windows failure evidence only. It is not Windows M3 certification evidence. No raw development inference diagnostic is recorded here.
+
+## 2026-08-25 Windows scaled PDF focused result after reviewed PDF and scaled-contract fixes
+
+- Scope: pre-run free dedicated GPU memory was `14,462 MiB`, above the required `12,500 MiB`. Exactly one command ran: `pnpm test:stress:m3:scaled:sequential -- --case pdf-report`. No retry, other scaled case, complete scaled suite, context suite, full M3 gate, product-code change, commit, or push ran.
+- Result: exit code `0`; classification `scaled_stress_passed`. The selected case duration was `83.073` seconds. The safe report interval was `88.964` seconds, from `2026-08-25T10:54:13.325Z` to `2026-08-25T10:55:42.289Z`. Fixture preparation took `8` ms and created one `29,766`-byte PDF fixture.
+- Required checks: the final agent state was `succeeded` with safe error `null`. No expected token, table-row, execution-text, or required-skill check was missing. No forbidden response text, response pattern, or forbidden skill call was present. Skill order was valid. The first loaded skills were `document-review`, `pdf-documents`, and `terminal-commands`.
+- PDF extraction and artifact verification: the run produced `scaled-policy-report.pdf`. The independent deterministic PDF text extractor verified the exact visible `POLICY_PAGES=100` fact, recorded as `VERIFIED_1=scaled-policy-report.pdf`. The artifact was verified and was not retained because retention was disabled.
+- Runtime result: five no-NIC guest executions were recorded; three failed. The inference failure count was zero. The model state changed from `unloaded` to `ready` for pinned `gemma-4-12b-it-qat-q4_0`. This is focused Windows evidence only. It is not Windows M3 certification evidence. No raw development inference diagnostic is recorded here.
+
+## 2026-08-25 Windows scaled Excel report focused result
+
+- Scope: pre-run free dedicated GPU memory was `14,462 MiB`, above the required `12,500 MiB`. Exactly one command ran: `pnpm test:stress:m3:scaled:sequential -- --case excel-report`. No retry, other scaled case, complete scaled suite, context suite, full M3 gate, product-code change, commit, or push ran.
+- Result: exit code `1`; classification `scaled_stress_limit_found`. Fixture preparation took `15.132` seconds and created 50 XLSX workbooks with 10 sheets and 200,000 rows per workbook: 10,000,000 rows and `178,071,307` bytes. The selected case ran for `73.840` seconds. Its total fixture and case duration was `88.972` seconds. The final agent state was `succeeded` with safe error `null`.
+- Required checks: no expected token, table row, execution text, or required skill was missing. No forbidden response text, response pattern, or forbidden skill call was present. Skill order was valid.
+- XLSX artifact verification: the run produced `scaled-invoice-report.xlsx`. No artifact was retained or verified. The independent deterministic verifier rejected the artifact because both required exact visible facts were missing: `MATCHING_INVOICES=500` and `INVOICE_TOTAL=12752750`. This result does not prove the required exact `LABEL=value` XLSX output.
+- Runtime result: one no-NIC guest execution completed in `3.644` seconds; zero guest executions failed; and the inference failure count was zero. The pinned `gemma-4-12b-it-qat-q4_0` model changed from `unloaded` to `ready`. This is focused Windows failure evidence only. It is not Windows M3 certification evidence. No raw development inference diagnostic is recorded here.
+
+## 2026-08-25 Windows scaled Excel report after XLSX prompt fix
+
+- Scope: pre-run free dedicated GPU memory was `14,397 MiB`, above the required `12,500 MiB`. Exactly one command ran: `pnpm test:stress:m3:scaled:sequential -- --case excel-report`. No retry, other scaled case, complete scaled suite, context suite, full M3 gate, product-code edit, commit, or push ran.
+- Result: exit code `1`; classification `scaled_stress_limit_found`. Fixture preparation took `14.386` seconds and created 50 XLSX workbooks with 10 sheets and 200,000 rows per workbook: 10,000,000 rows and `178,071,307` bytes. The selected case ran for `1,375.284` seconds. Its total fixture and case duration was `1,389.670` seconds. The final agent state was `succeeded` with safe error `null`; the runner's final model check was `ready`.
+- Required checks: no expected token, table row, execution text, or required skill was missing. No forbidden response text, response pattern, or forbidden skill call was present. The first loaded skills were `terminal-commands`, then `xlsx-workbooks`; the runner reported a valid skill order.
+- XLSX artifact verification: the run produced `scaled-invoice-report.xlsx`. No artifact was retained or verified. The independent deterministic verifier rejected the artifact because both required exact visible facts were missing: `MATCHING_INVOICES=500` and `INVOICE_TOTAL=12752750`. This result does not prove the required exact `LABEL=value` XLSX output.
+- Runtime result: 22 no-NIC guest executions were recorded; 12 failed. The inference failure count was zero. This is focused Windows failure evidence only. It is not Windows M3 certification evidence. No raw development inference diagnostic is recorded here.
+
+## 2026-08-25 Windows scaled Excel report bounded-streaming prompt verification
+
+- Scope: pre-run free dedicated GPU memory was `14,387 MiB`, above the required `12,500 MiB`. Exactly one command ran in a dedicated monitored terminal: `pnpm test:stress:m3:scaled:sequential -- --case excel-report`. It completed before the ten-minute wall limit, so no interrupt was sent. No retry, other scaled case, complete scaled suite, context suite, full M3 gate, product-code edit, commit, or push ran.
+- Result: exit code `1`; classification `scaled_stress_limit_found`. Fixture preparation took `14.515` seconds and created 50 XLSX workbooks with 10 sheets and 200,000 rows per workbook: 10,000,000 rows and `178,071,307` bytes. The selected case ran for `396.334` seconds. Its total fixture and case duration was `410.849` seconds. The final agent state was `succeeded` with safe error `null`; the pinned `gemma-4-12b-it-qat-q4_0` model changed from `unloaded` to `ready`.
+- Required checks: no expected token, table row, execution text, or required skill was missing. No forbidden response text, response pattern, or forbidden skill call was present. The first loaded skills were `terminal-commands`, then `xlsx-workbooks`; the runner reported a valid skill order.
+- XLSX artifact verification: the run produced `scaled-invoice-report.xlsx`. No artifact was retained or verified. The independent deterministic verifier rejected the artifact because both required exact visible facts were missing: `MATCHING_INVOICES=500` and `INVOICE_TOTAL=12752750`. This result does not prove the required exact `LABEL=value` XLSX output.
+- Runtime result: three no-NIC guest executions were recorded; two failed. Guest execution time was `299.738` seconds. The inference failure count was zero. This is focused Windows failure evidence only. It is not Windows M3 certification evidence. No raw development inference diagnostic is recorded here.
+
+## 2026-08-25 Windows scaled Excel report final canonical large-corpus result
+
+- Scope: pre-run free dedicated GPU memory was `14,387 MiB`, above the required `12,500 MiB`. Exactly one command ran in a dedicated monitored terminal: `pnpm test:stress:m3:scaled:sequential -- --case excel-report`. It completed before the ten-minute wall limit. No interrupt, retry, other scaled case, complete scaled suite, context suite, full M3 gate, product-code edit, commit, or push ran.
+- Result: exit code `1`; classification `scaled_stress_limit_found`; the case did not pass. Fixture preparation took `14.453` seconds and created 50 XLSX workbooks with 10 sheets and 200,000 rows per workbook: 10,000,000 rows and `178,071,307` bytes. The selected case ran for `390.110` seconds. Fixture plus case duration was `404.563` seconds. The final case and agent states were `succeeded` with safe error `null`.
+- Required checks: no expected token, table row, execution text, or required skill was missing. No forbidden response text, response pattern, or forbidden skill call was present. The first loaded skills were `terminal-commands`, then `xlsx-workbooks`; the runner reported a valid skill order.
+- XLSX artifact verification: the run produced `scaled-invoice-report.xlsx`. No artifact was retained or verified. The independent deterministic verifier rejected the artifact because both required exact visible facts were missing: `MATCHING_INVOICES=500` and `INVOICE_TOTAL=12752750`. This result does not prove the required exact `LABEL=value` XLSX output.
+- Runtime result: four no-NIC guest executions were recorded; two completed and two failed. Guest execution time was `285.932` seconds. The inference failure count was zero. The pinned `gemma-4-12b-it-qat-q4_0` model changed from `unloaded` to `ready` with a `65,536`-token context. The safe report is `packages/eval/.generated/stress/scaled-sequential-2026-08-25T12-30-57.849Z.json`. This is focused Windows failure evidence only. It is not Windows M3 certification evidence. No raw development inference diagnostic is recorded here.

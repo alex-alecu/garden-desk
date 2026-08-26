@@ -4,6 +4,8 @@ Buildroot 2026.05 produces the minimal Linux kernel and initramfs used by the no
 
 The M1 probe image contains only the kernel, BusyBox userspace, required virtio block/socket drivers, and its fixed probe entrypoint. The M3 agent role is a separate immutable image under `agent/`: it adds fixed Python and Node runtimes, reviewed offline document libraries, the fixed Antiword legacy DOC text reader, and one typed repeated-execution entrypoint for source or `/bin/sh` commands. Neither image contains package installation, credentials, customer data, a model, persistent image state, or a virtual network device. Their kernel has no IPv4, IPv6, wireless, or virtual NIC path.
 
+The macOS aarch64 and Windows x86_64 agent configurations enable the same Buildroot package set. The shared agent manifest is the only version list for Python, Node.js, and all installed libraries. CI rejects a package-selection or runtime-version difference between the two architectures.
+
 The build runs in Buildroot's release-pinned CI image locked by registry digest, sets a fixed source date epoch, disables IP and wireless kernel features, and emits architecture-specific kernel and initramfs artifacts. The first build may fetch Buildroot-verified inputs; the independent second build has Docker networking disabled and must be byte-identical. Transient build trees use disposable Linux-native Docker volumes. Artifacts are ignored and are not committed.
 
 Run `VAULT_BUILDROOT_ARCHIVE=/absolute/path/buildroot-2026.05.tar.xz pnpm guest:build`. The archive must match the manifest hash; use `-- --arch x86_64` for the Windows build.
