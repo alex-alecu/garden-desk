@@ -19,6 +19,7 @@ import {
   InferenceFailure,
   inferenceAbortFailure,
   inferenceFailureCode,
+  inferenceFailurePreservesResident,
 } from "./inference-errors.js";
 import { type ActiveInferenceExecution, inferenceTimeoutMs } from "./inference-timeout.js";
 import {
@@ -147,7 +148,6 @@ export class InferenceSupervisor extends ImageInferenceController implements Inf
       throw modelPreparationFailure(error);
     }
   }
-
   protected async releaseResident(): Promise<boolean> {
     const resident = this.resident;
     this.resident = undefined;
@@ -165,8 +165,7 @@ export class InferenceSupervisor extends ImageInferenceController implements Inf
     if (request.operation === "probe") {
       return { lease: this.scheduler.reserve(request.operation), stagedModel: undefined };
     }
-    // Serialize only resident preparation so concurrent generations never race model load;
-    // generation itself stays parallel across the model's context sequences.
+    // Serialize preparation while generation stays parallel across resident context sequences.
     const resident = await this.residency.run(
       () => this.prepareModel(request.modelId, request.operation, signal),
       signal,
@@ -193,10 +192,11 @@ export class InferenceSupervisor extends ImageInferenceController implements Inf
       });
       return { response, lease: resources.lease };
     } catch (error) {
-      const recoverableStructuredMiss =
-        error instanceof Error &&
-        ["structured_tool_call_required", "generation_token_limit"].includes(error.message);
-      if (resourcesPrepared && request.operation !== "probe" && !recoverableStructuredMiss) {
+      if (
+        resourcesPrepared &&
+        request.operation !== "probe" &&
+        !inferenceFailurePreservesResident(error, execution.signal)
+      ) {
         await this.releaseResident();
       }
       if (request.operation === "probe") lease?.release();

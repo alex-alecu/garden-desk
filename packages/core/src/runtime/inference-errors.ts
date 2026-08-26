@@ -22,6 +22,15 @@ export function inferenceFailureCode(error: unknown): string {
   return "internal";
 }
 
+export function inferenceFailurePreservesResident(error: unknown, signal: AbortSignal): boolean {
+  if (signal.aborted && error instanceof InferenceFailure && error.code === "cancelled")
+    return true;
+  return (
+    error instanceof Error &&
+    ["structured_tool_call_required", "generation_token_limit"].includes(error.message)
+  );
+}
+
 export function inferenceAbortFailure(signal: AbortSignal): InferenceFailure {
   const code =
     signal.reason instanceof DOMException && signal.reason.name === "TimeoutError"

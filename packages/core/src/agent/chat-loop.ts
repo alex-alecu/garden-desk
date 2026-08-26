@@ -35,6 +35,10 @@ export type { ChatAgentInput } from "./chat-loop-input.js";
 const HARD_TURN_LIMIT = 40;
 const COMPACTION_RATIO = 0.8;
 
+function inferenceStepSummary(turn: number, modelNeedsLoad: boolean | undefined): string {
+  if (turn > 0) return "Choosing the next action.";
+  return modelNeedsLoad ? "Loading the local model into memory." : "Understanding the task.";
+}
 export class ChatAgentLoop {
   private contextTokens = 8_192;
   private requestedContextSize: number | "auto" = "auto";
@@ -277,10 +281,7 @@ export class ChatAgentLoop {
     const requiredArtifacts = requiredArtifactNames(input.task);
     for (let turn = 0; turn < turns; turn += 1) {
       input.signal?.throwIfAborted();
-      input.onEvent?.(
-        "inference.started",
-        turn === 0 ? "Understanding the task." : "Choosing the next action.",
-      );
+      input.onEvent?.("inference.started", inferenceStepSummary(turn, input.modelNeedsLoad));
       const result = await this.turn({
         input,
         state,

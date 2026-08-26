@@ -102,7 +102,7 @@ The composer is multiline and anchored to the bottom of the conversation pane.
 
 ## Model Presentation
 
-A build with one runnable generation model shows its human-readable name and current state in the conversation header. The model loads on first use, remains resident and ready between turns, and can be unloaded manually only while idle. After unload, the next message loads the same approved model again. Hardware detection chooses the model-plus-context budget without a settings surface. On an 8 GB Mac the header and alert explain that local inference is unsupported, and the composer cannot submit agent work. There is no picker or arbitrary configuration affordance. A future multi-model build may show only installed, signed, hardware-compatible choices.
+A build with one runnable generation model shows its human-readable name and current state in the conversation header. The model loads on first use, remains resident and ready between turns, and can be unloaded manually only while idle. An acknowledged Stop discards the partial response, returns the model to `ready`, and lets the next message continue the same session or start work in a different session without a model reload. A worker that does not acknowledge cancellation within one second is contained and unloaded. After unload, the next message loads the same approved model again. Hardware detection chooses the model-plus-context budget without a settings surface. On an 8 GB Mac the header and alert explain that local inference is unsupported, and the composer cannot submit agent work. There is no picker or arbitrary configuration affordance. A future multi-model build may show only installed, signed, hardware-compatible choices.
 
 Runtime, quantization, context-window, endpoint, and model-file vocabulary stays out of the ordinary interface.
 
@@ -122,7 +122,7 @@ Runtime, quantization, context-window, endpoint, and model-file vocabulary stays
 - Screen-reader labels for folders, sessions, status, attachments, inline activity, Technical details, and composer actions. Each activity step names the step it reveals, and the expanded step is exposed as the current step.
 - Focus restoration after dialogs, session switches, cancellation, and reconnect.
 - Reduced-motion support.
-- Usable at 200 percent scaling and narrow supported window widths.
+- Usable at 200 percent scaling at the supported 1,120 × 700 minimum window size.
 - Native title-bar and window controls appropriate to macOS and Windows.
 
 ## Revision History

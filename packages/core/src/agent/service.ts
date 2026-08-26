@@ -28,7 +28,7 @@ import { AgentImageInspector } from "./service-image.js";
 import {
   agentFailureEvent,
   agentFailureText,
-  inferenceContextTokens,
+  inferenceRunContext,
   runPerformance,
 } from "./service-results.js";
 import { SessionSummaryQueue } from "./service-summary-queue.js";
@@ -235,7 +235,7 @@ export class AgentService {
         ...(anchored === undefined ? {} : { summary: anchored.text }),
       };
       if (this.inference.chat === undefined) throw new Error("agent_chat_unavailable");
-      const knownContextTokens = await inferenceContextTokens(this.inference);
+      const inferenceRun = await inferenceRunContext(this.inference);
       const result = await runPrimaryAgent({
         chat: this.inference.chat.bind(this.inference),
         contextTokens: "auto",
@@ -244,7 +244,7 @@ export class AgentService {
         history,
         inspectImage: this.images.forRun(run.sessionId, signal),
         jobs: this.jobs,
-        ...(knownContextTokens === "auto" ? {} : { knownContextTokens }),
+        ...inferenceRun,
         onThinking: (thinking) => this.updateActive(run.jobId, { thinking }),
         onResponse: (response) => this.updateActive(run.jobId, { response }),
         onContext: (contextUsedTokens, contextAllocatedTokens, measured) => {
