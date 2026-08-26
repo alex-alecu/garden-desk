@@ -15,15 +15,32 @@ const typingExtensionsSource = join(
   "packages/workers/images/.generated/downloads/python-typing-extensions/typing_extensions-4.15.0.tar.gz",
 );
 const MAX_EXTRACTED_BYTES = 64 * 1024 * 1024;
+const pdfImports = [
+  "from pathlib import Path",
+  "import sys",
+  "if sys.version_info < (3, 11):",
+  "    from types import ModuleType",
+  "    import tarfile",
+  "    archive = tarfile.open(sys.argv[2])",
+  "    member = next(item for item in archive.getmembers() if item.name.endswith('/src/typing_extensions.py'))",
+  "    module = ModuleType('typing_extensions')",
+  "    exec(compile(archive.extractfile(member).read(), member.name, 'exec'), module.__dict__)",
+  "    sys.modules['typing_extensions'] = module",
+  "from pypdf import PdfReader",
+];
 
 function hostPython(): string {
   return process.platform === "win32" ? "python" : "/usr/bin/python3";
 }
 
-async function runHostPython(script: string, args: string[], wheels: string[]): Promise<string> {
+export async function runHostPython(
+  script: string,
+  args: string[],
+  wheels: string[],
+): Promise<string> {
   const result = await execFileAsync(hostPython(), ["-c", script, ...args], {
     encoding: "utf8",
-    env: { ...process.env, PYTHONPATH: wheels.join(delimiter) },
+    env: { ...process.env, PYTHONIOENCODING: "utf-8", PYTHONPATH: wheels.join(delimiter) },
     maxBuffer: MAX_EXTRACTED_BYTES,
   });
   return result.stdout;
@@ -48,15 +65,7 @@ async function extractedWorkbookText(path: string): Promise<string> {
 
 async function extractedPdfText(path: string): Promise<string> {
   const script = [
-    "from pathlib import Path",
-    "from types import ModuleType",
-    "import sys, tarfile",
-    "archive = tarfile.open(sys.argv[2])",
-    "member = next(item for item in archive.getmembers() if item.name.endswith('/src/typing_extensions.py'))",
-    "module = ModuleType('typing_extensions')",
-    "exec(compile(archive.extractfile(member).read(), member.name, 'exec'), module.__dict__)",
-    "sys.modules['typing_extensions'] = module",
-    "from pypdf import PdfReader",
+    ...pdfImports,
     "print('\\n'.join((page.extract_text() or '') for page in PdfReader(Path(sys.argv[1])).pages))",
   ].join("\n");
   return runHostPython(
@@ -74,15 +83,8 @@ export interface PdfArtifactEvidence {
 
 export async function pdfArtifactEvidence(path: string): Promise<PdfArtifactEvidence> {
   const script = [
-    "from pathlib import Path",
-    "from types import ModuleType",
-    "import json, sys, tarfile",
-    "archive = tarfile.open(sys.argv[2])",
-    "member = next(item for item in archive.getmembers() if item.name.endswith('/src/typing_extensions.py'))",
-    "module = ModuleType('typing_extensions')",
-    "exec(compile(archive.extractfile(member).read(), member.name, 'exec'), module.__dict__)",
-    "sys.modules['typing_extensions'] = module",
-    "from pypdf import PdfReader",
+    ...pdfImports,
+    "import json",
     "reader = PdfReader(Path(sys.argv[1]))",
     "print(json.dumps({'metadata': {str(k): str(v) for k, v in (reader.metadata or {}).items()}, 'pageTexts': [(page.extract_text() or '') for page in reader.pages], 'rotations': [page.rotation for page in reader.pages]}))",
   ].join("\n");
