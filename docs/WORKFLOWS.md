@@ -21,7 +21,7 @@ Examples:
 
 - A folder session receives only a live read-only mount of its selected folder with the original hierarchy.
 - A New chat session receives only its explicit attachments.
-- Agent-authored code and commands run only in the session-scoped no-NIC microVM.
+- Agent-authored code and commands run only in the session-scoped no-network microVM.
 - The immutable guest image contains the only available Python, Node.js, BusyBox commands, and library versions.
 - Package installation and runtime network access are unavailable.
 - The guest can write only to its persistent 128 MiB workspace and ephemeral `/run`; it cannot change host source files.
@@ -61,16 +61,3 @@ The V1 workflow suite covers:
 - Packaged macOS and Windows behavior with zero-download first launch.
 
 Task-quality cases use deterministic development and held-out inputs. Security invariants require complete detection; general answer quality is reported honestly rather than hidden behind one aggregate score.
-
-## Revision History
-
-| Date | Change |
-|---|---|
-| 2026-07-10 | Created the initial workflow document. |
-| 2026-07-20 | Replaced the pre-V1 vertical workflow sequence with the generic offline dev-agent interaction. |
-| 2026-08-15 | Added limited prompt-only legal, finance, and medical-administration review without adding vertical workflow state machines. |
-| 2026-07-23 | Added the live read-only folder, guest shell tools, session VM, and persistent bounded workspace workflow. |
-| 2026-08-04 | Added generated-file deliverables and explicit Open and Save As actions. |
-| 2026-08-14 | Replaced the DOCX-only skill with one Word skill and added legacy DOC plain-text input through guest Antiword. |
-| 2026-08-22 | Recorded generic skill loading and prompt-only format checkpoints. |
-| 2026-08-26 | Recorded committed-script reuse, failed-artifact recovery, and identical-call repair stops. |

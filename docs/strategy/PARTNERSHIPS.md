@@ -69,9 +69,3 @@ Resellers become useful once:
 - Workflow outcomes are measurable.
 - Support boundaries are documented.
 - Office appliance backup and recovery are reliable.
-
-## Revision History
-
-| Date | Change |
-|---|---|
-| 2026-07-10 | Initial partnership strategy document created from supplied concept material. |

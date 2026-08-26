@@ -21,8 +21,8 @@ The candidate commit is pending until the repair and evidence changes are comple
 |---|---|---|---|---|---|---|
 | Direct guest artifact recovery | macOS, pending candidate | Not run; deterministic direct-guest test | — | Focused tests only | Not required | Pending |
 | Direct guest artifact recovery | Windows, pending candidate | Not run; deterministic direct-guest test | — | Focused tests only | Not required | Pending |
-| Saved-script repair and rerun | macOS, pending candidate | Not run; real no-NIC repair case | — | Focused tests only | Not required | Pending |
-| Saved-script repair and rerun | Windows, pending candidate | Not run; real no-NIC repair case | — | Focused tests only | Not required | Pending |
+| Saved-script repair and rerun | macOS, pending candidate | Not run; real no-network repair case | — | Focused tests only | Not required | Pending |
+| Saved-script repair and rerun | Windows, pending candidate | Not run; real no-network repair case | — | Focused tests only | Not required | Pending |
 | Canonical M3 platform gate | macOS, pending candidate | Not run; `pnpm test:m3:macos` | — | Earlier build evidence is in [M3 status](M3_STATUS.md) | Not required | Pending |
 | Canonical M3 platform gate | Windows, pending candidate | Not run; `pnpm test:m3:windows` | — | [2026-08-22 gate and held-out result](../STRESS_TEST.md#windows-stage-3-held-out-current-run-artifact-check--2026-08-22) | Not required | Pending |
 | Complete supported small suite | macOS, pending candidate | Not run; `pnpm test:stress:m3:small` | — | Earlier build evidence is in [document stress](M3_DOCUMENT_STRESS.md) | Not required | Pending |

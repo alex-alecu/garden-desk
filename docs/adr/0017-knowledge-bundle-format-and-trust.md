@@ -8,7 +8,7 @@ Accepted as a post-V1 direction. Platform and hostile-archive behavior remains r
 
 ## Context
 
-Knowledge Bundles must preserve immutable evidence, provenance, rights, citations, and offline update trust without becoming plugins or binding authoritative content to one retrieval engine. A future implementation must keep the logical layout readable unpacked and inspect removable-media transport inside the certified no-NIC microVM.
+Knowledge Bundles must preserve immutable evidence, provenance, rights, citations, and offline update trust without becoming plugins or binding authoritative content to one retrieval engine. A future implementation must keep the logical layout readable unpacked and inspect removable-media transport inside the certified no-network microVM.
 
 No single reviewed standard covers semantic description, complete fixity, publisher authentication, rollback resistance, hostile-archive inspection, and Vault Desk citation anchors. The first implementation therefore needs a small profile with explicit ownership at each layer.
 
@@ -24,7 +24,7 @@ The Vault manifest is the one complete inventory consumed by future bundle code.
 
 The v1 `.vdkb` transport is an uncompressed deterministic POSIX tar stream. Entries are lexically ordered, use UTF-8 forward-slash relative paths, fixed modes, uid and gid zero, empty owner names, and an epoch modification time. Only directories and regular files are valid. Links, devices, sparse entries, absolute paths, traversal, ambiguous separators, case-colliding paths, and duplicate normalized paths are rejected.
 
-A future bundle importer may use `tar-stream` 3.2.0 only as a streaming tar decoder inside the no-NIC guest. The guest produces a bounded typed inventory; it never writes directly into the installed store. Vault Core verifies the inventory and commits immutable objects atomically.
+A future bundle importer may use `tar-stream` 3.2.0 only as a streaming tar decoder inside the no-network guest. The guest produces a bounded typed inventory; it never writes directly into the installed store. Vault Core verifies the inventory and commits immutable objects atomically.
 
 Compression is deliberately absent in v1. Node 24's Zstandard API is experimental, and adding a second native codec would enlarge the parser and supply-chain surface. A later ADR may add compression after deterministic construction, decompression limits, and cross-platform behavior are proven.
 
@@ -52,7 +52,7 @@ A bundle may carry evidence, metadata, rights records, inert human-readable desc
 ## Consequences
 
 - Future bundle reading stays simple and transport-independent.
-- Future archive parsing stays outside Vault Core and behind no-NIC isolation.
+- Future archive parsing stays outside Vault Core and behind no-network isolation.
 - Uncompressed transport uses more removable-media space but has a smaller deterministic and security surface.
 - `tuf-js` and `tar-stream` remain development-only validation dependencies; they become production dependencies only when a future bundle milestone introduces their adapters.
 - Content truth, professional authority, rights, and applicability remain separate review decisions from cryptographic authenticity.
@@ -61,7 +61,7 @@ A bundle may carry evidence, metadata, rights records, inert human-readable desc
 ## Required Validation
 
 - Construct byte-identical tar streams on macOS and Windows.
-- Reject traversal, links, devices, duplicate normalized paths, case collisions, oversized entries, expansion-limit breaches, trailing garbage, and malformed headers inside the no-NIC guest.
+- Reject traversal, links, devices, duplicate normalized paths, case collisions, oversized entries, expansion-limit breaches, trailing garbage, and malformed headers inside the no-network guest.
 - Verify offline TUF root rotation, threshold roles, delegation, expiration, clock skew policy, rollback, freeze, mix-and-match, corrupt targets, and removable-media root confinement.
 - Verify valid, invalid, wrong-key, and altered-manifest Ed25519 signatures.
 - Demonstrate that signed content cannot add execution or policy authority.
@@ -74,9 +74,3 @@ A bundle may carry evidence, metadata, rights records, inert human-readable desc
 - [SPDX 3.0.1 Dataset Profile](https://spdx.github.io/spdx-spec/v3.0.1/model/Dataset/Dataset/)
 - [The Update Framework specification](https://theupdateframework.github.io/specification/)
 - [Node.js crypto documentation](https://nodejs.org/download/release/v24.18.0/docs/api/crypto.html)
-
-## Revision History
-
-| Date | Change |
-|---|---|
-| 2026-07-16 | Accepted the unpacked logical format, deterministic uncompressed tar transport, TUF channel trust, Node Ed25519 verification, and passive-content boundary. |

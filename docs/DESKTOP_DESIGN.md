@@ -113,7 +113,7 @@ Runtime, quantization, context-window, endpoint, and model-file vocabulary stays
 - Opening a granted folder passes only its opaque identifier; Vault Core resolves and revalidates the active grant before the Rust host asks the operating system to open it.
 - Native dialogs return selections to the Rust host, which passes them through the typed grant or attachment command; arbitrary path strings from the webview are rejected.
 - The model and guest never receive a writable host folder.
-- Agent code and commands execute only in the session-scoped no-NIC microVM with fixed interpreters, libraries, and installed BusyBox tools.
+- Agent code and commands execute only in the session-scoped no-network microVM with fixed interpreters, libraries, and installed BusyBox tools.
 - UI state never substitutes for Vault Core grants, policy, audit, resource limits, cancellation, or result validation.
 
 ## Accessibility And Platform Behavior
@@ -125,32 +125,8 @@ Runtime, quantization, context-window, endpoint, and model-file vocabulary stays
 - Usable at 200 percent scaling at the supported 1,120 × 700 minimum window size.
 - Native title-bar and window controls appropriate to macOS and Windows.
 
-## Revision History
+## Debug Snapshot
 
-| Date | Change |
-|---|---|
-| 2026-07-13 | Defined the initial Tauri desktop layout and security boundary. |
-| 2026-07-20 | Reframed V1 around folder-grouped sessions, New chat attachments, and the generic offline dev agent. |
-| 2026-07-22 | Grouped creation actions under Chats and Folders and standardized the white, low-contrast bordered shell. |
-| 2026-07-22 | Added resident-model controls, transient supported thinking, and response performance presentation. |
-| 2026-07-22 | Added hardware-derived inference budgets and the user-visible unsupported state for 8 GB Macs. |
-| 2026-07-22 | Added safe CommonMark presentation for assistant responses. |
-| 2026-07-22 | Restored concise activity and generated files to the conversation and reserved the renamed Technical details drawer for low-level evidence. |
-| 2026-07-23 | Replaced folder snapshots and disposable scratch with the live read-only source mount and persistent session workspace. |
-| 2026-07-23 | Added the Overview-first Technical details drawer with collapsed execution logs, selectable bounded streams, typed VM diagnostics, and scroll-follow controls. |
-| 2026-07-24 | Added installed-app private debug snapshot creation and reveal without webview path or process authority. |
-| 2026-07-25 | Added safe GFM tables and richer chat typography within a wider unified conversation layout. |
-| 2026-07-25 | Replaced the high-glare white shell with website-aligned petroleum chrome, warm reading surfaces, and self-hosted IBM Plex typography. |
-| 2026-07-25 | Unified the sidebar and conversation header with the warm reading surface while retaining petroleum for technical evidence. |
-| 2026-07-25 | Added System, Light, and graphite Dark appearance modes and replaced the active sidebar edge rule with a softly raised selection pill. |
-| 2026-07-25 | Added background conversation activity pulses, RAM-bounded parallel sessions, and clear memory budget versus live-allocation labels. |
-| 2026-07-26 | Lightened the shared paper surface, made both side panels participate in layout, refined message sizing and alignment, and exposed runtime memory details in Technical details. |
-| 2026-07-29 | Made inline activity steps selectable and replaced the Overview and Logs tabs with one ordered step list carrying code, logs, recorded prompts, requested result shape, and decisions. |
-| 2026-07-29 | Separated the ordered step list into its own drawer tab, corrected expanded-step spacing, and added local syntax highlighting for assigned Python and Node source files. |
-| 2026-07-29 | Replaced runtime and exit-code completion jargon in the conversation with plain-language step outcomes while retaining exact evidence in Steps. |
-| 2026-08-14 | Kept typed thought segments in session-scoped desktop memory until application close, with live last-row following and completed-step collapse. |
-| 2026-07-27 | Added visible active-run progress and a dismissible saved-progress continuation question for long XLSX work. |
-| 2026-07-28 | Added clickable attachment transfer, whole-window file and folder drop routing with an animated affordance, and persistent accessible folder ordering. |
-| 2026-08-01 | Added separate live RAM and VRAM or unified-memory allocations plus the allocated context, hardware cap, and hardware-derived rationale to Technical details. |
-| 2026-08-04 | Grouped declared generated files beneath their assistant response with accessible Open and Save As actions, and removed file metadata from Technical details. |
-| 2026-08-12 | Added the in-composer clarifying-question picker with paging, recommended and custom answers, hover text, Skip, Stop, keyboard control, and draft preservation. |
+Technical details shows the current local session ID and catalog path. **Create debug snapshot** writes a fresh owner-only temporary snapshot of one selected session so it can be handed to a coding agent for local debugging; **Reveal snapshot** opens its directory in Finder or Explorer. The installed application is the only prerequisite.
+
+The signed packaged Core executable opens the catalog read-only, verifies content-addressed workspace and artifact bytes, and writes the session's conversation, a workspace manifest with host-safe numbered payloads that preserve exact guest paths, generated artifacts, bounded execution logs and diagnostics, and recorded inference traces. Runs that predate catalog v8 report traces as `not_recorded`. The snapshot is local and may contain private customer content; share it only through an owner-approved channel. It never modifies authoritative state or exposes raw native-helper stderr, and operating-system temporary-file cleanup may remove it later.

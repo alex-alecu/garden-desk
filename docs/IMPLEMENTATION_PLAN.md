@@ -4,7 +4,7 @@ Updated: 2026-08-26
 
 This is the authoritative implementation sequence for the first Vault Desk release. M0, cross-platform M1, and cross-platform M2 are complete. The repository owner activated M3 on 2026-07-20 as the first full product milestone. Earlier macOS and Windows headless, guest, and installed-product evidence is historical evidence for earlier builds. The current candidate needs new physical macOS and Windows platform, supported-suite, and professional-skill evidence. The latest results are in [STRESS_TEST.md](../STRESS_TEST.md); they do not close M3. Generated-file packaged-app evidence, dedicated-standard-user setup, macOS lower-tier context, and release-signing evidence also remain before M3 or Community Desktop V1 can close.
 
-The shortest path to V1 is a generic offline desktop agent, not a format-specific document pipeline. The agent may write and run Python or Node.js programs and installed guest commands inside a session-scoped no-NIC microVM. It sees the selected folder live and read-only at `/source` and works in a persistent bounded `/workspace`. It cannot write to the selected host folder, install packages, reach a network, inherit credentials, or call an unrestricted host service.
+The shortest path to V1 is a generic offline desktop agent, not a format-specific document pipeline. The agent may write and run Python or Node.js programs and installed guest commands inside a session-scoped no-network microVM. It sees the selected folder live and read-only at `/source` and works in a persistent bounded `/workspace`. It cannot write to the selected host folder, install packages, reach a network, inherit credentials, or call an unrestricted host service.
 
 ## Change Brief
 
@@ -23,7 +23,7 @@ Three layers remain mandatory:
 
 1. **Tauri desktop** — React and TypeScript in the operating-system webview plus the minimum Rust needed for window lifecycle, native dialogs, exact Vault Core sidecar supervision, and connection bootstrap.
 2. **Vault Core** — the separate Node.js/TypeScript authority for folder and attachment grants, sessions, jobs, policy, audit, model scheduling, inference mediation, worker supervision, and typed daemon methods.
-3. **Workers** — a narrowly sandboxed host-native inference process and a reusable session-scoped no-NIC microVM for agent-authored code and installed guest commands.
+3. **Workers** — a narrowly sandboxed host-native inference process and a reusable session-scoped no-network microVM for agent-authored code and installed guest commands.
 
 The desktop communicates only through narrow typed Tauri commands and the current-user-only local daemon protocol. TCP is not enabled. Every M3 backend capability is exercised through both the programmatic facade and daemon protocol before the desktop consumes it.
 
@@ -53,7 +53,7 @@ Each agent session:
 8. Atomically commits the resulting regular workspace files and directories after each responsive execution. The content-addressed manifest is the durable workspace state. Escaping links, devices, sockets, and traversing paths are rejected.
 9. Keeps idle VMs in a least-recently-used pool bounded by total RAM after the inference cap and host reserve. Different conversations may run concurrently up to that capacity; their model turns run on the one resident Gemma worker, which loads the model once and exposes multiple parallel context sequences (up to a memory-bounded count) so several turns can generate concurrently; turns beyond the available sequence slots queue. Excess runs remain queued without starting another VM.
 
-The guest has no package manager authority, credentials, user home, host shell, general Vault Core endpoint, generic model server, approval authority, export authority, or network broker. Its `/bin/sh` is inside the no-NIC guest and has no host authority. Host source folders are never writable. Core excludes internal tool state and intermediate code. It can retain verified bytes changed by a failed execution as pending recovery evidence, but only a later successful execution can create the card. A failed execution invalidates an older card at each changed path, and a later successful execution can restore the same bytes. Opening uses a verified owner-only temporary copy; Save As uses a native dialog and an atomic Core write without returning the selected destination path to the webview.
+The guest has no package manager authority, credentials, user home, host shell, general Vault Core endpoint, generic model server, approval authority, export authority, or network broker. Its `/bin/sh` is inside the no-network guest and has no host authority. Host source folders are never writable. Core excludes internal tool state and intermediate code. It can retain verified bytes changed by a failed execution as pending recovery evidence, but only a later successful execution can create the card. A failed execution invalidates an older card at each changed path, and a later successful execution can restore the same bytes. Opening uses a verified owner-only temporary copy; Save As uses a native dialog and an atomic Core write without returning the selected destination path to the webview.
 
 ## Guest Image
 
@@ -111,11 +111,11 @@ Unit tests may use deterministic inference and guest fakes. Acceptance must use 
 
 ### M0 — Reproducible foundation — complete
 
-M0 established the pinned workspace, CI, generic deterministic task fixtures, model manifest, dependency inventory, test-only Tauri capability probe, and provisional no-NIC guest validation. Its evidence remains in [M0_STATUS.md](M0_STATUS.md).
+M0 established the pinned workspace, CI, generic deterministic task fixtures, model manifest, dependency inventory, test-only Tauri capability probe, and provisional no-network guest validation. Its evidence remains in [M0_STATUS.md](M0_STATUS.md).
 
 ### M1 — Secure local control plane and microVMs — complete
 
-M1 delivered workspace state, scoped files, atomic artifacts, audit, jobs, current-user daemon transports, CLI health, bounded worker staging, and certified no-NIC microVM launchers on macOS and Windows. Its evidence remains in [M1_STATUS.md](M1_STATUS.md).
+M1 delivered workspace state, scoped files, atomic artifacts, audit, jobs, current-user daemon transports, CLI health, bounded worker staging, and certified no-network microVM launchers on macOS and Windows. Its evidence remains in [M1_STATUS.md](M1_STATUS.md).
 
 ### M2 — Supervised inference foundation — complete
 
@@ -162,7 +162,7 @@ Gate:
 - Keyboard navigation, visible focus, screen-reader labels, reduced motion, resizing, and 200 percent scaling pass on both platform webviews.
 - Packaged application checks cover install, first launch with zero downloads, sidecar and helper identity, restart, upgrade, uninstall, and preservation of user workspace state.
 - Required notices, SBOMs, artifact manifests, hashes, signatures, and unsupported-hardware messages are present and accurate.
-- On physical Windows x64, `pnpm test:m3:windows` proves the same live read-only source hierarchy, persistent bounded workspace, Python, Node.js, shell, repair, no-NIC isolation, cancellation, timeout, output, process, memory, quota, crash, escaping-link, and rehydration evidence as macOS. It also proves real-Gemma Python and Node output before terminal state, typed diagnostics, cancellation retention, stdout truncation, malformed-frame HCS teardown, and session teardown. It is not a substitute for packaged-desktop evidence.
+- On physical Windows x64, `pnpm test:m3:windows` proves the same live read-only source hierarchy, persistent bounded workspace, Python, Node.js, shell, repair, no-network isolation, cancellation, timeout, output, process, memory, quota, crash, escaping-link, and rehydration evidence as macOS. It also proves real-Gemma Python and Node output before terminal state, typed diagnostics, cancellation retention, stdout truncation, malformed-frame HCS teardown, and session teardown. It is not a substitute for packaged-desktop evidence.
 - The Windows physical-gate oracle selects one later valid completed execution after failed repairs. It must use all required evidence from that one execution and its terminal run. It must not combine evidence from different executions.
 
 Keep every qualification attempt in the M3 readiness record with its safe evidence. One clean complete run on the candidate build is sufficient qualification evidence. It is not a statistical reliability claim. An earlier model limit does not require code churn or exclude a capability. Only the repository owner can make a support exclusion. M3 closes only when all hard macOS and Windows readiness rows pass. Closing M3 is the Community Desktop V1 launch gate.
@@ -199,52 +199,3 @@ AI assistants, models, coding agents, and tools are never commit authors or co-a
 - Beginning with M1, implementation reaches `main` only through a pull request.
 - Keep generated binaries, models, guest images, reports, packages, coverage, and dependency directories out of Git.
 - Record exact pass, fail, and not-run evidence before closing a gate.
-
-## Revision History
-
-| Date | Change |
-|---|---|
-| 2026-07-11 | Initial milestone plan (M0-M11) created with the three-layer architecture, AI-drivable daemon/CLI, tiered Gemma test models, and ground-truth evaluation. |
-| 2026-07-11 | Added model distribution policy for development downloads and self-contained offline packages. |
-| 2026-07-11 | Reordered the plan after implementation-readiness review: moved accounting, OCR, summary trees, compaction, recovery, and 12B gates before certification; added cross-platform CI and transport, persistent-state and worker-isolation boundaries, held-out/adversarial evaluation, redistribution and supply-chain gates, hardware detection, and pilot-readiness criteria. |
-| 2026-07-12 | Replaced command-level worker network policy with a certified no-NIC microVM, added platform launcher gates and typed socket confinement, and retained a narrow OS-sandboxed native GPU exception. |
-| 2026-07-12 | Added staged Knowledge Bundle contracts at M5 and signed offline import, rollback, and hostile-archive gates at M10. |
-| 2026-07-13 | Replaced Electron with Tauri v2, specified the desktop layout and model selector behavior, and added deterministic document operations with a bounded no-NIC generated-code fallback. |
-| 2026-07-13 | Linked IMPLEMENTATION_STRUCTURE.md as the file-level blueprint for the monorepo layout. |
-| 2026-07-13 | Reconciled phase entry, just-in-time CI, M0 platform harnesses, schema ownership, MIME validation, session persistence, tool policy reuse, scratch-write authority, compaction ownership, and M10 bundle import with IMPLEMENTATION_STRUCTURE.md. |
-| 2026-07-15 | Added the M0 contribution activation gate for licensing, human DCO authorship, GitHub protection, private reporting, and contribution-ready issues. |
-| 2026-07-15 | Applied ADR 0016: Qwen3-Embedding-0.6B replaces EmbeddingGemma in test tiers and gates, two distribution flavors defined with the model-download build deferred after M11, and the Knowledge Bundle ADR renumbered to 0017. |
-| 2026-07-15 | Added PrismML Bonsai as a research-derived post-M11 evaluation candidate, gated on stable upstream runtime support and the full model-certification suite. |
-| 2026-07-15 | Recorded the committed Apache 2.0 license as resolved, made development platform-independent with platform-bound items as milestone-closure checkpoints, and moved contribution activation from M0 to the v1 launch with direct-to-main owner commits until then. |
-| 2026-07-17 | Required owner pull requests for every implementation stage from M1 onward while retaining post-M11 activation for external contributors. |
-| 2026-07-19 | Recorded the M1 review follow-up for authenticated and canonical local endpoints, audit-tail anchoring, bounded cancellable staging, and forced-exit recovery. |
-| 2026-07-20 | Recorded cross-platform M2 completion after macOS Seatbelt and Windows AppContainer authority probes plus pinned Qwen and Gemma canaries passed. |
-| 2026-07-20 | Replaced the long pre-product sequence with M3 Offline Dev-Agent Desktop V1, moved document intelligence after V1, and made the generic no-NIC coding agent the first product. |
-| 2026-07-21 | Completed the M3 macOS implementation and physical acceptance while keeping the cross-platform launch gate open for Windows. |
-| 2026-08-04 | Restricted Windows automatic inference budgets and context tiers to one device's dedicated VRAM. |
-| 2026-08-15 | Added one-device, dedicated-first Windows selection and integrated 8/12/16 GiB shared-memory tiers. |
-| 2026-08-17 | Let an integrated adapter use the next lower fixed tier when driver-reserved memory makes its installed-RAM tier too large. |
-| 2026-07-22 | Grouped sidebar creation actions under their Chats and Folders sections. |
-| 2026-07-22 | Added hardware-derived macOS inference budgets, complete Windows GPU VRAM use, automatic context fitting up to 256K, and the unsupported 8 GB Mac behavior. |
-| 2026-07-22 | Restored concise task activity and generated files to the conversation and reserved the renamed Technical details drawer for low-level evidence. |
-| 2026-07-23 | Added protocol-v3 bounded live execution logs, typed VM diagnostics, normalized catalog schema v7 execution records, and the Overview-first Technical details design. |
-| 2026-07-24 | Added catalog schema v8 durable per-run inference traces and the read-only `agent.trace` diagnostic method without persisting hidden reasoning. |
-| 2026-07-24 | Added the initial on-demand read-only local session debug snapshot and source-tree command. |
-| 2026-07-24 | Moved session snapshot creation into the packaged Core executable and added fixed installed-app create and reveal controls. |
-| 2026-07-25 | Added memory-bounded parallel conversations, serialized reuse of one resident Gemma worker, sidebar working state, and explicit budget-versus-allocation presentation. |
-| 2026-07-27 | Defined one self-contained Windows x64 package with automatic CUDA-first and Vulkan-fallback inference plus a copy-installed directory format that can carry the offline V1 model. |
-| 2026-07-28 | Certified the physical Windows headless product gate, including HCS Plan9, the packaged CUDA/AppContainer worker, the reproducible x86_64 guest, and the single CUDA/Vulkan application directory. |
-| 2026-07-28 | Added catalog schema v9 persistent folder ordering and completed attachment open, transfer, and native drop contracts. |
-| 2026-08-01 | Replaced the 256K automatic context ceiling with 64K and 128K hardware caps that preserve Mac unified memory. |
-| 2026-08-06 | Added inspectable current-run context compaction and artifact delivery for verified results that exceed the response contract. |
-| 2026-08-08 | Bound execution and conversation compaction to the reported allocation, retained ranked evidence per execution across repeated turnover, and added bounded summary backlog and structured-call recovery. |
-| 2026-08-08 | Allowed exit-zero bounded output evidence to finalize after the typed resource limit while retaining source-only recovery for actual failures. |
-| 2026-08-04 | Added declared generated-file deliverables, verified Open and atomic Save As flows, and product-owned DOCX, XLSX, and PDF skills with pinned ReportLab. |
-| 2026-08-12 | Recorded that the resident worker exposes multiple parallel context sequences for concurrent turns (bounded sub-agent parallelism in V1) with overflow queued, and added a flat worked/working activity timeline with a live context meter. |
-| 2026-08-14 | Kept supported typed thought segments in session-scoped desktop memory until application close, with live last-row following and completed-step collapse. |
-| 2026-08-14 | Added the guest Antiword reader and one Word skill for DOCX work and legacy DOC plain-text input. |
-| 2026-08-15 | Allowed the owner-approved prompt-only legal and finance review skills in M3 while keeping domain routing, parsing, policy, and other workflows deferred. |
-| 2026-08-15 | Expanded M3 to the owner-approved 14-skill professional review set, with medical work limited to administration and with cross-platform and qualified reviewer release gates. |
-| 2026-08-15 | Added direct and delegated image context with a pinned offline model projector, llama.cpp image runtime, and application-local Windows runtime dependencies. |
-| 2026-08-22 | Recorded current reliability contracts and left Windows Stage 3 and Stage 4 physical evidence pending. |
-| 2026-08-26 | Added saved-script execution, content-blind artifact recovery, bounded compaction workspace state, and one-clean-run readiness policy. |

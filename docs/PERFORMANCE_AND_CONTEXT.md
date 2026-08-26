@@ -48,7 +48,7 @@ The V1 product benchmark is how quickly and reliably the user gets a useful, rev
 
 Primary performance levers, in order:
 
-1. Keep host-native inference loaded while executable work stays in a separate no-NIC guest.
+1. Keep host-native inference loaded while executable work stays in a separate no-network guest.
 2. Bound agent turns, observations, code, logs, and artifacts so context and latency remain predictable.
 3. Reuse safe prompt prefixes and session summaries without treating hidden reasoning as durable state.
 4. Prefer the fixed offline guest libraries over large generated reimplementations.
@@ -269,17 +269,3 @@ Do not:
 - [StreamingLLM paper](https://arxiv.org/abs/2309.17453)
 - [Lost in the Middle paper](https://arxiv.org/abs/2307.03172)
 - [RULER benchmark paper](https://arxiv.org/abs/2404.06654)
-
-## Revision History
-
-| Date | Change |
-|---|---|
-| 2026-07-10 | Added 12 GB and 16 GB Gemma 4 12B QAT performance, context, compaction, and benchmark specification. |
-| 2026-07-11 | Added official-GGUF packaging rule, verified MTP drafter memory cost, and joint QAT/KV-quant/MTP certification warning. |
-| 2026-07-11 | Made product workflow, compaction, recovery, and packaged offline operation explicit prerequisites for Local 12 and Local 16 certification. |
-| 2026-07-22 | Replaced the fixed 8K product context with hardware-derived macOS budgets, complete detected Windows GPU VRAM use, and automatic context fitting up to 256K. |
-| 2026-08-01 | Replaced the 256K product ceiling with 64K and 128K caps derived from Mac unified memory or Windows GPU VRAM and exposed the measured allocations, selected cap, and threshold reason in Technical details. |
-| 2026-08-04 | Restricted Windows automatic budgets and context tiers to one device's dedicated VRAM. |
-| 2026-08-15 | Added Windows integrated shared-memory budgets and kept one-device isolation for all Windows profiles. |
-| 2026-08-17 | Made the Windows integrated budget fall back through fixed tiers when isolated capacity is below the installed-RAM maximum. |
-| 2026-08-22 | Recorded measured session-summary queue rules and the separate official context-session stress evidence. |

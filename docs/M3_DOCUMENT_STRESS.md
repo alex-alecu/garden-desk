@@ -3,7 +3,7 @@
 Created: 2026-07-26
 Updated: 2026-08-26
 
-This evaluation measures the M3 generic offline development agent with the real Gemma 4 12B QAT worker, current-user daemon, and no-NIC microVM. It does not add a product document parser.
+This evaluation measures the M3 generic offline development agent with the real Gemma 4 12B QAT worker, current-user daemon, and no-network microVM. It does not add a product document parser.
 
 The V1 release gate accepts the limits of the certified local model. It proves a few normal product paths. It does not require the model to solve large corpora, long context-turnover tasks, or several complex tasks at the same time. Model-quality limits from those optional tests are evidence. They are not V1 release failures.
 
@@ -29,7 +29,7 @@ The small-suite task facts, required execution evidence, forbidden results, secu
 | Case | Generated input | Required proof |
 |---|---|---|
 | Source inspection | 1 small TypeScript file | Find and report one exact value. |
-| Legacy DOC read | 1 pinned binary DOC fixture | Load `word-documents`, run Antiword in the no-NIC guest, report two exact facts including UTF-8 punctuation, and create no file. |
+| Legacy DOC read | 1 pinned binary DOC fixture | Load `word-documents`, run Antiword in the no-network guest, report two exact facts including UTF-8 punctuation, and create no file. |
 | XLSX edit | 1 small workbook | Change two requested cells and preserve the workbook structure. |
 | DOCX edit | 1 small document | Change and add requested text while preserving document structure. |
 | Invalid document | 1 truncated PDF | Stop after bounded validation without creating an artifact. |
@@ -47,7 +47,7 @@ The command creates fixtures and workspace state under a short `/tmp` path on ma
 
 The suite exits nonzero when any hard check does not pass. A nonzero result is evidence to record, not by itself authorization to change the agent. A new qualification attempt does not require an implementation or support change. Agent changes require a separate owner-approved strategy and verification.
 
-Each V1 case has a five-minute deadline and runs in sequence. The small gate does not run concurrent model tasks. The current-candidate canonical platform gate must prove bounded overlap, Python and Node execution, cancellation, isolation, resource limits, and teardown. macOS requires two overlapping no-NIC VM lifetimes through one Core. Windows requires two overlapping typed guest-process lifetimes through one Core. Both runs are pending.
+Each V1 case has a five-minute deadline and runs in sequence. The small gate does not run concurrent model tasks. The current-candidate canonical platform gate must prove bounded overlap, Python and Node execution, cancellation, isolation, resource limits, and teardown. macOS requires two overlapping no-network VM lifetimes through one Core. Windows requires two overlapping typed guest-process lifetimes through one Core. Both runs are pending.
 
 All other small-profile cases remain available through `--case` for focused diagnosis. The context-session and scaled commands are optional model-characterization tools. Do not run them for normal V1 acceptance, and do not make V1 depend on a larger or smarter model.
 

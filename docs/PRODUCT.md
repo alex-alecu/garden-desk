@@ -125,7 +125,7 @@ Users should ask for outcomes:
 - Turn these CSV files into one clean report.
 - Inspect these images and create a contact sheet.
 
-For V1, the local model may author Python, Node.js, or guest shell commands for the requested task, but execution occurs only in a session-scoped no-NIC microVM with fixed offline tools, a live read-only selected-folder mount, and a persistent bounded workspace. Purpose-built deterministic document operations may follow after V1 when measurements justify them.
+For V1, the local model may author Python, Node.js, or guest shell commands for the requested task, but execution occurs only in a session-scoped no-network microVM with fixed offline tools, a live read-only selected-folder mount, and a persistent bounded workspace. Purpose-built deterministic document operations may follow after V1 when measurements justify them.
 
 ### Desktop Interaction
 
@@ -169,15 +169,3 @@ The Community V1 targets individuals and small teams that need a private general
 Legal practices are a strong second vertical because document comparison, citation, redaction, and formatting-sensitive edits are high-value workflows.
 
 M3 includes limited prompt-only medical-administration review for supplied records, timelines, prior-authorization packet completeness, and billing-document differences. It does not provide diagnosis, treatment recommendations, triage, medical-necessity decisions, or autonomous patient communication. The complete medical administration workflow remains a later target.
-
-## Revision History
-
-| Date | Change |
-|---|---|
-| 2026-07-10 | Initial product document created from supplied concept material. |
-| 2026-07-12 | Added passive, versioned offline domain libraries as a product capability distinct from Workflow Packs. |
-| 2026-07-13 | Added the Tauri desktop interaction contract, curated model presentation, deterministic document operations, and isolated generated-code fallback. |
-| 2026-07-17 | Prohibited all application telemetry and distinguished explicit user exports from local customer-owned audit records. |
-| 2026-07-20 | Made the generic offline dev agent the first desktop product and moved deterministic document specialization after V1. |
-| 2026-07-22 | Grouped creation actions under their matching sidebar sections. |
-| 2026-07-23 | Added session-scoped offline execution with a live read-only folder mount and persistent bounded workspace. |

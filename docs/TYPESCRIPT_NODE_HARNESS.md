@@ -64,7 +64,7 @@ Vault Core exposes no generic network service to the guest. Explicit external in
 
 Hardware-accelerated inference remains host-native for the first runtime so Metal, CUDA, HIP, and Vulkan remain available. The inference process is supervised and OS-sandboxed, has no shell or executable tools, and receives no network capability, credentials, arbitrary workspace paths, or approval authority. This is a narrow accelerator exception, not an alternative hostile-work sandbox. See [adr/0012-worker-isolation-and-untrusted-documents.md](adr/0012-worker-isolation-and-untrusted-documents.md).
 
-Agent-authored code uses a separate immutable guest role under the same no-NIC microVM contract. Each session receives a live read-only folder mount, immutable explicit attachments, pinned offline interpreters and tools, a persistent 128 MiB workspace, and a typed result schema. The guest cannot install dependencies or connect to a general model server. Vault Core mediates bounded completion requests over typed host/guest IPC, records observable source, commands, and results, validates workspace manifests, and keeps at most one warm idle VM. See [adr/0018-offline-dev-agent-first.md](adr/0018-offline-dev-agent-first.md).
+Agent-authored code uses a separate immutable guest role under the same no-network microVM contract. Each session receives a live read-only folder mount, immutable explicit attachments, pinned offline interpreters and tools, a persistent 128 MiB workspace, and a typed result schema. The guest cannot install dependencies or connect to a general model server. Vault Core mediates bounded completion requests over typed host/guest IPC, records observable source, commands, and results, validates workspace manifests, and keeps at most one warm idle VM. See [adr/0018-offline-dev-agent-first.md](adr/0018-offline-dev-agent-first.md).
 
 ## Local Process Boundary
 
@@ -159,11 +159,11 @@ Planned adapter categories (tool choices verified 2026-07-11; see [research/docu
 - Native Node adapters for born-digital files: pdf.js text layer, mammoth for DOCX, ExcelJS or SheetJS for spreadsheets, officeParser, and mailparser. These run in microVM document workers and cover most files without a heavy Python pipeline.
 - Granite-Docling GGUF adapter for layout-aware PDFs and complex documents, served by the same llama.cpp runtime family as Gemma.
 - PaddleOCR-VL adapter for scanned pages and low-confidence extraction, also served under llama.cpp.
-- One Python document-worker image hosting the remaining Python parsers (Docling full pipeline, MarkItDown, Unstructured) inside the same no-NIC microVM boundary, packaged without exposing Python dependencies to Vault Core.
+- One Python document-worker image hosting the remaining Python parsers (Docling full pipeline, MarkItDown, Unstructured) inside the same no-network microVM boundary, packaged without exposing Python dependencies to Vault Core.
 - Native spreadsheet adapter for XLSX, XLS, CSV, formulas, sheets, rows, and cells.
 - Gemma multimodal inspection adapter for ambiguous page regions.
 
-Worker rule: document parsing and executable tools run inside the no-NIC microVM boundary with typed host/guest IPC, resource limits, cancellation, and staged inputs. Host-native GPU workers use the narrower OS-enforced accelerator exception and cannot execute tools or access networks. At most one Python worker image may host later Python parser fallbacks. See [adr/0012-worker-isolation-and-untrusted-documents.md](adr/0012-worker-isolation-and-untrusted-documents.md).
+Worker rule: document parsing and executable tools run inside the no-network microVM boundary with typed host/guest IPC, resource limits, cancellation, and staged inputs. Host-native GPU workers use the narrower OS-enforced accelerator exception and cannot execute tools or access networks. At most one Python worker image may host later Python parser fallbacks. See [adr/0012-worker-isolation-and-untrusted-documents.md](adr/0012-worker-isolation-and-untrusted-documents.md).
 
 The harness should persist a document-set manifest so huge folder jobs can resume after failure.
 
@@ -173,7 +173,7 @@ For V1, use the generic offline dev agent for folder and attachment work. Prompt
 
 Only a request that cannot be expressed through supported operations may be routed by policy to the bounded code-interpreter microVM. Generated code is untrusted input to the verifier, not product authority. Its source, environment, inputs, outputs, logs, resource use, and termination are auditable, and any workspace write or export still crosses normal policy and approval boundaries.
 
-OpenCode may be benchmarked against a minimal Vault Desk-owned guest loop. It is adopted only if it passes the same offline, no-NIC, typed-inference, cancellation, audit, result-schema, footprint, and packaging gates while reducing maintained code.
+OpenCode may be benchmarked against a minimal Vault Desk-owned guest loop. It is adopted only if it passes the same offline, no-network, typed-inference, cancellation, audit, result-schema, footprint, and packaging gates while reducing maintained code.
 
 ## Agent Loop Principle
 
@@ -263,26 +263,4 @@ See [IMPLEMENTATION_QUALITY_BAR.md](IMPLEMENTATION_QUALITY_BAR.md) for the minim
 
 M0 completed on 2026-07-17. The M1 daemon, CLI health path, workspace state, persistence, RPC, current-user local transports, common worker protocol, and platform microVM runtimes are implemented, and both platform microVMs are certified. M1 completed on 2026-07-18 after the Windows named pipe was bound to the current user and verified with a restricted-token denial gate. The 2026-07-19 follow-up authenticates the pipe owner and DACL from the client handle, canonicalizes endpoint identity, anchors audit tails across schema migration, bounds and cancels input staging, and ties the pipe helper to daemon lifetime.
 
-M2 was activated by the repository owner on 2026-07-19 and completed across macOS and Windows on 2026-07-20. The owner activated M3 Offline Dev-Agent Desktop V1 on 2026-07-20. Earlier macOS and Windows results are historical; the current candidate still needs its named physical evidence on both platforms. Generated binaries, downloaded models, packaged sidecars, guest images, build output, coverage, and dependency directories remain uncommitted artifacts.
-
-## Revision History
-
-| Date | Change |
-|---|---|
-| 2026-07-10 | Initial future TypeScript/Node harness direction created. |
-| 2026-07-10 | Added future harness responsibilities for folder manifests, document adapters, retrieval acceleration, summary trees, and claim verification. |
-| 2026-07-10 | Added context compaction ownership and linked Local 12 and Local 16 profile validation to the future harness plan. |
-| 2026-07-11 | Added verified component choices: node-llama-cpp primary runtime adapter with llama-server vision companion, grammar-enforced structured output principle, native-Node-first parser adapters with a single Python sidecar rule, LanceDB as primary embedded index candidate, and the agent-loop principle around Vercel AI SDK 6 with policy kept in Vault Desk code. |
-| 2026-07-11 | Linked the No-Code Constraint to IMPLEMENTATION_PLAN.md, whose milestone M0 formally lifts it. |
-| 2026-07-11 | Added the early daemon boundary, authoritative workspace-state model, supervised worker isolation, single first runtime, and explicit-workflow-first rule from ADRs 0010-0013. |
-| 2026-07-12 | Made the no-NIC microVM the hostile-work boundary, retained a narrow host-native accelerator exception, and prohibited command matching as network isolation. |
-| 2026-07-13 | Replaced Electron with a thin Tauri v2 shell and added deterministic document tools with a bounded no-NIC code-interpreter fallback. |
-| 2026-07-20 | Made the generic offline dev agent the V1 execution path and moved deterministic document specialization after launch. |
-| 2026-08-15 | Added prompt-only professional review guidance without changing the generic execution path. |
-| 2026-07-16 | Replaced the no-code constraint with an M0-only implementation constraint after the explicit owner phase-change request. |
-| 2026-07-17 | Replaced the proposed OpenTelemetry-shaped audit contract with a small Vault Desk-owned local schema and prohibited telemetry exporters. |
-| 2026-07-19 | Hardened completed M1 recovery, endpoint authentication, audit truncation detection, and worker staging limits after follow-up review. |
-| 2026-07-22 | Aligned the inference adapter boundary with automatic hardware memory and context fitting. |
-| 2026-07-23 | Added the session-scoped agent VM, live read-only folder share, installed guest shell tools, and durable workspace manifests. |
-| 2026-08-15 | Recorded the implemented bounded llama-mtmd-cli image adapter and the exclusive unload-before-inspection memory rule. |
-| 2026-08-12 | Recorded node-llama-cpp parallel context sequences on one loaded model as a verified runtime capability, used for bounded sub-agent parallelism in V1. |
+M2 was activated by the repository owner on 2026-07-19 and completed across macOS and Windows on 2026-07-20. The owner activated M3 Offline Dev-Agent Desktop V1 on 2026-07-20; its current evidence is in [M3_STATUS.md](M3_STATUS.md). Generated binaries, downloaded models, packaged sidecars, guest images, build output, coverage, and dependency directories remain uncommitted artifacts.

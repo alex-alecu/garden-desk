@@ -92,9 +92,3 @@ Do not sell "local AI" as the complete value proposition. Sell:
 - Clear support boundaries.
 - Customer ownership.
 - Measurable time savings.
-
-## Revision History
-
-| Date | Change |
-|---|---|
-| 2026-07-10 | Initial business model document created from supplied concept material. |

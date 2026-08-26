@@ -31,9 +31,3 @@ Negative:
 - Boundary must be designed carefully.
 - Business features must not make the community product feel artificially crippled.
 - Licensing and contribution policy need legal review.
-
-## Revision History
-
-| Date | Change |
-|---|---|
-| 2026-07-10 | Initial ADR created. |

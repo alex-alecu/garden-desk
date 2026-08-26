@@ -48,9 +48,3 @@ Vault Desk combines:
 Vault Desk is building the private AI operating system for small professional offices. The community app is free and open source. Revenue comes from ready-to-use personal computers, shared office appliances, business governance, professional support, integrations, and workflow deployment.
 
 Unlike configurable local-AI tools, Vault Desk sells certainty: known hardware, validated models, safe document workflows, central controls, and one company responsible when something fails.
-
-## Revision History
-
-| Date | Change |
-|---|---|
-| 2026-07-10 | Initial market position summary created from supplied concept material. |

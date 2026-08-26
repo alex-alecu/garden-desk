@@ -108,10 +108,3 @@ Market signals supporting the compliance-driven local thesis (research-derived):
 The following are not enough: runs locally, private, open source, chat with documents, supports multiple models, uses RAG, supports MCP, runs agents, installs a local model runtime, works without an account.
 
 The defensible proposition is certainty, time saving, business control, professional outcomes, verification, auditability, ownership, and trust.
-
-## Revision History
-
-| Date | Change |
-|---|---|
-| 2026-07-10 | Initial competitive landscape summary created from supplied concept material. |
-| 2026-07-11 | Rewritten from live web research: verified twelve incumbents and six newcomers with sources, added comparison table, replaced assumed claims with verified license, telemetry, OCR, approval, and audit findings, and added the differentiation assessment and bar-setting feature list. |
