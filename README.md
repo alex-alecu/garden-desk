@@ -64,7 +64,7 @@ The immutable guest image includes pinned offline tools for common work with JSO
 
 ## Local stress results
 
-On a 48 GB Apple-silicon Mac, the real offline stack passed all 8 small sequential and concurrent cases, plus a 100-page PDF, a 1,000,000-row workbook, and a 50-workbook folder with 10,000,000 rows. A mixed 10,000,000-row XLSX and DOCX task can save and resume progress, but does not yet complete reliably.
+On a 48 GB Apple-silicon Mac, the real offline stack passed all 8 small sequential and concurrent cases, plus a 100-page PDF, a 1,000,000-row workbook, and a 50-workbook folder with 10,000,000 rows. A mixed 10,000,000-row XLSX and DOCX task can save and resume progress, but does not yet complete reliably. The headless stress workflow and latest results are in [STRESS_TEST.md](STRESS_TEST.md).
 
 ## Isolation on macOS and Windows
 
