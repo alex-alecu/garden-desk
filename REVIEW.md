@@ -35,6 +35,7 @@ Vault Desk is a local, offline-first desktop agent. The model is untrusted for e
 - Code that handles a case no current supported workflow can reach: extra defensive branches, fallbacks, retries, compatibility shims, or configuration for hypothetical inputs
 - Abstractions with one caller: interfaces, generics, factories, registries, option objects, or extension points added before a second concrete use exists
 - Boolean flag arguments, mixed command and query functions, and duplication that should be deleted rather than parameterized
+- Try/catch, null checks, or error wrapping at every call level: handle an error once, at the boundary that can recover, report, or audit it, and let everything else propagate
 - A larger change than the PR's stated goal needs: refactors, renames, or restructuring unrelated to the fix
 
 **Tests - the minimum that proves the change (`[clean-code]`):**
