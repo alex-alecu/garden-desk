@@ -1,139 +1,79 @@
-# Review instructions
+# Code Review Instructions
 
-Vault Desk is a local, offline-first desktop agent: a Tauri v2 and React frontend,
-a Node.js Vault Core backend, a no-NIC microVM for agent-authored code, and a
-confined native inference worker. The model is untrusted for execution decisions.
-Reviews must protect those boundaries first and code quality second.
+Vault Desk is a local, offline-first desktop agent. The model is untrusted for execution decisions; the no-NIC microVM and typed adapters are the only isolation. Review through the four lenses below. Each finding agent takes exactly one lens and prefixes its comment with the lens tag.
 
-## Review lenses
+# WHAT TO REVIEW
 
-Split the review into four independent lenses. Every finding agent adopts exactly
-one lens, reviews the whole diff through it, and tags each finding with the lens
-name in the first line of the comment (`[security]`, `[business-logic]`,
-`[performance]`, `[clean-code]`). Do not let one lens absorb another's findings;
-if a finding fits two lenses, report it once under the more severe one.
+**Flag these (high confidence only):**
 
-### Security lens
+`[security]`
 
-Goal: prove the diff does not weaken an isolation, authorization, privacy, or
-evidence boundary.
+- Model, guest, or document content reaching a host shell, an unscoped filesystem path, a network call, or an unvalidated RPC argument
+- Destructive or consequential actions that skip validation, approval, audit, or rollback
+- Product policy, filesystem authorization, network brokering, or parsing moved into the Rust or Swift helpers under `packages/*/native/`
+- Raw native-helper stderr, inference diagnostics, or customer content in reports, snapshots, UI data, or committed files
+- Any telemetry, cloud call, silent cloud fallback, or unpinned download
 
-- Any path where model output, guest output, or document content reaches a host
-  shell, an unscoped filesystem operation, a network call, or an unvalidated RPC
-  argument is Important. Command, URL, domain, or path string matching is never
-  isolation; only the typed adapters and the no-NIC microVM are.
-- Actions must stay validated, authorized, previewed, executed, logged, and
-  reversible through typed tool boundaries. A new tool or RPC that skips
-  validation, audit, or approval gating for destructive actions is Important.
-- Native helpers under `packages/core/native/`, `packages/workers/native/`, and
-  `packages/desktop/native/` may own only their named OS capability, lifecycle,
-  limits, scoped attachment access, typed transport, and teardown. Product
-  policy, filesystem authorization, network brokering, parsing, or workflow
-  logic moved into Rust or Swift is Important.
-- Raw native-helper stderr, raw inference diagnostics, prompts, or customer
-  document content entering reports, debug snapshots, UI data, logs, or
-  committed files is Important.
-- Any telemetry, cloud call, silent cloud fallback, or unpinned download is
-  Important, even behind a flag.
-- Audit records and persisted state must keep stable, hash-chained, replayable
-  shapes; a change that breaks chain verification or recovery is Important.
+`[business-logic]`
 
-### Business-logic lens
+- Agent runs that can end non-terminal, ignore cancellation, or fail to recover after a Core restart
+- `packages/shared` contract changes with an unupdated consumer, fixture, or test
+- Changes to completed M0-M2 contracts, or post-V1 scope, not stated in the PR
+- Platform evidence inferred across platforms or from fake inference
+- Behavior, default, or command changes without the matching update in `AGENTS.md`, `docs/IMPLEMENTATION_PLAN.md`, or `docs/M3_STATUS.md`
 
-Goal: confirm the agent loop, session, workspace, and evidence contracts still
-do what the product promises.
+`[performance]`
 
-- Verify the agent run state machine: every run must reach a terminal state,
-  cancellation must reach a live guest execution, and interrupted runs must
-  recover after a Core restart.
-- Check shared contracts in `packages/shared` against every consumer (Core, CLI,
-  desktop, eval). A schema, event, or RPC change with an unupdated consumer,
-  fixture, or test is Important.
-- Check milestone scope: M0-M2 contracts are frozen and M3 is the active
-  milestone. Work that starts post-V1 scope or changes a completed-milestone
-  contract without the diff saying so is Important.
-- Check documentation consistency: when behavior, defaults, commands, or
-  contracts change, the matching text in `AGENTS.md`, `docs/IMPLEMENTATION_PLAN.md`,
-  `docs/M3_STATUS.md`, and other authoritative docs must change in the same PR.
-  A statement in those files that the diff makes false is a Nit; a claim of
-  platform evidence that the diff cannot support is Important.
-- Platform evidence is never inferred across platforms. A macOS result stated
-  as Windows evidence, or a fake-inference test presented as real-model
-  evidence, is Important.
+- Context or prompt assembly without a token budget; event or message arrays that never compact
+- Unbounded stdout, stderr, or workspace capture; ignoring the 128 MiB guest limit
+- Blocking or quadratic work on a model turn or streaming path
+- Leaked VM, process, socket, or capacity lease; bypassing the LRU guest pool
+- Full conversation re-render per stream chunk; persistence on every keystroke
 
-### Performance lens
+`[clean-code]`
 
-Goal: catch regressions in inference budget, guest resource use, and UI
-responsiveness on 12-16 GB consumer hardware.
+- Missing focused test for a security, authorization, evidence, recovery, or cross-platform invariant
+- Speculative abstractions, unused extension points, boolean flag arguments, mixed command and query functions
+- Duplication that should be removed rather than parameterized
+- Tests asserting private implementation details or framework wiring
 
-- Flag unbounded growth: prompt or context assembly without a token budget,
-  event or message arrays that never compact, unbounded stdout/stderr capture,
-  or workspace writes that ignore the 128 MiB guest limit.
-- Flag work on the hot path of a model turn or streaming update that is
-  synchronous, blocking, quadratic, or re-reads files it already holds.
-- Flag guest or worker lifecycle changes that leak a VM, process, socket, or
-  capacity lease, or that bypass the RAM-derived LRU pool.
-- Flag React renders that re-render the full conversation on every stream
-  chunk, or persistence writes on every keystroke.
-- Only report a performance finding when you can point to the specific loop,
-  allocation, or await that regresses; do not speculate from names.
+**Skip these:**
 
-### Clean-code lens
+- Anything `pnpm verify` enforces: Biome, TypeScript, clippy, rustfmt, source limits
+- Lockfiles, `.generated/`, `dist/`, `target/`, Tauri `gen/` and `binaries/`, pinned version bumps
+- Prose-only edits in `docs/research/`, `docs/strategy/`, and `site/`
+- Test-only code that intentionally violates production rules
+- Explicit unsupported outcomes in place of hypothetical case handling
+- Patterns already used elsewhere in the codebase
 
-Goal: keep new source small, hand-editable, and inside the repository limits.
+**Catalog migrations (`packages/core/src/workspace/migrations/*.sql` - DO review these):**
 
-- Files above 300 lines, functions above 40 lines, cognitive complexity above
-  10, or more than four parameters in new or changed TypeScript are Nits;
-  `pnpm check:source` enforces the tripwire, but review native Rust and Swift by
-  hand against the same limits.
-- Flag speculative abstractions, unused extension points, boolean flag
-  arguments that hide two behaviors, mixed command and query functions, and
-  duplicated logic that should be removed rather than parameterized.
-- Flag new or changed tests that assert private implementation details,
-  framework wiring, or unsupported scenarios instead of behavior and
-  invariants. Missing focused tests for a security, authorization, evidence,
-  recovery, or cross-platform invariant is Important, not a Nit.
-- Flag comments that restate code or stale names left after a rename.
+- Editing an existing numbered migration instead of adding the next one
+- `NOT NULL` without `DEFAULT` on populated columns
+- Dropping or renaming columns still read by the audit chain, debug snapshot, or recovery path
+- Unbounded rewrites of trace or event tables without batching
+- Schema changes without the matching TypeScript row type and catalog version bump
 
-## What Important means here
+# COMMENT FORMAT
 
-Reserve Important for findings that break an isolation or authorization
-boundary, leak private data, corrupt audit or persisted state, break recovery,
-misstate platform evidence, or break a shared contract for a consumer. Style,
-naming, size limits, and refactoring suggestions are Nit at most.
+```
+`[lens]` Brief description
 
-## Verification bar
+Explanation with a `file:line` citation traced through the actual call path.
+```
 
-Every finding cites `file:line` in the diff or surrounding source. Behavior
-claims about the agent loop, policy, or guest transport must be traced through
-the actual call path, not inferred from names. Do not report a violation of a
-rule you cannot quote from this file, `AGENTS.md`, or an accepted ADR.
+**Severities:** Important (fix before merge) for isolation, authorization, privacy, audit, recovery, evidence, or shared-contract breaks. Nit for everything else. Report at most six Nits; count the rest in the summary. After the first review of a PR, post Important findings only.
 
-## Cap the nits
+## Suggestion Blocks (for typos and simple fixes)
 
-Report at most six Nits per review, preferring clean-code and documentation
-consistency findings. Say "plus N similar items" in the summary for the rest.
+For single-line fixes, use GitHub's suggestion syntax. The block replaces ONLY the commented line: put the corrected version of that one line inside it, with no old code, no surrounding lines, and no diff markers.
 
-## Do not report
+## Summary Format
 
-- Anything `pnpm verify` already enforces: Biome lint and formatting, TypeScript
-  errors, Rust clippy and rustfmt, and source-limit failures that CI will fail.
-- Lockfiles, `.generated/` content, `dist/`, `target/`, Tauri `gen/` or
-  `binaries/`, and pinned dependency or toolchain version bumps.
-- Prose-only edits in `docs/research/`, `docs/strategy/`, and `site/`, unless
-  they claim current behavior or evidence that the code does not support.
-- Test-only code that intentionally violates production rules, and
-  intentionally minimal implementations that return an explicit unsupported
-  outcome instead of handling a hypothetical case.
-- Missing AI attribution in commits; it is prohibited by policy.
+Start the review body with one line:
 
-## Re-review convergence
+```
+security X, business-logic X, performance X, clean-code X
+```
 
-After the first review of a PR, post Important findings only unless the new
-push adds a new file or a new public contract.
-
-## Summary shape
-
-Open the review body with one line per lens, for example
-`security 0, business-logic 1 important, performance 0, clean-code 3 nits`.
-If nothing is Important, lead with "No blocking issues."
+followed by one sentence naming the highest-risk finding and its file, or `No blocking issues.` when nothing is Important.
