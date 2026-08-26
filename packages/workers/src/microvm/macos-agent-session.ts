@@ -10,6 +10,7 @@ import {
   type AgentGuestInput,
   AgentGuestResultSchema,
   type AgentWorkspaceDelta,
+  isUserArtifactWorkspacePath,
 } from "@vault/shared";
 import type { AgentHelperTransport } from "./agent-transport.js";
 import type {
@@ -35,13 +36,9 @@ interface GuestInitialization {
 }
 
 function invalidatedArtifactPaths(
-  execution: Pick<AgentExecutionResult, "artifacts" | "exitCode" | "termination">,
   delta: AgentWorkspaceDelta,
+  captured: ReadonlySet<string>,
 ): string[] {
-  const captured =
-    execution.termination === "completed" && execution.exitCode === 0
-      ? new Set(execution.artifacts.map((artifact) => artifact.name))
-      : new Set<string>();
   const paths = new Set(delta.removedPaths);
   for (const entry of delta.entries) {
     if (entry.kind !== "file" || !captured.has(entry.path)) paths.add(entry.path);
@@ -49,32 +46,26 @@ function invalidatedArtifactPaths(
   return [...paths].filter((path) => !path.startsWith("steps/"));
 }
 
-function userArtifactPath(path: string): boolean {
-  const name = path.split("/").at(-1)?.toLocaleLowerCase("en-US");
-  return !(
-    path.startsWith("steps/") ||
-    path === ".vault-tools" ||
-    path.startsWith(".vault-tools/") ||
-    path === ".vault-output" ||
-    path.startsWith(".vault-output/") ||
-    name === "checkpoint.json" ||
-    name === "checkpoints.json"
-  );
-}
-
 function recoverableArtifactPaths(
-  execution: Pick<AgentExecutionResult, "artifacts" | "exitCode" | "termination">,
   delta: AgentWorkspaceDelta,
+  captured: ReadonlySet<string>,
 ): string[] {
-  const captured =
-    execution.termination === "completed" && execution.exitCode === 0
-      ? new Set(execution.artifacts.map((artifact) => artifact.name))
-      : new Set<string>();
   return delta.entries
     .filter(
-      (entry) => entry.kind === "file" && !captured.has(entry.path) && userArtifactPath(entry.path),
+      (entry) =>
+        entry.kind === "file" &&
+        !captured.has(entry.path) &&
+        isUserArtifactWorkspacePath(entry.path),
     )
     .map((entry) => entry.path);
+}
+
+function capturedArtifactPaths(
+  execution: Pick<AgentExecutionResult, "artifacts" | "exitCode" | "termination">,
+): ReadonlySet<string> {
+  return execution.termination === "completed" && execution.exitCode === 0
+    ? new Set(execution.artifacts.map((artifact) => artifact.name))
+    : new Set();
 }
 
 async function resolveExecution(
@@ -204,10 +195,11 @@ export class FramedAgentSession implements CodeAgentSession {
       if (result.nonLoopbackNetworkDeviceCount !== 0) throw new Error("agent_guest_not_certified");
       requireExecutionIdentity(result.execution, resolved);
       await this.options.store.applyDelta(this.options.sessionId, result.workspaceDelta);
+      const captured = capturedArtifactPaths(result.execution);
       return {
         ...result.execution,
-        invalidatedArtifactPaths: invalidatedArtifactPaths(result.execution, result.workspaceDelta),
-        recoverableArtifactPaths: recoverableArtifactPaths(result.execution, result.workspaceDelta),
+        invalidatedArtifactPaths: invalidatedArtifactPaths(result.workspaceDelta, captured),
+        recoverableArtifactPaths: recoverableArtifactPaths(result.workspaceDelta, captured),
       };
     } finally {
       signal?.removeEventListener("abort", abort);

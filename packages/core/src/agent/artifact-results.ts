@@ -1,7 +1,7 @@
 import {
   type AgentArtifactSummary,
   type AgentExecutionResult,
-  AgentWorkspacePathSchema,
+  isUserArtifactWorkspacePath,
 } from "@vault/shared";
 import type { ArtifactStore } from "../workspace/artifacts.js";
 import { isSuccessfulExecution } from "./execution-success.js";
@@ -24,20 +24,6 @@ interface ArtifactCandidate {
   bytesBase64?: string;
 }
 
-export function isUserArtifactPath(path: string): boolean {
-  return (
-    AgentWorkspacePathSchema.safeParse(path).success &&
-    !(
-      path.startsWith("steps/") ||
-      path === ".vault-tools" ||
-      path.startsWith(".vault-tools/") ||
-      path === ".vault-output" ||
-      path.startsWith(".vault-output/") ||
-      /(?:^|\/)checkpoints?\.json$/iu.test(path)
-    )
-  );
-}
-
 function applyExecutionArtifacts(
   current: Map<string, ArtifactCandidate>,
   pending: Map<string, ArtifactCandidate>,
@@ -54,7 +40,7 @@ function applyExecutionArtifacts(
   }
   publishSuccessfulArtifacts(current, pending, execution);
   for (const path of execution.recoverableArtifactPaths ?? []) {
-    if (isUserArtifactPath(path)) {
+    if (isUserArtifactWorkspacePath(path)) {
       current.delete(path);
       current.set(path, { name: path });
     }
@@ -68,10 +54,10 @@ function retainFailedArtifacts(
   invalidated: ReadonlySet<string>,
 ): void {
   for (const path of execution.recoverableArtifactPaths ?? []) {
-    if (isUserArtifactPath(path)) pending.set(path, { name: path });
+    if (isUserArtifactWorkspacePath(path)) pending.set(path, { name: path });
   }
   for (const artifact of execution.artifacts) {
-    if (!invalidated.has(artifact.name) || !isUserArtifactPath(artifact.name)) continue;
+    if (!invalidated.has(artifact.name) || !isUserArtifactWorkspacePath(artifact.name)) continue;
     current.delete(artifact.name);
     pending.set(artifact.name, { name: artifact.name, bytesBase64: artifact.bytesBase64 });
   }
@@ -88,7 +74,7 @@ function publishSuccessfulArtifacts(
   }
   pending.clear();
   for (const artifact of execution.artifacts) {
-    if (isUserArtifactPath(artifact.name)) {
+    if (isUserArtifactWorkspacePath(artifact.name)) {
       current.delete(artifact.name);
       current.set(artifact.name, {
         name: artifact.name,

@@ -1,6 +1,7 @@
 // biome-ignore lint/style/noRestrictedImports: this verification test runs the real guest Python module.
 import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import { isUserArtifactWorkspacePath } from "@vault/shared";
 import { describe, expect, it } from "vitest";
 
 const agentPath = fileURLToPath(
@@ -117,7 +118,46 @@ print(json.dumps(module.collect_artifacts(workspace, state), sort_keys=True))
   }>;
 }
 
+function pythonArtifactPolicy(paths: string[]): boolean[] {
+  const program = `
+import importlib.util
+import json
+import sys
+
+if sys.platform == "win32":
+    import types
+    sys.modules["resource"] = types.ModuleType("resource")
+
+spec = importlib.util.spec_from_file_location("vault_agent", sys.argv[1])
+module = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(module)
+print(json.dumps([module.is_artifact_candidate(path) for path in json.loads(sys.argv[2])]))
+`;
+  return JSON.parse(
+    execFileSync(python, ["-B", "-c", program, agentPath, JSON.stringify(paths)], {
+      encoding: "utf8",
+    }),
+  ) as boolean[];
+}
+
 describe("guest artifact baseline", () => {
+  it("keeps the shared and guest artifact path rules equal", () => {
+    const paths = [
+      "report.txt",
+      "steps",
+      "steps/repair.py",
+      ".vault-tools/run.py",
+      ".vault-output/result.txt",
+      "checkpoint.json",
+      "nested/Checkpoints.JSON",
+      "reports/checkpoint.json.tmp",
+    ];
+    const expected = [true, true, false, false, false, false, false, true];
+
+    expect(paths.map(isUserArtifactWorkspacePath)).toEqual(expected);
+    expect(pythonArtifactPolicy(paths)).toEqual(expected);
+  });
+
   it("uses the complete current workspace after a successful execution", () => {
     expect(nextArtifactState(true)).toEqual({
       "created.txt": "created",

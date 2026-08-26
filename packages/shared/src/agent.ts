@@ -26,6 +26,20 @@ export const AgentWorkspacePathSchema = z
     "unsafe_workspace_path",
   );
 
+export function isUserArtifactWorkspacePath(path: string): boolean {
+  if (!AgentWorkspacePathSchema.safeParse(path).success) return false;
+  const name = path.split("/").at(-1)?.toLowerCase();
+  return !(
+    path.startsWith("steps/") ||
+    path === ".vault-tools" ||
+    path.startsWith(".vault-tools/") ||
+    path === ".vault-output" ||
+    path.startsWith(".vault-output/") ||
+    name === "checkpoint.json" ||
+    name === "checkpoints.json"
+  );
+}
+
 const AgentExecutionEvidenceSchema = z.object({
   exitCode: z.number().int().min(0).max(255),
   stdout: z.string().max(1_000_000),
