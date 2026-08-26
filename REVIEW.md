@@ -30,12 +30,20 @@ Vault Desk is a local, offline-first desktop agent. The model is untrusted for e
 - Leaked VM, process, socket, or capacity lease; bypassing the LRU guest pool
 - Full conversation re-render per stream chunk; persistence on every keystroke
 
-`[clean-code]`
+`[clean-code]` - over-engineering is a defect, not a style preference
 
-- Missing focused test for a security, authorization, evidence, recovery, or cross-platform invariant
-- Speculative abstractions, unused extension points, boolean flag arguments, mixed command and query functions
-- Duplication that should be removed rather than parameterized
-- Tests asserting private implementation details or framework wiring
+- Code that handles a case no current supported workflow can reach: extra defensive branches, fallbacks, retries, compatibility shims, or configuration for hypothetical inputs
+- Abstractions with one caller: interfaces, generics, factories, registries, option objects, or extension points added before a second concrete use exists
+- Boolean flag arguments, mixed command and query functions, and duplication that should be deleted rather than parameterized
+- A larger change than the PR's stated goal needs: refactors, renames, or restructuring unrelated to the fix
+
+**Tests - the minimum that proves the change (`[clean-code]`):**
+
+- Flag over-testing as WARNING: more than one test per new behavior, tests for the same invariant in several files, tests for framework wiring, type checks, trivial getters, or unsupported scenarios
+- Flag tests that assert private implementation details, internal call order, or mock interactions instead of an observable outcome
+- Flag test helpers, fixtures, builders, or parameterized matrices introduced for a single test
+- Flag a missing test only when a realistic failure would silently break a security, authorization, audit, recovery, or cross-platform invariant; otherwise never request more tests
+- Never suggest coverage for edge cases the active milestone does not support; an explicit unsupported outcome is the correct behavior
 
 **Skip these:**
 
@@ -57,12 +65,18 @@ Vault Desk is a local, offline-first desktop agent. The model is untrusted for e
 # COMMENT FORMAT
 
 ```
-`[lens]` Brief description
+**[SEVERITY]:** `[lens]` Brief description
 
 Explanation with a `file:line` citation traced through the actual call path.
 ```
 
-**Severities:** Important (fix before merge) for isolation, authorization, privacy, audit, recovery, evidence, or shared-contract breaks. Nit for everything else. Report at most six Nits; count the rest in the summary. After the first review of a PR, post Important findings only.
+**Severities:** CRITICAL (blocks merge), WARNING (should fix), SUGGESTION (nice to have)
+
+- CRITICAL: isolation, authorization, privacy, audit, recovery, evidence, or shared-contract breaks; catalog migration defects
+- WARNING: over-engineering, over-testing, milestone-scope creep, performance regressions with a cited call path, stale authoritative docs
+- SUGGESTION: everything else; report at most six and count the rest in the summary
+
+After the first review of a PR, post CRITICAL and WARNING findings only. Never suggest adding abstractions, options, defensive code, or tests beyond what the current change needs.
 
 ## Suggestion Blocks (for typos and simple fixes)
 
@@ -76,4 +90,4 @@ Start the review body with one line:
 security X, business-logic X, performance X, clean-code X
 ```
 
-followed by one sentence naming the highest-risk finding and its file, or `No blocking issues.` when nothing is Important.
+followed by one sentence naming the highest-risk finding and its file, or `No blocking issues.` when nothing is CRITICAL.
