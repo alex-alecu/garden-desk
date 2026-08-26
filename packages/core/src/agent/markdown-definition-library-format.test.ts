@@ -183,11 +183,11 @@ function expectXlsx(library: MarkdownDefinitionLibrary): void {
     "reset_dimensions()",
     "recursively find case-insensitive",
     "load_workbook(path, read_only=True, data_only=True)",
-    "Else reusable program.",
+    "Else reusable:",
     "sorted relative corpus",
     "`completed`",
-    'checkpoint=Path("/workspace/checkpoint.json")',
-    'temporary=Path("/workspace/checkpoint.json.tmp")',
+    'checkpoint=Path("/workspace/steps/checkpoint.json")',
+    'temporary=Path("/workspace/steps/checkpoint.json.tmp")',
     "os.replace(temporary,checkpoint)",
     "SHA-256 identity/rows/counts/totals",
     "replace/recompute contribution",
@@ -204,6 +204,9 @@ function expectXlsx(library: MarkdownDefinitionLibrary): void {
   ]) {
     expect(skill.body).toContain(text);
   }
+  expect(skill.body).toContain("source+`steps/...` saves `/workspace/steps`");
+  expect(skill.body).toContain("repair as primary; rerun path only");
+  expect(skill.body).not.toContain("Else reusable program.");
 }
 
 function expectReviewReport(library: MarkdownDefinitionLibrary): void {

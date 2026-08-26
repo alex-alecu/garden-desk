@@ -1,7 +1,19 @@
 import { mkdir, rm, writeFile } from "node:fs/promises";
 import { totalmem } from "node:os";
 import { dirname, join } from "node:path";
-import { prepareModelStore, requireRealModel, startStressRuntime } from "./m3-stress-runtime.js";
+import {
+  concurrentReportFailure,
+  failedEvaluationEvidence,
+  type M3EvaluationFailureStage,
+  reportEvidenceClassification,
+  reportQualityCandidates,
+} from "./m3-evidence-classification.js";
+import {
+  prepareModelStore,
+  requireRealModel,
+  startStressRuntime,
+  stressFailureStage,
+} from "./m3-stress-runtime.js";
 import {
   prepareScaledCase,
   SCALED_CONCURRENT_CASES,
@@ -84,43 +96,104 @@ function suitePassed(suite: Awaited<ReturnType<typeof runSelectedSuite>>): boole
   );
 }
 
+function suiteResults(suite: Awaited<ReturnType<typeof runSelectedSuite>>) {
+  if (suite.sequential !== null) return suite.sequential.map(({ result }) => result);
+  return suite.concurrent?.evidence.map(({ result }) => result) ?? [];
+}
+
+function scaledReport(input: {
+  modelAfter: Awaited<ReturnType<typeof requireRealModel>>;
+  modelBefore: Awaited<ReturnType<typeof requireRealModel>>;
+  options: ScaledOptions;
+  suite: Awaited<ReturnType<typeof runSelectedSuite>>;
+}) {
+  const { modelAfter, modelBefore, options, suite } = input;
+  const passed = suitePassed(suite);
+  const maximumRunning = suite.concurrent?.maximumRunning ?? null;
+  const reportFailure = concurrentReportFailure(maximumRunning);
+  const qualityCandidates = reportQualityCandidates(suiteResults(suite));
+  const evidenceClassification = reportEvidenceClassification({
+    caseResults: suiteResults(suite),
+    passed,
+    ...(reportFailure === undefined ? {} : { reportFailure }),
+  });
+  return {
+    classification: passed ? "scaled_stress_passed" : "scaled_stress_limit_found",
+    ...evidenceClassification,
+    createdAt: new Date().toISOString(),
+    platform: `${process.platform}-${process.arch}`,
+    totalMemoryBytes: totalmem(),
+    options,
+    maximumRunning,
+    qualityCandidates,
+    workloadPlan: SCALED_WORKLOAD_PLAN,
+    modelBefore,
+    modelAfter,
+    ...suite,
+  };
+}
+
+async function writeReport(output: string, report: object): Promise<void> {
+  await mkdir(dirname(output), { recursive: true });
+  await writeFile(output, `${JSON.stringify(report, null, 2)}\n`, { mode: 0o600 });
+}
+
+async function writeFailureReport(output: string, stage: M3EvaluationFailureStage): Promise<void> {
+  await writeReport(output, {
+    classification: "scaled_stress_limit_found",
+    ...failedEvaluationEvidence(stage),
+    createdAt: new Date().toISOString(),
+    platform: `${process.platform}-${process.arch}`,
+    totalMemoryBytes: totalmem(),
+  });
+}
+
+async function closeRuntime(
+  root: string | undefined,
+  runtime: Awaited<ReturnType<typeof startStressRuntime>> | undefined,
+): Promise<void> {
+  await runtime?.daemon.close();
+  await runtime?.core.close();
+  if (root !== undefined) await rm(root, { recursive: true, force: true });
+}
+
 async function main(): Promise<void> {
-  requireStressPlatform();
-  const options = parseOptions(process.argv.slice(2));
-  const root = await createStressRoot("vault-m3-stress-scaled");
-  const output = reportPath(options.mode);
+  let output = reportPath("sequential");
+  let failureStage: M3EvaluationFailureStage = "cli_input";
+  let root: string | undefined;
   let runtime: Awaited<ReturnType<typeof startStressRuntime>> | undefined;
   try {
-    await mkdir(join(root, "fixtures"));
-    await mkdir(dirname(output), { recursive: true });
+    const options = parseOptions(process.argv.slice(2));
+    output = reportPath(options.mode);
+    failureStage = "environment_setup";
+    requireStressPlatform();
+    const stressRoot = await createStressRoot("vault-m3-stress-scaled");
+    root = stressRoot;
+    await mkdir(join(stressRoot, "fixtures"));
     await prepareModelStore();
-    runtime = await startStressRuntime(join(root, "state"));
+    failureStage = "runtime_startup";
+    runtime = await startStressRuntime(join(stressRoot, "state"));
+    failureStage = "runtime_transport";
     const modelBefore = await requireRealModel(runtime.endpoint, false);
+    failureStage = "fixture";
     const suite = await runSelectedSuite(
       runtime.endpoint,
-      join(root, "fixtures", options.mode),
+      join(stressRoot, "fixtures", options.mode),
       options,
     );
+    failureStage = "runtime_transport";
     const modelAfter = await requireRealModel(runtime.endpoint);
-    const passed = suitePassed(suite);
-    const report = {
-      classification: passed ? "scaled_stress_passed" : "scaled_stress_limit_found",
-      createdAt: new Date().toISOString(),
-      platform: `${process.platform}-${process.arch}`,
-      totalMemoryBytes: totalmem(),
-      options,
-      workloadPlan: SCALED_WORKLOAD_PLAN,
-      modelBefore,
-      modelAfter,
-      ...suite,
-    };
-    await writeFile(output, `${JSON.stringify(report, null, 2)}\n`, { mode: 0o600 });
+    failureStage = "evaluator";
+    const report = scaledReport({ modelAfter, modelBefore, options, suite });
+    failureStage = "report";
+    await writeReport(output, report);
     console.log(JSON.stringify({ classification: report.classification, output }));
-    if (!passed) process.exitCode = 1;
+    if (report.classification !== "scaled_stress_passed") process.exitCode = 1;
+  } catch (error) {
+    await writeFailureReport(output, stressFailureStage(error, failureStage));
+    throw error;
   } finally {
-    await runtime?.daemon.close();
-    await runtime?.core.close();
-    await rm(root, { recursive: true, force: true });
+    await closeRuntime(root, runtime);
   }
 }
 

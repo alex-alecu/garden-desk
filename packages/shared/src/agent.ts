@@ -26,6 +26,20 @@ export const AgentWorkspacePathSchema = z
     "unsafe_workspace_path",
   );
 
+export function isUserArtifactWorkspacePath(path: string): boolean {
+  if (!AgentWorkspacePathSchema.safeParse(path).success) return false;
+  const name = path.split("/").at(-1)?.toLowerCase();
+  return !(
+    path.startsWith("steps/") ||
+    path === ".vault-tools" ||
+    path.startsWith(".vault-tools/") ||
+    path === ".vault-output" ||
+    path.startsWith(".vault-output/") ||
+    name === "checkpoint.json" ||
+    name === "checkpoints.json"
+  );
+}
+
 const AgentExecutionEvidenceSchema = z.object({
   exitCode: z.number().int().min(0).max(255),
   stdout: z.string().max(1_000_000),
@@ -45,6 +59,7 @@ const AgentExecutionEvidenceSchema = z.object({
     .max(16)
     .default([]),
   invalidatedArtifactPaths: z.array(AgentWorkspacePathSchema).max(20_000).optional(),
+  recoverableArtifactPaths: z.array(AgentWorkspacePathSchema).max(20_000).optional(),
 });
 
 export const AgentExecutionResultSchema = z.discriminatedUnion("language", [
@@ -66,6 +81,7 @@ export const AgentRunResultSchema = z.object({
   response: z.string().min(1),
   artifacts: z.array(AgentWorkspacePathSchema).max(16).default([]),
   executions: z.array(AgentExecutionResultSchema).max(24),
+  guestExecutions: z.number().int().nonnegative().max(24),
   inference: InferencePerformanceSchema,
 });
 

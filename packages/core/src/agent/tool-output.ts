@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import type { AgentSessionExecution } from "@vault/workers";
 import type { AgentExecutor } from "./agent-executor.js";
 import { isSuccessfulExecution } from "./execution-success.js";
+import type { GuestExecutionBudget } from "./guest-execution-budget.js";
 
 const MAX_LINES = 2_000;
 const MAX_BYTES = 50 * 1_024;
@@ -15,6 +16,12 @@ interface OutputChunk {
   bytes: Buffer;
   append: boolean;
   signal?: AbortSignal;
+  onStarted(): void;
+}
+
+interface SpillOptions {
+  budget?: GuestExecutionBudget;
+  onGuestExecutionStarted?(): void;
 }
 
 function characterWidth(text: string, index: number): number {
@@ -155,23 +162,51 @@ async function writeChunk(chunk: OutputChunk): Promise<void> {
     path: `.vault-output/write-${randomUUID()}.py`,
     source,
   };
-  const result = await (chunk.executor.inspect ?? chunk.executor.execute)(execution, chunk.signal);
+  const result = await (chunk.executor.inspect ?? chunk.executor.execute)(
+    execution,
+    chunk.signal,
+    chunk.onStarted,
+  );
+  chunk.onStarted();
   if (!isSuccessfulExecution(result)) {
     throw new Error("tool_output_spill_failed");
   }
 }
 
-async function spill(executor: AgentExecutor, text: string, signal?: AbortSignal): Promise<string> {
+async function spill(
+  executor: AgentExecutor,
+  text: string,
+  signal?: AbortSignal,
+  options: SpillOptions = {},
+): Promise<string | undefined> {
   const path = `/workspace/.vault-output/${randomUUID()}.txt`;
   const bytes = Buffer.from(text, "utf8");
-  for (let offset = 0; offset < bytes.length; offset += CHUNK_BYTES) {
-    await writeChunk({
-      executor,
-      path,
-      bytes: bytes.subarray(offset, offset + CHUNK_BYTES),
-      append: offset > 0,
-      ...(signal === undefined ? {} : { signal }),
-    });
+  const chunks = Math.ceil(bytes.length / CHUNK_BYTES);
+  const reservation = options.budget?.reserve(chunks);
+  if (options.budget !== undefined && reservation === undefined) {
+    return undefined;
+  }
+  try {
+    for (let offset = 0; offset < bytes.length; offset += CHUNK_BYTES) {
+      signal?.throwIfAborted();
+      let started = false;
+      const onStarted = () => {
+        if (started) return;
+        started = true;
+        reservation?.start();
+        options.onGuestExecutionStarted?.();
+      };
+      await writeChunk({
+        executor,
+        path,
+        bytes: bytes.subarray(offset, offset + CHUNK_BYTES),
+        append: offset > 0,
+        onStarted,
+        ...(signal === undefined ? {} : { signal }),
+      });
+    }
+  } finally {
+    reservation?.release();
   }
   return path;
 }
@@ -180,10 +215,14 @@ export async function boundedToolOutput(
   executor: AgentExecutor,
   text: string,
   signal?: AbortSignal,
+  options: SpillOptions = {},
 ): Promise<string> {
   const shape = outputShape(text);
   if (shape.lineCount <= MAX_LINES && shape.encodedBytes <= MAX_BYTES) return text;
-  const path = await spill(executor, text, signal);
-  const marker = `[Output truncated. Full output saved to ${path}. Use grep or read with offset/limit.]`;
+  const path = await spill(executor, text, signal, options);
+  const marker =
+    path === undefined
+      ? "[Output truncated. Full output was not saved because the guest execution limit was reached.]"
+      : `[Output truncated. Full output saved to ${path}. Use grep or read with offset/limit.]`;
   return clippedPreview(shape.head, shape.tail, marker);
 }

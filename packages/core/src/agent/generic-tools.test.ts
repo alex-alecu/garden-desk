@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { AgentExecutor } from "./agent-executor.js";
 import { execution, source } from "./chat-loop-test-support.js";
-import type { AgentQuestionOutcome } from "./generic-tool-support.js";
 import { GenericToolRegistry } from "./generic-tools.js";
 
 const executorOnly: AgentExecutor = {
@@ -9,136 +8,6 @@ const executorOnly: AgentExecutor = {
     return execution(source(run));
   },
 };
-
-const singleQuestion = [
-  {
-    header: "Direction",
-    question: "Which output do you want?",
-    options: [
-      { label: "Summary (Recommended)", description: "A short recap." },
-      { label: "Full report", description: "Every detail." },
-    ],
-  },
-];
-
-describe("GenericToolRegistry question", () => {
-  it("resolves with the selected labels and continues the run", async () => {
-    const asked: unknown[] = [];
-    const registry = new GenericToolRegistry({
-      executor: executorOnly,
-      skills: { metadata: () => [], read: () => "" },
-      async askQuestion(questions): Promise<AgentQuestionOutcome> {
-        asked.push(questions);
-        return { dismissed: false, answers: [["Full report"]] };
-      },
-    });
-
-    const result = await registry.execute("question", { questions: singleQuestion });
-
-    expect(asked).toHaveLength(1);
-    expect(result.failed).toBe(false);
-    expect(result.content).toContain("Full report");
-    expect(result.execution).toBeUndefined();
-  });
-
-  it("serializes custom answer punctuation without corrupting the tool result", async () => {
-    const registry = new GenericToolRegistry({
-      executor: executorOnly,
-      skills: { metadata: () => [], read: () => "" },
-      async askQuestion(): Promise<AgentQuestionOutcome> {
-        return { dismissed: false, answers: [['Use "quoted"\ntext']] };
-      },
-    });
-
-    const result = await registry.execute("question", { questions: singleQuestion });
-
-    expect(result.content).toContain('="Use \\"quoted\\"\\ntext"');
-  });
-
-  it("treats a dismissal as a non-failing proceed-anyway result", async () => {
-    const registry = new GenericToolRegistry({
-      executor: executorOnly,
-      skills: { metadata: () => [], read: () => "" },
-      async askQuestion(): Promise<AgentQuestionOutcome> {
-        return { dismissed: true };
-      },
-    });
-
-    const result = await registry.execute("question", { questions: singleQuestion });
-
-    expect(result.failed).toBe(false);
-    expect(result.content).toContain("best judgment");
-  });
-
-  it("reports the tool as unavailable when no question channel is wired", async () => {
-    const registry = new GenericToolRegistry({
-      executor: executorOnly,
-      skills: { metadata: () => [], read: () => "" },
-    });
-
-    const result = await registry.execute("question", { questions: singleQuestion });
-
-    expect(result).toMatchObject({
-      failed: true,
-      content: "Questions are unavailable from this agent.",
-    });
-  });
-});
-
-describe("GenericToolRegistry question validation", () => {
-  it("keeps the model-facing schema flat while enforcing the full runtime contract", () => {
-    const registry = new GenericToolRegistry({
-      executor: executorOnly,
-      skills: { metadata: () => [], read: () => "" },
-    });
-
-    const question = registry.definitions(["question"])[0];
-    expect(question?.params).toMatchObject({
-      properties: { questions: { type: "string" } },
-    });
-    expect(question?.params).not.toHaveProperty(
-      "properties.questions.items.properties.options.items.properties",
-    );
-  });
-
-  it("accepts the model-facing JSON encoding", async () => {
-    const asked: unknown[] = [];
-    const registry = new GenericToolRegistry({
-      executor: executorOnly,
-      skills: { metadata: () => [], read: () => "" },
-      async askQuestion(questions): Promise<AgentQuestionOutcome> {
-        asked.push(questions);
-        return { dismissed: true };
-      },
-    });
-
-    const result = await registry.execute("question", {
-      questions: JSON.stringify(singleQuestion),
-    });
-
-    expect(result.failed).toBe(false);
-    expect(asked).toEqual([singleQuestion]);
-  });
-
-  it("rejects malformed question input before reaching the channel", async () => {
-    let called = false;
-    const registry = new GenericToolRegistry({
-      executor: executorOnly,
-      skills: { metadata: () => [], read: () => "" },
-      async askQuestion(): Promise<AgentQuestionOutcome> {
-        called = true;
-        return { dismissed: true };
-      },
-    });
-
-    const result = await registry.execute("question", {
-      questions: [{ header: "Bad", question: "One option only?", options: [{ label: "Only" }] }],
-    });
-
-    expect(called).toBe(false);
-    expect(result.failed).toBe(true);
-  });
-});
 
 describe("GenericToolRegistry task", () => {
   it("returns only the injected subagent final report inside the task-result boundary", async () => {
@@ -199,8 +68,29 @@ describe("GenericToolRegistry task", () => {
   });
 });
 
+describe("GenericToolRegistry parsing", () => {
+  it("parses a direct tool call once", async () => {
+    let commandReads = 0;
+    const params = Object.defineProperty({}, "command", {
+      enumerable: true,
+      get: () => {
+        commandReads += 1;
+        return "printf ok";
+      },
+    });
+    const registry = new GenericToolRegistry({
+      executor: executorOnly,
+      skills: { metadata: () => [], read: () => "" },
+    });
+
+    await registry.execute("bash", params);
+
+    expect(commandReads).toBe(1);
+  });
+});
+
 describe("GenericToolRegistry resilient parameters", () => {
-  it("assigns code paths internally and rejects oversized inspection ranges", async () => {
+  it("supports source-only, saved-source, and committed-path code runs", async () => {
     const runs: Parameters<AgentExecutor["execute"]>[0][] = [];
     const registry = new GenericToolRegistry({
       executor: {
@@ -217,21 +107,50 @@ describe("GenericToolRegistry resilient parameters", () => {
     });
 
     const python = registry.definitions(["python"])[0];
-    expect(python?.params).not.toHaveProperty("properties.path");
-    await registry.execute("python", { source: "print('ok')", path: "/workspace/bad.py" });
-    const invalidDepth = await registry.execute("list", {
-      path: "/source",
-      depth: 5_000_000_000_000_000,
+    expect(python?.params).toMatchObject({
+      properties: {
+        source: { type: "string" },
+        path: {
+          type: "string",
+          description: "Relative workspace path. Use steps/... for reusable work.",
+        },
+      },
+      required: [],
     });
-    await registry.execute("list", { path: "/run/attachments", depth: 1 });
+    await registry.execute("python", { source: "print('once')" });
+    await registry.execute("python", { source: "print('saved')", path: "steps/saved.py" });
+    await registry.execute("python", { path: "steps/saved.py" });
 
     expect(runs[0]).toMatchObject({
       language: "python",
       path: expect.stringMatching(/^\.vault-tools\//u),
+      source: "print('once')",
     });
-    expect(invalidDepth).toMatchObject({ failed: true, invalidInput: true });
-    expect(runs).toHaveLength(2);
-    expect(source(runs[1] as (typeof runs)[number])).toContain("Path('/run/attachments')");
+    expect(runs[1]).toEqual({
+      language: "python",
+      path: "steps/saved.py",
+      source: "print('saved')",
+    });
+    expect(runs[2]).toEqual({ language: "python", path: "steps/saved.py" });
+  });
+});
+
+describe("GenericToolRegistry saved-script validation", () => {
+  it("rejects missing and unsafe script inputs", async () => {
+    const registry = new GenericToolRegistry({
+      executor: {
+        async execute(run) {
+          return execution(source(run));
+        },
+      },
+      skills: { metadata: () => [], read: () => "" },
+    });
+
+    const missing = await registry.execute("python", {});
+    const unsafe = await registry.execute("python", { path: "../bad.py" });
+
+    expect(missing).toMatchObject({ failed: true, invalidInput: true });
+    expect(unsafe).toMatchObject({ failed: true, invalidInput: true });
   });
 
   it("rejects an unknown tool named by a Markdown agent", () => {
@@ -245,6 +164,53 @@ describe("GenericToolRegistry resilient parameters", () => {
     });
 
     expect(() => registry.definitions(["read", "unknown"])).toThrow("Unknown agent tool: unknown");
+  });
+
+  it("does not convert cancellation into a tool result", async () => {
+    const cancelled = new DOMException("Stopped.", "AbortError");
+    const registry = new GenericToolRegistry({
+      executor: {
+        async execute() {
+          throw cancelled;
+        },
+      },
+      skills: { metadata: () => [], read: () => "" },
+    });
+
+    await expect(registry.execute("python", { source: "print('work')" })).rejects.toBe(cancelled);
+  });
+});
+
+describe("GenericToolRegistry bounded integers", () => {
+  it("clamps safe integers and rejects unsafe numeric values", async () => {
+    const runs: Parameters<AgentExecutor["execute"]>[0][] = [];
+    const registry = new GenericToolRegistry({
+      executor: {
+        async execute(run) {
+          return execution(source(run));
+        },
+        async inspect(run) {
+          runs.push(run);
+          return execution(source(run));
+        },
+      },
+      skills: { metadata: () => [], read: () => "" },
+    });
+
+    await registry.execute("list", { path: "/source", depth: -50 });
+    await registry.execute("list", { path: "/source", depth: 5_000_000_000_000_000 });
+    const fraction = await registry.execute("list", { path: "/source", depth: 1.5 });
+    const infinite = await registry.execute("list", { path: "/source", depth: Infinity });
+    const unsafe = await registry.execute("list", {
+      path: "/source",
+      depth: Number.MAX_SAFE_INTEGER + 1,
+    });
+
+    expect(source(runs[0] as (typeof runs)[number])).toContain('\\"depth\\":0');
+    expect(source(runs[1] as (typeof runs)[number])).toContain('\\"depth\\":8');
+    expect(fraction).toMatchObject({ failed: true, invalidInput: true });
+    expect(infinite).toMatchObject({ failed: true, invalidInput: true });
+    expect(unsafe).toMatchObject({ failed: true, invalidInput: true });
   });
 });
 

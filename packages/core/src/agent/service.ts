@@ -24,6 +24,7 @@ import { MarkdownDefinitionLibrary } from "./markdown-definition-library.js";
 import { runPrimaryAgent } from "./primary-run.js";
 import { AgentRunCapacity } from "./run-capacity.js";
 import { type ActiveRun, activeRunSnapshot } from "./service-active.js";
+import { appendSuccessfulRunAudit } from "./service-audit.js";
 import { AgentImageInspector } from "./service-image.js";
 import {
   agentFailureEvent,
@@ -83,7 +84,6 @@ export class AgentService {
   saveDraft(sessionId: string, content: string): SessionDraft {
     return this.store.saveDraft(sessionId, content);
   }
-
   loadDraft(sessionId: string): SessionDraft | undefined {
     return this.store.loadDraft(sessionId);
   }
@@ -265,6 +265,7 @@ export class AgentService {
         result.artifacts,
         result.executions,
         this.artifacts,
+        async (path) => await this.sessions.readWorkspaceFile(run.sessionId, path),
       );
       this.database.transaction(() => {
         this.conversations.appendMessage(run.sessionId, "assistant", result.response, run.id);
@@ -276,10 +277,9 @@ export class AgentService {
         });
         this.jobs.transition(run.jobId, "succeeded");
       })();
-      this.audit.append({
-        type: "agent.completed",
-        outcome: "succeeded",
-        metadata: { runId: run.id, jobId: run.jobId, executions: result.executions.length },
+      appendSuccessfulRunAudit(this.audit, run, {
+        executions: this.store.execution.list(run.id).length,
+        guestExecutions: result.guestExecutions,
       });
       this.summaryQueue.enqueue(run, signal, measuredContextTokens);
     } catch (error) {

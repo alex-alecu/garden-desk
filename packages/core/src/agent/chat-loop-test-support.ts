@@ -103,5 +103,5 @@ export function tool(name: string, id: string, params: unknown) {
 }
 
 export function source(run: Parameters<AgentExecutor["execute"]>[0]): string {
-  return run.language === "shell" ? run.command : run.source;
+  return run.language === "shell" ? run.command : (run.source ?? "print('resolved path')");
 }

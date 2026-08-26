@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { rm } from "node:fs/promises";
 import {
+  type AgentExecutionResult,
   AgentGuestExecuteRequestSchema,
   AgentGuestHelloRequestSchema,
   AgentGuestHelloResultSchema,
@@ -9,12 +10,14 @@ import {
   type AgentGuestInput,
   AgentGuestResultSchema,
   type AgentWorkspaceDelta,
+  isUserArtifactWorkspacePath,
 } from "@vault/shared";
 import type { AgentHelperTransport } from "./agent-transport.js";
 import type {
   AgentExecutionObserver,
   AgentSessionExecution,
   CodeAgentSession,
+  ResolvedAgentSessionExecution,
 } from "./launcher.js";
 import type { AgentWorkspaceStore } from "./workspace-store.js";
 
@@ -33,15 +36,72 @@ interface GuestInitialization {
 }
 
 function invalidatedArtifactPaths(
-  artifacts: Array<{ name: string }>,
   delta: AgentWorkspaceDelta,
+  captured: ReadonlySet<string>,
 ): string[] {
-  const captured = new Set(artifacts.map((artifact) => artifact.name));
   const paths = new Set(delta.removedPaths);
   for (const entry of delta.entries) {
-    if (entry.kind === "file" && !captured.has(entry.path)) paths.add(entry.path);
+    if (entry.kind !== "file" || !captured.has(entry.path)) paths.add(entry.path);
   }
   return [...paths].filter((path) => !path.startsWith("steps/"));
+}
+
+function recoverableArtifactPaths(
+  delta: AgentWorkspaceDelta,
+  captured: ReadonlySet<string>,
+): string[] {
+  return delta.entries
+    .filter(
+      (entry) =>
+        entry.kind === "file" &&
+        !captured.has(entry.path) &&
+        isUserArtifactWorkspacePath(entry.path),
+    )
+    .map((entry) => entry.path);
+}
+
+function capturedArtifactPaths(
+  execution: Pick<AgentExecutionResult, "artifacts" | "exitCode" | "termination">,
+): ReadonlySet<string> {
+  return execution.termination === "completed" && execution.exitCode === 0
+    ? new Set(execution.artifacts.map((artifact) => artifact.name))
+    : new Set();
+}
+
+async function resolveExecution(
+  request: AgentSessionExecution,
+  store: AgentWorkspaceStore,
+  sessionId: string,
+): Promise<ResolvedAgentSessionExecution> {
+  if (request.language === "shell") return request;
+  if (request.source !== undefined) {
+    return { language: request.language, path: request.path, source: request.source };
+  }
+  const bytes = await store.readFile(sessionId, request.path);
+  if (bytes === undefined) throw new Error("agent_script_missing");
+  let source: string;
+  try {
+    source = new TextDecoder("utf-8", { fatal: true, ignoreBOM: true }).decode(bytes);
+  } catch {
+    throw new Error("agent_script_invalid_text");
+  }
+  if (source.length === 0) throw new Error("agent_script_invalid_text");
+  if (source.length > 128_000) throw new Error("agent_script_source_oversized");
+  return { language: request.language, path: request.path, source };
+}
+
+function requireExecutionIdentity(
+  result: AgentExecutionResult,
+  request: ResolvedAgentSessionExecution,
+): void {
+  if (result.language !== request.language) throw new Error("agent_helper_execution_mismatch");
+  if (request.language === "shell") {
+    if (result.command !== request.command) throw new Error("agent_helper_execution_mismatch");
+    return;
+  }
+  if (result.path !== request.path || result.source !== request.source) {
+    throw new Error("agent_helper_execution_mismatch");
+  }
 }
 
 export async function initializeAgentGuest(options: GuestInitialization): Promise<void> {
@@ -113,14 +173,18 @@ export class FramedAgentSession implements CodeAgentSession {
     };
     signal?.addEventListener("abort", abort, { once: true });
     try {
+      const resolved = await resolveExecution(request, this.options.store, this.options.sessionId);
+      signal?.throwIfAborted();
       const frame = AgentGuestExecuteRequestSchema.parse({
         protocolVersion: 3,
         requestId,
         executionId,
         operation: "execute",
-        ...request,
+        ...resolved,
         limits: this.options.limits,
       });
+      await observer?.onPrepared?.(resolved);
+      signal?.throwIfAborted();
       const result = AgentGuestResultSchema.parse(
         await this.options.transport.exchange(frame, undefined, {
           executionId,
@@ -129,13 +193,13 @@ export class FramedAgentSession implements CodeAgentSession {
       );
       if (result.executionId !== executionId) throw new Error("agent_helper_execution_mismatch");
       if (result.nonLoopbackNetworkDeviceCount !== 0) throw new Error("agent_guest_not_certified");
+      requireExecutionIdentity(result.execution, resolved);
       await this.options.store.applyDelta(this.options.sessionId, result.workspaceDelta);
+      const captured = capturedArtifactPaths(result.execution);
       return {
         ...result.execution,
-        invalidatedArtifactPaths: invalidatedArtifactPaths(
-          result.execution.artifacts,
-          result.workspaceDelta,
-        ),
+        invalidatedArtifactPaths: invalidatedArtifactPaths(result.workspaceDelta, captured),
+        recoverableArtifactPaths: recoverableArtifactPaths(result.workspaceDelta, captured),
       };
     } finally {
       signal?.removeEventListener("abort", abort);

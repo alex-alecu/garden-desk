@@ -21,10 +21,10 @@ function bytes(value: Buffer | string): Buffer {
   return Buffer.isBuffer(value) ? value : Buffer.from(value);
 }
 
-function newExecution(runId: string, input: ExecutionInput, sequence: number) {
+function newExecution(runId: string, input: ExecutionInput, sequence: number, id = randomUUID()) {
   const createdAt = new Date().toISOString();
   return AgentExecutionSnapshotSchema.parse({
-    id: randomUUID(),
+    id,
     runId,
     sequence,
     language: input.language,
@@ -62,13 +62,17 @@ function outputTruncated(previous: number, terminalFlag: boolean | undefined): n
 export class AgentExecutionStore {
   constructor(private readonly database: DatabasePort) {}
 
-  create(runId: string, input: ExecutionInput): AgentExecutionSnapshot {
+  create(
+    runId: string,
+    input: ExecutionInput,
+    id?: ReturnType<typeof randomUUID>,
+  ): AgentExecutionSnapshot {
     const row = this.database
       .prepare(
         "SELECT COALESCE(MAX(sequence), -1) + 1 AS sequence FROM agent_executions WHERE run_id = ?",
       )
       .get(runId) as { sequence: number };
-    const item = newExecution(runId, input, row.sequence);
+    const item = newExecution(runId, input, row.sequence, id);
     this.database
       .prepare(
         "INSERT INTO agent_executions (id, run_id, sequence, language, workspace_path, code, command, state, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
@@ -188,7 +192,7 @@ export class AgentExecutionStore {
   listSessionScriptPaths(sessionId: string, limit = 8): string[] {
     const rows = this.database
       .prepare(
-        "SELECT DISTINCT e.workspace_path AS path FROM agent_executions e JOIN agent_runs r ON r.id = e.run_id WHERE r.session_id = ? AND e.state = 'completed' AND e.exit_code = 0 AND e.workspace_path IS NOT NULL ORDER BY e.created_at DESC LIMIT ?",
+        "SELECT e.workspace_path AS path FROM agent_executions e JOIN agent_runs r ON r.id = e.run_id WHERE r.session_id = ? AND e.completed_at IS NOT NULL AND e.exit_code IS NOT NULL AND e.workspace_path GLOB 'steps/*' GROUP BY e.workspace_path ORDER BY MAX(e.created_at) DESC, e.workspace_path ASC LIMIT ?",
       )
       .all(sessionId, limit) as Array<{ path: string }>;
     return rows.map((row) => row.path);

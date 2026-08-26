@@ -5,6 +5,7 @@ import type {
   ChatMessage,
   ChatToolCall,
 } from "@vault/shared";
+import type { ArtifactExecutionEvidence } from "./artifact-results.js";
 import { containsProtocolTransition } from "./chat-protocol.js";
 import {
   type LoadedSkillCalls,
@@ -17,7 +18,14 @@ import {
   invalidToolInputResult,
   recoverQuestionCall,
 } from "./chat-tool-call-support.js";
-import type { AgentToolResult, GenericToolRegistry } from "./generic-tools.js";
+import {
+  emitCompletedExecutionAttempt,
+  eventDetail,
+  pathOnlyCodeCall,
+  retainWorkspaceEvidence,
+} from "./chat-tool-evidence.js";
+import type { AgentToolResult, GenericToolRegistry, ToolValidation } from "./generic-tools.js";
+import { GuestExecutionBudget } from "./guest-execution-budget.js";
 import { subagentTitle, toolCompletedSummary, toolStartedSummary } from "./tool-summaries.js";
 
 const EXECUTION_LIMIT = 24;
@@ -27,12 +35,17 @@ const GUEST_TOOLS = new Set(["bash", "python", "node", "read", "glob", "grep", "
 const CODE_TOOLS = new Set(["bash", "python", "node"]);
 
 export interface ChatToolState {
-  checkpoint: number;
+  artifactExecutions: ArtifactExecutionEvidence[];
   executions: AgentExecutionResult[];
-  failedTools: number;
-  guestExecutions: number;
+  guestBudget: GuestExecutionBudget;
+  lastExecutionFailure?: {
+    termination: AgentExecutionResult["termination"];
+    exitCode: number | null;
+    errorText: string;
+  };
   loadedSkills: LoadedSkillCalls;
   messages: ChatMessage[];
+  scriptPaths: string[];
   signatures: string[];
 }
 
@@ -42,22 +55,8 @@ interface ToolTurnInput {
   state: ChatToolState;
 }
 
-function eventDetail(call: ChatToolCall): Partial<AgentEventDetail> {
-  const detail = { toolName: call.name, toolCallId: call.id };
-  if (typeof call.params !== "object" || call.params === null) return detail;
-  const value = call.params as Record<string, unknown>;
-  if (call.name === "bash" && typeof value.command === "string") {
-    return { ...detail, command: value.command };
-  }
-  if ((call.name === "python" || call.name === "node") && typeof value.source === "string") {
-    return {
-      ...detail,
-      language: call.name,
-      source: value.source,
-      path: typeof value.path === "string" ? value.path : null,
-    };
-  }
-  return detail;
+function validationFailure(validation?: ToolValidation): AgentToolResult | undefined {
+  return validation?.status === "invalid" ? validation.result : undefined;
 }
 
 function stable(value: unknown): string {
@@ -89,7 +88,7 @@ function beforeExecution(
   if (call.name === "task" && executable) {
     input.onEvent?.("subagent.started", subagentTitle(call), detail);
   }
-  if (CODE_TOOLS.has(call.name) && !repeated && executable) {
+  if (CODE_TOOLS.has(call.name) && !pathOnlyCodeCall(call) && !repeated && executable) {
     input.onEvent?.("execution.started", "Running code.", detail);
   }
 }
@@ -99,7 +98,18 @@ function completedExecution(
   call: ChatToolCall,
   result: AgentToolResult,
 ): void {
-  if (result.execution === undefined) return;
+  if (result.execution === undefined) {
+    emitCompletedExecutionAttempt(input.onEvent, call, result);
+    return;
+  }
+  if (pathOnlyCodeCall(call)) {
+    input.onEvent?.("execution.started", "Running code.", {
+      ...eventDetail(call),
+      language: result.execution.language,
+      path: result.execution.path,
+      source: result.execution.source,
+    });
+  }
   input.state.executions.push(result.execution);
   input.onEvent?.(
     "execution.completed",
@@ -135,6 +145,7 @@ async function toolResult(
   input: ToolTurnInput,
   call: ChatToolCall,
   repeated: boolean,
+  validation?: ToolValidation,
 ): Promise<AgentToolResult> {
   if (repeated) {
     return blockedToolResult(
@@ -142,14 +153,13 @@ async function toolResult(
     );
   }
   if (GUEST_TOOLS.has(call.name)) {
-    if (input.state.guestExecutions >= EXECUTION_LIMIT) {
+    if (input.state.guestBudget.remaining === 0) {
       return blockedToolResult(
         "Guest execution limit reached. Finish with the evidence already collected.",
       );
     }
-    input.state.guestExecutions += 1;
   }
-  return await input.registry.execute(call.name, call.params);
+  return await input.registry.execute(call.name, call.params, input.state.guestBudget, validation);
 }
 
 async function executeToolCall(input: ToolTurnInput, call: ChatToolCall): Promise<boolean> {
@@ -159,19 +169,22 @@ async function executeToolCall(input: ToolTurnInput, call: ChatToolCall): Promis
   const loaded = liveLoadedSkillNames(input.state.loadedSkills, input.state.messages);
   const alreadyLoaded = skillName !== undefined && loaded.has(skillName);
   const repeated = corrupt ? false : repeatedCall(input.state, call);
-  beforeExecution(input, call, repeated, !corrupt);
+  const validation = corrupt ? undefined : input.registry.validate(call.name, call.params);
+  const invalid = validationFailure(validation);
+  const hasBudget = !GUEST_TOOLS.has(call.name) || input.state.guestBudget.remaining > 0;
+  beforeExecution(input, call, repeated, !corrupt && invalid === undefined && hasBudget);
   const result = corrupt
     ? invalidToolInputResult("Invalid tool input: protocol-control transition in arguments.")
     : alreadyLoaded && !repeated
       ? alreadyLoadedSkillResult(skillName)
-      : await toolResult(input, call, repeated);
+      : (invalid ?? (await toolResult(input, call, repeated, validation)));
   finalizeToolCall(input, call, repeated, result);
   return result.invalidInput !== true;
 }
 
 /**
  * Applies the ordered side effects of a completed tool call: execution and completion events, the
- * tool result message, the doom-loop note, and failure counting. Kept separate from execution so a
+ * tool result message, doom-loop note, and workspace evidence. Kept separate from execution so a
  * group of parallel sub-agent calls can run concurrently yet still fold their results into the
  * conversation and failure counters in the original call order.
  */
@@ -181,6 +194,7 @@ function finalizeToolCall(
   repeated: boolean,
   result: AgentToolResult,
 ): void {
+  retainWorkspaceEvidence(input.state, call, result);
   completedExecution(input, call, result);
   input.state.messages.push({
     role: "tool",
@@ -199,39 +213,18 @@ function finalizeToolCall(
       text: "The same tool call has repeated three times. Change approach and use the new evidence; do not issue it again.",
     });
   }
-  input.state.failedTools = result.failed ? input.state.failedTools + 1 : 0;
 }
 
 export function initialToolState(messages: ChatMessage[]): ChatToolState {
   return {
-    checkpoint: messages.length,
+    artifactExecutions: [],
     executions: [],
-    failedTools: 0,
-    guestExecutions: 0,
+    guestBudget: new GuestExecutionBudget(EXECUTION_LIMIT),
     loadedSkills: new Map(),
     messages,
+    scriptPaths: [],
     signatures: [],
   };
-}
-
-const FAILURE_EVIDENCE_LIMIT = 400;
-
-/**
- * Discards the failed direction from live context: truncates messages back to the
- * last checkpointed working state and keeps one short deterministic failure note.
- * Durable execution and trace records are unaffected.
- */
-export function rollbackFailedDirection(state: ChatToolState): void {
-  const lastFailure = state.messages.findLast((message) => message.role === "tool");
-  const evidence = lastFailure?.result.slice(0, FAILURE_EVIDENCE_LIMIT) ?? "(no tool output)";
-  state.messages = state.messages.slice(0, state.checkpoint);
-  state.messages.push({
-    role: "system",
-    text: `A direction failed three consecutive tool attempts and was removed from context. Do not retry it. Last failure evidence:\n${evidence}\nContinue from the earlier working state with a materially different approach.`,
-  });
-  state.checkpoint = state.messages.length;
-  state.failedTools = 0;
-  state.signatures = [];
 }
 
 export async function executeToolCalls(
@@ -279,12 +272,14 @@ async function executeTaskGroup(input: ToolTurnInput, group: ChatToolCall[]): Pr
   const started = group.map((call) => {
     const corrupt = containsProtocolTransition(call.params);
     const repeated = corrupt ? false : repeatedCall(input.state, call);
-    beforeExecution(input, call, repeated, !corrupt);
+    const validation = corrupt ? undefined : input.registry.validate(call.name, call.params);
+    const invalid = validationFailure(validation);
+    beforeExecution(input, call, repeated, !corrupt && invalid === undefined);
     const result = corrupt
       ? Promise.resolve(
           invalidToolInputResult("Invalid tool input: protocol-control transition in arguments."),
         )
-      : toolResult(input, call, repeated);
+      : Promise.resolve(invalid ?? toolResult(input, call, repeated, validation));
     return { call, repeated, result };
   });
   let validInput = false;

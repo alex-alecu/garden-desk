@@ -17,6 +17,7 @@ export type {
   MicroVmLauncher,
   MicroVmLaunchRequest,
   MicroVmLaunchResult,
+  ResolvedAgentSessionExecution,
 } from "./microvm/launcher.js";
 export { MacOsMicroVmLauncher } from "./microvm/macos.js";
 export { WindowsMicroVmLauncher } from "./microvm/windows.js";

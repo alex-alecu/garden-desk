@@ -1,6 +1,6 @@
 # Implementation Structure
 
-Updated: 2026-08-22
+Updated: 2026-08-26
 
 This blueprint accompanies [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md). M0, M1, and M2 source exists. M3 remains active for its current macOS and Windows physical evidence, professional-skill qualification, and cross-platform launch gate; see [M3_STATUS.md](M3_STATUS.md). Paths not yet present remain authority, not evidence of implementation.
 
@@ -209,10 +209,10 @@ The existing workspace catalog remains the one authoritative database. M3 adds n
 - Turns and drafts.
 - Attachment identities and immutable staged bytes.
 - Agent runs, terminal state, observable events, and bounded numeric response-performance evidence.
-- Normalized execution attempts with identity, ordering, source or command, terminal evidence, 1 MB stdout, 1 MB stderr, 256 KiB allowlisted VM diagnostics, truncation flags, and recovery timestamps. Catalog migration v7 backfills historical execution events. Those durable 1 MB stream caps are independent of the smaller middle-elided excerpt each stream contributes to the next decision prompt.
+- Normalized execution attempts with identity, ordering, source or command, terminal evidence, 1 MB stdout, 1 MB stderr, 256 KiB allowlisted VM diagnostics, truncation flags, and recovery timestamps. Path-only Python and Node calls resolve their committed workspace bytes before execution and persist those exact bytes in the execution record. Catalog migration v7 backfills historical execution events. Those durable 1 MB stream caps are independent of the smaller middle-elided excerpt each stream contributes to the next decision prompt.
 - Versioned inference turns linked to runs, with prompt, schema, and pre-parse structured-result content hashes; worker request metadata; decision outcomes; execution links; and recovery timestamps. Catalog migration v8 leaves historical runs explicitly unrecorded.
-- One anchored session summary per session, replaced in place as later runs merge the largest allocation-fitting prefix of new turns into it and removed with its session. Catalog migration v12 adds it. Summary work starts only from a measured chat allocation of at least 16,384 tokens. It uses a per-session ordered non-fatal queue, fresh request identities and traces, and one retry only for an approved worker failure. Core cancels pending summary work at shutdown. The summary carries continuity prose only, never authoritative values.
-- Generated-file metadata and immutable bytes are accepted only at successful finalization. A task-named output must be a safe current-run artifact; one generic recovery is allowed before a stable failure. Internal tool, output-spill, and checkpoint paths are excluded. Other workspace intermediates remain recoverable without artifact rows.
+- One anchored session summary per session, replaced in place as later runs merge the largest allocation-fitting prefix of new turns into it and removed with its session. Catalog migration v12 adds it. Summary work starts only from a measured chat allocation of at least 16,384 tokens. It uses a per-session ordered non-fatal queue, fresh request identities and traces, and one retry only for an approved worker failure. Core cancels pending summary work at shutdown. This cross-run summary queue is separate from live chat compaction. Live compaction keeps its model-written summary and appends bounded data-only workspace state without creating another catalog record.
+- Generated-file metadata and immutable bytes are accepted only at successful finalization. Internal tool, output-spill, and checkpoint paths are excluded. Failed executions invalidate stale candidates and can retain changed safe bytes for a later successful recovery execution. Other workspace intermediates remain recoverable without artifact rows.
 - Session-scoped content-addressed workspace manifests stored under the private `.vault` state root.
 
 The newest-five sidebar query is ordered by last activity plus stable ID. Expansion uses an opaque stable cursor. Removing a grant does not delete session history or host files.

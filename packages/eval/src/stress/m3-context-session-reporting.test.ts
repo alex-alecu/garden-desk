@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { anchoredSummaryFromTracePrompt } from "./m3-context-session-reporting.js";
+import {
+  anchoredSummaryFromTracePrompt,
+  contextReportFailure,
+} from "./m3-context-session-reporting.js";
 
 const HEADING = "Anchored summary of earlier turns:\n";
 
@@ -55,5 +58,24 @@ describe("M3 context-session trace evidence", () => {
     ]);
 
     expect(anchoredSummaryFromTracePrompt(prompt)).toBe(undefined);
+  });
+});
+
+describe("M3 context-session report classification", () => {
+  it("classifies an allocated-context mismatch as a product hard-check failure", () => {
+    expect(
+      contextReportFailure({
+        allocatedContexts: [32_768],
+        contextTokens: 65_536,
+        distinctAnchors: 3,
+        missingTerms: [],
+        qualityCandidates: [],
+        qualityOnly: false,
+        turnStates: ["succeeded"],
+      }),
+    ).toEqual({
+      failureClass: "product_failure",
+      evidenceReference: "report.allocatedContexts",
+    });
   });
 });

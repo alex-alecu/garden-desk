@@ -167,4 +167,8 @@ export class WindowsAgentLauncher {
   async deleteWorkspace(sessionId: string): Promise<void> {
     await (await this.store()).delete(sessionId);
   }
+
+  async readWorkspaceFile(sessionId: string, path: string): Promise<Buffer | undefined> {
+    return await (await this.store()).readFile(sessionId, path);
+  }
 }

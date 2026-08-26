@@ -1,4 +1,5 @@
 import type { CodeAgentSession } from "@vault/workers";
+import { requireM3ProductCheck } from "./m3-canonical-gate-reporting.js";
 import { requireGuestSuccess } from "./m3-guest-execution.js";
 
 const LEGACY_DOC_TEXT = [
@@ -93,15 +94,14 @@ export async function documentLibraryProbe(session: CodeAgentSession) {
     pdf: boolean;
     xlsx: boolean;
   };
-  if (
-    !proof.doc ||
-    !proof.docCorruptRejected ||
-    !proof.docxMislabelRejected ||
-    !proof.docx ||
-    !proof.xlsx ||
-    !proof.pdf
-  ) {
-    throw new Error(`Guest document library proof failed: ${JSON.stringify(proof)}`);
-  }
+  requireM3ProductCheck(
+    proof.doc &&
+      proof.docCorruptRejected &&
+      proof.docxMislabelRejected &&
+      proof.docx &&
+      proof.xlsx &&
+      proof.pdf,
+    `Guest document library proof failed: ${JSON.stringify(proof)}`,
+  );
   return proof;
 }

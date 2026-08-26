@@ -67,9 +67,7 @@ export async function runPrimaryAgent(input: PrimaryRunInput): Promise<AgentRunR
     onResponse: input.onResponse,
     onContext: input.onContext,
     askQuestion: input.askQuestion,
-    savedScripts: store.execution
-      .listSessionScriptPaths(run.sessionId)
-      .map((path) => `/workspace/${path}`),
+    savedScripts: store.execution.listSessionScriptPaths(run.sessionId),
     signal: input.signal,
     skills: {
       metadata: () => [...definitions.skills],

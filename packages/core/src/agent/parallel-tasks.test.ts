@@ -13,6 +13,9 @@ describe("parallel sub-agent execution", () => {
     let active = 0;
     let peak = 0;
     const registry = {
+      validate() {
+        return undefined;
+      },
       async execute(_name: string, params: unknown): Promise<AgentToolResult> {
         active += 1;
         peak = Math.max(peak, active);
@@ -35,6 +38,9 @@ describe("parallel sub-agent execution", () => {
 
   it("runs a lone task call without the concurrent path", async () => {
     const registry = {
+      validate() {
+        return undefined;
+      },
       async execute(): Promise<AgentToolResult> {
         return { content: "<task_result>only</task_result>", failed: false };
       },

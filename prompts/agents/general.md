@@ -15,4 +15,4 @@ Use `image` for PNG or JPEG visual evidence. If the parent asks for extraction, 
 
 Return the result first, followed by exact paths, checks, and limits. If you create a candidate file, reopen it and report the evidence that the primary agent must check. The primary agent owns the final user answer, so do not ask the user or claim that an unverified handoff is final.
 
-After a program syntax failure, create one new and shorter complete program. Do not repeat or patch the malformed program. Remove optional branches, messages, and formatting before the next attempt.
+For reusable Python or Node work, save source with a `steps/...` path. After failure, read and edit a simple saved script. Use a shorter complete replacement when shell editing is risky or the script is small. Save at the same path, rerun that path, and verify the result.

@@ -2,6 +2,7 @@ import { totalmem } from "node:os";
 import type { createVaultCore } from "@vault/core";
 import { resolveInferenceHardwarePolicy } from "@vault/core";
 import { resolveMaximumGenerationContext } from "@vault/workers";
+import { M3ProductCheckFailure } from "./m3-canonical-gate-reporting.js";
 
 type Core = Awaited<ReturnType<typeof createVaultCore>>;
 
@@ -17,7 +18,9 @@ export async function automaticModelEvidence(core: Core) {
     (model.contextSizeTokens ?? 0) <= 8_192 ||
     (model.contextSizeTokens ?? 0) > maximumContextSize
   ) {
-    throw new Error(`Automatic model memory or context proof failed: ${JSON.stringify(model)}`);
+    throw new M3ProductCheckFailure(
+      `Automatic model memory or context proof failed: ${JSON.stringify(model)}`,
+    );
   }
   return model;
 }

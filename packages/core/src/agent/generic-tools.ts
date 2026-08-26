@@ -8,39 +8,81 @@ import {
   type SkillReader,
   scriptPath,
   type ToolContext,
+  type ToolExecutionResult,
   type ToolSpec,
+  type ToolValidation,
   textParam,
 } from "./generic-tool-support.js";
+import type { GuestExecutionBudget } from "./guest-execution-budget.js";
 import { questionTool } from "./question-tool.js";
 import { boundedToolOutput } from "./tool-output.js";
+
+function errorText(error: unknown): string {
+  return error instanceof Error ? `${error.name}: ${error.message}` : String(error);
+}
+
+function invalidValidation(content: string): ToolValidation {
+  return { status: "invalid", result: { content, failed: true, invalidInput: true } };
+}
+
+function failedOutputResult(
+  error: unknown,
+  completed: ToolExecutionResult | undefined,
+): AgentToolResult {
+  const result = {
+    ...(completed ?? {}),
+    content: errorText(error),
+    failed: true,
+  };
+  delete result.guestExecutionsStarted;
+  return result;
+}
 
 export type {
   AgentQuestionOutcome,
   AgentToolResult,
   SkillReader,
   SubagentRequest,
+  ToolValidation,
 } from "./generic-tool-support.js";
 
-function codeParams(value: unknown): { source: string } {
-  return { source: textParam(object(value), "source") };
+function codeParams(
+  language: "python" | "node",
+  value: unknown,
+): { source?: string; path?: string } {
+  const params = object(value);
+  const source = params.source === undefined ? undefined : textParam(params, "source");
+  const path =
+    params.path === undefined ? undefined : scriptPath(language, textParam(params, "path", 1_000));
+  if (source === undefined && path === undefined) throw new Error("source_or_path_required");
+  return { ...(source === undefined ? {} : { source }), ...(path === undefined ? {} : { path }) };
 }
 
 function codeTool(language: "python" | "node"): ToolSpec {
   return {
     definition: {
       name: language,
-      description: `Run a complete ${language} program inside the no-network guest. Programs start in /workspace; read the selected folder through absolute /source paths.`,
+      description: `Run ${language} offline. Source runs now; source plus path saves; path runs committed bytes. Use /workspace and /source.`,
       params: objectSchema(
-        { source: { type: "string", description: "Complete runnable source code." } },
-        ["source"],
+        {
+          source: { type: "string" },
+          path: {
+            type: "string",
+            description: "Relative workspace path. Use steps/... for reusable work.",
+          },
+        },
+        [],
       ),
     },
-    parse: codeParams,
+    parse: (value) => codeParams(language, value),
     execute: async (value, context) => {
-      const params = codeParams(value);
+      const params = value as ReturnType<typeof codeParams>;
+      const path = params.path ?? scriptPath(language);
       return await runExecution(
         context,
-        { language, path: scriptPath(language), source: params.source },
+        params.source === undefined
+          ? { language, path }
+          : { language, path, source: params.source },
         true,
       );
     },
@@ -60,8 +102,10 @@ function bashTool(): ToolSpec {
       params: objectSchema({ command: { type: "string" } }, ["command"]),
     },
     parse: bashParams,
-    execute: async (value, context) =>
-      await runExecution(context, { language: "shell", command: bashParams(value).command }, true),
+    execute: async (value, context) => {
+      const { command } = value as ReturnType<typeof bashParams>;
+      return await runExecution(context, { language: "shell", command }, true);
+    },
   };
 }
 
@@ -209,34 +253,47 @@ export class GenericToolRegistry {
     }
     return definitions;
   }
-  async execute(name: string, params: unknown): Promise<AgentToolResult> {
+  validate(name: string, params: unknown): ToolValidation {
     const tool = this.tools.get(name);
-    if (tool === undefined) {
-      return { content: `Unknown tool: ${name}`, failed: true, invalidInput: true };
-    }
-    let parsed: unknown;
+    if (tool === undefined) return invalidValidation(`Unknown tool: ${name}`);
     try {
-      parsed = tool.parse(params);
+      return { status: "valid", parsed: tool.parse(params), tool };
     } catch (error) {
-      return {
-        content: error instanceof Error ? `${error.name}: ${error.message}` : String(error),
-        failed: true,
-        invalidInput: true,
-      };
+      return invalidValidation(errorText(error));
     }
+  }
+  async execute(
+    name: string,
+    params: unknown,
+    budget?: GuestExecutionBudget,
+    validation?: ToolValidation,
+  ): Promise<AgentToolResult> {
+    const checked = validation ?? this.validate(name, params);
+    if (checked.status === "invalid") return checked.result;
+    let guestExecutionsStarted = 0;
+    let completed: ToolExecutionResult | undefined;
     try {
-      const result = await tool.execute(parsed, this.context);
+      const result = await checked.tool.execute(checked.parsed, this.context);
+      completed = result;
+      guestExecutionsStarted = result.guestExecutionsStarted ?? 0;
+      budget?.recordStarted(guestExecutionsStarted);
       const content = await boundedToolOutput(
         this.context.executor,
         result.content,
         this.context.signal,
+        {
+          ...(budget === undefined ? {} : { budget }),
+          onGuestExecutionStarted: () => {
+            guestExecutionsStarted += 1;
+          },
+        },
       );
-      return { ...result, content };
+      const output = { ...result, content };
+      delete output.guestExecutionsStarted;
+      return output;
     } catch (error) {
-      return {
-        content: error instanceof Error ? `${error.name}: ${error.message}` : String(error),
-        failed: true,
-      };
+      if (error instanceof DOMException && error.name === "AbortError") throw error;
+      return failedOutputResult(error, completed);
     }
   }
 }

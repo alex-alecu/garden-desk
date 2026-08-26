@@ -6,6 +6,7 @@ import type {
   CodeAgentLauncher,
   CodeAgentSession,
 } from "@vault/workers";
+import { agentScriptPreparationFailure } from "./agent-executor.js";
 import type { AgentInputResolver, ResolvedAgentInputs } from "./inputs.js";
 
 class LifecycleRelay implements AgentExecutionObserver {
@@ -179,9 +180,11 @@ export class AgentSessionManager {
     try {
       return await session.handle.execute(request, signal, observer);
     } catch (error) {
-      await this.exclusive(async () => {
-        if (this.warm.get(sessionId) === session) await this.closeWarm(session);
-      }).catch(() => undefined);
+      if (agentScriptPreparationFailure(error) === undefined) {
+        await this.exclusive(async () => {
+          if (this.warm.get(sessionId) === session) await this.closeWarm(session);
+        }).catch(() => undefined);
+      }
       throw error;
     } finally {
       await this.exclusive(async () => {
@@ -199,6 +202,10 @@ export class AgentSessionManager {
       if (session !== undefined) await this.closeWarm(session);
       if (deleteWorkspace) await this.launcher.deleteWorkspace(sessionId);
     });
+  }
+
+  async readWorkspaceFile(sessionId: string, path: string): Promise<Buffer | undefined> {
+    return await this.launcher.readWorkspaceFile?.(sessionId, path);
   }
 
   close(): Promise<void> {

@@ -79,7 +79,7 @@ Every supported tier uses:
 - Page, section, and table summary trees.
 - Evidence packs rather than raw folder stuffing.
 - Claim-level verification.
-- The shared resident worker generates on one loaded Gemma model but supports multiple parallel context sequences (node-llama-cpp exposes `sequences`, `sequencesLeft`, and a maximum-parallelism batch strategy), so parallelism is bounded by KV-cache memory rather than by the runtime. V1 uses bounded extra sequences for sub-agents; requests beyond the available sequence slots queue. Extending parallel sequences to concurrent user conversations and background work is planned, not yet current. Independent conversations may also overlap microVM work within the hardware-derived RAM cap.
+- The shared resident worker generates on one loaded Gemma model but supports multiple parallel context sequences (node-llama-cpp exposes `sequences`, `sequencesLeft`, and a maximum-parallelism batch strategy), so parallelism is bounded by KV-cache memory rather than by the runtime. V1 uses bounded extra sequences for sub-agents and concurrent user conversations; requests beyond the available sequence slots queue. Background work remains planned. Independent conversations can also overlap microVM work within the hardware-derived RAM cap.
 - On-demand PNG and JPEG inspection from immutable attachments or regular files below the selected folder.
 - The same supported workflows.
 - The same citation and approval requirements.

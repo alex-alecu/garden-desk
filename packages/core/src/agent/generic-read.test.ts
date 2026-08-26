@@ -157,14 +157,11 @@ describe("generic read", () => {
 
   it.each([
     ["read path above maximum", "read", { path: "x".repeat(4_097) }],
-    ["read offset below minimum", "read", { path: "text.txt", offset: 0 }],
     [
       "read offset above safe range",
       "read",
       { path: "text.txt", offset: Number.MAX_SAFE_INTEGER + 1 },
     ],
-    ["read limit below minimum", "read", { path: "text.txt", limit: 0 }],
-    ["read limit above maximum", "read", { path: "text.txt", limit: 2_001 }],
     [
       "read limit above safe range",
       "read",
@@ -173,9 +170,7 @@ describe("generic read", () => {
         limit: Number.MAX_SAFE_INTEGER + 1,
       },
     ],
-    ["list depth below minimum", "list", { depth: -1 }],
-    ["list depth above maximum", "list", { depth: 9 }],
-  ])("rejects %s instead of clamping", async (_name, tool, params) => {
+  ])("rejects %s", async (_name, tool, params) => {
     const runs: Parameters<AgentExecutor["execute"]>[0][] = [];
     const result = await readRegistry(runs).execute(tool, params);
 
@@ -183,11 +178,28 @@ describe("generic read", () => {
     expect(runs).toHaveLength(0);
   });
 
+  it.each([
+    ["read offset", "read", { path: "text.txt", offset: 0 }, '\\"offset\\":1'],
+    ["read limit below", "read", { path: "text.txt", limit: 0 }, '\\"limit\\":1'],
+    ["read limit above", "read", { path: "text.txt", limit: 2_001 }, '\\"limit\\":2000'],
+    ["list depth below", "list", { depth: -1 }, '\\"depth\\":0'],
+    ["list depth above", "list", { depth: 9 }, '\\"depth\\":8'],
+  ])("clamps safe %s bounds", async (_name, tool, params, expected) => {
+    const runs: Parameters<AgentExecutor["execute"]>[0][] = [];
+    const result = await readRegistry(runs).execute(tool, params);
+
+    expect(result.failed).toBe(false);
+    expect(runs).toHaveLength(1);
+    const execution = runs[0];
+    expect(execution?.language === "python" ? execution.source : "").toContain(expected);
+  });
+
   it("returns the schema-aligned correction for bounded numbers and optional text", async () => {
     const registry = readRegistry([]);
-    const offset = await registry.execute("read", { path: "text.txt", offset: 0 });
-    const limit = await registry.execute("read", { path: "text.txt", limit: 2_001 });
-    const depth = await registry.execute("list", { depth: 9 });
+    const unsafe = Number.MAX_SAFE_INTEGER + 1;
+    const offset = await registry.execute("read", { path: "text.txt", offset: unsafe });
+    const limit = await registry.execute("read", { path: "text.txt", limit: unsafe });
+    const depth = await registry.execute("list", { depth: 1.5 });
     const include = await registry.execute("grep", { pattern: "value", include: "" });
     const [read, glob, grep, list] = registry.definitions(["read", "glob", "grep", "list"]);
 
@@ -200,7 +212,7 @@ describe("generic read", () => {
       "invalid_include: use non-empty text with at most 4096 characters",
     );
     expect(read?.description).toContain(
-      "Offset defaults to 1; limit defaults to 2000 and must be 1-2000.",
+      "Offset defaults to 1; safe integers are clamped to the listed bounds.",
     );
     expect(read?.params).toMatchObject({
       properties: {
@@ -225,7 +237,7 @@ describe("generic read", () => {
         path: { minLength: 1, maxLength: 4_096 },
       },
     });
-    expect(list?.description).toContain("Depth defaults to 2 and must be 0-8.");
+    expect(list?.description).toContain("Depth defaults to 2; safe integers are clamped to 0-8.");
     expect(list?.params).toMatchObject({
       properties: { path: { minLength: 1, maxLength: 4_096 }, depth: { default: 2 } },
     });

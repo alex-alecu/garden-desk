@@ -1,14 +1,28 @@
-import { mkdir, mkdtemp, rm, stat, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { createVaultCore } from "@vault/core";
 import type { AgentRunSnapshot } from "@vault/shared";
 import { MacOsMicroVmLauncher } from "@vault/workers";
 import { prepareAgentModelStore } from "./agent-model-store.js";
 import { developmentInferenceWorkerEntryPath } from "./development-inference-path.js";
+import { macOsAgentOverlapEvidence } from "./m3-agent-process-overlap.js";
+import {
+  requireM3ProductCheck,
+  requireM3RegularFile,
+  runCanonicalGate,
+} from "./m3-canonical-gate-reporting.js";
 import { runGuestEvidence } from "./m3-guest.js";
 import { realImageEvidence } from "./m3-image-agent.js";
 import { automaticModelEvidence } from "./m3-macos-model-evidence.js";
+import {
+  requireSavedScriptRepairEvidence,
+  type SavedScriptRequirement,
+} from "./m3-saved-script-evidence.js";
+import {
+  macosSavedScriptRequirement,
+  savedScriptRepairPrompt,
+} from "./m3-saved-script-fixtures.js";
 
 const repositoryRoot = process.cwd();
 const helper = join(
@@ -59,41 +73,10 @@ async function awaitConcurrentRuns(
     runs.map(async (run) => ({ ...run, snapshot: await core.getAgentRun(run.id) })),
   );
   for (const { language, snapshot } of refreshed) snapshots.set(language, snapshot);
-  const maximumOverlappingVms = maximumVmOverlap([...snapshots.values()], Date.now());
-  if (maximumOverlappingVms < 2) {
-    throw new Error("Real agent VM lifetimes did not overlap.");
-  }
-  return { maximumOverlappingVms, snapshots };
-}
-
-function maximumVmOverlap(snapshots: AgentRunSnapshot[], observedAt: number): number {
-  const intervals = snapshots.map((snapshot) => {
-    const diagnostics = snapshot.executions.flatMap((execution) => execution.vmDiagnostics);
-    const startedAt = diagnostics
-      .filter((diagnostic) => diagnostic.code === "vm_start")
-      .map((diagnostic) => Date.parse(diagnostic.createdAt))
-      .sort((left, right) => left - right)[0];
-    const completedAt = diagnostics
-      .filter((diagnostic) => diagnostic.code === "teardown")
-      .map((diagnostic) => Date.parse(diagnostic.createdAt))
-      .sort((left, right) => right - left)[0];
-    if (startedAt === undefined || !Number.isFinite(startedAt)) {
-      throw new Error(`Real agent VM start evidence is missing: ${JSON.stringify(snapshot)}`);
-    }
-    return { startedAt, completedAt: completedAt ?? observedAt };
-  });
-  const boundaries = intervals.flatMap((interval) => [
-    { at: interval.startedAt, change: 1 },
-    { at: interval.completedAt, change: -1 },
-  ]);
-  boundaries.sort((left, right) => left.at - right.at || left.change - right.change);
-  let active = 0;
-  let maximum = 0;
-  for (const boundary of boundaries) {
-    active += boundary.change;
-    maximum = Math.max(maximum, active);
-  }
-  return maximum;
+  return {
+    ...macOsAgentOverlapEvidence([...snapshots.values()], Date.now()),
+    snapshots,
+  };
 }
 
 async function requireMissing(path: string): Promise<void> {
@@ -103,7 +86,7 @@ async function requireMissing(path: string): Promise<void> {
     if ((error as NodeJS.ErrnoException).code === "ENOENT") return;
     throw error;
   }
-  throw new Error(`Deleted session retained its workspace manifest: ${path}`);
+  requireM3ProductCheck(false, `Deleted session retained its workspace manifest: ${path}`);
 }
 
 async function workspaceLifecycleEvidence(
@@ -113,27 +96,30 @@ async function workspaceLifecycleEvidence(
   folderId: string,
 ) {
   const manifest = join(workspace, ".vault", "agent-workspaces", "manifests", `${sessionId}.json`);
-  if (!(await stat(manifest)).isFile()) throw new Error("Agent workspace was not committed.");
-  if (!(await core.revokeFolder(folderId))) throw new Error("Folder revocation proof failed.");
-  if (!(await stat(manifest)).isFile()) throw new Error("Revocation deleted the workspace.");
-  if (!(await core.deleteSession(sessionId))) throw new Error("Session deletion proof failed.");
+  await requireM3RegularFile(manifest, "Agent workspace was not committed.");
+  requireM3ProductCheck(await core.revokeFolder(folderId), "Folder revocation proof failed.");
+  await requireM3RegularFile(manifest, "Revocation deleted the workspace.");
+  requireM3ProductCheck(await core.deleteSession(sessionId), "Session deletion proof failed.");
   await requireMissing(manifest);
   return { folderRevocation: "workspace_retained", sessionDeletion: "workspace_removed" };
 }
 
-function requireRealAgentResult(snapshot: AgentRunSnapshot, language: RealLanguage) {
+function requireRealAgentResult(
+  snapshot: AgentRunSnapshot,
+  language: RealLanguage,
+  savedScript: SavedScriptRequirement,
+) {
   const attempts = snapshot.events.filter((event) => event.type === "execution.completed");
   const executions = attempts.filter(
     (event) => event.language === language && event.termination === "completed",
   );
-  if (
-    snapshot.run.state !== "succeeded" ||
-    executions.length < 2 ||
-    !snapshot.artifacts.some((artifact) => artifact.name === `${language}-result.txt`)
-  ) {
-    throw new Error(`Real ${language} multi-step agent proof failed: ${JSON.stringify(snapshot)}`);
-  }
-  return { attempts, executions };
+  const repair = requireSavedScriptRepairEvidence(snapshot, savedScript);
+  requireM3ProductCheck(
+    snapshot.run.state === "succeeded" &&
+      snapshot.artifacts.some((artifact) => artifact.name === `${language}-result.txt`),
+    `Real ${language} multi-step agent proof failed: ${JSON.stringify(snapshot)}`,
+  );
+  return { attempts, executions, repair };
 }
 
 async function prepareRealAgent(
@@ -157,7 +143,22 @@ async function collectRealAgentEvidence(input: {
   model: Awaited<ReturnType<typeof automaticModelEvidence>>;
 }) {
   const { core, model, snapshot, target, workspace } = input;
-  const { attempts, executions } = requireRealAgentResult(snapshot, target.language);
+  const { attempts, executions, repair } = requireRealAgentResult(
+    snapshot,
+    target.language,
+    macosSavedScriptRequirement(target.language),
+  );
+  const artifact = snapshot.artifacts.find((item) => item.name === `${target.language}-result.txt`);
+  requireM3ProductCheck(artifact !== undefined, "Real agent result artifact is missing.");
+  const materialized = await core.materializeArtifact(target.session.id, artifact.id);
+  try {
+    requireM3ProductCheck(
+      (await readFile(materialized, "utf8")) === "M3 passed",
+      "Real agent result artifact bytes do not match.",
+    );
+  } finally {
+    await rm(dirname(materialized), { recursive: true, force: true });
+  }
   const lifecycle = await workspaceLifecycleEvidence(
     core,
     workspace,
@@ -170,6 +171,9 @@ async function collectRealAgentEvidence(input: {
       executions: executions.length,
       attempts: attempts.length,
       artifacts: snapshot.artifacts.length,
+      artifactBytesVerified: true,
+      artifactHash: artifact.contentHash,
+      savedScriptRepair: repair,
       memoryBudgetBytes: model.memoryBudgetBytes,
       cpuRamBytes: model.cpuRamBytes,
       gpuMemoryBytes: model.gpuMemoryBytes,
@@ -202,7 +206,7 @@ async function runRealAgents(root: string) {
         language,
         ...(await core.startAgent(
           session.id,
-          `Use exactly two separate source executions. Every execution must set language to ${language} and provide source and path; never choose shell or command. Execution 1: read /source/${language}-input.txt and print its exact contents. Execution 2: read it and write the exact contents to /workspace/${language}-result.txt. After one successful observation, do not repeat execution 1. Do not respond before both executions succeed.`,
+          savedScriptRepairPrompt(macosSavedScriptRequirement(language)),
         )),
       })),
     );
@@ -212,14 +216,16 @@ async function runRealAgents(root: string) {
       await Promise.all(
         targets.map(async (target) => {
           const snapshot = concurrent.snapshots.get(target.language);
-          if (snapshot === undefined) throw new Error(`Missing ${target.language} agent result.`);
+          requireM3ProductCheck(snapshot !== undefined, `Missing ${target.language} agent result.`);
           return collectRealAgentEvidence({ core, workspace, target, snapshot, model });
         }),
       ),
     );
     const realImage = await realImageEvidence(core, imageFixture);
-    if (!(await core.verifyAudit())) throw new Error("Real image audit chain failed.");
+    const auditValid = await core.verifyAudit();
+    requireM3ProductCheck(auditValid, "Real image audit chain failed.");
     return {
+      auditValid,
       maximumOverlappingVms: concurrent.maximumOverlappingVms,
       realPython: results.python,
       realNode: results.node,
@@ -230,28 +236,32 @@ async function runRealAgents(root: string) {
   }
 }
 
-async function main(): Promise<void> {
-  if (process.platform !== "darwin" || process.arch !== "arm64") {
-    throw new Error("The certified M3 macOS gate requires Apple silicon.");
-  }
-  const root = await mkdtemp(join(tmpdir(), "vault-m3-agent-gate-"));
-  try {
-    const guest = await runGuestEvidence(
-      root,
-      (workspace) => new MacOsMicroVmLauncher(helper, images, workspace),
-    );
-    await prepareAgentModelStore(modelRoot);
-    const realAgents = await runRealAgents(root);
-    console.log(
-      JSON.stringify({
-        classification: "certified",
-        guest,
-        ...realAgents,
-      }),
-    );
-  } finally {
-    await rm(root, { recursive: true, force: true });
-  }
-}
-
-await main();
+await runCanonicalGate({
+  failureClassification: "m3_macos_gate_failed",
+  run: async (setFailureStage) => {
+    if (process.platform !== "darwin" || process.arch !== "arm64") {
+      throw new Error("The certified M3 macOS gate requires Apple silicon.");
+    }
+    const root = await mkdtemp(join(tmpdir(), "vault-m3-agent-gate-"));
+    try {
+      await prepareAgentModelStore(modelRoot);
+      setFailureStage("runtime_transport");
+      const guest = await runGuestEvidence(
+        root,
+        (workspace) => new MacOsMicroVmLauncher(helper, images, workspace),
+      );
+      const realAgents = await runRealAgents(root);
+      console.log(
+        JSON.stringify({
+          classification: "certified",
+          failureClass: "passed",
+          evidenceReference: null,
+          guest,
+          ...realAgents,
+        }),
+      );
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  },
+});

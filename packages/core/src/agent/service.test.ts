@@ -1,187 +1,67 @@
-import { mkdtemp, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
 import type { AgentExecutionResult, ChatGenerationResult } from "@vault/shared";
-import type { AgentSessionExecution, CodeAgentLauncher } from "@vault/workers";
 import { afterEach, describe, expect, it } from "vitest";
-import { AuditLog } from "../audit/log.js";
-import { ConversationStore } from "../conversations/store.js";
-import { JobStore } from "../jobs/jobs.js";
-import type { ChatInput, InferenceService } from "../runtime/inference.js";
-import { ArtifactStore } from "../workspace/artifacts.js";
-import { openWorkspaceCatalog } from "../workspace/catalog.js";
-import { WorkspaceScope } from "../workspace/scope.js";
-import { memoryReport } from "./chat-loop-test-support.js";
-import { AgentService } from "./service.js";
-import { AgentStore } from "./store.js";
+import type { ChatInput } from "../runtime/inference.js";
+import type { DatabasePort } from "../workspace/database.js";
+import {
+  artifactExecution,
+  chatResult,
+  cleanServiceFixtures,
+  fixture,
+  pendingQuestion,
+  questionInference,
+  successfulInference,
+  terminal,
+} from "./service-test-support.js";
 
-const roots: string[] = [];
-
-function chatResult(
-  text: string,
-  toolCalls: ChatGenerationResult["toolCalls"],
-): ChatGenerationResult {
+function outputExecution(
+  request: Parameters<typeof artifactExecution>[0],
+  stdout: string,
+): AgentExecutionResult {
+  if (request.language === "shell") throw new Error("unexpected_shell");
   return {
-    protocolVersion: 2,
-    requestId: "agent-test",
-    status: "ok",
-    operation: "chat",
-    text,
-    toolCalls,
-    stopReason: toolCalls.length > 0 ? "toolCalls" : "text",
-    memory: memoryReport({ budgetBytes: 2, contextSizeTokens: 16_384 }),
-    performance: {
-      promptTokens: 10,
-      outputTokens: 5,
-      promptDurationMs: 100,
-      generationDurationMs: 500,
-      totalDurationMs: 600,
-    },
+    language: request.language,
+    path: request.path,
+    source: request.source ?? "print('resolved')",
+    command: null,
+    exitCode: 0,
+    stdout,
+    stderr: "",
+    durationMs: 1,
+    termination: "completed",
+    artifacts: [],
   };
 }
 
-function launcher(
-  run: (request: AgentSessionExecution) => Promise<AgentExecutionResult>,
-): CodeAgentLauncher {
-  return {
-    async openAgentSession() {
-      return {
-        async execute(request, _signal, observer) {
-          const result = await run(request);
-          if (result.stdout.length > 0)
-            await observer?.onUpdate({
-              kind: "stream",
-              stream: "stdout",
-              bytes: Buffer.from(result.stdout),
-            });
-          if (result.stderr.length > 0)
-            await observer?.onUpdate({
-              kind: "stream",
-              stream: "stderr",
-              bytes: Buffer.from(result.stderr),
-            });
-          return result;
-        },
-        async cancel() {},
-        async close() {},
-      };
-    },
-    async deleteWorkspace() {},
-  };
-}
-
-async function fixture(
-  inference: Partial<Pick<InferenceService, "chat" | "modelStatus">>,
-  execute: (request: AgentSessionExecution) => Promise<AgentExecutionResult>,
-) {
-  const root = await mkdtemp(join(tmpdir(), "vault-agent-service-"));
-  roots.push(root);
-  const scope = await WorkspaceScope.create(root);
-  const catalog = openWorkspaceCatalog(scope.root);
-  const artifacts = await ArtifactStore.create(scope);
-  const conversations = new ConversationStore(catalog.database);
-  const store = new AgentStore(catalog.database, artifacts);
-  const service = new AgentService(
-    catalog.database,
-    store,
-    conversations,
-    new JobStore(catalog.database),
-    artifacts,
-    inference,
-    launcher(execute),
-    new AuditLog(catalog.database),
-  );
-  return { catalog, conversations, service };
-}
-
-async function terminal(service: AgentService, runId: string) {
-  for (let attempt = 0; attempt < 1_000; attempt += 1) {
-    const snapshot = service.snapshot(runId);
-    if (!(["queued", "running"] as const).includes(snapshot.run.state as "queued" | "running"))
-      return snapshot;
-    await new Promise((accept) => setTimeout(accept, 2));
-  }
-  throw new Error("agent_test_timeout");
-}
-
-async function pendingQuestion(service: AgentService, runId: string) {
-  for (let attempt = 0; attempt < 1_000; attempt += 1) {
-    const snapshot = service.snapshot(runId);
-    if (snapshot.question !== null) return snapshot.question;
-    if (snapshot.run.state !== "running" && snapshot.run.state !== "queued") {
-      throw new Error("agent_finished_without_question");
-    }
-    await new Promise((accept) => setTimeout(accept, 2));
-  }
-  throw new Error("agent_question_timeout");
-}
-
-const questionCall = {
-  id: "call-q",
-  name: "question",
-  params: {
-    questions: JSON.stringify([
-      {
-        header: "Direction",
-        question: "Which output?",
-        options: [
-          { label: "Summary", description: "Short." },
-          { label: "Full", description: "Long." },
-        ],
-      },
-    ]),
-  },
-};
-
-function questionInference() {
+function largeOutputInference() {
   let turn = 0;
   return {
-    async chat(_input: ChatInput) {
+    async chat() {
       turn += 1;
       return turn === 1
-        ? chatResult("", [questionCall])
-        : chatResult("Finished with your answer.", []);
-    },
-  };
-}
-
-function successfulInference() {
-  let turn = 0;
-  return {
-    async chat(_input: ChatInput) {
-      turn += 1;
-      return turn === 1
-        ? chatResult("", [{ id: "call-1", name: "python", params: { source: "print('ok')" } }])
+        ? chatResult("", [
+            { id: "call-large", name: "python", params: { source: "print('large')" } },
+          ])
         : chatResult("Finished safely.", []);
     },
   };
 }
 
-async function artifactExecution(request: AgentSessionExecution): Promise<AgentExecutionResult> {
-  if (request.language === "shell") throw new Error("unexpected_shell");
-  return {
-    language: request.language,
-    path: request.path,
-    source: request.source,
-    command: null,
-    exitCode: 0,
-    stdout: "ok\n",
-    stderr: "",
-    durationMs: 2,
-    termination: "completed",
-    artifacts: [
-      {
-        name: "result.txt",
-        mediaType: "text/plain",
-        bytesBase64: Buffer.from("result").toString("base64"),
-      },
-    ],
-  };
+function completedAuditExecutionCounts(database: DatabasePort) {
+  const rows = database
+    .prepare("SELECT event_json FROM audit_events ORDER BY sequence")
+    .all() as Array<{ event_json: string }>;
+  return rows
+    .map(
+      (row) =>
+        JSON.parse(row.event_json) as {
+          metadata: { executions?: number; guestExecutions?: number };
+          type: string;
+        },
+    )
+    .find((event) => event.type === "agent.completed")?.metadata;
 }
 
-afterEach(async () => {
-  await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
-});
+afterEach(cleanServiceFixtures);
 
 describe("persisted chat agent success", () => {
   it("commits tool evidence, a response, and a generated artifact", async () => {
@@ -203,6 +83,73 @@ describe("persisted chat agent success", () => {
     );
     expect(snapshot.executions).toHaveLength(1);
     expect(snapshot.artifacts.map((artifact) => artifact.name)).toEqual(["result.txt"]);
+    await service.close();
+    catalog.close();
+  });
+});
+
+describe("persisted artifact recovery", () => {
+  it("restores an omitted artifact from committed workspace bytes after a later success", async () => {
+    let execution = 0;
+    const bytes = Buffer.from("recovered workspace bytes");
+    const { catalog, conversations, service } = await fixture(
+      {
+        async chat() {
+          return execution < 2
+            ? chatResult("", [
+                {
+                  id: `call-${execution + 1}`,
+                  name: "python",
+                  params: { source: `print(${execution + 1})` },
+                },
+              ])
+            : chatResult("Recovered the report.", []);
+        },
+      },
+      async (request) => {
+        execution += 1;
+        const result = outputExecution(request, "done\n");
+        if (execution === 1) {
+          result.invalidatedArtifactPaths = ["report.txt"];
+          result.recoverableArtifactPaths = ["report.txt"];
+        }
+        return result;
+      },
+      undefined,
+      async (_sessionId, path) => (path === "report.txt" ? bytes : undefined),
+    );
+
+    const run = service.start(conversations.createSession(null).id, "Recover the report");
+    const snapshot = await terminal(service, run.id);
+
+    expect(snapshot.run.state).toBe("succeeded");
+    expect(snapshot.artifacts.map((artifact) => artifact.name)).toEqual(["report.txt"]);
+    expect(snapshot.artifacts[0]?.contentHash).toMatch(/^sha256:/u);
+    await service.close();
+    catalog.close();
+  });
+});
+
+describe("persisted output spill budget", () => {
+  it("audits spill processes without adding them to execution snapshots", async () => {
+    let processes = 0;
+    const { catalog, conversations, service } = await fixture(
+      largeOutputInference(),
+      async (request) => {
+        processes += 1;
+        return outputExecution(request, processes === 1 ? "x".repeat(60_000) : "");
+      },
+    );
+    const run = service.start(conversations.createSession(null).id, "Build a large result");
+
+    const snapshot = await terminal(service, run.id);
+
+    expect(processes).toBe(3);
+    expect(snapshot.executions).toHaveLength(1);
+    expect(completedAuditExecutionCounts(catalog.database)).toMatchObject({
+      executions: 1,
+      guestExecutions: 3,
+    });
     await service.close();
     catalog.close();
   });

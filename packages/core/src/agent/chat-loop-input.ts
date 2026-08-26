@@ -19,7 +19,6 @@ export interface ChatAttachmentInput {
 }
 
 export type ChatRecoveryState = {
-  artifactRecoveryPending: boolean;
   emptyResponsePending: boolean;
   inferenceRetryUsed: boolean;
   outputLimitRetryUsed: boolean;
@@ -31,7 +30,6 @@ export interface ChatTurnOptions {
   registry: GenericToolRegistry;
   recovery: ChatRecoveryState;
   performance: ReturnType<typeof emptyPerformance>;
-  forceCompletion: boolean;
   finalTurn: boolean;
 }
 
