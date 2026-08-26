@@ -1,6 +1,30 @@
 import { describe, expect, it } from "vitest";
 import { InferenceFailure } from "../runtime/inference-errors.js";
-import { agentFailureEvent, agentFailureText } from "./service-results.js";
+import { agentFailureEvent, agentFailureText, inferenceRunContext } from "./service-results.js";
+
+describe("agent inference context", () => {
+  it.each([
+    { modelNeedsLoad: true, state: "unloaded" },
+    { modelNeedsLoad: false, state: "ready" },
+  ] as const)(
+    "detects whether the $state model needs a load",
+    async ({ modelNeedsLoad, state }) => {
+      const context = await inferenceRunContext({
+        async modelStatus() {
+          return {
+            contextSizeTokens: 65_536,
+            modelId: "gemma-4-12b-it-qat-q4_0" as const,
+            name: "Gemma 4 12B QAT",
+            state,
+            thinkingSupported: true,
+          };
+        },
+      });
+
+      expect(context).toEqual({ knownContextTokens: 65_536, modelNeedsLoad });
+    },
+  );
+});
 
 describe("agent failure privacy", () => {
   it("retains safe codes and removes host paths", () => {
