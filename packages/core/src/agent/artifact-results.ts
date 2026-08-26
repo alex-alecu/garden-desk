@@ -49,7 +49,10 @@ function applyExecutionArtifacts(
   }
   publishSuccessfulArtifacts(current, pending, execution);
   for (const path of execution.recoverableArtifactPaths ?? []) {
-    if (isUserArtifactPath(path)) pending.set(path, { name: path });
+    if (isUserArtifactPath(path)) {
+      current.delete(path);
+      current.set(path, { name: path });
+    }
   }
 }
 

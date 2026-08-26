@@ -68,6 +68,14 @@ describe("current artifact results", () => {
 
     expect(artifactCandidateNames([created, failed])).toEqual(["report.unknown"]);
   });
+
+  it("publishes a recoverable artifact from the final successful execution", () => {
+    const success = result("unused.unknown", { exitCode: 0, termination: "completed" });
+    success.artifacts = [];
+    success.recoverableArtifactPaths = ["report.unknown"];
+
+    expect(artifactCandidateNames([success])).toEqual(["report.unknown"]);
+  });
 });
 
 describe("current artifact replacement", () => {
