@@ -23,14 +23,6 @@ interface SpillOptions {
   onGuestExecutionStarted?(): void;
 }
 
-export class ToolOutputSpillBudgetError extends Error {
-  readonly code = "tool_output_spill_budget_exceeded";
-
-  constructor() {
-    super("tool_output_spill_budget_exceeded");
-  }
-}
-
 function characterWidth(text: string, index: number): number {
   const first = text.charCodeAt(index);
   const second = text.charCodeAt(index + 1);
@@ -180,13 +172,13 @@ async function spill(
   text: string,
   signal?: AbortSignal,
   options: SpillOptions = {},
-): Promise<string> {
+): Promise<string | undefined> {
   const path = `/workspace/.vault-output/${randomUUID()}.txt`;
   const bytes = Buffer.from(text, "utf8");
   const chunks = Math.ceil(bytes.length / CHUNK_BYTES);
   const reservation = options.budget?.reserve(chunks);
   if (options.budget !== undefined && reservation === undefined) {
-    throw new ToolOutputSpillBudgetError();
+    return undefined;
   }
   try {
     for (let offset = 0; offset < bytes.length; offset += CHUNK_BYTES) {
@@ -216,6 +208,9 @@ export async function boundedToolOutput(
   const shape = outputShape(text);
   if (shape.lineCount <= MAX_LINES && shape.encodedBytes <= MAX_BYTES) return text;
   const path = await spill(executor, text, signal, options);
-  const marker = `[Output truncated. Full output saved to ${path}. Use grep or read with offset/limit.]`;
+  const marker =
+    path === undefined
+      ? "[Output truncated. Full output was not saved because the guest execution limit was reached.]"
+      : `[Output truncated. Full output saved to ${path}. Use grep or read with offset/limit.]`;
   return clippedPreview(shape.head, shape.tail, marker);
 }

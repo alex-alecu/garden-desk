@@ -25,7 +25,7 @@ function completedArtifactExecution(): AgentExecutionResult {
 }
 
 describe("GenericToolRegistry output recovery", () => {
-  it("refuses a spill before its first chunk when the primary execution used the capacity", async () => {
+  it("keeps a bounded preview when the primary execution used the spill capacity", async () => {
     const execution = completedArtifactExecution();
     const inspect = vi.fn(async () => {
       throw new Error("spill must not start");
@@ -47,13 +47,12 @@ describe("GenericToolRegistry output recovery", () => {
     );
 
     expect(inspect).not.toHaveBeenCalled();
-    expect(result).toMatchObject({
-      failed: true,
-      guestExecutionsStarted: 1,
-      outputFailure: "tool_output_spill_budget_exceeded",
-      execution,
-      content: "Error: tool_output_spill_budget_exceeded",
-    });
+    expect(result).toMatchObject({ failed: false, guestExecutionsStarted: 1, execution });
+    expect(result.content).toContain("Full output was not saved");
+    expect(result.content).toMatch(/^exit_code: 0/u);
+    expect(result.content).toContain("stdout:\nx");
+    expect(result.content).toMatch(/stderr: \(empty\)$/u);
+    expect(result.content.length).toBeLessThan(execution.stdout.length);
   });
 
   it("retains a completed execution when its output spill fails", async () => {

@@ -42,7 +42,6 @@ export interface AgentToolResult {
   };
   preparationFailure?: AgentScriptPreparationFailure;
   executionAttempt?: AgentExecutionAttemptError["attempt"];
-  outputFailure?: "tool_output_spill_budget_exceeded";
   status?: "already_loaded";
 }
 

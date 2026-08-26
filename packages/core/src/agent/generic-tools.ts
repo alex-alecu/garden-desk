@@ -13,7 +13,7 @@ import {
 } from "./generic-tool-support.js";
 import type { GuestExecutionBudget } from "./guest-execution-budget.js";
 import { questionTool } from "./question-tool.js";
-import { boundedToolOutput, ToolOutputSpillBudgetError } from "./tool-output.js";
+import { boundedToolOutput } from "./tool-output.js";
 
 function errorText(error: unknown): string {
   return error instanceof Error ? `${error.name}: ${error.message}` : String(error);
@@ -24,13 +24,11 @@ function failedOutputResult(
   completed: AgentToolResult | undefined,
   guestExecutionsStarted: number,
 ): AgentToolResult {
-  const outputFailure = error instanceof ToolOutputSpillBudgetError ? error.code : undefined;
   return {
     ...(completed ?? {}),
-    content: outputFailure === undefined ? errorText(error) : `Error: ${outputFailure}`,
+    content: errorText(error),
     failed: true,
     guestExecutionsStarted,
-    ...(outputFailure === undefined ? {} : { outputFailure }),
   };
 }
 
