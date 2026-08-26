@@ -17,9 +17,9 @@ Follow these steps precisely:
 
 3. Launch a sonnet agent to view the pull request and return a summary of the changes, including the title and description.
 
-4. Launch one opus agent per lens in parallel. Give each agent the full text of `REVIEW.md`, the paths of `CLAUDE.md` and its imports, the PR summary, and its assigned lens tag. Each agent reviews only through its lens and returns a list of issues. Each issue includes the lens tag, the severity from `REVIEW.md`, a `file:line` citation, a description, and the exact `REVIEW.md` or `CLAUDE.md` rule it violates. Agents must follow the "Skip these" list and flag only high-confidence issues; an issue that cannot be traced through the actual code is not reported.
+4. Launch one agent per lens in parallel: opus for `[security]` and `[business-logic]`, sonnet for `[performance]` and `[clean-code]`. Give each agent the full text of `REVIEW.md`, the paths of `CLAUDE.md` and its imports, the PR summary, and its assigned lens tag. Each agent reviews only through its lens and returns a list of issues. Each issue includes the lens tag, the severity from `REVIEW.md`, a `file:line` citation, a description, and the exact `REVIEW.md` or `CLAUDE.md` rule it violates. Agents must follow the "Skip these" list and flag only high-confidence issues; an issue that cannot be traced through the actual code is not reported.
 
-5. For each issue, launch a parallel opus subagent that receives the PR summary and the issue and validates with high confidence that the issue is real, that the cited rule exists in `REVIEW.md` or `CLAUDE.md`, and that the rule applies to that file. Discard issues that fail validation.
+5. For each issue, launch a parallel validation subagent, using the same model tier as the lens that found it, that receives the PR summary and the issue and validates with high confidence that the issue is real, that the cited rule exists in `REVIEW.md` or `CLAUDE.md`, and that the rule applies to that file. Discard issues that fail validation.
 
 6. Output the validated findings to the terminal using the "Summary Format" from `REVIEW.md`. If `--comment` was NOT provided, stop here.
 
