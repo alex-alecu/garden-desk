@@ -8,18 +8,14 @@ describe("saved-script prompt contracts", () => {
     const primary = library.agent("primary");
     const general = library.agent("general");
     const word = library.skill("word-documents");
-    expect(primary.body).toContain(
-      "save intermediate facts and reusable Python/Node with source + `steps/...` under `/workspace/steps/`",
-    );
+    expect(primary.body).toContain("For compaction, save facts/code in `/workspace/steps`");
     expect(primary.body).toContain("Optional integers: safe values clamp to range");
     expect(primary.body).toContain("wrong/nonfinite/unsafe fail");
-    expect(primary.body).toContain("read/edit a saved script");
-    expect(primary.body).toContain(
-      "small or shell editing is risky, use shorter complete replacement",
-    );
-    expect(primary.body).toContain("Save at same path; rerun path only");
-    expect(primary.body).toContain("`/workspace/steps` is internal, not an artifact");
-    expect(primary.body).toContain("A Python/Node `path` field is relative and uses `steps/...`");
+    expect(primary.body).toContain("Edit saved scripts when simple");
+    expect(primary.body).toContain("use a short replacement when small or shell editing is risky");
+    expect(primary.body).toContain("Rerun the `steps/...` path");
+    expect(primary.body).toContain("`/workspace/steps` is internal");
+    expect(primary.body).toContain("Python/Node `path` is relative `steps/...`");
     expect(primary.body).not.toContain("attachments `/run/attachments`. Use absolute paths");
     expect(primary.body).not.toContain("Never retype saved code");
     expect(primary.body).not.toContain("shorter complete replacement; do not patch/repeat");
@@ -28,7 +24,7 @@ describe("saved-script prompt contracts", () => {
     expect(general.body).toContain("Use a shorter complete replacement");
     expect(general.body).toContain("Save at the same path, rerun that path");
     expect(general.body).not.toContain("Do not repeat or patch the malformed program");
-    expect(word.body).toContain("Repair: edit or short replacement; rerun script path");
+    expect(word.body).toContain("Repair by edit or short replacement; rerun path");
     expect(word.body).not.toContain("after syntax error use a shorter program");
   });
 });
