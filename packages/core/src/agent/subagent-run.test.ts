@@ -118,7 +118,7 @@ async function definitions(root: string): Promise<MarkdownDefinitionLibrary> {
 }
 
 async function diagnosticOutput(root: string, name = "worker-stderr.log"): Promise<Buffer> {
-  for (let attempt = 0; attempt < 100; attempt += 1) {
+  for (let attempt = 0; attempt < 500; attempt += 1) {
     try {
       for (const run of await readdir(root)) {
         const output = await readFile(join(root, run, name));
@@ -127,7 +127,7 @@ async function diagnosticOutput(root: string, name = "worker-stderr.log"): Promi
     } catch {
       // The development write is deliberately asynchronous.
     }
-    await new Promise((accept) => setTimeout(accept, 5));
+    await new Promise((accept) => setTimeout(accept, 10));
   }
   throw new Error("diagnostic output is missing");
 }

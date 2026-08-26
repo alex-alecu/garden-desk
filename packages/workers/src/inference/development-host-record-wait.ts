@@ -1,4 +1,4 @@
-const DEVELOPMENT_HOST_RECORD_WAIT_MS = 250;
+const DEVELOPMENT_HOST_RECORD_WAIT_MS = 5_000;
 
 export async function waitForDevelopmentHostRecord(
   record: Promise<void>,
