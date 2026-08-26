@@ -159,12 +159,13 @@ async function executeToolCall(input: ToolTurnInput, call: ChatToolCall): Promis
   const loaded = liveLoadedSkillNames(input.state.loadedSkills, input.state.messages);
   const alreadyLoaded = skillName !== undefined && loaded.has(skillName);
   const repeated = corrupt ? false : repeatedCall(input.state, call);
-  beforeExecution(input, call, repeated, !corrupt);
+  const invalid = corrupt ? undefined : input.registry.validate(call.name, call.params);
+  beforeExecution(input, call, repeated, !corrupt && invalid === undefined);
   const result = corrupt
     ? invalidToolInputResult("Invalid tool input: protocol-control transition in arguments.")
     : alreadyLoaded && !repeated
       ? alreadyLoadedSkillResult(skillName)
-      : await toolResult(input, call, repeated);
+      : (invalid ?? (await toolResult(input, call, repeated)));
   finalizeToolCall(input, call, repeated, result);
   return result.invalidInput !== true;
 }
@@ -279,12 +280,13 @@ async function executeTaskGroup(input: ToolTurnInput, group: ChatToolCall[]): Pr
   const started = group.map((call) => {
     const corrupt = containsProtocolTransition(call.params);
     const repeated = corrupt ? false : repeatedCall(input.state, call);
-    beforeExecution(input, call, repeated, !corrupt);
+    const invalid = corrupt ? undefined : input.registry.validate(call.name, call.params);
+    beforeExecution(input, call, repeated, !corrupt && invalid === undefined);
     const result = corrupt
       ? Promise.resolve(
           invalidToolInputResult("Invalid tool input: protocol-control transition in arguments."),
         )
-      : toolResult(input, call, repeated);
+      : Promise.resolve(invalid ?? toolResult(input, call, repeated));
     return { call, repeated, result };
   });
   let validInput = false;

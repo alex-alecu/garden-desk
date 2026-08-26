@@ -185,6 +185,44 @@ describe("ChatAgentLoop doom loop", () => {
   });
 });
 
+describe("ChatAgentLoop guest execution budget", () => {
+  it("does not charge invalid calls before one valid execution", async () => {
+    const invalid = Array.from({ length: 24 }, (_, index) =>
+      tool("python", `invalid-${index}`, { source: index }),
+    );
+    const requests: Parameters<InferenceService["chat"]>[0][] = [];
+    const loop = new ChatAgentLoop(
+      model(
+        [
+          generated("", [...invalid, tool("python", "valid", { source: "print('valid')" })]),
+          generated("Done."),
+        ],
+        requests,
+      ),
+    );
+    const executed: string[] = [];
+    const events: string[] = [];
+
+    const result = await loop.run(
+      input(
+        {
+          async execute(run) {
+            executed.push(source(run));
+            return execution(source(run));
+          },
+        },
+        ["python"],
+        { onEvent: (type) => events.push(type) },
+      ),
+    );
+
+    expect(result.response).toBe("Done.");
+    expect(executed).toEqual(["print('valid')"]);
+    expect(events.filter((type) => type === "execution.started")).toHaveLength(1);
+    expect(events.filter((type) => type === "execution.completed")).toHaveLength(1);
+  });
+});
+
 it("retries an output limit without compacting or removing tools", async () => {
   const requests: Parameters<InferenceService["chat"]>[0][] = [];
   const limited = { ...generated("partial table"), stopReason: "maxTokens" as const };

@@ -114,10 +114,10 @@ function optionalBoundedInteger(
 ): number | undefined {
   const item = value[name];
   if (item === undefined) return undefined;
-  if (typeof item !== "number" || !Number.isSafeInteger(item) || item < minimum || item > maximum) {
+  if (typeof item !== "number" || !Number.isSafeInteger(item)) {
     throw new Error(`invalid_${name}: use an integer from ${minimum} to ${maximum}`);
   }
-  return item;
+  return Math.min(maximum, Math.max(minimum, item));
 }
 
 // biome-ignore lint/complexity/noExcessiveLinesPerFunction: this is one bounded generated guest program.

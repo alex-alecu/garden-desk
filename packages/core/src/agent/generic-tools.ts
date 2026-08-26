@@ -223,14 +223,14 @@ export class GenericToolRegistry {
     }
     return definitions;
   }
-  async execute(name: string, params: unknown): Promise<AgentToolResult> {
+  validate(name: string, params: unknown): AgentToolResult | undefined {
     const tool = this.tools.get(name);
     if (tool === undefined) {
       return { content: `Unknown tool: ${name}`, failed: true, invalidInput: true };
     }
-    let parsed: unknown;
     try {
-      parsed = tool.parse(params);
+      tool.parse(params);
+      return undefined;
     } catch (error) {
       return {
         content: error instanceof Error ? `${error.name}: ${error.message}` : String(error),
@@ -238,6 +238,12 @@ export class GenericToolRegistry {
         invalidInput: true,
       };
     }
+  }
+  async execute(name: string, params: unknown): Promise<AgentToolResult> {
+    const invalid = this.validate(name, params);
+    if (invalid !== undefined) return invalid;
+    const tool = this.tools.get(name) as ToolSpec;
+    const parsed = tool.parse(params);
     try {
       const result = await tool.execute(parsed, this.context);
       const content = await boundedToolOutput(

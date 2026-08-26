@@ -271,6 +271,39 @@ describe("GenericToolRegistry saved-script validation", () => {
   });
 });
 
+describe("GenericToolRegistry bounded integers", () => {
+  it("clamps safe integers and rejects unsafe numeric values", async () => {
+    const runs: Parameters<AgentExecutor["execute"]>[0][] = [];
+    const registry = new GenericToolRegistry({
+      executor: {
+        async execute(run) {
+          return execution(source(run));
+        },
+        async inspect(run) {
+          runs.push(run);
+          return execution(source(run));
+        },
+      },
+      skills: { metadata: () => [], read: () => "" },
+    });
+
+    await registry.execute("list", { path: "/source", depth: -50 });
+    await registry.execute("list", { path: "/source", depth: 5_000_000_000_000_000 });
+    const fraction = await registry.execute("list", { path: "/source", depth: 1.5 });
+    const infinite = await registry.execute("list", { path: "/source", depth: Infinity });
+    const unsafe = await registry.execute("list", {
+      path: "/source",
+      depth: Number.MAX_SAFE_INTEGER + 1,
+    });
+
+    expect(source(runs[0] as (typeof runs)[number])).toContain('\\"depth\\":0');
+    expect(source(runs[1] as (typeof runs)[number])).toContain('\\"depth\\":8');
+    expect(fraction).toMatchObject({ failed: true, invalidInput: true });
+    expect(infinite).toMatchObject({ failed: true, invalidInput: true });
+    expect(unsafe).toMatchObject({ failed: true, invalidInput: true });
+  });
+});
+
 describe("GenericToolRegistry invalid input", () => {
   it("distinguishes invalid input from a valid failed execution", async () => {
     const registry = new GenericToolRegistry({
