@@ -6,7 +6,7 @@ Updated: 2026-07-23
 
 - Pinned cross-platform TypeScript/Node workspace, CI, model manifest, dependency inventory, and evaluation harness.
 - Current-user Vault Core daemon, scoped workspace state, immutable artifacts, audit, jobs, cancellation, and recovery.
-- Certified no-NIC microVM launchers on macOS and Windows.
+- Certified no-network microVM launchers on macOS and Windows.
 - macOS host-native supervised inference with grammar generation, embeddings, memory scheduling, and containment evidence.
 
 ## Current: Community Desktop V1
@@ -19,7 +19,7 @@ Ship the first useful product as quickly as the security boundary permits:
 - Native folder and file selection without webview filesystem authority.
 - Persistent conversations, drafts, activity, cancellation, and restart recovery.
 - A generic local agent inspired by modern coding-agent interaction.
-- Python, Node.js, and installed shell-tool execution in a session-scoped no-NIC microVM.
+- Python, Node.js, and installed shell-tool execution in a session-scoped no-network microVM.
 - A reviewed fixed set of offline document and image libraries.
 - A prompt-only professional review set for legal, finance, and medical administration, with physical and qualified reviewer gates.
 - Live read-only selected-folder mount and persistent bounded guest workspace; no selected-folder writes.
@@ -47,13 +47,3 @@ One combined follow-up may add:
 - Model downloads and alternate runtimes.
 - Explicitly approved external integrations through a typed audited broker.
 - Linux desktop certification.
-
-## Revision History
-
-| Date | Change |
-|---|---|
-| 2026-07-10 | Created the initial roadmap. |
-| 2026-07-13 | Selected Tauri v2 and the no-NIC executable-tool boundary. |
-| 2026-07-20 | Made the generic offline dev-agent desktop the V1 target and moved document intelligence after launch. |
-| 2026-08-15 | Added the limited professional review skill set to M3 without starting the document-intelligence follow-up. |
-| 2026-07-23 | Replaced per-execution guests and copied folder inputs with a session VM, live read-only source, and persistent bounded workspace. |

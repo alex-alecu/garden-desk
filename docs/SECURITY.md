@@ -90,7 +90,7 @@ Examples of unsafe default capabilities:
 
 ## Worker Isolation Requirements
 
-Hostile document parsing and model-requested executable tools must run in certified no-NIC microVMs. Document jobs may use disposable job-scoped guests; each active V1 development-agent conversation uses a session-scoped guest with a durable bounded workspace, within a RAM-derived least-recently-used pool. Network denial must come from the absence of a NIC and general network proxy, not from matching commands, executables, domains, URLs, addresses, or protocols.
+Hostile document parsing and model-requested executable tools must run in certified no-network microVMs (virtual machines with no network interface, or NIC). Document jobs may use disposable job-scoped guests; each active V1 development-agent conversation uses a session-scoped guest with a durable bounded workspace, within a RAM-derived least-recently-used pool. Network denial must come from the absence of a NIC and general network proxy, not from matching commands, executables, domains, URLs, addresses, or protocols.
 
 MicroVM workers receive immutable explicit attachments or one Core-validated live read-only folder share and communicate over a versioned typed host/guest socket. Their root filesystem is immutable. The dev agent's 128 MiB writable `/workspace` is session-owned and survives only through validated content-addressed manifests; a separate 16 MiB `/run/user` tmpfs is ephemeral, and `/tmp` is read-only to task processes. Neither grants selected-folder or general host writes. Executed child processes inherit no control descriptor and an OS-enforced syscall filter denies creation of new sockets, including VSOCK. Each execution retains time, memory, CPU, process, writable-storage, and output limits.
 
@@ -98,7 +98,7 @@ GPU-backed inference may remain in a host-native supervised process so Metal, CU
 
 ## Generated-Code Controls
 
-Agent-authored code and installed guest commands are the V1 work capability, not a trusted extension mechanism. Each session uses a no-NIC microVM with a live read-only `/source`, a persistent bounded `/workspace`, pinned offline interpreters, `/bin/sh`, BusyBox tools, and libraries, plus limits for processes, CPU, memory, time, storage, output count, and output size.
+Agent-authored code and installed guest commands are the V1 work capability, not a trusted extension mechanism. Each session uses a no-network microVM with a live read-only `/source`, a persistent bounded `/workspace`, pinned offline interpreters, `/bin/sh`, BusyBox tools, and libraries, plus limits for processes, CPU, memory, time, storage, output count, and output size.
 
 The guest receives no user home, credentials, arbitrary host path, package manager access, host shell, generic Vault Core API, external connection broker, approval capability, or model endpoint. Its shell is guest-local and cannot cross the VM boundary. Vault Core mediates completions through the separately confined native inference worker and sends only validated execution requests to the guest. Code and dependencies cannot be installed. The generic `read` tool streams bytes and accepts strict UTF-8 plain text only. It rejects invalid UTF-8, NUL bytes, and invalid numeric arguments. Tool-result previews are limited to 50 KiB after JSON encoding; complete oversized output stays in an internal guest spill path.
 
@@ -128,7 +128,7 @@ Vault Desk should enforce:
 
 ## Knowledge Bundle Controls
 
-Knowledge Bundles are passive evidence packages, never plugins. Import, archive inspection, checksum validation, and document normalization run inside the certified no-NIC microVM boundary with bounded expansion, file count, nesting, CPU, memory, time, scratch space, and output size.
+Knowledge Bundles are passive evidence packages, never plugins. Import, archive inspection, checksum validation, and document normalization run inside the certified no-network microVM boundary with bounded expansion, file count, nesting, CPU, memory, time, scratch space, and output size.
 
 Before activation, Vault Core must verify the complete payload inventory, cryptographic digests, schema, signature policy, update metadata, dependencies, resource roles, and rights metadata. It must reject absolute or traversing paths, duplicate normalized paths, special files, unsafe links, ambiguous names, and undeclared payloads. Activation is an atomic authoritative-catalog transaction.
 
@@ -202,17 +202,3 @@ Remote support must be:
 - Revocable.
 - Scoped to diagnostics or approved maintenance actions.
 - Designed to avoid exposing customer documents unless explicitly permitted.
-
-## Revision History
-
-| Date | Change |
-|---|---|
-| 2026-07-10 | Initial security document created from supplied architecture and product material. |
-| 2026-07-11 | Added hostile-document, prompt-injection, supervised-worker, resource-limit, and staged-input security requirements. |
-| 2026-07-12 | Made a no-NIC microVM the certified hostile-work boundary and prohibited command-matching as the network-isolation mechanism. |
-| 2026-07-12 | Added passive Knowledge Bundle import, trust, archive-safety, atomic-activation, and no-execution requirements. |
-| 2026-07-13 | Added Tauri webview/sidecar controls and the generated-code microVM threat model, audit, and validation requirements. |
-| 2026-07-17 | Prohibited application telemetry and telemetry exporters; clarified that local customer-owned audit records are transmitted only through explicit, scoped export. |
-| 2026-07-20 | Recorded the completed M2 Seatbelt and Windows AppContainer/Job Object native-inference boundaries. |
-| 2026-08-04 | Added declared-only deliverable persistence and path-redacted, hash-verified Open and atomic Save As controls. |
-| 2026-08-22 | Added strict streamed text inspection, bounded output spill, and task-named artifact completion rules. |

@@ -28,9 +28,3 @@ Negative:
 
 - The control plane must be designed for both single-user simplicity and multi-user extension.
 - Early choices may constrain appliance scalability if not validated.
-
-## Revision History
-
-| Date | Change |
-|---|---|
-| 2026-07-10 | Initial ADR created. |

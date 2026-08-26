@@ -207,7 +207,7 @@ Community sideloading may permit unsigned bundles only behind a clear untrusted 
 
 Treat a bundle as hostile input even when it is signed. A compromised publisher can sign a malformed archive, and signatures do not make parsers safe.
 
-Bundle inspection and extraction must run through the certified no-NIC microVM boundary with:
+Bundle inspection and extraction must run through the certified no-network microVM boundary with:
 
 - Total compressed and expanded byte limits.
 - Per-file and file-count limits.
@@ -313,9 +313,3 @@ Before freezing the format in an ADR:
 ## Research Basis
 
 The comparative research and primary source links are recorded in [research/offline-knowledge-bundles-2026.md](research/offline-knowledge-bundles-2026.md).
-
-## Revision History
-
-| Date | Change |
-|---|---|
-| 2026-07-12 | Added the research-derived architecture for passive, signed, content-addressed, domain-scoped offline Knowledge Bundles. |

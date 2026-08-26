@@ -59,9 +59,3 @@ Negative:
 - Migration success, failure, and rollback tests.
 - Deterministic index rebuild from authoritative state.
 - Workspace deletion and orphan-cleanup tests.
-
-## Revision History
-
-| Date | Change |
-|---|---|
-| 2026-07-11 | Accepted the authoritative, derived, migration, and recovery boundaries for workspace state. |

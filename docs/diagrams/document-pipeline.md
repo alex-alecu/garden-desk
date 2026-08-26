@@ -24,7 +24,7 @@ flowchart TD
     Deterministic --> Supported{"Supported transformation?"}
     Supported -->|Yes| Verify
     Supported -->|No| Policy["Policy-selected fallback"]
-    Policy --> Code["Fresh no-NIC code-interpreter microVM"]
+    Policy --> Code["Fresh no-network code-interpreter microVM"]
     Code --> Verify
 
     Canonical --> Chunk["Structure-aware chunking"]
@@ -49,12 +49,3 @@ flowchart TD
 - Final outputs should pass verification before export.
 - Supported document operations must not invoke generated code.
 - Code-interpreter output is untrusted and returns through the same verifier.
-
-## Revision History
-
-| Date | Change |
-|---|---|
-| 2026-07-10 | Initial document pipeline diagram created. |
-| 2026-07-10 | Updated pipeline for folder manifests, MarkItDown, Docling, native spreadsheet parsing, EmbeddingGemma, turbovec, summary trees, and verification. |
-| 2026-07-11 | Updated parser routing to native-Node-first with Granite-Docling GGUF, PaddleOCR-VL OCR, a single Python sidecar, and an embedded hybrid index with optional TurboQuant acceleration. |
-| 2026-07-13 | Added deterministic canonical-document operations and the policy-selected no-NIC code-interpreter fallback. |

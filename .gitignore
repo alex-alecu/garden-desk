@@ -15,3 +15,4 @@ packages/eval/src/platform/tauri-smoke/src-tauri/icons/*
 packages/desktop/src-tauri/binaries/
 packages/desktop/src-tauri/gen/
 packages/desktop/src-tauri/resources/
+.claude/settings.local.json

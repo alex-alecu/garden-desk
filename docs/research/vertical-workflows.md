@@ -57,9 +57,3 @@ Choose workflows with:
 - Strong source-citation value.
 - Measurable time savings.
 - Manageable regulatory exposure.
-
-## Revision History
-
-| Date | Change |
-|---|---|
-| 2026-07-10 | Initial vertical workflow research summary created. |

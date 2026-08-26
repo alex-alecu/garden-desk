@@ -14,7 +14,7 @@ Likely open-source:
 - Local single-user workspace.
 - Local document ingestion.
 - Deterministic canonical-document search, filtering, comparison, calculation, and extraction.
-- Bounded no-NIC code-interpreter fallback and its audit surface.
+- Bounded no-network code-interpreter fallback and its audit surface.
 - Local search and retrieval.
 - Local model/runtime adapter interface.
 - Safe folder access.
@@ -99,15 +99,3 @@ This repository should not contain:
 - Unlicensed copied documentation.
 
 Before signing employment or investment agreements, review the repository and concept timeline with an employment/IP lawyer.
-
-## Revision History
-
-| Date | Change |
-|---|---|
-| 2026-07-10 | Initial open-source boundary document created from supplied concept material. |
-| 2026-07-11 | Added verified model and component license facts: Gemma 4 Apache 2.0, EmbeddingGemma Gemma Terms of Use caveat, and permissive licenses for candidate components. |
-| 2026-07-11 | Added the candidate-to-ship review gate and package notice/inventory requirements. |
-| 2026-07-12 | Added community and business Knowledge Bundle boundaries plus resource-level content-rights review. |
-| 2026-07-13 | Added deterministic document operations and the bounded code-interpreter fallback to the community candidate surface. |
-| 2026-07-15 | Recorded the owner-selected Apache 2.0 community license, DCO-only contributor strategy, compliance ownership, and manifest-driven notice strategy; narrowed open decisions to trademark policy and business-plugin extension points. |
-| 2026-07-27 | Approved the exact hash-pinned NVIDIA cuBLAS redistributables required by the self-contained Windows CUDA runtime. |

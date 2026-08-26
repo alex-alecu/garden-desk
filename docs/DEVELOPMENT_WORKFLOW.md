@@ -2,230 +2,96 @@
 
 Created: 2026-07-15
 
-This document is the canonical implementation and contribution workflow for Vault Desk. M0, M1, and M2 are complete; M3 Offline Dev-Agent Desktop V1 is active and its macOS stage is complete. [AGENTS.md](../AGENTS.md) remains authoritative, followed by accepted architecture decision records, [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md), and this workflow.
+This is the implementation and contribution workflow for Vault Desk. [AGENTS.md](../AGENTS.md) is authoritative, followed by accepted ADRs, [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md), and this document. M3 Offline Dev-Agent Desktop V1 is active; see [M3_STATUS.md](M3_STATUS.md) for current evidence.
 
 ## Operating Principles
 
-- Work only inside the active milestone and accepted issue scope.
-- Define acceptance evidence before implementation.
+- Work only inside the active milestone and accepted issue scope. Roadmap presence is not authorization.
 - Search the repository and maintained dependencies before writing custom infrastructure.
 - Prefer deterministic checks and primary-source evidence.
-- Protect security, privacy, evidence, recovery, and approval invariants with focused tests.
 - Report commands and results exactly; never imply that an unrun check passed.
 - Keep agent workflows in development tooling. They are not Vault Core modules or shipped product behavior.
 
-The repository does not require a universal test-coverage percentage, test-driven development for every edit, proactive delegation, blanket immutability, or a generic application architecture. The milestone gates and the risk-based test policy define what is required.
+There is no coverage percentage, no test-driven development except for bug fixes, no proactive delegation, and no generic application architecture. The Test Rule in [AGENTS.md](../AGENTS.md) and the milestone gates define what is required.
 
-## Development Inference Diagnostics
+## 1. Confirm The Scope
 
-Development desktop resources compile a raw inference diagnostic path. The confined worker can send
-bounded raw failure data only to stderr. The host collector writes at most 1 MiB per native worker
-to `packages/eval/.generated/inference-diagnostics/<run-id>/worker-stderr.log`. The worker cannot
-write this path directly.
+Before changing a file, read the current phase in [AGENTS.md](../AGENTS.md), find the active milestone gate in [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md), and read the ADRs and folder rules in [IMPLEMENTATION_STRUCTURE.md](IMPLEMENTATION_STRUCTURE.md) that the change touches. Stop if the work belongs to an inactive milestone and offer an issue, design note, or plan instead. The `vault-plan-change` skill produces the short change brief.
 
-Before a native worker exists, the development Core writes a bounded host failure record to
-`packages/eval/.generated/inference-diagnostics/<run-id>/inference-host.log`. It has the failed
-stage and operation plus bounded error details. This private file is not a product record.
+## 2. Research First
 
-The generated development headless bundle and copied migrations use
-`packages/eval/.generated/development-inference-headless`. They never share the private diagnostic
-root.
+Inspect the relevant source, tests, schemas, adapters, and recent history. Check whether the capability already exists. For a dependency decision use official documentation, package metadata, source, releases, advisories, and license files, and run the `vault-review-dependency` skill; a popular package is not automatically acceptable. Mark unvalidated compatibility, performance, or packaging claims as research-derived.
 
-Before this bundle starts Core, the development wrapper removes only the obsolete
-`packages/eval/.generated/inference-diagnostics/headless` directory. It does not remove UUID
-diagnostic directories.
+## 3. Implement The Minimum Change
 
-The named local M3 and stress commands first build fixed development headless artifacts. They use a
-development Core bundle and a development inference worker automatically. Windows keeps the
-packaged runtime and AppContainer path. macOS keeps the current Seatbelt path. A release desktop
-build and staged public resources always use production artifacts.
+Create a short-lived branch and open a focused pull request for every stage. Do not start the next stage until the current pull request is merged or closed.
 
-The normal desktop build compiles this path out. It does not create raw diagnostic files and keeps
-the fixed private inference error. There is no runtime flag, environment variable, command option,
-or user control for diagnostics. These local files can contain private data. Do not add them to
-reports, catalog records, audit records, debug snapshots, user-interface data, or Git.
-
-## 1. Confirm The Active Milestone
-
-Before changing a file:
-
-1. Read the current phase rules in [AGENTS.md](../AGENTS.md).
-2. Find the active milestone and its gate in [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
-3. Identify the product contract, adapter boundary, or documentation responsibility the issue exercises.
-4. Read the relevant ADRs and the folder ownership rules in [IMPLEMENTATION_STRUCTURE.md](IMPLEMENTATION_STRUCTURE.md).
-5. Stop if the requested implementation belongs to an inactive milestone.
-
-Roadmap presence is not authorization. The owner activated M3 on 2026-07-20 and expanded it on 2026-08-15 with the named prompt-only professional review skill set. The post-V1 document-intelligence follow-up and all later work require a new explicit owner request. Implementation outside the active scope must be converted into an issue, design note, or plan rather than code.
-
-### Change Brief
-
-Record this before implementation:
-
-```markdown
-## Change Brief
-
-- Goal:
-- Active milestone and issue:
-- Allowed scope:
-- Product contracts and boundaries:
-- Risks:
-- Acceptance evidence:
-- Dependencies affected:
-- Explicitly not doing:
-```
-
-## 2. Inspect And Research First
-
-Search locally before searching externally:
-
-1. Inspect the relevant source, tests, schemas, adapters, and recent history.
-2. Check whether the capability already exists or can be expressed through a current contract.
-3. For a dependency decision, use official documentation, package metadata, source, releases, security advisories, and license files.
-4. Compare adopt, wrap, benchmark, and build-minimally options.
-5. Mark unvalidated compatibility, performance, or packaging claims as research-derived.
-
-Dependency decisions must evaluate maintenance, license and redistribution, transitive dependencies, offline operation, telemetry and network behavior, credentials, package size, native components, platform support, security posture, and adapter fit. A popular package is not automatically acceptable.
-
-## 3. Define Acceptance Evidence
-
-Select tests from the failure being prevented. Ask whether the change can:
-
-- Leak data or create an undeclared network path.
-- Bypass policy, approval, workspace scope, or a process boundary.
-- Lose evidence, citations, audit history, authoritative state, or recovery state.
-- Add a purpose-built document subsystem before post-V1 measurements justify it.
-- Corrupt an export, package, migration, or platform lifecycle.
-- Break a user-visible milestone behavior.
-
-If yes, name the focused test or gate before implementation. If no, prefer the smallest relevant test and avoid broad snapshots or mock-heavy coverage.
-
-## 4. Implement The Minimum Change
-
-Beginning with M1, create a short-lived branch and open a focused pull request for every implementation stage. Do not commit implementation work directly to `main`, and do not begin the next stage until the current stage's pull request is merged or explicitly closed. A milestone may use multiple stage pull requests when its accepted issue scope is divided into independently verifiable responsibilities.
-
-Follow the startup working agreement in [IMPLEMENTATION_STRUCTURE.md](IMPLEMENTATION_STRUCTURE.md):
-
-- Write only what the active gate consumes.
-- Keep security boundaries complete even when product breadth is minimal.
+- Write only what the active gate consumes and keep security boundaries complete.
 - Handle named cases and return a typed unsupported outcome for the rest.
-- Add abstractions only for an ADR-mandated seam or a second real implementation.
+- Add an abstraction only for an ADR-mandated seam or a second real implementation.
 - Keep policy separate from model output and adapters thin around dependencies.
-- Do not add speculative options, plugins, frameworks, or extension points.
+- Apply the Test Rule: bug fixes start with one failing reproduction test (`vault-fix-bug` skill); everything else is implemented first and gets at most one focused test.
 
 If the gate demands disproportionate code, propose reducing the requirement before adding infrastructure around it.
 
-## 5. Verify With Evidence
+## 4. Verify
 
-For an ordinary implementation pull request:
+For an ordinary pull request run:
 
-1. Inspect the complete diff and changed-file list.
-2. Run the smallest targeted tests that prove the named behavior or invariant.
-3. Run `pnpm verify` once M0 creates it.
-4. Run additional integration, platform, model, package, or benchmark commands only when the affected boundary requires them.
-
-Run `pnpm test:gate --milestone <n>` only when claiming that milestone's gate is complete. Missing required hardware, models, workers, or packages must be reported as failures or not-run prerequisites, never silent skips.
-
-Windows desktop authority changes require separate standard-user evidence for development and the staged production application: the main executable must remain `asInvoker`, only the fixed setup helper may request UAC, a different credentialed administrator must still add the requesting account, a new sign-in must activate HCS access, and tampered setup bytes must be rejected. macOS evidence must independently prove that no Windows helper, administrator prompt, or elevated launch was introduced.
-
-Windows `desktop:dev` keeps Vite frontend hot reload but passes `--no-watch` to Tauri because NTFS access notifications can otherwise be misclassified as Rust source edits and cause a rebuild loop. Restart the development command after changing Rust desktop-host code. macOS retains Tauri's normal Rust watcher.
-
-Windows development signing uses the disposable current-user identity. A public production build sets `VAULT_WINDOWS_SIGNING_MODE=production` and `VAULT_WINDOWS_SIGNING_CERTIFICATE_THUMBPRINT` to an owner-controlled code-signing certificate in the current-user certificate store; an optional `VAULT_WINDOWS_SIGNING_TIMESTAMP_URL` enables the configured timestamp service. Production mode fails closed when the certificate is missing, lacks its private key, or does not match the requested thumbprint. The recorded signing mode includes that public thumbprint.
-
-### Verification Report
-
-```markdown
-## Verification Report
-
-- Changed surfaces:
-- Commands passed:
-- Commands failed:
-- Required checks not run and why:
-- Manual checks:
-- Remaining risks:
-- Conclusion: ready | not ready | blocked
+```sh
+pnpm lint && pnpm typecheck && pnpm test
 ```
 
-Use `not ready` for a fixable incomplete change. Use `blocked` only when progress requires a decision, authority, platform, asset, or external state that is unavailable.
+plus the one targeted test the change added, if any. `pnpm verify` is the release check (source limits, lint, typecheck, native builds, Rust lint, and the `unit` and `native` Vitest projects) and runs in CI. The `platform` and `m2-native` projects are not in it: run `pnpm test:platform:gate` or `pnpm test:native:m2` when the change touches that boundary, and run `pnpm verify` locally only for native helper, build script, or packaged runtime changes. Run `pnpm test:gate --milestone <n>` and the platform, model, or package commands only when claiming that milestone's gate. Missing hardware, models, workers, or packages are reported as not run, never as passed.
 
-## 6. Self-Review And Handoff
+The `vault-verify-change` skill produces the verification report. Report `not ready` for a fixable incomplete change and `blocked` only when progress needs a decision, authority, platform, or asset that is unavailable.
 
-Review findings in this order:
+## 5. Review And Hand Off
 
-1. Security, privacy, authority, and process boundaries.
-2. Active milestone contract and scope.
-3. Correctness, evidence, recovery, and user-visible behavior.
-4. Minimum-code and dependency discipline.
-5. Maintainability and documentation.
+Review findings in this order: security, privacy, authority, and process boundaries; active milestone contract and scope; correctness, evidence, recovery, and user-visible behavior; minimum-code and dependency discipline; maintainability and documentation.
 
-Use severities consistently:
+Severities:
 
-- **P0**: immediate data exposure, authority bypass, destructive behavior, or release-blocking security failure.
-- **P1**: milestone contract, correctness, recovery, evidence, or approval invariant is broken.
-- **P2**: material test, scope, dependency, or maintainability gap that should be fixed before merge.
+- **P0**: data exposure, authority bypass, destructive behavior, or release-blocking security failure.
+- **P1**: broken milestone contract, correctness, recovery, evidence, or approval invariant.
+- **P2**: material test, scope, dependency, or maintainability gap to fix before merge.
 - **P3**: low-risk clarity or documentation improvement.
 
-When work continues in another session or contributor's branch, produce a handoff:
+The automated GitHub review follows [REVIEW.md](../REVIEW.md); its CRITICAL, WARNING, and SUGGESTION map to P0-P1, P2, and P3.
 
-```markdown
-## Handoff
-
-- Objective and current state:
-- Changed paths:
-- Decisions and source links:
-- Commands run and results:
-- Failures and attempted fixes:
-- Open risks or questions:
-- Next concrete action:
-```
-
-Do not include secrets, customer content, raw sensitive outputs, private credentials, or hidden model reasoning. Record decisions and evidence, not internal thought processes.
+Use the `vault-review-change` skill for a review and the `vault-handoff` skill when work continues elsewhere. Never include secrets, customer content, raw sensitive outputs, or hidden model reasoning in a report.
 
 ## Pull Request Gate
 
-A pull request is ready for maintainer review only when:
+A pull request is ready for review when it links the active milestone and issue, contains no unrelated cleanup or speculative scaffolding, preserves product and security boundaries, states verification results exactly, documents dependency and redistribution impact, updates contracts and authoritative documentation when behavior changes, and is authored only by its human owner. Reviewers may ask for a split when a pull request spans unrelated responsibilities.
 
-- It links an accepted issue and active milestone.
-- The diff contains no unrelated cleanup or speculative scaffolding.
-- Required product and security boundaries are preserved.
-- Tests and verification results are stated exactly.
-- Dependency and redistribution impacts are documented.
-- Documentation and audit contracts are updated when behavior changes.
-- Unresolved risks and unrun checks are visible.
-- Every commit is authored only by its human owner.
-- The stage was developed on a short-lived branch and will merge through this pull request, never by a direct implementation push to `main`.
+## Real-Model Reproduction
 
-There is no fixed line limit or coverage percentage. Reviewers may ask for a split when a pull request spans unrelated responsibilities or cannot be verified coherently.
+Use the real Gemma worker and no-network guest when diagnosing agent-loop behavior; a fake inference test or desktop-only reproduction is not sufficient evidence. Raw development inference diagnostics are private and must not enter reports, product records, debug snapshots, user-interface data, or Git.
 
-## Repository-Local Agent Skills
+- Run `pnpm test:m3:macos` on physical Apple silicon for the canonical headless M3 gate. It verifies the pinned Gemma 4 model, real multi-step Python and Node tasks, artifacts, automatic context and memory evidence, guest isolation, timeout, and output limits without the desktop UI.
+- For a task-specific daemon reproduction, create an ignored script under `packages/eval/.generated/`. Use `createVaultCore` with `packages/eval/.generated/models`, the generated macOS helper, and `packages/workers/images`; start the real current-user server with `startDaemon`; then call it through `packages/cli/src/client.ts` using `folders.add`, `sessions.create`, `agent.start`, and repeated `agent.get` requests until the run is terminal.
+- Put the ephemeral workspace directly under `/tmp` so the macOS Unix-socket path stays within its length limit. If the restricted shell returns `listen EPERM` or denies Virtualization.framework, rerun the same command outside the restricted shell; that sandbox denial is not a product failure.
+- Capture the terminal run state, error, response, and complete ordered events, including generated code, stdout, stderr, and termination. Reproduce once before editing and rerun the identical fixture and task after the fix.
+- Keep models, generated helpers, guest images, reproduction scripts, fixtures, and workspaces uncommitted. After the focused reproduction passes, run `pnpm test:m3:macos` and `pnpm verify`; report Windows evidence separately and never infer it from macOS.
+- After every real stress-test run, add the results as a new [STRESS_TEST.md](../STRESS_TEST.md) change and ask the owner whether to push it.
 
-The optional skills under `.agents/skills/` package this workflow for compatible coding agents:
+Development inference diagnostics are described in [M3_STATUS.md](M3_STATUS.md#development-inference-diagnostics).
 
-- `vault-plan-change`
-- `vault-review-dependency`
-- `vault-verify-change`
-- `vault-review-change`
-- `vault-handoff`
+## Platform Notes
 
-They are on-demand instructions, not executable hooks. They cannot install dependencies, add network services, mutate external systems, require subagents, broaden permissions, or override [AGENTS.md](../AGENTS.md).
+- Windows desktop authority changes need separate standard-user evidence for development and the staged production application: the main executable stays `asInvoker`, only the fixed setup helper may request UAC, a different credentialed administrator must add the requesting account, a new sign-in activates HCS access, and tampered setup bytes are rejected. macOS evidence must independently show that no Windows helper, administrator prompt, or elevated launch was introduced.
+- Windows `desktop:dev` keeps Vite hot reload but passes `--no-watch` to Tauri because NTFS access notifications can be misread as Rust source edits and cause a rebuild loop. Restart the development command after changing Rust desktop-host code. macOS keeps Tauri's normal Rust watcher.
+- Windows development signing uses the disposable current-user identity. A public production build sets `VAULT_WINDOWS_SIGNING_MODE=production` and `VAULT_WINDOWS_SIGNING_CERTIFICATE_THUMBPRINT` to an owner-controlled code-signing certificate in the current-user store; optional `VAULT_WINDOWS_SIGNING_TIMESTAMP_URL` enables a timestamp service. Production mode fails closed when the certificate is missing, lacks its private key, or does not match the thumbprint.
 
-## ECC-Derived Workflow Review
+## Agent Skills
 
-The development-workflow review was informed by [Everything Claude Code](https://github.com/affaan-m/ECC), particularly its research-before-code, explicit verification, reusable-skill, review, and handoff patterns. Vault Desk adopts those ideas in original project-specific wording.
+The skills under [.agents/skills](../.agents/skills) package this workflow for Codex and Claude Code. See [.agents/skills/README.md](../.agents/skills/README.md).
 
-Vault Desk explicitly does not adopt ECC's package, installers, global Codex synchronization, hooks, MCP baseline, memory database, autonomous learning, worktree services, blanket coverage rules, generic architecture defaults, model routing, inference guidance, or runtime components. If substantial ECC material is copied in the future, its MIT license and required notice must accompany the copied material.
+## Attribution
 
-## V1 Contribution Activation
+The workflow review was informed by [Everything Claude Code](https://github.com/affaan-m/ECC) (research-before-code, explicit verification, reusable skills, review, and handoff). Vault Desk uses original wording and does not include ECC's package, installers, hooks, MCP baseline, memory database, autonomous learning, worktree services, coverage rules, model routing, or runtime components. If substantial ECC material is ever copied, its MIT license and notice must accompany it.
 
-External implementation contributions remain closed through the M3 V1 launch unless the owner separately activates them. Beginning with M1, the repository owner develops every stage on a short-lived branch, opens a pull request, keeps each commit small, and leaves the active milestone gate green. Pull-request CI runs when a pull request is opened, reopened, or updated with pushed commits; direct pushes to `main` do not run it. Contribution activation is described in [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md#v1-launch-and-contribution-activation).
+## Contribution Activation
 
-AI assistants, models, coding agents, and tools are never authors or co-authors. Private vulnerability reporting may be enabled before v1 because it does not open implementation contributions or change milestone scope.
-
-## Revision History
-
-| Date | Change |
-|---|---|
-| 2026-07-15 | Added the milestone-scoped, research-first, risk-gated implementation and contribution workflow. |
-| 2026-07-16 | Activated the M0 workflow and aligned contribution activation with the original v1 gate. |
-| 2026-07-20 | Activated M3 Desktop V1, moved document intelligence after launch, and decoupled contribution activation from product certification. |
-| 2026-08-15 | Added the named prompt-only professional review skill set to active M3 scope. |
-| 2026-07-17 | Required a branch and pull request for every remaining implementation stage and moved CI from direct pushes to pull-request activity. |
+External implementation contributions stay closed through the M3 V1 launch unless the owner activates them separately. Pull-request CI runs on pull request activity; direct pushes to `main` do not run it. Activation is described in [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md#v1-launch-and-contribution-activation). Private vulnerability reporting may be enabled before v1.

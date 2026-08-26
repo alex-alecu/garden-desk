@@ -9,7 +9,7 @@ Milestone M0 is complete. The Mac and Windows checkpoints and published cross-pl
 - Goal: establish the smallest reproducible Vault Desk workspace and validation surface required by M0.
 - Active milestone and issue: M0, started by the repository owner's explicit 2026-07-16 request; no separate issue was supplied.
 - Allowed scope: phase-rule updates, Apache 2.0 root license, pinned Node/pnpm/Rust and root tooling, M0-only `shared` and `eval` packages, model and compliance manifests, test-only Tauri and microVM probes, guest-image recipe, ADR 0017, and macOS/Windows CI.
-- Product boundaries: model manifests are canonical in `@vault/shared`; model fetching remains development-only in `@vault/eval`; Tauri exposes only a fixed test command and exact sidecar; hostile-work validation requires a no-NIC guest and typed host/guest IPC; no product UI or external integration is introduced.
+- Product boundaries: model manifests are canonical in `@vault/shared`; model fetching remains development-only in `@vault/eval`; Tauri exposes only a fixed test command and exact sidecar; hostile-work validation requires a no-network guest and typed host/guest IPC; no product UI or external integration is introduced.
 - Explicitly not doing: M1 daemon/CLI/workspace/worker code, product UI, customer-document handling, external integrations, model redistribution, committed binaries, or contribution activation.
 
 ## Gate State
@@ -76,10 +76,10 @@ Milestone M0 is complete. The Mac and Windows checkpoints and published cross-pl
 
 - Objective and current state: M0 is complete on macOS and Windows with published CI evidence; M1 subsequently completed across both platforms.
 - Changed paths: root workspace and policy files, M0 `shared` and `eval` packages, the Tauri and microVM probes, Buildroot guest recipe, model/compliance manifests, CI, ADR 0017, and supporting M0 documentation.
-- Decisions and source links: use the official immutable Qwen Q8_0 artifact recorded in `assets/models.json`; use a reproducible Buildroot no-NIC guest with typed VSOCK IPC; keep generated guests, models, executables, and icons out of Git.
+- Decisions and source links: use the official immutable Qwen Q8_0 artifact recorded in `assets/models.json`; use a reproducible Buildroot no-network guest with typed VSOCK IPC; keep generated guests, models, executables, and icons out of Git.
 - Commands and results: the exact Mac and Windows build, model, gate, platform, Tauri runtime, and post-review verification evidence is recorded above; all required M0 checks pass.
 - Failures and attempted fixes: the Docker bind-mount race, Virtualization.framework signing and dispatch issues, Buildroot `dummy0`, and generated-icon policy issue are resolved as recorded above.
 - Open risks or questions: accelerated Metal performance remains outside the proven M0 model-correctness evidence.
-- Windows state: the elevated HCS lifecycle, no-NIC assertion, guest report, and Hyper-V socket round trip pass.
+- Windows state: the elevated HCS lifecycle, no-network assertion, guest report, and Hyper-V socket round trip pass.
 - Published CI state: run `29556828274` passes both required jobs.
 - Completion rule: satisfied on 2026-07-17. The separately authorized M1 milestone completed on 2026-07-18.

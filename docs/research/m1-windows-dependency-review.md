@@ -4,7 +4,7 @@ Updated: 2026-07-18
 
 ## Dependency Review
 
-- Capability and milestone: M1 needs a signed Windows helper that owns only HCS microVM lifecycle, no-NIC configuration, CPU and memory limits, SCSI attachments, typed Hyper-V socket transport, and teardown.
+- Capability and milestone: M1 needs a signed Windows helper that owns only HCS microVM lifecycle, no-network configuration, CPU and memory limits, SCSI attachments, typed Hyper-V socket transport, and teardown.
 - Existing repository alternative: the M0 C# probe proved the required `computecore.dll` and Winsock calls but was test-only and could not satisfy the planned signed Rust product boundary.
 - Candidate and pinned version or revision: minimal owned Rust FFI compiled with the repository's pinned Rust 1.97.0 toolchain and Windows SDK; no third-party crate. Microsoft `hcsshim` schema evidence is pinned to commit `0e72fa7fbe61ef5082df6f99427821a5102f325c`.
 - Primary sources: [Microsoft HCS API overview](https://learn.microsoft.com/en-us/virtualization/api/hcs/reference/apioverview), [HcsCreateComputeSystem](https://learn.microsoft.com/en-us/virtualization/api/hcs/reference/hcscreatecomputesystem), [Hyper-V socket integration services](https://learn.microsoft.com/en-us/windows-server/virtualization/hyper-v/make-integration-service), [HCS schema reference](https://learn.microsoft.com/en-us/virtualization/api/hcs/schemareference), and the Microsoft `hcsshim` [SCSI attachment schema](https://github.com/microsoft/hcsshim/blob/0e72fa7fbe61ef5082df6f99427821a5102f325c/internal/hcs/schema2/attachment.go).
