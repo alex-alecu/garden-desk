@@ -86,3 +86,40 @@ describe("current artifact results", () => {
     });
   });
 });
+
+describe("failed artifact recovery", () => {
+  it("restores output after a later unchanged success", () => {
+    const failed = result(
+      "report.unknown",
+      { exitCode: 1, termination: "completed" },
+      "complete bytes written before failure",
+    );
+    failed.invalidatedArtifactPaths = ["report.unknown"];
+    const laterSuccess = result("unused.unknown", {
+      exitCode: 0,
+      termination: "completed",
+    });
+    laterSuccess.artifacts = [];
+
+    expect(currentArtifactOutputs([failed])).toEqual(new Map());
+    expect(currentArtifactOutputs([failed, laterSuccess]).get("report.unknown")).toEqual({
+      name: "report.unknown",
+      bytesBase64: Buffer.from("complete bytes written before failure").toString("base64"),
+    });
+  });
+
+  it("does not restore failed output after a later removal", () => {
+    const failed = result("report.unknown", { exitCode: 1, termination: "completed" });
+    failed.invalidatedArtifactPaths = ["report.unknown"];
+    const removed = result("unused.unknown", { exitCode: 1, termination: "completed" });
+    removed.artifacts = [];
+    removed.invalidatedArtifactPaths = ["report.unknown"];
+    const laterSuccess = result("unused.unknown", {
+      exitCode: 0,
+      termination: "completed",
+    });
+    laterSuccess.artifacts = [];
+
+    expect(currentArtifactOutputs([failed, removed, laterSuccess])).toEqual(new Map());
+  });
+});

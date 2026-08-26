@@ -1,7 +1,11 @@
 // biome-ignore lint/style/noRestrictedImports: the fake child verifies the bounded helper transport without spawning.
 import type { ChildProcessWithoutNullStreams } from "node:child_process";
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { EventEmitter } from "node:events";
+// biome-ignore lint/style/noRestrictedImports: this boundary test reopens the real workspace store.
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { PassThrough } from "node:stream";
 import {
   AgentExecutionIdSchema,
@@ -12,7 +16,7 @@ import { describe, expect, it, vi } from "vitest";
 import { encodeFrame } from "../ipc.js";
 import { AgentHelperTransport } from "./agent-transport.js";
 import { FramedAgentSession } from "./macos-agent-session.js";
-import type { AgentWorkspaceStore } from "./workspace-store.js";
+import { AgentWorkspaceStore } from "./workspace-store.js";
 
 function fakeChild(): {
   child: ChildProcessWithoutNullStreams;
@@ -176,6 +180,31 @@ function artifactInvalidationSession(frame: ReturnType<typeof artifactInvalidati
   });
 }
 
+function failedWorkspaceFrame(executionId: string, bytes: Buffer) {
+  const frame = resultFrame(randomUUID(), executionId);
+  return AgentGuestResultSchema.parse({
+    ...frame,
+    execution: {
+      ...frame.execution,
+      exitCode: 1,
+      artifacts: [
+        { name: "report.txt", mediaType: "text/plain", bytesBase64: bytes.toString("base64") },
+      ],
+    },
+    workspaceDelta: {
+      entries: [
+        {
+          kind: "file",
+          path: "report.txt",
+          contentHash: createHash("sha256").update(bytes).digest("hex"),
+          bytesBase64: bytes.toString("base64"),
+        },
+      ],
+      removedPaths: [],
+    },
+  });
+}
+
 describe("agent artifact candidate invalidation", () => {
   it("invalidates changed files omitted by artifact limits without invalidating captured files", async () => {
     const executionId = AgentExecutionIdSchema.parse(randomUUID());
@@ -208,6 +237,52 @@ describe("agent artifact candidate invalidation", () => {
       "oversized.pdf",
       "reports",
     ]);
+  });
+});
+
+describe("failed execution persistence", () => {
+  it("commits terminal workspace bytes", async () => {
+    const root = await mkdtemp(join(tmpdir(), "vault-failed-workspace-"));
+    try {
+      const executionId = AgentExecutionIdSchema.parse(randomUUID());
+      const bytes = Buffer.from("durable failed output");
+      const store = await AgentWorkspaceStore.create(root);
+      const sessionId = randomUUID();
+      const session = new FramedAgentSession({
+        sessionId,
+        limits: {
+          wallTimeMs: 1_000,
+          memoryBytes: 256 * 1024 * 1024,
+          scratchBytes: 128 * 1024 * 1024,
+          outputBytes: 1_000_000,
+        },
+        transport: {
+          exchange: vi.fn(async () => failedWorkspaceFrame(executionId, bytes)),
+          write: vi.fn(),
+        } as unknown as AgentHelperTransport,
+        store,
+        temporaryRoot: "/tmp/unused-failed-workspace-test",
+        lifecyclePlatform: "macos",
+      });
+
+      await session.execute(
+        { language: "python", path: "steps/live.py", source: "raise SystemExit(1)" },
+        undefined,
+        { executionId, onUpdate() {} },
+      );
+
+      const reopened = await AgentWorkspaceStore.create(root);
+      await expect(reopened.load(sessionId)).resolves.toEqual([
+        {
+          kind: "file",
+          path: "report.txt",
+          contentHash: createHash("sha256").update(bytes).digest("hex"),
+          bytesBase64: bytes.toString("base64"),
+        },
+      ]);
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
   });
 });
 

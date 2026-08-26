@@ -27,25 +27,58 @@ export function isUserArtifactPath(path: string): boolean {
 
 function applyExecutionArtifacts(
   current: Map<string, ArtifactOutput>,
+  pending: Map<string, ArtifactOutput>,
   execution: AgentExecutionResult,
 ): void {
-  for (const path of execution.invalidatedArtifactPaths ?? []) current.delete(path);
-  if (!isSuccessfulExecution(execution)) return;
+  const invalidated = new Set(execution.invalidatedArtifactPaths ?? []);
+  for (const path of invalidated) {
+    current.delete(path);
+    pending.delete(path);
+  }
+  if (!isSuccessfulExecution(execution)) {
+    retainFailedArtifacts(current, pending, execution, invalidated);
+    return;
+  }
+  publishSuccessfulArtifacts(current, pending, execution);
+}
+
+function retainFailedArtifacts(
+  current: Map<string, ArtifactOutput>,
+  pending: Map<string, ArtifactOutput>,
+  execution: AgentExecutionResult,
+  invalidated: ReadonlySet<string>,
+): void {
+  for (const artifact of execution.artifacts) {
+    if (!invalidated.has(artifact.name) || !isUserArtifactPath(artifact.name)) continue;
+    current.delete(artifact.name);
+    pending.set(artifact.name, { name: artifact.name, bytesBase64: artifact.bytesBase64 });
+  }
+}
+
+function publishSuccessfulArtifacts(
+  current: Map<string, ArtifactOutput>,
+  pending: Map<string, ArtifactOutput>,
+  execution: AgentExecutionResult,
+): void {
   for (const artifact of execution.artifacts) {
     if (isUserArtifactPath(artifact.name)) {
       current.set(artifact.name, {
         name: artifact.name,
         bytesBase64: artifact.bytesBase64,
       });
+      pending.delete(artifact.name);
     }
   }
+  for (const [name, output] of pending) current.set(name, output);
+  pending.clear();
 }
 
 export function currentArtifactOutputs(
   executions: readonly AgentExecutionResult[],
 ): ReadonlyMap<string, ArtifactOutput> {
   const current = new Map<string, ArtifactOutput>();
-  for (const execution of executions) applyExecutionArtifacts(current, execution);
+  const pending = new Map<string, ArtifactOutput>();
+  for (const execution of executions) applyExecutionArtifacts(current, pending, execution);
   return current;
 }
 
