@@ -58,7 +58,7 @@ Documentation is for people. Use plain wording, explain a technical term on firs
 
 ## Agent Skills
 
-The skills under [.agents/skills](.agents/skills) (also exposed at `.claude/skills`) package this workflow for Codex and Claude Code: plan a change, fix a bug, verify, review, review a dependency, hand off. They do not override this file, ADRs, or the active milestone.
+The skills under [.agents/skills](.agents/skills) (also exposed at `.claude/skills`) package this workflow for Codex and Claude Code: plan a change, fix a bug, verify, review, review a dependency, hand off. They do not override this file, ADRs, or the active milestone. The GitHub pull request review runs the command in [.claude/commands/vault-code-review.md](.claude/commands/vault-code-review.md), which reads [REVIEW.md](REVIEW.md) first and this file as secondary context, and may only read the pull request and post review comments.
 
 ## Where To Look
 
