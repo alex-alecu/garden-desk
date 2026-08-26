@@ -46,13 +46,19 @@ function largeOutputInference() {
   };
 }
 
-function completedAuditExecutions(database: DatabasePort): number | undefined {
+function completedAuditExecutionCounts(database: DatabasePort) {
   const rows = database
     .prepare("SELECT event_json FROM audit_events ORDER BY sequence")
     .all() as Array<{ event_json: string }>;
   return rows
-    .map((row) => JSON.parse(row.event_json) as { metadata: { executions?: number }; type: string })
-    .find((event) => event.type === "agent.completed")?.metadata.executions;
+    .map(
+      (row) =>
+        JSON.parse(row.event_json) as {
+          metadata: { executions?: number; guestExecutions?: number };
+          type: string;
+        },
+    )
+    .find((event) => event.type === "agent.completed")?.metadata;
 }
 
 afterEach(cleanServiceFixtures);
@@ -140,7 +146,10 @@ describe("persisted output spill budget", () => {
 
     expect(processes).toBe(3);
     expect(snapshot.executions).toHaveLength(1);
-    expect(completedAuditExecutions(catalog.database)).toBe(3);
+    expect(completedAuditExecutionCounts(catalog.database)).toMatchObject({
+      executions: 1,
+      guestExecutions: 3,
+    });
     await service.close();
     catalog.close();
   });

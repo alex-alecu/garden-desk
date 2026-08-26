@@ -45,7 +45,13 @@ async function preparedTransportFailure(
       .prepare("SELECT event_json FROM audit_events ORDER BY sequence")
       .all() as Array<{ event_json: string }>
   )
-    .map((row) => JSON.parse(row.event_json) as { metadata: { executions?: number }; type: string })
+    .map(
+      (row) =>
+        JSON.parse(row.event_json) as {
+          metadata: { executions?: number; guestExecutions?: number };
+          type: string;
+        },
+    )
     .find((event) => event.type === "agent.completed");
   await service.close();
   catalog.close();
@@ -58,7 +64,7 @@ it("records terminal event and audit evidence for a prepared source transport fa
 
   expect(events.map((event) => event.type)).toEqual(["execution.started", "execution.completed"]);
   expect(events.at(-1)).toMatchObject({ termination: "crash", source: "print('ok')" });
-  expect(audit?.metadata.executions).toBe(1);
+  expect(audit?.metadata).toMatchObject({ executions: 1, guestExecutions: 1 });
 });
 
 it("records resolved source and terminal event for a path-only transport failure", async () => {
@@ -71,5 +77,5 @@ it("records resolved source and terminal event for a path-only transport failure
       expect.objectContaining({ path: "steps/saved.py", source: "print('committed bytes')\n" }),
     ]),
   );
-  expect(audit?.metadata.executions).toBe(1);
+  expect(audit?.metadata).toMatchObject({ executions: 1, guestExecutions: 1 });
 });

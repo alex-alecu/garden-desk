@@ -84,7 +84,6 @@ export class AgentService {
   saveDraft(sessionId: string, content: string): SessionDraft {
     return this.store.saveDraft(sessionId, content);
   }
-
   loadDraft(sessionId: string): SessionDraft | undefined {
     return this.store.loadDraft(sessionId);
   }
@@ -278,7 +277,10 @@ export class AgentService {
         });
         this.jobs.transition(run.jobId, "succeeded");
       })();
-      appendSuccessfulRunAudit(this.audit, run, result.guestExecutions);
+      appendSuccessfulRunAudit(this.audit, run, {
+        executions: this.store.execution.list(run.id).length,
+        guestExecutions: result.guestExecutions,
+      });
       this.summaryQueue.enqueue(run, signal, measuredContextTokens);
     } catch (error) {
       this.failRun(run, signal, error);

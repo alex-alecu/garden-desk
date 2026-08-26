@@ -4,7 +4,7 @@ import type { AuditLog } from "../audit/log.js";
 export function appendSuccessfulRunAudit(
   audit: AuditLog,
   run: AgentRunSummary,
-  guestExecutions: number,
+  counts: { executions: number; guestExecutions: number },
 ): void {
   audit.append({
     type: "agent.completed",
@@ -12,7 +12,8 @@ export function appendSuccessfulRunAudit(
     metadata: {
       runId: run.id,
       jobId: run.jobId,
-      executions: guestExecutions,
+      executions: counts.executions,
+      guestExecutions: counts.guestExecutions,
     },
   });
 }
