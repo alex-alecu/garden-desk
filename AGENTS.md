@@ -185,9 +185,9 @@ Strategy:
 
 The optional Markdown skills under [.agents/skills](.agents/skills) package the development workflow for compatible coding agents. They are on-demand helpers for change planning, dependency review, verification, review, and handoff.
 
-The repository-local Claude Code command in [.claude/commands/vault-code-review.md](.claude/commands/vault-code-review.md) runs the pull request review workflow with [REVIEW.md](REVIEW.md) as the primary review instructions and this file as secondary context.
-
 These skills do not override this file, accepted ADRs, the active milestone, or user instructions. They cannot broaden permissions, require delegation, install tools, mutate external systems, or move agent workflow behavior into Vault Core or the shipped product.
+
+Separately, the GitHub pull request review workflow runs the repository-local Claude Code command in [.claude/commands/vault-code-review.md](.claude/commands/vault-code-review.md). It reads [REVIEW.md](REVIEW.md) as the primary review instructions and this file as secondary context, and it may only read the pull request and post review comments.
 
 ## Product Principles To Preserve
 

@@ -13,7 +13,7 @@ Follow these steps precisely:
 
 1. Launch a haiku agent to stop if any of the following are true: the pull request is closed, is a draft, or already has a review comment from claude (check `gh pr view <PR> --comments`).
 
-2. Read `REVIEW.md` in full. Read `CLAUDE.md` and any file it references with `@` syntax. Identify the review lenses that `REVIEW.md` defines under "WHAT TO REVIEW"; each `[tag]` heading is one lens.
+2. Read `REVIEW.md` in full. Read `CLAUDE.md` and any file it references with `@` syntax. Identify the review lenses that `REVIEW.md` defines under "WHAT TO REVIEW"; each inline `[tag]` line that introduces a bullet list is one lens.
 
 3. Launch a sonnet agent to view the pull request and return a summary of the changes, including the title and description.
 
