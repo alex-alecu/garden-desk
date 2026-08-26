@@ -30,13 +30,20 @@ function pathScope(call: ChatToolCall): string {
   return path === undefined ? "" : ` in ${truncateMiddle(path)}`;
 }
 
+function pathVerb(
+  call: ChatToolCall,
+  active: string,
+  done: string,
+  fallback = "a file",
+): VerbObject {
+  const object = truncateMiddle(stringParam(call, "path") ?? fallback);
+  return { running: `${active} ${object}`, done: `${done} ${object}` };
+}
+
 function verbObject(call: ChatToolCall): VerbObject {
   switch (call.name) {
-    case "read": {
-      const path = stringParam(call, "path");
-      const object = path === undefined ? "a file" : truncateMiddle(path);
-      return { running: `Reading ${object}`, done: `Read ${object}` };
-    }
+    case "read":
+      return pathVerb(call, "Reading", "Read");
     case "glob": {
       const pattern = stringParam(call, "pattern") ?? "files";
       return {
@@ -52,11 +59,12 @@ function verbObject(call: ChatToolCall): VerbObject {
         done: `Searched for ${truncateMiddle(pattern)}${scope}`,
       };
     }
-    case "list": {
-      const path = stringParam(call, "path");
-      const object = path === undefined ? "the workspace" : truncateMiddle(path);
-      return { running: `Listing ${object}`, done: `Listed ${object}` };
-    }
+    case "list":
+      return pathVerb(call, "Listing", "Listed", "the workspace");
+    case "write":
+      return pathVerb(call, "Writing", "Wrote");
+    case "edit":
+      return pathVerb(call, "Editing", "Edited");
     case "python":
     case "node":
       return { running: "Running code", done: "Ran code" };

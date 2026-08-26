@@ -1,6 +1,6 @@
 ---
 name: medical-billing-document-review
-description: Administrative medical billing-document comparison. Load after document-review. No coding, billing, coverage, fraud, compliance, diagnosis, or treatment decisions.
+description: Medical billing-document comparison. Load after document-review. No coding, billing, coverage, fraud, compliance, diagnosis, or treatment decisions.
 ---
 
 Use only the supplied claims, bills, remittances, orders, records, policies, and criteria. Do not assume that a code, rate, edit, payer rule, or coverage rule is current or correct.

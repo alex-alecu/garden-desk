@@ -11,8 +11,9 @@ describe("saved-script prompt contracts", () => {
     expect(primary.body).toContain("For compaction, save facts/code in `/workspace/steps`");
     expect(primary.body).toContain("Optional integers: safe values clamp to range");
     expect(primary.body).toContain("wrong/nonfinite/unsafe fail");
-    expect(primary.body).toContain("Edit saved scripts when simple");
-    expect(primary.body).toContain("use a short replacement when small or shell editing is risky");
+    expect(primary.body).toContain(
+      "Fix saved scripts with `edit` (unique `old`); `write` replaces a `/workspace` file",
+    );
     expect(primary.body).toContain("Rerun the `steps/...` path");
     expect(primary.body).toContain("`/workspace/steps` is internal");
     expect(primary.body).toContain("Python/Node `path` is relative `steps/...`");

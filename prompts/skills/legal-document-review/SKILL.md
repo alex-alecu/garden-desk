@@ -1,6 +1,6 @@
 ---
 name: legal-document-review
-description: One-contract legal review. Load after document-review. Exclude: version comparison, diligence sets, event chronologies.
+description: One-contract legal review. Load after document-review. Exclude: version comparison, diligence, chronologies.
 ---
 
 # Legal Document Review

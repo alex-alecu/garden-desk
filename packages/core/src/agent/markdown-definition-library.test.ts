@@ -57,6 +57,8 @@ function expectApprovedAgents(library: MarkdownDefinitionLibrary): void {
       "glob",
       "grep",
       "list",
+      "write",
+      "edit",
       "image",
       "skill",
       "task",

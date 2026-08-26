@@ -18,6 +18,9 @@ function iconFor(row: ActivityRow): IconName {
       return "search";
     case "list":
       return "list";
+    case "write":
+    case "edit":
+      return "pencil";
     case "python":
     case "node":
       return "code";

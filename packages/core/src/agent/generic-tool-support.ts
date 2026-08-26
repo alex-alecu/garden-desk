@@ -248,20 +248,20 @@ export function inspectionTools(): ToolSpec[] {
       name: "read",
       parse: readParams,
       properties: {
-        path: { type: "string", minLength: 1, maxLength: 4_096 },
-        offset: { type: "integer", minimum: 1, maximum: Number.MAX_SAFE_INTEGER, default: 1 },
+        path: { type: "string" },
+        offset: { type: "integer", minimum: 1, default: 1 },
         limit: { type: "integer", minimum: 1, maximum: 2_000, default: 2_000 },
       },
       required: ["path"],
       description:
-        "Read UTF-8 plain text by line range. Offset defaults to 1; safe integers are clamped to the listed bounds.",
+        "Read UTF-8 plain text by line range. Offset defaults to 1; limit defaults to 2000, clamped to 1-2000.",
     }),
     inspectionTool({
       name: "glob",
       parse: (value) => patternParams(value),
       properties: {
-        pattern: { type: "string", minLength: 1, maxLength: 4_096 },
-        path: { type: "string", minLength: 1, maxLength: 4_096 },
+        pattern: { type: "string" },
+        path: { type: "string" },
       },
       required: ["pattern"],
       description: "Find guest paths using a glob pattern.",
@@ -270,9 +270,9 @@ export function inspectionTools(): ToolSpec[] {
       name: "grep",
       parse: (value) => patternParams(value, true),
       properties: {
-        pattern: { type: "string", minLength: 1, maxLength: 4_096 },
-        path: { type: "string", minLength: 1, maxLength: 4_096 },
-        include: { type: "string", minLength: 1, maxLength: 4_096 },
+        pattern: { type: "string" },
+        path: { type: "string" },
+        include: { type: "string" },
       },
       required: ["pattern"],
       description:
@@ -288,7 +288,7 @@ export function inspectionTools(): ToolSpec[] {
         };
       },
       properties: {
-        path: { type: "string", minLength: 1, maxLength: 4_096 },
+        path: { type: "string" },
         depth: { type: "integer", minimum: 0, maximum: 8, default: 2 },
       },
       required: [],

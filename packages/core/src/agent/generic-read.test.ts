@@ -212,12 +212,12 @@ describe("generic read", () => {
       "invalid_include: use non-empty text with at most 4096 characters",
     );
     expect(read?.description).toContain(
-      "Offset defaults to 1; safe integers are clamped to the listed bounds.",
+      "Offset defaults to 1; limit defaults to 2000, clamped to 1-2000.",
     );
     expect(read?.params).toMatchObject({
       properties: {
-        path: { minLength: 1, maxLength: 4_096 },
-        offset: { maximum: Number.MAX_SAFE_INTEGER, default: 1 },
+        path: { type: "string" },
+        offset: { minimum: 1, default: 1 },
         limit: { minimum: 1, maximum: 2_000, default: 2_000 },
       },
     });
@@ -226,20 +226,20 @@ describe("generic read", () => {
     );
     expect(grep?.params).toMatchObject({
       properties: {
-        pattern: { minLength: 1, maxLength: 4_096 },
-        path: { minLength: 1, maxLength: 4_096 },
-        include: { minLength: 1, maxLength: 4_096 },
+        pattern: { type: "string" },
+        path: { type: "string" },
+        include: { type: "string" },
       },
     });
     expect(glob?.params).toMatchObject({
       properties: {
-        pattern: { minLength: 1, maxLength: 4_096 },
-        path: { minLength: 1, maxLength: 4_096 },
+        pattern: { type: "string" },
+        path: { type: "string" },
       },
     });
     expect(list?.description).toContain("Depth defaults to 2; safe integers are clamped to 0-8.");
     expect(list?.params).toMatchObject({
-      properties: { path: { minLength: 1, maxLength: 4_096 }, depth: { default: 2 } },
+      properties: { path: { type: "string" }, depth: { default: 2 } },
     });
   });
 });

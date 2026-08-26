@@ -1,13 +1,13 @@
 ---
 name: word-documents
-description: Use for DOCX files, Word documents, and Word deliverables. Before any legacy .doc access, load this skill; never use generic read or cat for binary DOC.
+description: Use for DOCX files and Word deliverables. Before any legacy .doc access, load this skill; never use generic read or cat for binary DOC.
 ---
 
 # Word Documents
 
-Suffix: legacy binary `.doc` is read-only. Load this skill before any DOC access; never use generic `read` or `cat`. Use `python-docx` for DOCX. Never create/edit `.doc`; create `.docx`.
+Load this skill before any DOC access; never use generic `read` or `cat`. Use `python-docx` for DOCX. Never create/edit `.doc`; create `.docx`.
 
-Legacy: use this complete Python pattern with an absolute `/source` or `/run/attachments` path. No shell. Require zero exit, strict UTF-8, and nonblank text. Tables become text; layout and embedded content are lost. On encrypted, corrupt, mislabeled, or text failure, stop. No fallback. DOC edit is unsupported; DOCX states layout loss.
+Legacy: use this complete Python pattern below. No shell. Require zero exit, strict UTF-8, and nonblank text. Tables become text; layout and embedded content are lost. On encrypted, corrupt, mislabeled, or text failure, stop. No fallback. DOC edit is unsupported; DOCX states layout loss.
 
 ```python
 import os, subprocess
