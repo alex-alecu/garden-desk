@@ -1,9 +1,10 @@
-import type {
-  AgentEventDetail,
-  AgentEventType,
-  AgentExecutionResult,
-  ChatMessage,
-  ChatToolCall,
+import {
+  type AgentEventDetail,
+  type AgentEventType,
+  type AgentExecutionResult,
+  AgentWorkspacePathSchema,
+  type ChatMessage,
+  type ChatToolCall,
 } from "@vault/shared";
 import { containsProtocolTransition } from "./chat-protocol.js";
 import {
@@ -27,12 +28,16 @@ const GUEST_TOOLS = new Set(["bash", "python", "node", "read", "glob", "grep", "
 const CODE_TOOLS = new Set(["bash", "python", "node"]);
 
 export interface ChatToolState {
-  checkpoint: number;
   executions: AgentExecutionResult[];
-  failedTools: number;
   guestExecutions: number;
+  lastExecutionFailure?: {
+    termination: AgentExecutionResult["termination"];
+    exitCode: number;
+    errorText: string;
+  };
   loadedSkills: LoadedSkillCalls;
   messages: ChatMessage[];
+  scriptPaths: string[];
   signatures: string[];
 }
 
@@ -190,7 +195,7 @@ async function executeToolCall(input: ToolTurnInput, call: ChatToolCall): Promis
 
 /**
  * Applies the ordered side effects of a completed tool call: execution and completion events, the
- * tool result message, the doom-loop note, and failure counting. Kept separate from execution so a
+ * tool result message, doom-loop note, and workspace evidence. Kept separate from execution so a
  * group of parallel sub-agent calls can run concurrently yet still fold their results into the
  * conversation and failure counters in the original call order.
  */
@@ -200,6 +205,7 @@ function finalizeToolCall(
   repeated: boolean,
   result: AgentToolResult,
 ): void {
+  retainWorkspaceEvidence(input.state, call, result);
   completedExecution(input, call, result);
   input.state.messages.push({
     role: "tool",
@@ -218,39 +224,36 @@ function finalizeToolCall(
       text: "The same tool call has repeated three times. Change approach and use the new evidence; do not issue it again.",
     });
   }
-  input.state.failedTools = result.failed ? input.state.failedTools + 1 : 0;
+}
+
+function retainWorkspaceEvidence(
+  state: ChatToolState,
+  call: ChatToolCall,
+  result: AgentToolResult,
+): void {
+  if ((call.name === "python" || call.name === "node") && typeof call.params === "object") {
+    const path = (call.params as Record<string, unknown> | null)?.path;
+    if (typeof path === "string" && AgentWorkspacePathSchema.safeParse(path).success) {
+      state.scriptPaths = [...state.scriptPaths.filter((item) => item !== path), path].slice(-8);
+    }
+  }
+  if (result.executionFailure !== undefined) {
+    state.lastExecutionFailure = {
+      ...result.executionFailure,
+      errorText: result.executionFailure.errorText.slice(0, 400),
+    };
+  }
 }
 
 export function initialToolState(messages: ChatMessage[]): ChatToolState {
   return {
-    checkpoint: messages.length,
     executions: [],
-    failedTools: 0,
     guestExecutions: 0,
     loadedSkills: new Map(),
     messages,
+    scriptPaths: [],
     signatures: [],
   };
-}
-
-const FAILURE_EVIDENCE_LIMIT = 400;
-
-/**
- * Discards the failed direction from live context: truncates messages back to the
- * last checkpointed working state and keeps one short deterministic failure note.
- * Durable execution and trace records are unaffected.
- */
-export function rollbackFailedDirection(state: ChatToolState): void {
-  const lastFailure = state.messages.findLast((message) => message.role === "tool");
-  const evidence = lastFailure?.result.slice(0, FAILURE_EVIDENCE_LIMIT) ?? "(no tool output)";
-  state.messages = state.messages.slice(0, state.checkpoint);
-  state.messages.push({
-    role: "system",
-    text: `A direction failed three consecutive tool attempts and was removed from context. Do not retry it. Last failure evidence:\n${evidence}\nContinue from the earlier working state with a materially different approach.`,
-  });
-  state.checkpoint = state.messages.length;
-  state.failedTools = 0;
-  state.signatures = [];
 }
 
 export async function executeToolCalls(

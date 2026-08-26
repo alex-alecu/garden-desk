@@ -264,6 +264,26 @@ describe("ChatAgentLoop path preparation budget", () => {
   });
 });
 
+it("does not infer required artifacts from task text", async () => {
+  const requests: Parameters<InferenceService["chat"]>[0][] = [];
+  const loop = new ChatAgentLoop(model([generated("The requested work is complete.")], requests));
+
+  const result = await loop.run(
+    input(
+      {
+        async execute() {
+          throw new Error("unused");
+        },
+      },
+      ["python"],
+      { task: "Create required-result.unknown." },
+    ),
+  );
+
+  expect(result.response).toBe("The requested work is complete.");
+  expect(result.artifacts).toEqual([]);
+});
+
 it("retries an output limit without compacting or removing tools", async () => {
   const requests: Parameters<InferenceService["chat"]>[0][] = [];
   const limited = { ...generated("partial table"), stopReason: "maxTokens" as const };

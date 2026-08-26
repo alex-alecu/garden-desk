@@ -60,8 +60,8 @@ describe("ChatAgentLoop compaction", () => {
   });
 });
 
-describe("ChatAgentLoop failed-direction rollback", () => {
-  it("discards three failed tool attempts and keeps one deterministic failure note", async () => {
+describe("ChatAgentLoop failed execution context", () => {
+  it("keeps three different failed attempts available to the model", async () => {
     const requests: Parameters<InferenceService["chat"]>[0][] = [];
     const failures = ["call-1", "call-2", "call-3"].map((id) =>
       generated("", [tool("list", id, { path: `/source/${id}` })]),
@@ -78,50 +78,55 @@ describe("ChatAgentLoop failed-direction rollback", () => {
 
     await loop.run(input(failedExecutor, ["list"]));
 
-    const messages = requests[3]?.messages ?? [];
-    expect(messages).toEqual([
-      expect.objectContaining({ role: "system" }),
-      expect.objectContaining({ role: "user", text: "Complete the task." }),
-      expect.objectContaining({
-        role: "system",
-        text: expect.stringContaining("permission denied"),
-      }),
-    ]);
-    expect(messages.some((message) => message.role === "tool")).toBe(false);
+    const failuresInContext = (requests[3]?.messages ?? []).filter(
+      (message) => message.role === "tool" && message.result.includes("permission denied"),
+    );
+    expect(
+      failuresInContext.map((message) => message.role === "tool" && message.toolCallId),
+    ).toEqual(["call-1", "call-2", "call-3"]);
   });
 });
 
-describe("ChatAgentLoop rollback checkpoint", () => {
-  it("restores the last working step so earlier successful evidence survives the rollback", async () => {
+describe("ChatAgentLoop deterministic compaction state", () => {
+  it("places named scripts and the last failure after the anchored summary", async () => {
     const requests: Parameters<InferenceService["chat"]>[0][] = [];
-    const replies = [
-      generated("", [tool("python", "good-1", { source: "print('extract')" })]),
-      ...["bad-1", "bad-2", "bad-3"].map((id) =>
-        generated("", [tool("python", id, { source: `raise SystemExit('${id}')` })]),
+    const first = generated(
+      "",
+      [tool("python", "repair", { source: "raise SyntaxError()", path: "steps/repair.py" })],
+      6_554,
+    );
+    const loop = new ChatAgentLoop(
+      model(
+        [first, generated("The script failed and needs repair."), generated("Done.")],
+        requests,
       ),
-      generated("Recovered."),
-    ];
-    const loop = new ChatAgentLoop(model(replies, requests));
-    const executor = {
-      async execute(run: Parameters<typeof source>[0]) {
-        const failing = source(run).startsWith("raise");
-        return execution(source(run), failing ? "boom" : "", failing ? 1 : 0);
-      },
-    };
+    );
 
-    await loop.run(input(executor, ["python"]));
+    await loop.run(
+      input(
+        {
+          async execute(run) {
+            return execution(source(run), "SyntaxError: invalid syntax", 1);
+          },
+        },
+        ["python"],
+      ),
+    );
 
-    const messages = requests[4]?.messages ?? [];
-    expect(messages).toEqual([
-      expect.objectContaining({ role: "system" }),
-      expect.objectContaining({ role: "user", text: "Complete the task." }),
-      expect.objectContaining({
-        role: "assistant",
-        toolCalls: [tool("python", "good-1", { source: "print('extract')" })],
-      }),
-      expect.objectContaining({ role: "tool", toolCallId: "good-1" }),
-      expect.objectContaining({ role: "system", text: expect.stringContaining("boom") }),
-    ]);
+    expect(requests[2]?.messages[1]).toMatchObject({
+      role: "user",
+      text: expect.stringContaining("<anchored-summary>"),
+    });
+    const workspaceState = requests[2]?.messages[2];
+    expect(workspaceState).toMatchObject({
+      role: "user",
+      text: expect.stringContaining("<workspace-state>"),
+    });
+    if (workspaceState?.role !== "user") throw new Error("missing_workspace_state");
+    expect(workspaceState.text).toContain('"scriptPaths":["steps/repair.py"]');
+    expect(workspaceState.text).toContain('"exitCode":1');
+    expect(workspaceState.text).toContain('"termination":"completed"');
+    expect(workspaceState.text).toContain("SyntaxError: invalid syntax");
   });
 });
 

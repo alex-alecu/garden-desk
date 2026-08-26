@@ -24,7 +24,6 @@ export async function recoverOutputLimit(input: OutputRecoveryInput): Promise<bo
   input.recovery.outputLimitRetryUsed = true;
   if (input.result.performance.promptTokens >= input.contextTokens * COMPACTION_RATIO) {
     input.state.messages = await input.compact();
-    input.state.checkpoint = input.state.messages.length;
   }
   input.state.messages.push({
     role: "system",

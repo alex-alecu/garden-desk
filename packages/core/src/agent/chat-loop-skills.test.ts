@@ -84,7 +84,7 @@ describe("ChatAgentLoop duplicate skill state", () => {
 });
 
 describe("ChatAgentLoop repeated loaded skills", () => {
-  it("counts stale calls and backtracks after the repeated-call limit", async () => {
+  it("stops repeated stale calls without removing earlier context", async () => {
     const requests: Parameters<InferenceService["chat"]>[0][] = [];
     const reads: string[] = [];
     const events: string[] = [];
@@ -122,7 +122,7 @@ describe("ChatAgentLoop repeated loaded skills", () => {
       1,
     );
     expect(events.filter((item) => item === "Loading documents-a skill failed.")).toHaveLength(3);
-    expect(events).toContain("Backtracking to the last working step.");
+    expect(events).not.toContain("Backtracking to the last working step.");
   });
 });
 
