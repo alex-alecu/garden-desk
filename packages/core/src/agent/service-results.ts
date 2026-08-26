@@ -2,13 +2,19 @@ import type { AgentRunPerformance, AgentRunResult } from "@vault/shared";
 import type { InferenceService } from "../runtime/inference.js";
 import { inferenceFailureCode } from "../runtime/inference-errors.js";
 
-export async function inferenceContextTokens(
+export async function inferenceRunContext(
   inference: Partial<Pick<InferenceService, "modelStatus">>,
-): Promise<number | "auto"> {
+): Promise<{ knownContextTokens?: number; modelNeedsLoad: boolean }> {
   try {
-    return (await inference.modelStatus?.())?.contextSizeTokens ?? "auto";
+    const status = await inference.modelStatus?.();
+    return {
+      ...(typeof status?.contextSizeTokens !== "number"
+        ? {}
+        : { knownContextTokens: status.contextSizeTokens }),
+      modelNeedsLoad: status?.state === "unloaded",
+    };
   } catch {
-    return "auto";
+    return { modelNeedsLoad: false };
   }
 }
 

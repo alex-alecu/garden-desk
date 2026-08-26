@@ -3,6 +3,38 @@ import type { InferenceService } from "../runtime/inference.js";
 import { ChatAgentLoop } from "./chat-loop.js";
 import { execution, generated, input, model, source, tool } from "./chat-loop-test-support.js";
 
+describe("ChatAgentLoop initial activity", () => {
+  it.each([
+    { expected: "Loading the local model into memory.", modelNeedsLoad: true },
+    { expected: "Understanding the task.", modelNeedsLoad: false },
+  ] as const)(
+    "reports the correct first step when modelNeedsLoad is $modelNeedsLoad",
+    async ({ expected, modelNeedsLoad }) => {
+      const events: string[] = [];
+      const loop = new ChatAgentLoop(model([generated("Done.")], []));
+
+      await loop.run(
+        input(
+          {
+            async execute() {
+              throw new Error("execution_should_not_start");
+            },
+          },
+          [],
+          {
+            modelNeedsLoad,
+            onEvent: (type, summary) => {
+              if (type === "inference.started") events.push(summary);
+            },
+          },
+        ),
+      );
+
+      expect(events).toEqual([expected]);
+    },
+  );
+});
+
 describe("ChatAgentLoop response streaming", () => {
   it("replaces intermediate text before streaming the accepted answer", async () => {
     const responses: Array<string | null> = [];

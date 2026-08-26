@@ -31,6 +31,7 @@ interface PrimaryRunInput {
   task: string;
   chat: InferenceService["chat"];
   inspectImage(path: string, prompt: string): Promise<string>;
+  modelNeedsLoad: boolean;
   onThinking(thinking: string | null): void;
   onResponse(response: string | null): void;
   onContext(used: number, allocated: number, measured?: boolean): void;
@@ -60,6 +61,7 @@ export async function runPrimaryAgent(input: PrimaryRunInput): Promise<AgentRunR
     inspectImage: input.inspectImage,
     attachments,
     modelId: AGENT_MODEL_ID,
+    modelNeedsLoad: input.modelNeedsLoad,
     onEvent: (type, summary, detail) => store.appendEvent(run.id, type, summary, detail),
     onThinking: input.onThinking,
     onResponse: input.onResponse,
