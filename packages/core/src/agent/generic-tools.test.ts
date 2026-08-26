@@ -200,7 +200,7 @@ describe("GenericToolRegistry task", () => {
 });
 
 describe("GenericToolRegistry resilient parameters", () => {
-  it("assigns code paths internally and rejects oversized inspection ranges", async () => {
+  it("supports source-only, saved-source, and committed-path code runs", async () => {
     const runs: Parameters<AgentExecutor["execute"]>[0][] = [];
     const registry = new GenericToolRegistry({
       executor: {
@@ -217,21 +217,44 @@ describe("GenericToolRegistry resilient parameters", () => {
     });
 
     const python = registry.definitions(["python"])[0];
-    expect(python?.params).not.toHaveProperty("properties.path");
-    await registry.execute("python", { source: "print('ok')", path: "/workspace/bad.py" });
-    const invalidDepth = await registry.execute("list", {
-      path: "/source",
-      depth: 5_000_000_000_000_000,
+    expect(python?.params).toMatchObject({
+      properties: { source: { type: "string" }, path: { type: "string" } },
+      required: [],
     });
-    await registry.execute("list", { path: "/run/attachments", depth: 1 });
+    await registry.execute("python", { source: "print('once')" });
+    await registry.execute("python", { source: "print('saved')", path: "steps/saved.py" });
+    await registry.execute("python", { path: "steps/saved.py" });
 
     expect(runs[0]).toMatchObject({
       language: "python",
       path: expect.stringMatching(/^\.vault-tools\//u),
+      source: "print('once')",
     });
-    expect(invalidDepth).toMatchObject({ failed: true, invalidInput: true });
-    expect(runs).toHaveLength(2);
-    expect(source(runs[1] as (typeof runs)[number])).toContain("Path('/run/attachments')");
+    expect(runs[1]).toEqual({
+      language: "python",
+      path: "steps/saved.py",
+      source: "print('saved')",
+    });
+    expect(runs[2]).toEqual({ language: "python", path: "steps/saved.py" });
+  });
+});
+
+describe("GenericToolRegistry saved-script validation", () => {
+  it("rejects missing and unsafe script inputs", async () => {
+    const registry = new GenericToolRegistry({
+      executor: {
+        async execute(run) {
+          return execution(source(run));
+        },
+      },
+      skills: { metadata: () => [], read: () => "" },
+    });
+
+    const missing = await registry.execute("python", {});
+    const unsafe = await registry.execute("python", { path: "../bad.py" });
+
+    expect(missing).toMatchObject({ failed: true, invalidInput: true });
+    expect(unsafe).toMatchObject({ failed: true, invalidInput: true });
   });
 
   it("rejects an unknown tool named by a Markdown agent", () => {

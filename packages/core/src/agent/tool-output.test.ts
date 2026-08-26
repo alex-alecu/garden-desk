@@ -19,7 +19,7 @@ function completed(source: string): AgentExecutionResult {
 }
 
 function source(run: Parameters<AgentExecutor["execute"]>[0]): string {
-  return run.language === "shell" ? run.command : run.source;
+  return run.language === "shell" ? run.command : (run.source ?? "print('resolved path')");
 }
 
 function executor(writes?: string[], exitCode = 0): AgentExecutor {

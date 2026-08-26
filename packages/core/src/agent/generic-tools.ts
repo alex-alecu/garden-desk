@@ -21,26 +21,40 @@ export type {
   SubagentRequest,
 } from "./generic-tool-support.js";
 
-function codeParams(value: unknown): { source: string } {
-  return { source: textParam(object(value), "source") };
+function codeParams(
+  language: "python" | "node",
+  value: unknown,
+): { source?: string; path?: string } {
+  const params = object(value);
+  const source = params.source === undefined ? undefined : textParam(params, "source");
+  const path =
+    params.path === undefined ? undefined : scriptPath(language, textParam(params, "path", 1_000));
+  if (source === undefined && path === undefined) throw new Error("source_or_path_required");
+  return { ...(source === undefined ? {} : { source }), ...(path === undefined ? {} : { path }) };
 }
 
 function codeTool(language: "python" | "node"): ToolSpec {
   return {
     definition: {
       name: language,
-      description: `Run a complete ${language} program inside the no-network guest. Programs start in /workspace; read the selected folder through absolute /source paths.`,
+      description: `Run ${language} inside the no-network guest. Give source to run once, source and path to save and run, or path to run the last committed workspace bytes. Programs start in /workspace; read the selected folder through absolute /source paths.`,
       params: objectSchema(
-        { source: { type: "string", description: "Complete runnable source code." } },
-        ["source"],
+        {
+          source: { type: "string", description: "Complete runnable source code." },
+          path: { type: "string", description: "Safe workspace path, normally under steps/." },
+        },
+        [],
       ),
     },
-    parse: codeParams,
+    parse: (value) => codeParams(language, value),
     execute: async (value, context) => {
-      const params = codeParams(value);
+      const params = codeParams(language, value);
+      const path = params.path ?? scriptPath(language);
       return await runExecution(
         context,
-        { language, path: scriptPath(language), source: params.source },
+        params.source === undefined
+          ? { language, path }
+          : { language, path, source: params.source },
         true,
       );
     },

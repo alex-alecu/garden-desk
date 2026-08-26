@@ -211,6 +211,19 @@ export class AgentWorkspaceStore {
     return output;
   }
 
+  async readFile(sessionId: string, workspacePath: string): Promise<Buffer | undefined> {
+    AgentWorkspacePathSchema.parse(workspacePath);
+    await this.serial;
+    const manifest = await readManifest(
+      join(this.root, "manifests", `${sessionName(sessionId)}.json`),
+    );
+    const entry = manifest?.entries.find((item) => item.path === workspacePath);
+    if (entry?.kind !== "file") return undefined;
+    const loaded = await loadEntry(this.root, entry);
+    if (loaded.kind !== "file") throw new Error("workspace_manifest_invalid");
+    return Buffer.from(loaded.bytesBase64, "base64");
+  }
+
   private async mutate(operation: () => Promise<void>): Promise<void> {
     const previous = this.serial;
     let release = (): void => undefined;

@@ -33,6 +33,10 @@ export interface MicroVmAgentRequest {
 }
 
 export type AgentSessionExecution =
+  | { language: "python" | "node"; path: string; source?: string }
+  | { language: "shell"; command: string };
+
+export type ResolvedAgentSessionExecution =
   | { language: "python" | "node"; path: string; source: string }
   | { language: "shell"; command: string };
 
@@ -47,6 +51,7 @@ export type AgentExecutionUpdate =
 
 export interface AgentExecutionObserver {
   executionId: string;
+  onPrepared?(execution: ResolvedAgentSessionExecution): void | Promise<void>;
   onUpdate(update: AgentExecutionUpdate): void | Promise<void>;
 }
 

@@ -80,6 +80,11 @@ function resultFrame(requestId: string, executionId: string) {
   });
 }
 
+function requireCodeRequest(request: ReturnType<typeof executeRequest>) {
+  if (request.language === "shell") throw new Error("unexpected_shell_request");
+  return request;
+}
+
 describe("agent helper ordered live stream", () => {
   it("delivers ordered bounded frames before the terminal result", async () => {
     const { child, stdout } = fakeChild();
@@ -161,7 +166,13 @@ function artifactInvalidationFrame(requestId: string, executionId: string) {
 
 function artifactInvalidationSession(frame: ReturnType<typeof artifactInvalidationFrame>) {
   const transport = {
-    exchange: vi.fn(async () => frame),
+    exchange: vi.fn(async (request: ReturnType<typeof executeRequest>) => {
+      const code = requireCodeRequest(request);
+      return {
+        ...frame,
+        execution: { ...frame.execution, path: code.path, source: code.source },
+      };
+    }),
     write: vi.fn(),
   } as unknown as AgentHelperTransport;
   const store = { applyDelta: vi.fn(async () => undefined) } as unknown as AgentWorkspaceStore;
@@ -204,6 +215,74 @@ function failedWorkspaceFrame(executionId: string, bytes: Buffer) {
     },
   });
 }
+
+function pathOnlySession(bytes: Buffer | undefined) {
+  const frames: unknown[] = [];
+  const transport = {
+    exchange: vi.fn(async (request: ReturnType<typeof executeRequest>) => {
+      const code = requireCodeRequest(request);
+      frames.push(request);
+      return AgentGuestResultSchema.parse({
+        ...resultFrame(String(code.requestId), code.executionId),
+        execution: {
+          ...resultFrame(String(code.requestId), code.executionId).execution,
+          path: code.path,
+          source: code.source,
+        },
+      });
+    }),
+    write: vi.fn(),
+  } as unknown as AgentHelperTransport;
+  const store = {
+    readFile: vi.fn(async () => bytes),
+    applyDelta: vi.fn(async () => undefined),
+  } as unknown as AgentWorkspaceStore;
+  return {
+    frames,
+    session: new FramedAgentSession({
+      sessionId: randomUUID(),
+      limits: {
+        wallTimeMs: 1_000,
+        memoryBytes: 256 * 1024 * 1024,
+        scratchBytes: 128 * 1024 * 1024,
+        outputBytes: 1_000_000,
+      },
+      transport,
+      store,
+      temporaryRoot: "/tmp/unused-path-only-test",
+      lifecyclePlatform: "macos",
+    }),
+  };
+}
+
+describe("committed saved-script execution", () => {
+  it("sends exact committed UTF-8 bytes through the existing guest frame", async () => {
+    const source = "print('committed bytes')\n";
+    const { frames, session } = pathOnlySession(Buffer.from(source));
+
+    const result = await session.execute({ language: "python", path: "steps/saved.py" });
+
+    expect(frames).toHaveLength(1);
+    expect(frames[0]).toMatchObject({
+      protocolVersion: 3,
+      language: "python",
+      path: "steps/saved.py",
+      source,
+    });
+    expect(result).toMatchObject({ path: "steps/saved.py", source });
+  });
+
+  it.each([
+    [undefined, "agent_script_missing"],
+    [Buffer.from([0xff]), "agent_script_invalid_text"],
+    [Buffer.alloc(128_001, 0x61), "agent_script_source_oversized"],
+  ])("rejects an unusable committed file", async (bytes, error) => {
+    const { session } = pathOnlySession(bytes);
+    await expect(session.execute({ language: "python", path: "steps/saved.py" })).rejects.toThrow(
+      error,
+    );
+  });
+});
 
 describe("agent artifact candidate invalidation", () => {
   it("invalidates changed files omitted by artifact limits without invalidating captured files", async () => {
@@ -257,7 +336,17 @@ describe("failed execution persistence", () => {
           outputBytes: 1_000_000,
         },
         transport: {
-          exchange: vi.fn(async () => failedWorkspaceFrame(executionId, bytes)),
+          exchange: vi.fn(async (request: ReturnType<typeof executeRequest>) => {
+            const code = requireCodeRequest(request);
+            return {
+              ...failedWorkspaceFrame(executionId, bytes),
+              execution: {
+                ...failedWorkspaceFrame(executionId, bytes).execution,
+                path: code.path,
+                source: code.source,
+              },
+            };
+          }),
           write: vi.fn(),
         } as unknown as AgentHelperTransport,
         store,

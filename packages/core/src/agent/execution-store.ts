@@ -21,10 +21,10 @@ function bytes(value: Buffer | string): Buffer {
   return Buffer.isBuffer(value) ? value : Buffer.from(value);
 }
 
-function newExecution(runId: string, input: ExecutionInput, sequence: number) {
+function newExecution(runId: string, input: ExecutionInput, sequence: number, id = randomUUID()) {
   const createdAt = new Date().toISOString();
   return AgentExecutionSnapshotSchema.parse({
-    id: randomUUID(),
+    id,
     runId,
     sequence,
     language: input.language,
@@ -62,13 +62,17 @@ function outputTruncated(previous: number, terminalFlag: boolean | undefined): n
 export class AgentExecutionStore {
   constructor(private readonly database: DatabasePort) {}
 
-  create(runId: string, input: ExecutionInput): AgentExecutionSnapshot {
+  create(
+    runId: string,
+    input: ExecutionInput,
+    id?: ReturnType<typeof randomUUID>,
+  ): AgentExecutionSnapshot {
     const row = this.database
       .prepare(
         "SELECT COALESCE(MAX(sequence), -1) + 1 AS sequence FROM agent_executions WHERE run_id = ?",
       )
       .get(runId) as { sequence: number };
-    const item = newExecution(runId, input, row.sequence);
+    const item = newExecution(runId, input, row.sequence, id);
     this.database
       .prepare(
         "INSERT INTO agent_executions (id, run_id, sequence, language, workspace_path, code, command, state, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",

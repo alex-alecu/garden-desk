@@ -48,6 +48,15 @@ function launcher(
       return {
         async execute(request, _signal, observer) {
           const result = await run(request);
+          await observer?.onPrepared?.(
+            result.language === "shell"
+              ? { language: "shell", command: result.command }
+              : {
+                  language: result.language,
+                  path: result.path,
+                  source: result.source,
+                },
+          );
           if (result.stdout.length > 0)
             await observer?.onUpdate({
               kind: "stream",
@@ -157,12 +166,24 @@ function successfulInference() {
   };
 }
 
+function pathOnlyInference() {
+  let turn = 0;
+  return {
+    async chat(_input: ChatInput) {
+      turn += 1;
+      return turn === 1
+        ? chatResult("", [{ id: "call-path", name: "python", params: { path: "steps/saved.py" } }])
+        : chatResult("Reran the committed script.", []);
+    },
+  };
+}
+
 async function artifactExecution(request: AgentSessionExecution): Promise<AgentExecutionResult> {
   if (request.language === "shell") throw new Error("unexpected_shell");
   return {
     language: request.language,
     path: request.path,
-    source: request.source,
+    source: request.source ?? "print('resolved path')",
     command: null,
     exitCode: 0,
     stdout: "ok\n",
@@ -203,6 +224,44 @@ describe("persisted chat agent success", () => {
     );
     expect(snapshot.executions).toHaveLength(1);
     expect(snapshot.artifacts.map((artifact) => artifact.name)).toEqual(["result.txt"]);
+    await service.close();
+    catalog.close();
+  });
+});
+
+describe("persisted saved-script execution", () => {
+  it("records the exact source resolved for a path-only execution", async () => {
+    const requests: AgentSessionExecution[] = [];
+    const committedSource = "print('last committed bytes')\n";
+    const { catalog, conversations, service } = await fixture(
+      pathOnlyInference(),
+      async (request) => {
+        requests.push(request);
+        if (request.language === "shell") throw new Error("unexpected_shell");
+        return {
+          language: request.language,
+          path: request.path,
+          source: committedSource,
+          command: null,
+          exitCode: 0,
+          stdout: "last committed bytes\n",
+          stderr: "",
+          durationMs: 2,
+          termination: "completed",
+          artifacts: [],
+        };
+      },
+    );
+
+    const run = service.start(conversations.createSession(null).id, "Rerun the saved script");
+    const snapshot = await terminal(service, run.id);
+
+    expect(requests).toEqual([{ language: "python", path: "steps/saved.py" }]);
+    expect(snapshot.executions[0]).toMatchObject({
+      path: "steps/saved.py",
+      source: committedSource,
+      state: "completed",
+    });
     await service.close();
     catalog.close();
   });

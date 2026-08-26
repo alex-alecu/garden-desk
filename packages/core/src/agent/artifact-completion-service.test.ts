@@ -63,7 +63,7 @@ function launcher(options = { artifact: "other.txt", exitCode: 0 }): CodeAgentLa
             ...evidence,
             language: request.language,
             path: request.path,
-            source: request.source,
+            source: request.source ?? "print('resolved path')",
             command: null,
           };
         },

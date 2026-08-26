@@ -76,6 +76,24 @@ describe("persistent agent workspace manifests", () => {
   });
 });
 
+describe("committed workspace file reads", () => {
+  it("returns verified bytes for one regular file", async () => {
+    const root = await mkdtemp(join(tmpdir(), "vault-workspace-read-"));
+    roots.push(root);
+    const store = await AgentWorkspaceStore.create(root);
+    const sessionId = randomUUID();
+    const bytes = Buffer.from("print('committed')\n");
+    await store.commit(sessionId, [
+      { kind: "directory", path: "steps" },
+      file("steps/saved.py", bytes),
+    ]);
+
+    await expect(store.readFile(sessionId, "steps/saved.py")).resolves.toEqual(bytes);
+    await expect(store.readFile(sessionId, "steps")).resolves.toBeUndefined();
+    await expect(store.readFile(sessionId, "steps/missing.py")).resolves.toBeUndefined();
+  });
+});
+
 describe("agent workspace deltas", () => {
   it("applies changed, added, and removed paths before committing a new manifest", async () => {
     const root = await mkdtemp(join(tmpdir(), "vault-workspace-store-delta-"));
