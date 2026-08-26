@@ -37,11 +37,11 @@ function codeTool(language: "python" | "node"): ToolSpec {
   return {
     definition: {
       name: language,
-      description: `Run ${language} inside the no-network guest. Give source to run once, source and path to save and run, or path to run the last committed workspace bytes. Programs start in /workspace; read the selected folder through absolute /source paths.`,
+      description: `Run ${language} offline. Source runs now; source plus path saves; path runs committed bytes. Use /workspace and /source.`,
       params: objectSchema(
         {
-          source: { type: "string", description: "Complete runnable source code." },
-          path: { type: "string", description: "Safe workspace path, normally under steps/." },
+          source: { type: "string" },
+          path: { type: "string" },
         },
         [],
       ),

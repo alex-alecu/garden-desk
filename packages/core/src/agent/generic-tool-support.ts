@@ -301,7 +301,7 @@ export function inspectionTools(): ToolSpec[] {
       },
       required: ["path"],
       description:
-        "Read UTF-8 plain text by line range. Offset defaults to 1; limit defaults to 2000 and must be 1-2000.",
+        "Read UTF-8 plain text by line range. Offset defaults to 1; safe integers are clamped to the listed bounds.",
     }),
     inspectionTool({
       name: "glob",
@@ -340,7 +340,7 @@ export function inspectionTools(): ToolSpec[] {
       },
       required: [],
       description:
-        "List files and directories under a guest path. Depth defaults to 2 and must be 0-8.",
+        "List files and directories under a guest path. Depth defaults to 2; safe integers are clamped to 0-8.",
     }),
   ];
 }
