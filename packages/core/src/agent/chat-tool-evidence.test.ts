@@ -61,3 +61,41 @@ describe("deterministic workspace script evidence", () => {
     expect(state.scriptPaths).toEqual(["steps/repair.py"]);
   });
 });
+
+describe("inspection artifact evidence", () => {
+  it("retains artifact state without inspection source or output", () => {
+    const state = initialToolState([]);
+    const inspected = completedExecution();
+    inspected.artifacts = [
+      {
+        name: "report.txt",
+        mediaType: "text/plain",
+        bytesBase64: Buffer.from("report").toString("base64"),
+      },
+    ];
+    inspected.invalidatedArtifactPaths = ["old-report.txt"];
+    inspected.recoverableArtifactPaths = ["large-report.txt"];
+
+    retainWorkspaceEvidence(
+      state,
+      { id: "inspection-call", name: "read", params: { path: "/source/input.txt" } },
+      { content: "inspection output", failed: false, artifactExecution: inspected },
+    );
+
+    expect(state.artifactExecutions).toEqual([
+      {
+        artifacts: [
+          {
+            name: "report.txt",
+            mediaType: "text/plain",
+            bytesBase64: "cmVwb3J0",
+          },
+        ],
+        exitCode: 0,
+        invalidatedArtifactPaths: ["old-report.txt"],
+        recoverableArtifactPaths: ["large-report.txt"],
+        termination: "completed",
+      },
+    ]);
+  });
+});

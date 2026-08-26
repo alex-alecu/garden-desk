@@ -5,6 +5,7 @@ import type {
   ChatMessage,
   ChatToolCall,
 } from "@vault/shared";
+import type { ArtifactExecutionEvidence } from "./artifact-results.js";
 import { containsProtocolTransition } from "./chat-protocol.js";
 import {
   type LoadedSkillCalls,
@@ -34,7 +35,7 @@ const GUEST_TOOLS = new Set(["bash", "python", "node", "read", "glob", "grep", "
 const CODE_TOOLS = new Set(["bash", "python", "node"]);
 
 export interface ChatToolState {
-  artifactExecutions: AgentExecutionResult[];
+  artifactExecutions: ArtifactExecutionEvidence[];
   executions: AgentExecutionResult[];
   guestBudget: GuestExecutionBudget;
   lastExecutionFailure?: {

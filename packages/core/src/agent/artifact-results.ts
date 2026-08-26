@@ -14,6 +14,11 @@ export interface ArtifactOutput {
   bytesBase64: string;
 }
 
+export type ArtifactExecutionEvidence = Pick<
+  AgentExecutionResult,
+  "artifacts" | "exitCode" | "invalidatedArtifactPaths" | "recoverableArtifactPaths" | "termination"
+>;
+
 interface ArtifactCandidate {
   name: string;
   bytesBase64?: string;
@@ -36,7 +41,7 @@ export function isUserArtifactPath(path: string): boolean {
 function applyExecutionArtifacts(
   current: Map<string, ArtifactCandidate>,
   pending: Map<string, ArtifactCandidate>,
-  execution: AgentExecutionResult,
+  execution: ArtifactExecutionEvidence,
 ): void {
   const invalidated = new Set(execution.invalidatedArtifactPaths ?? []);
   for (const path of invalidated) {
@@ -59,7 +64,7 @@ function applyExecutionArtifacts(
 function retainFailedArtifacts(
   current: Map<string, ArtifactCandidate>,
   pending: Map<string, ArtifactCandidate>,
-  execution: AgentExecutionResult,
+  execution: ArtifactExecutionEvidence,
   invalidated: ReadonlySet<string>,
 ): void {
   for (const path of execution.recoverableArtifactPaths ?? []) {
@@ -75,7 +80,7 @@ function retainFailedArtifacts(
 function publishSuccessfulArtifacts(
   current: Map<string, ArtifactCandidate>,
   pending: Map<string, ArtifactCandidate>,
-  execution: AgentExecutionResult,
+  execution: ArtifactExecutionEvidence,
 ): void {
   for (const [name, output] of pending) {
     current.delete(name);
@@ -94,7 +99,7 @@ function publishSuccessfulArtifacts(
 }
 
 export function currentArtifactOutputs(
-  executions: readonly AgentExecutionResult[],
+  executions: readonly ArtifactExecutionEvidence[],
 ): ReadonlyMap<string, ArtifactOutput> {
   const current = currentArtifactCandidates(executions);
   return new Map(
@@ -107,7 +112,7 @@ export function currentArtifactOutputs(
 }
 
 function currentArtifactCandidates(
-  executions: readonly AgentExecutionResult[],
+  executions: readonly ArtifactExecutionEvidence[],
 ): ReadonlyMap<string, ArtifactCandidate> {
   const current = new Map<string, ArtifactCandidate>();
   const pending = new Map<string, ArtifactCandidate>();
@@ -115,13 +120,13 @@ function currentArtifactCandidates(
   return current;
 }
 
-export function artifactCandidateNames(executions: readonly AgentExecutionResult[]): string[] {
+export function artifactCandidateNames(executions: readonly ArtifactExecutionEvidence[]): string[] {
   return [...currentArtifactCandidates(executions).keys()].slice(-MAX_CURRENT_ARTIFACTS);
 }
 
 export async function prepareArtifacts(
   names: readonly string[],
-  executions: readonly AgentExecutionResult[],
+  executions: readonly ArtifactExecutionEvidence[],
   artifacts: ArtifactStore,
   readWorkspaceFile?: (path: string) => Promise<Buffer | undefined>,
 ): Promise<Array<Omit<AgentArtifactSummary, "id" | "runId" | "createdAt">>> {

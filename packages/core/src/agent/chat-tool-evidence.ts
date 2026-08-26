@@ -4,6 +4,7 @@ import {
   AgentWorkspacePathSchema,
   type ChatToolCall,
 } from "@vault/shared";
+import type { ArtifactExecutionEvidence } from "./artifact-results.js";
 import type { ChatToolState } from "./chat-tool-turn.js";
 import type { AgentToolResult } from "./generic-tools.js";
 
@@ -92,13 +93,30 @@ function completedExecutionFailure(result: AgentToolResult): ChatToolState["last
   };
 }
 
+function artifactEvidence(
+  execution: NonNullable<AgentToolResult["artifactExecution"]>,
+): ArtifactExecutionEvidence {
+  return {
+    artifacts: execution.artifacts,
+    exitCode: execution.exitCode,
+    termination: execution.termination,
+    ...(execution.invalidatedArtifactPaths === undefined
+      ? {}
+      : { invalidatedArtifactPaths: execution.invalidatedArtifactPaths }),
+    ...(execution.recoverableArtifactPaths === undefined
+      ? {}
+      : { recoverableArtifactPaths: execution.recoverableArtifactPaths }),
+  };
+}
+
 export function retainWorkspaceEvidence(
   state: ChatToolState,
   call: ChatToolCall,
   result: AgentToolResult,
 ): void {
   const artifactExecution = result.execution ?? result.artifactExecution;
-  if (artifactExecution !== undefined) state.artifactExecutions.push(artifactExecution);
+  if (artifactExecution !== undefined)
+    state.artifactExecutions.push(artifactEvidence(artifactExecution));
   const path = reusableScriptPath(call, result);
   if (path !== undefined) {
     state.scriptPaths = [...state.scriptPaths.filter((item) => item !== path), path].slice(-8);
