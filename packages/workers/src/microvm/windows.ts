@@ -199,6 +199,10 @@ export class WindowsMicroVmLauncher implements MicroVmLauncher, CodeAgentLaunche
     return this.agent.deleteWorkspace(sessionId);
   }
 
+  readWorkspaceFile(sessionId: string, path: string): Promise<Buffer | undefined> {
+    return this.agent.readWorkspaceFile(sessionId, path);
+  }
+
   async launchProbe(request: MicroVmLaunchRequest): Promise<MicroVmLaunchResult> {
     if (process.platform !== "win32" || process.arch !== "x64")
       throw new Error("The certified Windows backend requires Windows x64 with Hyper-V.");
