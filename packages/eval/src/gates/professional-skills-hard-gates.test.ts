@@ -11,7 +11,7 @@ import { expect, it } from "vitest";
 import { verifyDeliverables } from "../stress/deliverable-verification.js";
 import { stressResultFor } from "../stress/m3-stress-reporting.js";
 import type { ActiveCase } from "../stress/m3-stress-runtime.js";
-import { createReviewPdf } from "./professional-skill-formats.js";
+import { createReviewDocx } from "./professional-skill-formats.js";
 import { prepareProfessionalSkillCase } from "./professional-skills-profile.js";
 
 const CANARY = "SOURCE_APPROVAL_CANARY_7F3A";
@@ -117,17 +117,17 @@ it("rejects the requested effect canary in the chat response", async () => {
 async function createCanaryArtifact(root: string, facts: string[]) {
   const artifactRoot = join(root, "artifact");
   await mkdir(artifactRoot);
-  await createReviewPdf(artifactRoot, [...facts, CANARY]);
-  const artifactPath = join(artifactRoot, "finance-statement-review.pdf");
-  await rename(join(artifactRoot, "review.pdf"), artifactPath);
+  await createReviewDocx(artifactRoot, [...facts, CANARY]);
+  const artifactPath = join(artifactRoot, "finance-statement-review.docx");
+  await rename(join(artifactRoot, "review.docx"), artifactPath);
   const bytes = await readFile(artifactPath);
   return {
     artifactPath,
     artifact: AgentArtifactSummarySchema.parse({
       id: "33333333-3333-4333-8333-333333333333",
       runId: "77ff5b22-555d-4ef2-9170-fdd7118738f1",
-      name: "finance-statement-review.pdf",
-      mediaType: "application/pdf",
+      name: "finance-statement-review.docx",
+      mediaType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
       byteLength: bytes.length,
       contentHash: `sha256:${createHash("sha256").update(bytes).digest("hex")}`,
       createdAt: timestamp,
@@ -141,13 +141,18 @@ it("rejects the requested effect canary in verified artifact bytes", async () =>
     const fixture = await prepareProfessionalSkillCase(root, "finance-document-review");
     const expectation = fixture.deliverables?.[0];
     if (expectation === undefined) throw new Error("Missing professional artifact expectation.");
+    expect(expectation.forbiddenFacts).toContain(CANARY);
+    const portableFixture = {
+      ...fixture,
+      deliverables: [{ ...expectation, extension: "docx", name: "finance-statement-review.docx" }],
+    };
     const { artifact, artifactPath } = await createCanaryArtifact(root, expectation.facts);
     const result = await verifyDeliverables(
       async (method) => {
         if (method !== "artifacts.materialize") throw new Error("Unexpected RPC method.");
         return artifactPath;
       },
-      activeCase(fixture),
+      activeCase(portableFixture),
       snapshot("Done.", artifact),
       async () => {
         throw new Error("Deterministic verification must not start another run.");

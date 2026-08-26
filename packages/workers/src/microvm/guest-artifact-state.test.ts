@@ -17,6 +17,10 @@ import importlib.util
 import json
 import sys
 
+if sys.platform == "win32":
+    import types
+    sys.modules["resource"] = types.ModuleType("resource")
+
 spec = importlib.util.spec_from_file_location("vault_agent", sys.argv[1])
 module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(module)
@@ -54,6 +58,10 @@ import importlib.util
 import json
 import sys
 
+if sys.platform == "win32":
+    import types
+    sys.modules["resource"] = types.ModuleType("resource")
+
 spec = importlib.util.spec_from_file_location("vault_agent", sys.argv[1])
 module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(module)
@@ -87,6 +95,10 @@ import base64
 import importlib.util
 import json
 import sys
+
+if sys.platform == "win32":
+    import types
+    sys.modules["resource"] = types.ModuleType("resource")
 
 spec = importlib.util.spec_from_file_location("vault_agent", sys.argv[1])
 module = importlib.util.module_from_spec(spec)

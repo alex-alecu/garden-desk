@@ -147,11 +147,12 @@ export async function runDevelopmentHeadlessEntry(
 ): Promise<void> {
   let failureStage: M3EvaluationFailureStage = "environment_setup";
   try {
+    failureStage = "fixture";
+    const output = await buildDevelopmentHeadlessEntry(entry);
+    failureStage = "environment_setup";
     await prepareDevelopmentInferenceWorker(() => {
       failureStage = "fixture";
     });
-    failureStage = "fixture";
-    const output = await buildDevelopmentHeadlessEntry(entry);
     failureStage = "runtime_startup";
     runHeadlessEntry(output);
   } catch {
