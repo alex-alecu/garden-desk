@@ -64,7 +64,7 @@ The immutable guest image includes pinned offline tools for common work with JSO
 
 ## Local stress results
 
-On a 48 GB Apple-silicon Mac, the real offline stack passed all 8 small sequential and concurrent cases, plus a 100-page PDF, a 1,000,000-row workbook, and a 50-workbook folder with 10,000,000 rows. A mixed 10,000,000-row XLSX and DOCX task can save and resume progress, but does not yet complete reliably.
+On an earlier build on a 48 GB Apple-silicon Mac, the real offline stack passed all 8 small sequential and concurrent cases, plus a 100-page PDF, a 1,000,000-row workbook, and a 50-workbook folder with 10,000,000 rows. A mixed 10,000,000-row XLSX and DOCX task could save and resume progress, but did not complete reliably. These results are historical and do not qualify the current candidate.
 
 ## Isolation on macOS and Windows
 
@@ -80,7 +80,7 @@ On Windows Pro and Enterprise with Hyper-V already enabled, Vault Desk uses **HC
 
 ## Project status
 
-The M3 desktop agent and canonical headless gate are implemented and certified on physical Apple silicon and Windows x64. One Windows application directory contains the CUDA and Vulkan runtimes, chooses them automatically, and passed real-Gemma CUDA plus HCS Plan9 guest evidence. The installed-Windows UI, live-execution, debug-snapshot, and refreshed guest document observations pass; generated-file packaged-app evidence, dedicated-standard-user setup, macOS lower-tier context, and release-credential signing remain before the global launch gate closes. See the current [M3 status](docs/M3_STATUS.md) for exact evidence.
+The M3 desktop agent and canonical headless gate were implemented and certified on earlier physical Apple silicon and Windows x64 builds. Those results are historical evidence. The current candidate has no qualifying physical macOS or Windows result yet for direct guest artifact recovery, saved-script repair and rerun, the canonical platform gate, the complete supported small suite, or the professional skill cases and reviews. An earlier Windows application directory contained the CUDA and Vulkan runtimes, selected them automatically, and passed real-Gemma CUDA plus HCS Plan9 guest evidence. Earlier installed-Windows UI, live-execution, debug-snapshot, and refreshed guest document observations also passed. Generated-file packaged-app evidence, dedicated-standard-user setup, macOS lower-tier context, and release-credential signing remain before the global launch gate closes. See the current [M3 status](docs/M3_STATUS.md) for exact evidence.
 
 The community software is free. Signed public installers are not yet available.
 

@@ -287,6 +287,11 @@ describe("invalid-input stress evidence", () => {
     expect(stressResultFor(active, snapshot("The PDF is INVALID.")).passed).toBe(true);
     expect(
       stressResultFor(active, snapshot("The PDF is INVALID.", "", [artifact()])),
-    ).toMatchObject({ passed: false, error: "Expected no artifacts." });
+    ).toMatchObject({
+      passed: false,
+      error: "Expected no artifacts.",
+      failureClass: "product_failure",
+      evidenceReference: "result.producedArtifacts",
+    });
   });
 });

@@ -3,6 +3,10 @@ import { cp, mkdir, rm, stat } from "node:fs/promises";
 import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { build } from "esbuild";
+import {
+  failedEvaluationEvidence,
+  type M3EvaluationFailureStage,
+} from "../stress/m3-evidence-classification.js";
 import { developmentInferenceWorkerEntryPath } from "./development-inference-path.js";
 
 const repositoryRoot = process.cwd();
@@ -37,8 +41,9 @@ async function developmentWorkerEntries(): Promise<[string, string]> {
   return [worker, join(dirname(worker), "hardware-worker.mjs")];
 }
 
-export async function prepareDevelopmentInferenceWorker(): Promise<void> {
+export async function prepareDevelopmentInferenceWorker(onBuild?: () => void): Promise<void> {
   const [worker, hardwareWorker] = await developmentWorkerEntries();
+  onBuild?.();
   await mkdir(dirname(worker), { recursive: true });
   const entries = [
     ["packages/workers/src/inference/worker.ts", worker],
@@ -56,6 +61,7 @@ export async function prepareDevelopmentInferenceWorker(): Promise<void> {
         entryPoints: [entryPoint],
         external: ["node-llama-cpp"],
         format: "esm",
+        logLevel: "silent",
         minifySyntax: true,
         outfile,
         platform: "node",
@@ -93,12 +99,22 @@ function prepareHeadlessMigrations(): Promise<void> {
   return migrationPreparation;
 }
 
-function runHeadlessEntry(path: string): void {
-  const result = spawnSync(process.execPath, [path, ...process.argv.slice(2)], {
-    stdio: "inherit",
-  });
+export function requireHeadlessExitStatus(result: {
+  error?: Error;
+  status: number | null;
+}): number {
   if (result.error !== undefined) throw result.error;
-  if (result.status !== 0) process.exitCode = result.status ?? 1;
+  if (result.status === null) throw new Error("development_headless_terminated");
+  return result.status;
+}
+
+function runHeadlessEntry(path: string): void {
+  const status = requireHeadlessExitStatus(
+    spawnSync(process.execPath, [path, ...process.argv.slice(2)], {
+      stdio: "inherit",
+    }),
+  );
+  if (status !== 0) process.exitCode = status;
 }
 
 export async function buildDevelopmentHeadlessEntry(entry: URL): Promise<string> {
@@ -115,6 +131,7 @@ export async function buildDevelopmentHeadlessEntry(entry: URL): Promise<string>
     entryPoints: [fileURLToPath(entry)],
     external: ["better-sqlite3", "node-llama-cpp", "tar-stream"],
     format: "esm",
+    logLevel: "silent",
     minifySyntax: true,
     outfile: output,
     platform: "node",
@@ -124,7 +141,26 @@ export async function buildDevelopmentHeadlessEntry(entry: URL): Promise<string>
   return output;
 }
 
-export async function runDevelopmentHeadlessEntry(entry: URL): Promise<void> {
-  await prepareDevelopmentInferenceWorker();
-  runHeadlessEntry(await buildDevelopmentHeadlessEntry(entry));
+export async function runDevelopmentHeadlessEntry(
+  entry: URL,
+  failureClassification: string,
+): Promise<void> {
+  let failureStage: M3EvaluationFailureStage = "environment_setup";
+  try {
+    await prepareDevelopmentInferenceWorker(() => {
+      failureStage = "fixture";
+    });
+    failureStage = "fixture";
+    const output = await buildDevelopmentHeadlessEntry(entry);
+    failureStage = "runtime_startup";
+    runHeadlessEntry(output);
+  } catch {
+    console.error(
+      JSON.stringify({
+        classification: failureClassification,
+        ...failedEvaluationEvidence(failureStage),
+      }),
+    );
+    process.exitCode = 1;
+  }
 }

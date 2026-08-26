@@ -35,7 +35,7 @@ export interface CompactionWorkspaceState {
   scriptPaths: readonly string[];
   lastExecutionFailure?: {
     termination: "completed" | "timeout" | "cancelled" | "resource_limit" | "crash";
-    exitCode: number;
+    exitCode: number | null;
     errorText: string;
   };
 }

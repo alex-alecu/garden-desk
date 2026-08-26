@@ -173,8 +173,9 @@ export class ChatAgentLoop {
     input.onEvent?.("assistant.completed", "Response completed.");
     return AgentRunResultSchema.parse({
       response,
-      artifacts: artifactCandidateNames(state.executions),
+      artifacts: artifactCandidateNames(state.artifactExecutions),
       executions: state.executions,
+      guestExecutions: state.guestBudget.started,
       inference: performance,
     });
   }
@@ -192,12 +193,10 @@ export class ChatAgentLoop {
   private async turn(options: ChatTurnOptions): Promise<AgentRunResult | undefined> {
     const { input, state, registry, recovery, performance, finalTurn } = options;
     const tools = () =>
-      finalTurn
-        ? []
-        : registry.definitions(
-            input.agent.tools,
-            liveLoadedSkillNames(state.loadedSkills, state.messages),
-          );
+      registry.definitions(
+        input.agent.tools,
+        liveLoadedSkillNames(state.loadedSkills, state.messages),
+      );
     const generated = await generateWithInferenceRecovery({
       generate: async () => await this.generate(input, state.messages, tools(), "chat"),
       recover: async () => {
@@ -215,7 +214,7 @@ export class ChatAgentLoop {
       toolCalls: generated.result.toolCalls,
     });
     const recovered = await recoverOutputLimit({
-      compact: async () => await this.compact(input, state, 1, performance),
+      compact: async () => await this.compact(input, state, 2, performance),
       contextTokens: this.contextTokens,
       finalTurn,
       record: () => this.record(input, generated.turnId, "invalid_response"),

@@ -1,5 +1,12 @@
-import type { AgentExecutionResult, WorkerLimits } from "@vault/shared";
+import { randomUUID } from "node:crypto";
+import {
+  AgentExecutionIdSchema,
+  type AgentExecutionResult,
+  type AgentVmDiagnosticCode,
+  type WorkerLimits,
+} from "@vault/shared";
 import type { CodeAgentLauncher } from "@vault/workers";
+import { M3ProductCheckFailure, requireM3ProductCheck } from "./m3-canonical-gate-reporting.js";
 
 const limits: WorkerLimits = {
   wallTimeMs: 30_000,
@@ -70,7 +77,9 @@ export function requireIsolationProof(
     proof.sparseBytes !== 513 * 1024 * 1024 ||
     python.artifacts[0]?.name !== "python-result.json"
   ) {
-    throw new Error("Python guest isolation, live source, or runtime proof failed.");
+    throw new M3ProductCheckFailure(
+      "Python guest isolation, live source, or runtime proof failed.",
+    );
   }
 }
 
@@ -88,27 +97,30 @@ async function boundedProcessProbes(launcher: CodeAgentLauncher, sourceFolder: s
       source: PROCESS_LIMIT_PROBE,
     });
     const count = Number(storm.stdout.trim());
-    if (storm.termination !== "completed" || count < 1 || count >= 64) {
-      throw new Error("Guest process limit proof failed.");
-    }
+    requireM3ProductCheck(
+      storm.termination === "completed" && count >= 1 && count < 64,
+      "Guest process limit proof failed.",
+    );
     const memory = await session.execute({
       language: "python",
       path: "steps/memory-limit.py",
       source: MEMORY_LIMIT_PROBE,
     });
-    if (memory.termination !== "completed" || memory.stdout.trim() !== "True") {
-      throw new Error("Guest memory limit proof failed.");
-    }
+    requireM3ProductCheck(
+      memory.termination === "completed" && memory.stdout.trim() === "True",
+      "Guest memory limit proof failed.",
+    );
     const quota = await session.execute({
       language: "python",
       path: "steps/workspace-quota.py",
       source: WORKSPACE_QUOTA_PROBE,
     });
-    if (quota.termination !== "completed" || quota.stdout.trim() !== "True") {
-      throw new Error("Guest workspace quota proof failed.");
-    }
+    requireM3ProductCheck(
+      quota.termination === "completed" && quota.stdout.trim() === "True",
+      "Guest workspace quota proof failed.",
+    );
     const crash = await session.execute({ language: "shell", command: "kill -SEGV $$" });
-    if (crash.termination !== "crash") throw new Error("Guest crash containment proof failed.");
+    requireM3ProductCheck(crash.termination === "crash", "Guest crash containment proof failed.");
     return {
       processCount: count,
       memory: "blocked",
@@ -127,13 +139,30 @@ async function escapingLinkProbe(launcher: CodeAgentLauncher, sourceFolder: stri
     readonlyInputs: [],
     limits,
   });
+  const diagnostics = new Set<AgentVmDiagnosticCode>();
   try {
-    await session.execute({ language: "shell", command: "ln -s /source/input.txt escape" });
-    throw new Error("Guest escaping link was accepted.");
+    await session.execute(
+      { language: "shell", command: "ln -s /source/input.txt escape" },
+      undefined,
+      {
+        executionId: AgentExecutionIdSchema.parse(randomUUID()),
+        onUpdate(update) {
+          if (update.kind === "diagnostic") diagnostics.add(update.code);
+        },
+      },
+    );
+    throw new M3ProductCheckFailure("Guest escaping link was accepted.");
   } catch (error) {
-    if (error instanceof Error && error.message === "Guest escaping link was accepted.")
-      throw error;
-    return "rejected";
+    if (error instanceof M3ProductCheckFailure) throw error;
+    if (
+      error instanceof Error &&
+      error.message === "agent_helper_exited_0" &&
+      diagnostics.has("process_start") &&
+      diagnostics.has("process_exit")
+    ) {
+      return "rejected";
+    }
+    throw error;
   } finally {
     await session.close().catch(() => undefined);
   }

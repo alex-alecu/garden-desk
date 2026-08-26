@@ -363,9 +363,32 @@ def workspace_delta(entries, previous):
     }
 
 
+def is_artifact_candidate(path):
+    name = path.rsplit("/", 1)[-1].lower()
+    return not (
+        path.startswith("steps/")
+        or path == ".vault-tools"
+        or path.startswith(".vault-tools/")
+        or path == ".vault-output"
+        or path.startswith(".vault-output/")
+        or name in ("checkpoint.json", "checkpoints.json")
+    )
+
+
 def next_artifact_state(previous, workspace, delta, execution):
     if execution["termination"] == "completed" and execution["exitCode"] == 0:
-        return workspace_signatures(workspace)
+        current = workspace_signatures(workspace)
+        captured = {artifact["name"] for artifact in execution.get("artifacts", [])}
+        for entry in workspace:
+            path = entry["path"]
+            if (
+                entry["kind"] == "file"
+                and is_artifact_candidate(path)
+                and previous.get(path) != current[path]
+                and path not in captured
+            ):
+                current.pop(path, None)
+        return current
     retained = previous.copy()
     for entry in delta["entries"]:
         retained.pop(entry["path"], None)
@@ -380,7 +403,7 @@ def collect_artifacts(entries, previous):
     for entry in entries:
         if (
             entry["kind"] != "file"
-            or entry["path"].startswith("steps/")
+            or not is_artifact_candidate(entry["path"])
             or previous.get(entry["path"]) == entry["contentHash"]
         ):
             continue

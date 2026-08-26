@@ -1,7 +1,62 @@
+import { AgentExecutionSnapshotSchema } from "@vault/shared";
 import { describe, expect, it } from "vitest";
 import type { InferenceService } from "../runtime/inference.js";
+import { AgentExecutionAttemptError, type AgentExecutor } from "./agent-executor.js";
 import { ChatAgentLoop } from "./chat-loop.js";
 import { execution, generated, input, model, source, tool } from "./chat-loop-test-support.js";
+
+const transportError = `agent_helper_transport_failed:${"x".repeat(500)}:must-not-retain`;
+
+function preparedTransportAttempt() {
+  return AgentExecutionSnapshotSchema.parse({
+    id: "00000000-0000-4000-8000-000000000001",
+    runId: "00000000-0000-4000-8000-000000000002",
+    sequence: 1,
+    language: "python",
+    path: "steps/new.py",
+    source: 'print("new")',
+    command: null,
+    state: "failed",
+    exitCode: null,
+    durationMs: null,
+    termination: "crash",
+    stdout: "",
+    stderr: "",
+    vmDiagnostics: [],
+    stdoutBytes: 0,
+    stderrBytes: 0,
+    vmDiagnosticsBytes: 2,
+    stdoutTruncated: false,
+    stderrTruncated: false,
+    vmDiagnosticsTruncated: false,
+    createdAt: "2026-08-26T00:00:00.000Z",
+    updatedAt: "2026-08-26T00:00:01.000Z",
+    completedAt: "2026-08-26T00:00:01.000Z",
+  });
+}
+
+function orderedFailureExecutor(): AgentExecutor {
+  let attempt = 0;
+  return {
+    async execute(run) {
+      attempt += 1;
+      if (attempt === 1) return execution(source(run), "older failure", 1);
+      throw new AgentExecutionAttemptError(transportError, preparedTransportAttempt());
+    },
+  };
+}
+
+function retainedFailure(
+  messages: Parameters<InferenceService["chat"]>[0]["messages"] | undefined,
+) {
+  const workspaceState = messages?.[2];
+  if (workspaceState?.role !== "user") throw new Error("missing_workspace_state");
+  const encoded = workspaceState.text.match(/<workspace-state>\n(.+)\n<\/workspace-state>/u)?.[1];
+  if (encoded === undefined) throw new Error("invalid_workspace_state");
+  return JSON.parse(encoded) as {
+    lastExecutionFailure: { errorText: string; exitCode: number | null; termination: string };
+  };
+}
 
 describe("ChatAgentLoop compaction", () => {
   it("compacts at 80 percent while retaining the current request and last two assistant turns", async () => {
@@ -127,6 +182,36 @@ describe("ChatAgentLoop deterministic compaction state", () => {
     expect(workspaceState.text).toContain('"exitCode":1');
     expect(workspaceState.text).toContain('"termination":"completed"');
     expect(workspaceState.text).toContain("SyntaxError: invalid syntax");
+  });
+});
+
+describe("ChatAgentLoop prepared transport compaction state", () => {
+  it("retains the latest prepared transport failure with bounded safe text", async () => {
+    const requests: Parameters<InferenceService["chat"]>[0][] = [];
+    const first = generated("", [
+      tool("python", "old-failure", { source: "raise OSError()", path: "steps/old.py" }),
+    ]);
+    const second = generated("", [tool("python", "transport", { path: "steps/new.py" })], 6_554);
+    const loop = new ChatAgentLoop(
+      model([first, second, generated("Keep the latest failure."), generated("Done.")], requests),
+    );
+
+    await loop.run(input(orderedFailureExecutor(), ["python"]));
+
+    expect(requests[3]?.messages[1]).toMatchObject({
+      role: "user",
+      text: expect.stringContaining("<anchored-summary>"),
+    });
+    const failure = retainedFailure(requests[3]?.messages).lastExecutionFailure;
+    expect(requests[3]?.messages[2]).toMatchObject({
+      role: "user",
+      text: expect.stringContaining('"scriptPaths":["steps/old.py","steps/new.py"]'),
+    });
+    expect(failure).toMatchObject({ termination: "crash", exitCode: null });
+    expect(failure.errorText).toContain("agent_helper_transport_failed");
+    expect(failure.errorText).toHaveLength(400);
+    expect(failure.errorText).not.toContain("older failure");
+    expect(failure.errorText).not.toContain("must-not-retain");
   });
 });
 

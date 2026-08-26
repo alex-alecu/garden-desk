@@ -2,7 +2,7 @@
 
 Created: 2026-07-15
 
-This document is the canonical implementation and contribution workflow for Vault Desk. M0, M1, and M2 are complete; M3 Offline Dev-Agent Desktop V1 is active and its macOS stage is complete. [AGENTS.md](../AGENTS.md) remains authoritative, followed by accepted architecture decision records, [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md), and this workflow.
+This document is the canonical implementation and contribution workflow for Vault Desk. M0, M1, and M2 are complete. M3 Offline Dev-Agent Desktop V1 is active. Earlier macOS and Windows platform results are historical evidence. The current candidate needs new physical evidence on both platforms for direct guest artifact recovery, saved-script repair and rerun, the canonical platform gate, the complete supported small suite, and the professional skills. [AGENTS.md](../AGENTS.md) remains authoritative, followed by accepted architecture decision records, [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md), and this workflow.
 
 ## Operating Principles
 

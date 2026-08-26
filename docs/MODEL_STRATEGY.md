@@ -79,7 +79,7 @@ Every supported tier uses:
 - Page, section, and table summary trees.
 - Evidence packs rather than raw folder stuffing.
 - Claim-level verification.
-- The shared resident worker generates on one loaded Gemma model but supports multiple parallel context sequences (node-llama-cpp exposes `sequences`, `sequencesLeft`, and a maximum-parallelism batch strategy), so parallelism is bounded by KV-cache memory rather than by the runtime. V1 uses bounded extra sequences for sub-agents; requests beyond the available sequence slots queue. Extending parallel sequences to concurrent user conversations and background work is planned, not yet current. Independent conversations may also overlap microVM work within the hardware-derived RAM cap.
+- The shared resident worker generates on one loaded Gemma model but supports multiple parallel context sequences (node-llama-cpp exposes `sequences`, `sequencesLeft`, and a maximum-parallelism batch strategy), so parallelism is bounded by KV-cache memory rather than by the runtime. V1 uses bounded extra sequences for sub-agents and concurrent user conversations; requests beyond the available sequence slots queue. Background work remains planned. Independent conversations can also overlap microVM work within the hardware-derived RAM cap.
 - On-demand PNG and JPEG inspection from immutable attachments or regular files below the selected folder.
 - The same supported workflows.
 - The same citation and approval requirements.
@@ -217,5 +217,5 @@ Each certified profile needs:
 | 2026-08-04 | Restricted Windows automatic budgets and context tiers to one device's dedicated VRAM. |
 | 2026-08-15 | Added vendor-neutral Windows dedicated-first selection and integrated 8/12/16 GiB shared-memory tiers. |
 | 2026-08-17 | Made isolated runtime capacity select a lower fixed integrated tier when necessary. |
-| 2026-08-12 | Recorded that the single loaded model supports multiple parallel context sequences (memory-bounded), used for sub-agents in V1, with concurrent conversations planned. |
+| 2026-08-12 | Recorded that the single loaded model supports multiple parallel context sequences (memory-bounded), used for sub-agents and concurrent user conversations in V1. |
 | 2026-08-15 | Added the official projector and pinned llama.cpp b9842 as the bounded on-demand M3 image path. |

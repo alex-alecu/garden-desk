@@ -3,8 +3,11 @@ import { join } from "node:path";
 import type { WorkerLimits } from "@vault/shared";
 import type { CodeAgentLauncher, CodeAgentSession, MicroVmAgentRequest } from "@vault/workers";
 import { createLegacyDocFixture } from "../fixtures/legacy-doc.js";
+import { requireM3ProductCheck } from "./m3-canonical-gate-reporting.js";
+import { guestArtifactRecoveryEvidence } from "./m3-guest-artifact-recovery.js";
 import { documentLibraryProbe } from "./m3-guest-documents.js";
 import { requireGuestSuccess } from "./m3-guest-execution.js";
+import { persistentFileProbe, rehydrationProbe } from "./m3-guest-persistence.js";
 import { requireIsolationProof, runGuestSecurityEvidence } from "./m3-guest-security.js";
 
 const limits: WorkerLimits = {
@@ -16,7 +19,6 @@ const limits: WorkerLimits = {
   outputBytes: 8 * 1024 * 1024,
   cpuCount: 2,
 };
-
 async function withSession<T>(
   launcher: CodeAgentLauncher,
   request: MicroVmAgentRequest,
@@ -29,7 +31,6 @@ async function withSession<T>(
     await session.close();
   }
 }
-
 async function prepareSource(root: string): Promise<string> {
   const source = join(root, "source");
   const nested = join(source, "nested", "deep");
@@ -46,7 +47,6 @@ async function prepareSource(root: string): Promise<string> {
   await createLegacyDocFixture(source);
   return source;
 }
-
 const PYTHON_PROBE = [
   "import json, os, pathlib, shutil, socket",
   "import PIL, pypdf, openpyxl, docx, reportlab, charset_normalizer",
@@ -115,7 +115,6 @@ const PYTHON_PROBE = [
   "artifact.write_text(json.dumps(result))",
   "print(json.dumps(result))",
 ].join("\n");
-
 async function cancellationProbe(launcher: CodeAgentLauncher, source: string) {
   const result = await withSession(
     launcher,
@@ -131,10 +130,9 @@ async function cancellationProbe(launcher: CodeAgentLauncher, source: string) {
       return await pending;
     },
   );
-  if (result.termination !== "cancelled") throw new Error("Guest cancellation proof failed.");
+  requireM3ProductCheck(result.termination === "cancelled", "Guest cancellation proof failed.");
   return result.termination;
 }
-
 async function boundedExecutionProbes(launcher: CodeAgentLauncher, source: string) {
   console.error("m3_guest_stage:execution_timeout");
   const timeout = await withSession(
@@ -152,7 +150,7 @@ async function boundedExecutionProbes(launcher: CodeAgentLauncher, source: strin
         source: "import time\ntime.sleep(60)",
       }),
   );
-  if (timeout.termination !== "timeout") throw new Error("Guest timeout proof failed.");
+  requireM3ProductCheck(timeout.termination === "timeout", "Guest timeout proof failed.");
   console.error("m3_guest_stage:execution_output");
   const output = await withSession(
     launcher,
@@ -169,7 +167,7 @@ async function boundedExecutionProbes(launcher: CodeAgentLauncher, source: strin
         source: "print('x' * (12 * 1024 * 1024))",
       }),
   );
-  if (output.termination !== "resource_limit") throw new Error("Guest output proof failed.");
+  requireM3ProductCheck(output.termination === "resource_limit", "Guest output proof failed.");
   return { timeout: timeout.termination, output: output.termination };
 }
 
@@ -185,69 +183,67 @@ async function isolationProbe(session: CodeAgentSession) {
   return { proof, artifacts: python.artifacts.length };
 }
 
+export async function requirePathOnlyScript(
+  session: CodeAgentSession,
+  input: { language: "python" | "node"; path: string; source: string },
+): Promise<void> {
+  const result = await session.execute({ language: input.language, path: input.path });
+  requireGuestSuccess(result);
+  const sourceMatches = result.source === input.source;
+  const mismatch = "Guest path-only source did not match committed source.";
+  requireM3ProductCheck(sourceMatches, mismatch);
+}
+// biome-ignore lint/complexity/noExcessiveLinesPerFunction: direct guest proof stays ordered.
 async function languageAndRepairProbes(session: CodeAgentSession, source: string) {
   const failed = await session.execute({
     language: "python",
     path: "steps/repair.py",
     source: "print(missing)",
   });
-  if (failed.exitCode === 0) throw new Error("Guest repair failure probe did not fail.");
+  requireM3ProductCheck(failed.exitCode !== 0, "Guest repair failure probe did not fail.");
   const repaired = await session.execute({
     language: "python",
     path: "steps/repair.py",
     source: "print('repaired')",
   });
   requireGuestSuccess(repaired);
+  await requirePathOnlyScript(session, {
+    language: "python",
+    path: "steps/repair.py",
+    source: "print('repaired')",
+  });
+  const nodeSource = [
+    "import fs from 'node:fs';",
+    "const major = Number(process.versions.node.split('.')[0]);",
+    "const npmAbsent = !fs.existsSync('/usr/bin/npm');",
+    "fs.writeFileSync('node-result.json', JSON.stringify({major, npmAbsent}));",
+    "console.log(JSON.stringify({major, npmAbsent}));",
+  ].join("\n");
   const node = await session.execute({
     language: "node",
     path: "steps/probe.mjs",
-    source: [
-      "import fs from 'node:fs';",
-      "const major = Number(process.versions.node.split('.')[0]);",
-      "const npmAbsent = !fs.existsSync('/usr/bin/npm');",
-      "fs.writeFileSync('node-result.json', JSON.stringify({major, npmAbsent}));",
-      "console.log(JSON.stringify({major, npmAbsent}));",
-    ].join("\n"),
+    source: nodeSource,
   });
   requireGuestSuccess(node);
+  await requirePathOnlyScript(session, {
+    language: "node",
+    path: "steps/probe.mjs",
+    source: nodeSource,
+  });
   const nodeProof = JSON.parse(node.stdout) as { major: number; npmAbsent: boolean };
-  if (nodeProof.major !== 24 || !nodeProof.npmAbsent) throw new Error("Node runtime proof failed.");
+  const nodeValid = nodeProof.major === 24 && nodeProof.npmAbsent;
+  requireM3ProductCheck(nodeValid, "Node runtime proof failed.");
   await writeFile(join(source, "input.txt"), "live edit evidence");
   const shell = await session.execute({
     language: "shell",
     command: "grep 'live edit' /source/input.txt | grep evidence && test -f python-result.json",
   });
   requireGuestSuccess(shell);
-  return { repaired: repaired.stdout.trim(), nodeProof, shell: shell.stdout.trim() };
-}
-
-async function persistentFileProbe(session: CodeAgentSession): Promise<void> {
-  const result = await session.execute({
-    language: "python",
-    path: "steps/large-file.py",
-    source:
-      "with open('large.bin', 'wb') as output:\n    output.truncate(9 * 1024 * 1024)\nprint('large file written')",
-  });
-  requireGuestSuccess(result);
-}
-
-async function rehydrationProbe(
-  launcher: CodeAgentLauncher,
-  source: string,
-  sessionId: string,
-): Promise<string> {
-  const result = await withSession(
-    launcher,
-    { sessionId, sourceFolder: source, readonlyInputs: [], limits },
-    async (session) =>
-      await session.execute({
-        language: "shell",
-        command:
-          "test -f steps/probe.py && test -f steps/repair.py && test -f large.bin && /usr/bin/python3 steps/repair.py",
-      }),
-  );
-  requireGuestSuccess(result);
-  return result.stdout.trim();
+  return {
+    repaired: repaired.stdout.trim(),
+    nodeProof,
+    shell: shell.stdout.trim(),
+  };
 }
 
 export async function runGuestEvidence(
@@ -266,8 +262,9 @@ export async function runGuestEvidence(
       const isolation = await isolationProbe(session);
       const documents = await documentLibraryProbe(session);
       const language = await languageAndRepairProbes(session, source);
+      const artifactRecovery = await guestArtifactRecoveryEvidence(session);
       await persistentFileProbe(session);
-      return { documents, isolation, language };
+      return { artifactRecovery, documents, isolation, language };
     },
   );
   console.error("m3_guest_stage:rehydration");
@@ -275,6 +272,7 @@ export async function runGuestEvidence(
     launcherForWorkspace(workspaceStore),
     source,
     sessionId,
+    limits,
   );
   console.error("m3_guest_stage:cancellation");
   const cancelled = await cancellationProbe(launcher, source);
@@ -288,6 +286,7 @@ export async function runGuestEvidence(
     node: primary.language.nodeProof,
     shell: primary.language.shell,
     repair: primary.language.repaired,
+    artifactRecovery: primary.artifactRecovery,
     persistence,
     cancelled,
     bounded,

@@ -11,8 +11,28 @@ import {
   type ToolSpec,
   textParam,
 } from "./generic-tool-support.js";
+import type { GuestExecutionBudget } from "./guest-execution-budget.js";
 import { questionTool } from "./question-tool.js";
-import { boundedToolOutput } from "./tool-output.js";
+import { boundedToolOutput, ToolOutputSpillBudgetError } from "./tool-output.js";
+
+function errorText(error: unknown): string {
+  return error instanceof Error ? `${error.name}: ${error.message}` : String(error);
+}
+
+function failedOutputResult(
+  error: unknown,
+  completed: AgentToolResult | undefined,
+  guestExecutionsStarted: number,
+): AgentToolResult {
+  const outputFailure = error instanceof ToolOutputSpillBudgetError ? error.code : undefined;
+  return {
+    ...(completed ?? {}),
+    content: outputFailure === undefined ? errorText(error) : `Error: ${outputFailure}`,
+    failed: true,
+    guestExecutionsStarted,
+    ...(outputFailure === undefined ? {} : { outputFailure }),
+  };
+}
 
 export type {
   AgentQuestionOutcome,
@@ -41,7 +61,10 @@ function codeTool(language: "python" | "node"): ToolSpec {
       params: objectSchema(
         {
           source: { type: "string" },
-          path: { type: "string" },
+          path: {
+            type: "string",
+            description: "Relative workspace path. Use steps/... for reusable work.",
+          },
         },
         [],
       ),
@@ -239,24 +262,37 @@ export class GenericToolRegistry {
       };
     }
   }
-  async execute(name: string, params: unknown): Promise<AgentToolResult> {
+  async execute(
+    name: string,
+    params: unknown,
+    budget?: GuestExecutionBudget,
+  ): Promise<AgentToolResult> {
     const invalid = this.validate(name, params);
     if (invalid !== undefined) return invalid;
     const tool = this.tools.get(name) as ToolSpec;
     const parsed = tool.parse(params);
+    let guestExecutionsStarted = 0;
+    let completed: AgentToolResult | undefined;
     try {
       const result = await tool.execute(parsed, this.context);
+      completed = result;
+      guestExecutionsStarted = result.guestExecutionsStarted ?? 0;
+      budget?.recordStarted(guestExecutionsStarted);
       const content = await boundedToolOutput(
         this.context.executor,
         result.content,
         this.context.signal,
+        {
+          ...(budget === undefined ? {} : { budget }),
+          onGuestExecutionStarted: () => {
+            guestExecutionsStarted += 1;
+          },
+        },
       );
-      return { ...result, content };
+      return { ...result, content, guestExecutionsStarted };
     } catch (error) {
-      return {
-        content: error instanceof Error ? `${error.name}: ${error.message}` : String(error),
-        failed: true,
-      };
+      if (error instanceof DOMException && error.name === "AbortError") throw error;
+      return failedOutputResult(error, completed, guestExecutionsStarted);
     }
   }
 }

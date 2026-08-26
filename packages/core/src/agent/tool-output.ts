@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import type { AgentSessionExecution } from "@vault/workers";
 import type { AgentExecutor } from "./agent-executor.js";
 import { isSuccessfulExecution } from "./execution-success.js";
+import type { GuestExecutionBudget } from "./guest-execution-budget.js";
 
 const MAX_LINES = 2_000;
 const MAX_BYTES = 50 * 1_024;
@@ -15,6 +16,19 @@ interface OutputChunk {
   bytes: Buffer;
   append: boolean;
   signal?: AbortSignal;
+}
+
+interface SpillOptions {
+  budget?: GuestExecutionBudget;
+  onGuestExecutionStarted?(): void;
+}
+
+export class ToolOutputSpillBudgetError extends Error {
+  readonly code = "tool_output_spill_budget_exceeded";
+
+  constructor() {
+    super("tool_output_spill_budget_exceeded");
+  }
 }
 
 function characterWidth(text: string, index: number): number {
@@ -161,17 +175,34 @@ async function writeChunk(chunk: OutputChunk): Promise<void> {
   }
 }
 
-async function spill(executor: AgentExecutor, text: string, signal?: AbortSignal): Promise<string> {
+async function spill(
+  executor: AgentExecutor,
+  text: string,
+  signal?: AbortSignal,
+  options: SpillOptions = {},
+): Promise<string> {
   const path = `/workspace/.vault-output/${randomUUID()}.txt`;
   const bytes = Buffer.from(text, "utf8");
-  for (let offset = 0; offset < bytes.length; offset += CHUNK_BYTES) {
-    await writeChunk({
-      executor,
-      path,
-      bytes: bytes.subarray(offset, offset + CHUNK_BYTES),
-      append: offset > 0,
-      ...(signal === undefined ? {} : { signal }),
-    });
+  const chunks = Math.ceil(bytes.length / CHUNK_BYTES);
+  const reservation = options.budget?.reserve(chunks);
+  if (options.budget !== undefined && reservation === undefined) {
+    throw new ToolOutputSpillBudgetError();
+  }
+  try {
+    for (let offset = 0; offset < bytes.length; offset += CHUNK_BYTES) {
+      signal?.throwIfAborted();
+      reservation?.start();
+      options.onGuestExecutionStarted?.();
+      await writeChunk({
+        executor,
+        path,
+        bytes: bytes.subarray(offset, offset + CHUNK_BYTES),
+        append: offset > 0,
+        ...(signal === undefined ? {} : { signal }),
+      });
+    }
+  } finally {
+    reservation?.release();
   }
   return path;
 }
@@ -180,10 +211,11 @@ export async function boundedToolOutput(
   executor: AgentExecutor,
   text: string,
   signal?: AbortSignal,
+  options: SpillOptions = {},
 ): Promise<string> {
   const shape = outputShape(text);
   if (shape.lineCount <= MAX_LINES && shape.encodedBytes <= MAX_BYTES) return text;
-  const path = await spill(executor, text, signal);
+  const path = await spill(executor, text, signal, options);
   const marker = `[Output truncated. Full output saved to ${path}. Use grep or read with offset/limit.]`;
   return clippedPreview(shape.head, shape.tail, marker);
 }

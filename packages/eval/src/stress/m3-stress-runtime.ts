@@ -16,6 +16,12 @@ import {
 import { prepareAgentModelStore } from "../gates/agent-model-store.js";
 import { verifyDeliverables } from "./deliverable-verification.js";
 import type { ExpectedTableRow, PreparedStressCase } from "./document-workloads.js";
+import type {
+  M3EvaluationFailureStage,
+  M3EvidenceReference,
+  M3FailureClass,
+  M3QualityCandidate,
+} from "./m3-evidence-classification.js";
 import { createProgressReporter, stressResultFor, terminal } from "./m3-stress-reporting.js";
 import { stressPlatform } from "./stress-platform.js";
 
@@ -35,6 +41,9 @@ export interface ActiveCase {
 export interface StressCaseResult {
   id: string;
   passed: boolean;
+  failureClass: M3FailureClass;
+  evidenceReference: M3EvidenceReference | null;
+  repairMethod?: "approved_legacy_doc_extraction";
   fixtureMs: number;
   fixtureBytes: number;
   fixtureFiles: number;
@@ -64,6 +73,7 @@ export interface StressCaseResult {
   missingTableRows: ExpectedTableRow[];
   producedArtifacts: string[];
   error: string | null;
+  qualityCandidate: M3QualityCandidate | null;
   retainedArtifacts: string[];
   verifiedDeliverables: string[];
   verificationOutput: string;
@@ -83,11 +93,40 @@ export interface StressRuntime {
   core: Awaited<ReturnType<typeof createVaultCore>>;
 }
 
+export class StressProductCheckFailure extends Error {
+  constructor() {
+    super("stress_product_check_failure");
+  }
+}
+
+export class StressRuntimeFailure extends Error {
+  constructor() {
+    super("stress_runtime_failure");
+  }
+}
+
+export function stressFailureStage(
+  error: unknown,
+  fallback: M3EvaluationFailureStage,
+): M3EvaluationFailureStage {
+  if (error instanceof StressProductCheckFailure) return "product_hard_check";
+  if (error instanceof StressRuntimeFailure) return "runtime_transport";
+  return fallback;
+}
+
 let rpcId = 0;
 
+async function rpcResponse(endpoint: string, method: string, params: Record<string, unknown>) {
+  try {
+    return await request(endpoint, { id: ++rpcId, method, params });
+  } catch {
+    throw new StressRuntimeFailure();
+  }
+}
+
 async function rpc(endpoint: string, method: string, params: Record<string, unknown>) {
-  const response = await request(endpoint, { id: ++rpcId, method, params });
-  if ("error" in response) throw new Error(`${response.error.code}: ${response.error.message}`);
+  const response = await rpcResponse(endpoint, method, params);
+  if ("error" in response) throw new StressRuntimeFailure();
   return response.result;
 }
 
@@ -97,9 +136,9 @@ export async function expectRpcFailure(
   params: Record<string, unknown>,
   code: string,
 ): Promise<void> {
-  const response: RpcResponse = await request(endpoint, { id: ++rpcId, method, params });
+  const response: RpcResponse = await rpcResponse(endpoint, method, params);
   if (!("error" in response) || response.error.code !== code) {
-    throw new Error(`Expected ${method} to fail with ${code}: ${JSON.stringify(response)}`);
+    throw new StressProductCheckFailure();
   }
 }
 
@@ -129,11 +168,15 @@ export async function startStressRuntime(workspace: string): Promise<StressRunti
 }
 
 export async function requireRealModel(endpoint: string, ready = true) {
-  const status = ModelRuntimeStatusSchema.parse(await rpc(endpoint, "model.status", {}));
-  if (status.modelId !== "gemma-4-12b-it-qat-q4_0" || (ready && status.state !== "ready")) {
-    throw new Error(`Full Gemma model is not ready: ${JSON.stringify(status)}`);
+  try {
+    const status = ModelRuntimeStatusSchema.parse(await rpc(endpoint, "model.status", {}));
+    if (status.modelId !== "gemma-4-12b-it-qat-q4_0" || (ready && status.state !== "ready")) {
+      throw new StressRuntimeFailure();
+    }
+    return status;
+  } catch {
+    throw new StressRuntimeFailure();
   }
-  return status;
 }
 
 export async function startCase(
@@ -204,7 +247,7 @@ export async function awaitCases(
     if (snapshots.size < cases.length) await new Promise((accept) => setTimeout(accept, 1_000));
   }
   if (snapshots.size !== cases.length) {
-    throw new Error(`Stress cases timed out after ${Math.round(deadlineMs / 60_000)} minutes.`);
+    throw new StressRuntimeFailure();
   }
   return { snapshots, maximumRunning };
 }

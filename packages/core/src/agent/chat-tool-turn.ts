@@ -1,10 +1,9 @@
-import {
-  type AgentEventDetail,
-  type AgentEventType,
-  type AgentExecutionResult,
-  AgentWorkspacePathSchema,
-  type ChatMessage,
-  type ChatToolCall,
+import type {
+  AgentEventDetail,
+  AgentEventType,
+  AgentExecutionResult,
+  ChatMessage,
+  ChatToolCall,
 } from "@vault/shared";
 import { containsProtocolTransition } from "./chat-protocol.js";
 import {
@@ -18,7 +17,14 @@ import {
   invalidToolInputResult,
   recoverQuestionCall,
 } from "./chat-tool-call-support.js";
+import {
+  emitCompletedExecutionAttempt,
+  eventDetail,
+  pathOnlyCodeCall,
+  retainWorkspaceEvidence,
+} from "./chat-tool-evidence.js";
 import type { AgentToolResult, GenericToolRegistry } from "./generic-tools.js";
+import { GuestExecutionBudget } from "./guest-execution-budget.js";
 import { subagentTitle, toolCompletedSummary, toolStartedSummary } from "./tool-summaries.js";
 
 const EXECUTION_LIMIT = 24;
@@ -28,11 +34,12 @@ const GUEST_TOOLS = new Set(["bash", "python", "node", "read", "glob", "grep", "
 const CODE_TOOLS = new Set(["bash", "python", "node"]);
 
 export interface ChatToolState {
+  artifactExecutions: AgentExecutionResult[];
   executions: AgentExecutionResult[];
-  guestExecutions: number;
+  guestBudget: GuestExecutionBudget;
   lastExecutionFailure?: {
     termination: AgentExecutionResult["termination"];
-    exitCode: number;
+    exitCode: number | null;
     errorText: string;
   };
   loadedSkills: LoadedSkillCalls;
@@ -45,31 +52,6 @@ interface ToolTurnInput {
   onEvent?(type: AgentEventType, summary: string, detail?: Partial<AgentEventDetail>): void;
   registry: GenericToolRegistry;
   state: ChatToolState;
-}
-
-function eventDetail(call: ChatToolCall): Partial<AgentEventDetail> {
-  const detail = { toolName: call.name, toolCallId: call.id };
-  if (typeof call.params !== "object" || call.params === null) return detail;
-  const value = call.params as Record<string, unknown>;
-  if (call.name === "bash" && typeof value.command === "string") {
-    return { ...detail, command: value.command };
-  }
-  if (call.name === "python" || call.name === "node") {
-    return {
-      ...detail,
-      language: call.name,
-      source: typeof value.source === "string" ? value.source : null,
-      path: typeof value.path === "string" ? value.path : null,
-    };
-  }
-  return detail;
-}
-
-function pathOnlyCodeCall(call: ChatToolCall): boolean {
-  if (call.name !== "python" && call.name !== "node") return false;
-  if (typeof call.params !== "object" || call.params === null) return false;
-  const params = call.params as Record<string, unknown>;
-  return typeof params.path === "string" && params.source === undefined;
 }
 
 function stable(value: unknown): string {
@@ -111,7 +93,10 @@ function completedExecution(
   call: ChatToolCall,
   result: AgentToolResult,
 ): void {
-  if (result.execution === undefined) return;
+  if (result.execution === undefined) {
+    emitCompletedExecutionAttempt(input.onEvent, call, result);
+    return;
+  }
   if (pathOnlyCodeCall(call)) {
     input.onEvent?.("execution.started", "Running code.", {
       ...eventDetail(call),
@@ -162,17 +147,13 @@ async function toolResult(
     );
   }
   if (GUEST_TOOLS.has(call.name)) {
-    if (input.state.guestExecutions >= EXECUTION_LIMIT) {
+    if (input.state.guestBudget.remaining === 0) {
       return blockedToolResult(
         "Guest execution limit reached. Finish with the evidence already collected.",
       );
     }
   }
-  const result = await input.registry.execute(call.name, call.params);
-  if (GUEST_TOOLS.has(call.name) && result.guestExecutionAttempted === true) {
-    input.state.guestExecutions += 1;
-  }
-  return result;
+  return await input.registry.execute(call.name, call.params, input.state.guestBudget);
 }
 
 async function executeToolCall(input: ToolTurnInput, call: ChatToolCall): Promise<boolean> {
@@ -183,7 +164,8 @@ async function executeToolCall(input: ToolTurnInput, call: ChatToolCall): Promis
   const alreadyLoaded = skillName !== undefined && loaded.has(skillName);
   const repeated = corrupt ? false : repeatedCall(input.state, call);
   const invalid = corrupt ? undefined : input.registry.validate(call.name, call.params);
-  beforeExecution(input, call, repeated, !corrupt && invalid === undefined);
+  const hasBudget = !GUEST_TOOLS.has(call.name) || input.state.guestBudget.remaining > 0;
+  beforeExecution(input, call, repeated, !corrupt && invalid === undefined && hasBudget);
   const result = corrupt
     ? invalidToolInputResult("Invalid tool input: protocol-control transition in arguments.")
     : alreadyLoaded && !repeated
@@ -226,29 +208,11 @@ function finalizeToolCall(
   }
 }
 
-function retainWorkspaceEvidence(
-  state: ChatToolState,
-  call: ChatToolCall,
-  result: AgentToolResult,
-): void {
-  if ((call.name === "python" || call.name === "node") && typeof call.params === "object") {
-    const path = (call.params as Record<string, unknown> | null)?.path;
-    if (typeof path === "string" && AgentWorkspacePathSchema.safeParse(path).success) {
-      state.scriptPaths = [...state.scriptPaths.filter((item) => item !== path), path].slice(-8);
-    }
-  }
-  if (result.executionFailure !== undefined) {
-    state.lastExecutionFailure = {
-      ...result.executionFailure,
-      errorText: result.executionFailure.errorText.slice(0, 400),
-    };
-  }
-}
-
 export function initialToolState(messages: ChatMessage[]): ChatToolState {
   return {
+    artifactExecutions: [],
     executions: [],
-    guestExecutions: 0,
+    guestBudget: new GuestExecutionBudget(EXECUTION_LIMIT),
     loadedSkills: new Map(),
     messages,
     scriptPaths: [],

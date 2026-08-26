@@ -68,4 +68,5 @@ export interface CodeAgentSession {
 export interface CodeAgentLauncher {
   openAgentSession(request: MicroVmAgentRequest): Promise<CodeAgentSession>;
   deleteWorkspace(sessionId: string): Promise<void>;
+  readWorkspaceFile?(sessionId: string, path: string): Promise<Buffer | undefined>;
 }

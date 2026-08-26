@@ -33,6 +33,10 @@ delta = {
 execution = {
     "exitCode": 0 if sys.argv[2] == "success" else 1,
     "termination": "completed",
+    "artifacts": [
+        {"name": "report.xlsx"},
+        {"name": "created.txt"},
+    ],
 }
 print(json.dumps(module.next_artifact_state(previous, workspace, delta, execution), sort_keys=True))
 `;
@@ -41,6 +45,40 @@ print(json.dumps(module.next_artifact_state(previous, workspace, delta, executio
       encoding: "utf8",
     }),
   ) as Record<string, string>;
+}
+
+function artifactLimitRecovery(): { first: string[]; second: string[] } {
+  const program = `
+import base64
+import importlib.util
+import json
+import sys
+
+spec = importlib.util.spec_from_file_location("vault_agent", sys.argv[1])
+module = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(module)
+content = base64.b64encode(b"x").decode("ascii")
+workspace = [
+    {"kind": "file", "path": ".vault-tools/internal.py", "contentHash": "internal", "bytesBase64": content},
+    *[
+        {"kind": "file", "path": f"result-{index:02}.txt", "contentHash": str(index), "bytesBase64": content}
+        for index in range(17)
+    ],
+]
+delta = {"entries": workspace, "removedPaths": []}
+first = module.collect_artifacts(workspace, {})
+state = module.next_artifact_state(
+    {},
+    workspace,
+    delta,
+    {"exitCode": 0, "termination": "completed", "artifacts": first},
+)
+second = module.collect_artifacts(workspace, state)
+print(json.dumps({"first": [item["name"] for item in first], "second": [item["name"] for item in second]}))
+`;
+  return JSON.parse(
+    execFileSync(python, ["-B", "-c", program, agentPath], { encoding: "utf8" }),
+  ) as { first: string[]; second: string[] };
 }
 
 function recoveredArtifacts(): Array<{ name: string; bytesBase64: string }> {
@@ -88,5 +126,15 @@ describe("guest artifact baseline", () => {
         name: "report.txt",
       },
     ]);
+  });
+
+  it("keeps a successful artifact-limit omission eligible without using slots for internals", () => {
+    expect(artifactLimitRecovery()).toEqual({
+      first: Array.from(
+        { length: 16 },
+        (_, index) => `result-${String(index).padStart(2, "0")}.txt`,
+      ),
+      second: ["result-16.txt"],
+    });
   });
 });

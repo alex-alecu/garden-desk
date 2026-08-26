@@ -45,6 +45,7 @@ const AgentExecutionEvidenceSchema = z.object({
     .max(16)
     .default([]),
   invalidatedArtifactPaths: z.array(AgentWorkspacePathSchema).max(20_000).optional(),
+  recoverableArtifactPaths: z.array(AgentWorkspacePathSchema).max(20_000).optional(),
 });
 
 export const AgentExecutionResultSchema = z.discriminatedUnion("language", [
@@ -66,6 +67,7 @@ export const AgentRunResultSchema = z.object({
   response: z.string().min(1),
   artifacts: z.array(AgentWorkspacePathSchema).max(16).default([]),
   executions: z.array(AgentExecutionResultSchema).max(24),
+  guestExecutions: z.number().int().nonnegative().max(24),
   inference: InferencePerformanceSchema,
 });
 

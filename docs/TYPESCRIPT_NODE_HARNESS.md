@@ -127,7 +127,7 @@ The Node harness should call local inference runtimes through stable adapter int
 
 Candidate adapter families (support status verified 2026-07-11; see [research/local-ai-runtimes.md](research/local-ai-runtimes.md)):
 
-- node-llama-cpp (MIT) as the first supervised inference-worker adapter: loads Gemma 4 QAT GGUFs, enforces JSON-schema output via grammar-constrained sampling, and supports function calling, embeddings, reranking, speculative decoding, and multiple parallel context sequences on one loaded model (`sequences`, `sequencesLeft`, and a maximum-parallelism batch strategy), with Metal, CUDA, and Vulkan builds. Parallel generation is therefore bounded by KV-cache memory rather than by the runtime; V1 uses bounded extra sequences for sub-agents and plans to extend them to concurrent conversations. It runs behind Vault Core rather than inside the Tauri webview or Rust host.
+- node-llama-cpp (MIT) as the first supervised inference-worker adapter: loads Gemma 4 QAT GGUFs, enforces JSON-schema output via grammar-constrained sampling, and supports function calling, embeddings, reranking, speculative decoding, and multiple parallel context sequences on one loaded model (`sequences`, `sequencesLeft`, and a maximum-parallelism batch strategy), with Metal, CUDA, and Vulkan builds. Parallel generation is therefore bounded by KV-cache memory rather than by the runtime; V1 uses bounded extra sequences for sub-agents and concurrent user conversations. It runs behind Vault Core rather than inside the Tauri webview or Rust host.
 - The pinned llama.cpp `llama-mtmd-cli` as the supervised on-demand image adapter for the current Gemma 4 model pair. It runs one bounded offline request after the resident node-llama-cpp chat worker unloads. Later document-vision models must use the same narrow adapter or a separately reviewed equivalent.
 - MLX-family local serving on macOS.
 - Ollama-compatible serving.
@@ -263,7 +263,7 @@ See [IMPLEMENTATION_QUALITY_BAR.md](IMPLEMENTATION_QUALITY_BAR.md) for the minim
 
 M0 completed on 2026-07-17. The M1 daemon, CLI health path, workspace state, persistence, RPC, current-user local transports, common worker protocol, and platform microVM runtimes are implemented, and both platform microVMs are certified. M1 completed on 2026-07-18 after the Windows named pipe was bound to the current user and verified with a restricted-token denial gate. The 2026-07-19 follow-up authenticates the pipe owner and DACL from the client handle, canonicalizes endpoint identity, anchors audit tails across schema migration, bounds and cancels input staging, and ties the pipe helper to daemon lifetime.
 
-M2 was activated by the repository owner on 2026-07-19 and completed across macOS and Windows on 2026-07-20. The owner activated M3 Offline Dev-Agent Desktop V1 on 2026-07-20, and its macOS stage is complete. Generated binaries, downloaded models, packaged sidecars, guest images, build output, coverage, and dependency directories remain uncommitted artifacts.
+M2 was activated by the repository owner on 2026-07-19 and completed across macOS and Windows on 2026-07-20. The owner activated M3 Offline Dev-Agent Desktop V1 on 2026-07-20. Earlier macOS and Windows results are historical; the current candidate still needs its named physical evidence on both platforms. Generated binaries, downloaded models, packaged sidecars, guest images, build output, coverage, and dependency directories remain uncommitted artifacts.
 
 ## Revision History
 

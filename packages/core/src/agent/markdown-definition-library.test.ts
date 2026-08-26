@@ -78,7 +78,7 @@ function expectApprovedAgents(library: MarkdownDefinitionLibrary): void {
     "On `read_requires_utf8_text`, do not retry; load an applicable skill or use one bounded program.",
   );
   expect(library.agent("primary").body).toContain(
-    "Numeric arguments are optional, in range, and paginated.",
+    "Optional integers: safe values clamp to range; wrong/nonfinite/unsafe fail.",
   );
   expect(library.agent("explore")).toMatchObject({
     steps: 16,

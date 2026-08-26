@@ -1,10 +1,12 @@
 import { mkdir, mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   buildDevelopmentHeadlessEntry,
   prepareDevelopmentDiagnosticRoot,
+  requireHeadlessExitStatus,
+  runDevelopmentHeadlessEntry,
 } from "./development-inference.js";
 import { developmentInferenceWorkerEntryPath } from "./development-inference-path.js";
 
@@ -17,6 +19,12 @@ const HEADLESS_ENTRIES = [
   "../stress/m3-context-session.ts",
   "../stress/m3-scaled.ts",
 ] as const;
+const originalExitCode = process.exitCode;
+
+afterEach(() => {
+  process.exitCode = originalExitCode;
+  vi.restoreAllMocks();
+});
 
 function developmentHeadlessRoot(): string {
   return join(process.cwd(), "packages", "eval", ".generated", "development-inference-headless");
@@ -69,6 +77,14 @@ describe("development diagnostic root migration", () => {
   });
 });
 
+describe("development headless process result", () => {
+  it("rejects a headless process that ends without an exit status", () => {
+    expect(() => requireHeadlessExitStatus({ status: null })).toThrow(
+      "development_headless_terminated",
+    );
+  });
+});
+
 describe("development headless Core build", () => {
   it("builds every M3 and stress entry with fixed development definitions", async () => {
     const outputs = await Promise.all(
@@ -93,5 +109,25 @@ describe("development headless Core build", () => {
     } finally {
       await Promise.all(outputs.map(async (path) => await rm(path, { force: true })));
     }
+  });
+
+  it("reports a safe typed harness failure when entry build fails", async () => {
+    const output = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    await runDevelopmentHeadlessEntry(
+      new URL("./missing-development-entry.ts", import.meta.url),
+      "m3_test_entry_failed",
+    );
+    const serialized = output.mock.calls
+      .map((call) => String(call[0]))
+      .find((value) => value.includes("m3_test_entry_failed"));
+    expect(serialized).toBeDefined();
+    expect(JSON.parse(serialized as string)).toEqual({
+      classification: "m3_test_entry_failed",
+      failureClass: "harness_failure",
+      evidenceReference: "report.failure",
+      failure: { code: "m3_fixture_failure", stage: "fixture" },
+    });
+    expect(serialized).not.toContain("missing-development-entry.ts");
+    expect(process.exitCode).toBe(1);
   });
 });

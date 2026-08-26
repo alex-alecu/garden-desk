@@ -26,20 +26,22 @@ Examples:
 - Package installation and runtime network access are unavailable.
 - The guest can write only to its persistent 128 MiB workspace and ephemeral `/run`; it cannot change host source files.
 - Vault Core mediates model completions, limits, cancellation, audit, and results.
-- Safe current-run workspace files can become deliverables only with a successful final response. A task-named output must exist at its safe named path. Core gives one generic recovery turn when it is absent, then returns a stable failure. Internal tool, output-spill, and checkpoint paths are excluded. Safe task-named outputs have no suffix or format allowlist. Deliverables are proposals, not silent host mutations; Open uses a verified temporary copy and Save As requires a native user-selected destination.
+- Safe non-internal workspace files can become deliverables only with a successful final response. Internal tool, output-spill, and checkpoint paths are excluded. A failed execution invalidates stale candidates and can retain changed safe bytes for a later successful recovery execution. Deliverables are proposals, not silent host mutations; Open uses a verified temporary copy and Save As requires a native user-selected destination. Task text and format names do not create a deliverable requirement.
 - Observable code and activity are reviewable; hidden reasoning is not persisted.
 
 ## Session Model
 
 Each folder is a sidebar group. Its five newest sessions are immediately visible and older sessions load through Show more. New chat is a separate global area for conversations with optional file attachments and no implicit folder grant.
 
-Sessions persist user messages, assistant messages, observable agent activity, accepted deliverable metadata and immutable bytes, warnings, drafts, and terminal outcomes. Other workspace intermediates remain in the bounded session workspace and debug snapshot. Sessions do not persist hidden model reasoning.
+Sessions persist user messages, assistant messages, observable agent activity, accepted deliverable metadata and immutable bytes, warnings, drafts, and terminal outcomes. The anchored summary is continuity prose; bounded workspace state remains separate and recoverable through the debug snapshot. Sessions do not persist hidden model reasoning.
 
 ## Prompt-Only Format Methods
 
 The Word, PDF, XLSX, and review-report skills give prompt-only guest methods. Core advertises skill metadata and returns a body only when the model calls the generic `skill` tool. Core does not route file formats, select skill bodies, or parse document formats.
 
 For multi-step format work, a skill can require a guest-workspace checkpoint. The final output program must reread source facts, derive values again, compare them with the saved verified state, create each requested output, reopen it, and verify it before completion. This is a prompt method. It is not a Core format workflow.
+
+Python and Node source can be saved in the session workspace. A later path-only call runs the exact committed bytes. Only three consecutive identical calls trigger the generic change-approach stop; ordinary syntax or runtime failures remain evidence for repair.
 
 ## Post-V1 Workflow Specialization
 
@@ -70,4 +72,5 @@ Task-quality cases use deterministic development and held-out inputs. Security i
 | 2026-07-23 | Added the live read-only folder, guest shell tools, session VM, and persistent bounded workspace workflow. |
 | 2026-08-04 | Added generated-file deliverables and explicit Open and Save As actions. |
 | 2026-08-14 | Replaced the DOCX-only skill with one Word skill and added legacy DOC plain-text input through guest Antiword. |
-| 2026-08-22 | Recorded generic skill loading, prompt-only format checkpoints, and task-named artifact completion. |
+| 2026-08-22 | Recorded generic skill loading and prompt-only format checkpoints. |
+| 2026-08-26 | Recorded committed-script reuse, failed-artifact recovery, and identical-call repair stops. |

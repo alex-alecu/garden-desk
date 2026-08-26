@@ -1,17 +1,18 @@
 import type { AgentRunSnapshot, AgentTrace } from "@vault/shared";
 import type { ExpectedTableRow } from "./document-workloads.js";
 import { legacyDocEvidence } from "./legacy-doc-evidence.js";
+import {
+  contextCompactionCount,
+  evidenceClassification,
+  inferenceFailureCount,
+  productEvidenceReference,
+  qualityCandidate,
+  resultError,
+} from "./m3-evidence-classification.js";
 import type { ActiveCase, StressCaseResult } from "./m3-stress-runtime.js";
-
 export function terminal(snapshot: AgentRunSnapshot): boolean {
   return snapshot.run.state !== "queued" && snapshot.run.state !== "running";
 }
-
-function progressSignature(snapshot: AgentRunSnapshot): string {
-  const latest = snapshot.events.at(-1);
-  return [snapshot.run.state, snapshot.executions.length, latest?.id ?? "none"].join(":");
-}
-
 function reportProgress(active: ActiveCase, snapshot: AgentRunSnapshot): void {
   const latest = snapshot.events.at(-1);
   console.log(
@@ -27,13 +28,16 @@ function reportProgress(active: ActiveCase, snapshot: AgentRunSnapshot): void {
     }),
   );
 }
-
 export function createProgressReporter() {
   const reportedAt = new Map<string, number>();
   const signatures = new Map<string, string>();
   return (active: ActiveCase, snapshot: AgentRunSnapshot): void => {
     const now = performance.now();
-    const signature = progressSignature(snapshot);
+    const signature = [
+      snapshot.run.state,
+      snapshot.executions.length,
+      snapshot.events.at(-1)?.id ?? "none",
+    ].join(":");
     const changed = signatures.get(active.runId) !== signature;
     const heartbeatDue = !terminal(snapshot) && now - (reportedAt.get(active.runId) ?? 0) >= 15_000;
     if (!changed && !heartbeatDue) return;
@@ -42,7 +46,6 @@ export function createProgressReporter() {
     reportedAt.set(active.runId, now);
   };
 }
-
 function outputHasToken(output: string, token: string): boolean {
   if (!token.includes("=")) {
     return output.toLocaleLowerCase("en-US").includes(token.toLocaleLowerCase("en-US"));
@@ -111,16 +114,6 @@ function executionMetrics(active: ActiveCase, snapshot: AgentRunSnapshot) {
       0,
     ),
   };
-}
-
-function inferenceFailures(trace: AgentTrace | undefined): number {
-  if (trace?.captureVersion !== 1) return 0;
-  return trace.turns.filter((turn) => turn.outcome === "inference_failed").length;
-}
-
-function contextCompactions(trace: AgentTrace | undefined): number {
-  if (trace?.captureVersion !== 1) return 0;
-  return trace.turns.filter((turn) => turn.prompt.includes("# Compacted task state")).length;
 }
 
 function toolCalls(response: unknown): unknown[] {
@@ -214,13 +207,6 @@ function responseEvidence(active: ActiveCase, snapshot: AgentRunSnapshot) {
   };
 }
 
-function stressError(active: ActiveCase, snapshot: AgentRunSnapshot): string | null {
-  if (active.fixture.forbidArtifacts === true && snapshot.artifacts.length > 0) {
-    return "Expected no artifacts.";
-  }
-  return snapshot.run.error;
-}
-
 // biome-ignore lint/complexity/noExcessiveLinesPerFunction: one result keeps all acceptance gates visible.
 export function stressResultFor(
   active: ActiveCase,
@@ -238,7 +224,16 @@ export function stressResultFor(
   const skills = skillEvidence(active, verification.trace);
   const executionText = executionTextEvidence(active, snapshot);
   const legacyDoc = legacyDocEvidence(active.fixture.id, snapshot, verification.trace);
-  const error = stressError(active, snapshot);
+  const errorEvidence = resultError(
+    active.fixture.forbidArtifacts,
+    snapshot.artifacts.length,
+    snapshot.run.error,
+  );
+  const { artifactViolation, error } = errorEvidence;
+  const metrics = executionMetrics(active, snapshot);
+  const inferenceFailures = inferenceFailureCount(verification.trace);
+  const quality = qualityCandidate(error, inferenceFailures);
+  const expectedDeliverables = active.fixture.deliverables?.length ?? 0;
   const passed =
     snapshot.run.state === "succeeded" &&
     response.missingTokens.length === 0 &&
@@ -251,17 +246,41 @@ export function stressResultFor(
     executionText.missingExecutionText.length === 0 &&
     legacyDoc.orderValid &&
     legacyDoc.methodValid &&
-    verifiedDeliverables.length === (active.fixture.deliverables?.length ?? 0) &&
+    verifiedDeliverables.length === expectedDeliverables &&
     error === null;
+  const productReference = productEvidenceReference({
+    ...response,
+    ...executionText,
+    ...skills,
+    legacyDocMethodValid: legacyDoc.methodValid,
+    legacyDocOrderValid: legacyDoc.orderValid,
+    artifactViolation,
+    error,
+    verifiedDeliverables,
+    expectedDeliverables,
+  });
+  const classification = evidenceClassification({
+    error,
+    inferenceFailures,
+    passed,
+    productEvidenceReference: productReference,
+    productFailure: artifactViolation,
+    qualityCandidate: quality,
+    state: snapshot.run.state,
+  });
   return {
     id: active.fixture.id,
     passed,
+    ...classification,
+    ...(active.fixture.id === "legacy-doc-read" && legacyDoc.methodValid
+      ? { repairMethod: "approved_legacy_doc_extraction" as const }
+      : {}),
     fixtureMs: active.fixture.fixtureMs,
     fixtureBytes: active.fixture.evidence.bytes,
     fixtureFiles: active.fixture.evidence.files,
     runMs: measuredRunMs(active, snapshot),
     state: snapshot.run.state,
-    ...executionMetrics(active, snapshot),
+    ...metrics,
     expectedTokens: active.fixture.expectedTokens,
     ...response,
     ...executionText,
@@ -270,10 +289,11 @@ export function stressResultFor(
     legacyDocOrderValid: legacyDoc.orderValid,
     producedArtifacts: snapshot.artifacts.map((artifact) => artifact.name),
     error,
-    inferenceFailures: inferenceFailures(verification.trace),
+    inferenceFailures,
+    qualityCandidate: quality,
     retainedArtifacts: verification.retained ?? [],
     verifiedDeliverables,
     verificationOutput,
-    contextCompactions: contextCompactions(verification.trace),
+    contextCompactions: contextCompactionCount(verification.trace),
   };
 }

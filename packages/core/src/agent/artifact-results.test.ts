@@ -68,7 +68,9 @@ describe("current artifact results", () => {
 
     expect(artifactCandidateNames([created, failed])).toEqual(["report.unknown"]);
   });
+});
 
+describe("current artifact replacement", () => {
   it("restores an invalidated artifact after a later successful recreation", () => {
     const created = result("report.unknown", { exitCode: 0, termination: "completed" });
     const deleted = result("failed.unknown", { exitCode: 124, termination: "timeout" });
@@ -84,6 +86,33 @@ describe("current artifact results", () => {
       name: "report.unknown",
       bytesBase64: Buffer.from("recreated").toString("base64"),
     });
+  });
+
+  it("keeps a recently regenerated artifact inside the 16-card limit", () => {
+    const created = Array.from({ length: 16 }, (_, index) =>
+      result(`report-${index + 1}.unknown`, { exitCode: 0, termination: "completed" }),
+    );
+    const regenerated = result(
+      "report-1.unknown",
+      { exitCode: 0, termination: "completed" },
+      "new bytes",
+    );
+    const added = result("report-17.unknown", { exitCode: 0, termination: "completed" });
+
+    const names = artifactCandidateNames([...created, regenerated, added]);
+
+    expect(names).toHaveLength(16);
+    expect(names).toContain("report-1.unknown");
+    expect(names).toContain("report-17.unknown");
+    expect(names).not.toContain("report-2.unknown");
+  });
+});
+
+describe("artifact path policy", () => {
+  it("does not expose working scripts as user artifacts", () => {
+    const script = result("steps/repair.py", { exitCode: 0, termination: "completed" });
+
+    expect(artifactCandidateNames([script])).toEqual([]);
   });
 });
 

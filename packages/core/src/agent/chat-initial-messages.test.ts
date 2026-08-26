@@ -31,4 +31,23 @@ describe("initial chat attachment facts", () => {
     if (lastMessage?.role !== "user") throw new Error("Expected the user task message.");
     expect(lastMessage.text).not.toContain("Selected inputs:");
   });
+
+  it("offers same-path continuation for saved scripts", () => {
+    const messages = initialChatMessages(
+      input(
+        {
+          async execute() {
+            throw new Error("unused");
+          },
+        },
+        [],
+        { savedScripts: ["steps/report.py"], task: "Continue the report." },
+      ),
+    );
+
+    expect(messages.at(-1)).toEqual({
+      role: "user",
+      text: "Continue the report.\nSaved scripts from earlier steps under /workspace: steps/report.py. Read and continue the saved path when useful; do not retype its data.",
+    });
+  });
 });

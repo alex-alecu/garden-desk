@@ -6,8 +6,14 @@ import {
   type ChatToolDefinition,
 } from "@vault/shared";
 import type { AgentSessionExecution } from "@vault/workers";
-import type { AgentExecutor } from "./agent-executor.js";
+import {
+  AgentExecutionAttemptError,
+  type AgentExecutor,
+  type AgentScriptPreparationFailure,
+  agentScriptPreparationFailure,
+} from "./agent-executor.js";
 import { isSuccessfulExecution } from "./execution-success.js";
+import { type InspectionName, inspectionSource } from "./generic-inspection-source.js";
 
 export interface SkillReader {
   metadata(): Array<{ name: string; description: string }>;
@@ -25,18 +31,18 @@ export type AgentQuestionOutcome = { dismissed: false; answers: string[][] } | {
 export interface AgentToolResult {
   content: string;
   failed: boolean;
-  guestExecutionAttempted?: boolean;
+  guestExecutionsStarted?: number;
   invalidInput?: boolean;
   execution?: AgentExecutionResult;
+  artifactExecution?: AgentExecutionResult;
   executionFailure?: {
     termination: AgentExecutionResult["termination"];
     exitCode: number;
     errorText: string;
   };
-  preparationFailure?:
-    | "agent_script_missing"
-    | "agent_script_invalid_text"
-    | "agent_script_source_oversized";
+  preparationFailure?: AgentScriptPreparationFailure;
+  executionAttempt?: AgentExecutionAttemptError["attempt"];
+  outputFailure?: "tool_output_spill_budget_exceeded";
   status?: "already_loaded";
 }
 
@@ -54,8 +60,6 @@ export interface ToolSpec {
   parse(value: unknown): unknown;
   execute(value: unknown, context: ToolContext): Promise<AgentToolResult>;
 }
-
-type InspectionName = "read" | "glob" | "grep" | "list";
 
 export function objectSchema(properties: Record<string, unknown>, required: string[] = []) {
   return { type: "object", properties, required, additionalProperties: false };
@@ -75,8 +79,8 @@ function executionResult(result: AgentExecutionResult, recorded: boolean): Agent
   return {
     content: executionText(result),
     failed,
-    guestExecutionAttempted: true,
-    ...(recorded ? { execution: result } : {}),
+    guestExecutionsStarted: 1,
+    ...(recorded ? { execution: result } : { artifactExecution: result }),
     ...(failed
       ? {
           executionFailure: {
@@ -89,22 +93,24 @@ function executionResult(result: AgentExecutionResult, recorded: boolean): Agent
   };
 }
 
-const SCRIPT_PREPARATION_FAILURES = new Set([
-  "agent_script_missing",
-  "agent_script_invalid_text",
-  "agent_script_source_oversized",
-]);
-
-function executionError(error: unknown): AgentToolResult {
-  const message = error instanceof Error ? error.message : String(error);
-  const preparation = SCRIPT_PREPARATION_FAILURES.has(message)
-    ? (message as AgentToolResult["preparationFailure"])
-    : undefined;
+function preparationError(error: unknown): AgentToolResult | undefined {
+  const preparation = agentScriptPreparationFailure(error);
+  if (preparation === undefined) return undefined;
   return {
     content: error instanceof Error ? `${error.name}: ${error.message}` : String(error),
     failed: true,
-    guestExecutionAttempted: preparation === undefined,
-    ...(preparation === undefined ? {} : { preparationFailure: preparation }),
+    guestExecutionsStarted: 0,
+    preparationFailure: preparation,
+  };
+}
+
+function executionError(error: unknown): AgentToolResult {
+  const preparation = preparationError(error);
+  if (preparation !== undefined) return preparation;
+  return {
+    content: error instanceof Error ? `${error.name}: ${error.message}` : String(error),
+    failed: true,
+    guestExecutionsStarted: 1,
   };
 }
 
@@ -119,6 +125,15 @@ export async function runExecution(
   try {
     return executionResult(await execute(execution, context.signal), recorded);
   } catch (error) {
+    if (error instanceof DOMException && error.name === "AbortError") throw error;
+    if (error instanceof AgentExecutionAttemptError) {
+      return {
+        content: `${error.name}: ${error.message}`,
+        failed: true,
+        guestExecutionsStarted: 1,
+        executionAttempt: error.attempt,
+      };
+    }
     return executionError(error);
   }
 }
@@ -165,80 +180,6 @@ function optionalBoundedInteger(
     throw new Error(`invalid_${name}: use an integer from ${minimum} to ${maximum}`);
   }
   return Math.min(maximum, Math.max(minimum, item));
-}
-
-// biome-ignore lint/complexity/noExcessiveLinesPerFunction: this is one bounded generated guest program.
-function inspectionSource(operation: InspectionName, params: unknown): string {
-  return [
-    "from pathlib import Path",
-    "import codecs, fnmatch, json, re, sys",
-    `op = ${JSON.stringify(operation)}`,
-    `args = json.loads(${JSON.stringify(JSON.stringify(params))})`,
-    "def read_utf8_lines(path, offset, limit):",
-    "    line_endings = tuple(map(chr, (10, 13, 11, 12, 28, 29, 30, 133, 8232, 8233)))",
-    "    def stream(handle):\n        current_line = 1\n        after_cr = False\n        has_content = False\n        writing = False\n        decoder = codecs.getincrementaldecoder('utf-8')('strict')",
-    "        def write(text):\n            nonlocal writing\n            if not writing:\n                sys.stdout.write(str(current_line) + ': ')\n                writing = True\n            sys.stdout.write(text)",
-    "        def consume(text):\n            nonlocal current_line, after_cr, has_content, writing\n            start = 0\n            for index, character in enumerate(text):",
-    "                if after_cr:",
-    "                    after_cr = False",
-    "                    if character == chr(10):",
-    "                        start = index + 1",
-    "                        continue",
-    "                if character in line_endings:\n                    if start < index:\n                        has_content = True",
-    "                    if offset <= current_line < offset + limit:",
-    "                        write(text[start:index])",
-    "                        sys.stdout.write(chr(10))",
-    "                    current_line += 1\n                    after_cr = character == chr(13)\n                    has_content = False\n                    writing = False\n                    start = index + 1",
-    "            if start < len(text):",
-    "                has_content = True",
-    "                if offset <= current_line < offset + limit:",
-    "                    write(text[start:])",
-    "        while chunk := handle.read(65536):\n            if b'\\0' in chunk: raise ValueError('read_requires_utf8_text')",
-    "            consume(decoder.decode(chunk))\n            if current_line >= offset + limit: return",
-    "        consume(decoder.decode(b'', final=True))",
-    "        if has_content and offset <= current_line < offset + limit:",
-    "            sys.stdout.write(chr(10))",
-    "    try:",
-    "        with path.open('rb') as handle:",
-    "            decoder = codecs.getincrementaldecoder('utf-8')('strict')",
-    "            while chunk := handle.read(65536):",
-    "                if b'\\0' in chunk: raise ValueError('read_requires_utf8_text')",
-    "                decoder.decode(chunk)",
-    "            decoder.decode(b'', final=True)",
-    "            handle.seek(0)",
-    "            stream(handle)",
-    "    except UnicodeDecodeError:",
-    "        raise ValueError('read_requires_utf8_text') from None",
-    "def safe(value, default='/source'):",
-    "    raw = str(value or default)",
-    "    path = Path(raw if raw.startswith('/') else '/source/' + raw)",
-    "    resolved = path.resolve()",
-    "    roots = (Path('/source'), Path('/workspace'), Path('/run/attachments'))",
-    "    if resolved not in roots and not str(resolved).startswith(tuple(str(root) + '/' for root in roots)):",
-    "        raise ValueError('path_outside_guest_roots')",
-    "    return resolved",
-    "root = safe(args.get('path'))",
-    "if op == 'read':",
-    "    offset = args.get('offset', 1)",
-    "    limit = args.get('limit', 2000)",
-    "    read_utf8_lines(root, offset, limit)",
-    "elif op == 'glob':",
-    "    pattern = args['pattern']",
-    "    for item in sorted(root.glob(pattern)): print(item)",
-    "elif op == 'grep':",
-    "    regex = re.compile(args['pattern'])",
-    "    include = args.get('include', '*')",
-    "    files = [root] if root.is_file() else sorted(p for p in root.rglob('*') if p.is_file() and fnmatch.fnmatch(p.name, include))",
-    "    for item in files:",
-    "        try:",
-    "            for number, line in enumerate(item.read_text(errors='replace').splitlines(), 1):",
-    "                if regex.search(line): print(f'{item}:{number}:{line}')",
-    "        except OSError as error: print(f'{item}: {error}')",
-    "else:",
-    "    depth = args.get('depth', 2)",
-    "    for item in sorted(root.rglob('*')):",
-    "        if len(item.relative_to(root).parts) <= depth: print(str(item) + ('/' if item.is_dir() else ''))",
-  ].join("\n");
 }
 
 function inspectionTool(options: {

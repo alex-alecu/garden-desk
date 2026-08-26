@@ -49,6 +49,34 @@ function invalidatedArtifactPaths(
   return [...paths].filter((path) => !path.startsWith("steps/"));
 }
 
+function userArtifactPath(path: string): boolean {
+  const name = path.split("/").at(-1)?.toLocaleLowerCase("en-US");
+  return !(
+    path.startsWith("steps/") ||
+    path === ".vault-tools" ||
+    path.startsWith(".vault-tools/") ||
+    path === ".vault-output" ||
+    path.startsWith(".vault-output/") ||
+    name === "checkpoint.json" ||
+    name === "checkpoints.json"
+  );
+}
+
+function recoverableArtifactPaths(
+  execution: Pick<AgentExecutionResult, "artifacts" | "exitCode" | "termination">,
+  delta: AgentWorkspaceDelta,
+): string[] {
+  const captured =
+    execution.termination === "completed" && execution.exitCode === 0
+      ? new Set(execution.artifacts.map((artifact) => artifact.name))
+      : new Set<string>();
+  return delta.entries
+    .filter(
+      (entry) => entry.kind === "file" && !captured.has(entry.path) && userArtifactPath(entry.path),
+    )
+    .map((entry) => entry.path);
+}
+
 async function resolveExecution(
   request: AgentSessionExecution,
   store: AgentWorkspaceStore,
@@ -62,7 +90,7 @@ async function resolveExecution(
   if (bytes === undefined) throw new Error("agent_script_missing");
   let source: string;
   try {
-    source = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+    source = new TextDecoder("utf-8", { fatal: true, ignoreBOM: true }).decode(bytes);
   } catch {
     throw new Error("agent_script_invalid_text");
   }
@@ -179,6 +207,7 @@ export class FramedAgentSession implements CodeAgentSession {
       return {
         ...result.execution,
         invalidatedArtifactPaths: invalidatedArtifactPaths(result.execution, result.workspaceDelta),
+        recoverableArtifactPaths: recoverableArtifactPaths(result.execution, result.workspaceDelta),
       };
     } finally {
       signal?.removeEventListener("abort", abort);

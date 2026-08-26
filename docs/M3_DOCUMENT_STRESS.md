@@ -1,11 +1,28 @@
 # M3 Document Stress Evaluation
 
 Created: 2026-07-26
-Updated: 2026-08-14
+Updated: 2026-08-26
 
 This evaluation measures the M3 generic offline development agent with the real Gemma 4 12B QAT worker, current-user daemon, and no-NIC microVM. It does not add a product document parser.
 
 The V1 release gate accepts the limits of the certified local model. It proves a few normal product paths. It does not require the model to solve large corpora, long context-turnover tasks, or several complex tasks at the same time. Model-quality limits from those optional tests are evidence. They are not V1 release failures.
+
+## Result classification
+
+Each report keeps its suite-specific result and adds one common M3 classification:
+
+| Classification | Meaning |
+|---|---|
+| `passed` | All hard checks for the declared run passed. |
+| `model_limit` | A Markdown readiness row, not a standalone evaluator, can assign this only when it combines a quality-only report with passing candidate runtime, workspace, artifact, security, and audit evidence. |
+| `product_failure` | A product contract or hard output check failed. |
+| `runtime_failure` | The model or guest runtime did not provide the required typed service. |
+| `environment_blocked` | The declared host or prerequisite did not permit the run. |
+| `harness_failure` | The evaluator, fixture, or report path failed. |
+
+Every non-passed result cites safe trace, audit, or report evidence. Keep every attempt. An evaluator records an exact Core terminal code as `qualityCandidate` and keeps `product_failure`; it does not assign `model_limit`. The Markdown readiness record can combine that quality evidence with the required candidate evidence. One clean complete supported-suite run on the candidate build is sufficient qualification evidence, but it is not a statistical reliability claim. An earlier `model_limit` does not force code churn or capability removal.
+
+The small-suite task facts, required execution evidence, forbidden results, security checks, audit checks, and independently verified deliverables are hard checks. Context use, execution count, repair method, wording, layout, and table form are observations unless a named hard contract says otherwise. Edit-versus-rewrite is always an observation.
 
 ## V1 small gate
 
@@ -28,9 +45,9 @@ pnpm test:stress:m3:small
 
 The command creates fixtures and workspace state under a short `/tmp` path on macOS and under the user temporary directory on Windows, calls only daemon RPC through the CLI client, and removes the temporary corpus after completion. A complete local report containing terminal snapshots, ordered events, execution output, and recorded inference traces is retained under `packages/eval/.generated/stress/`. That report can contain generated code and source-derived output and must remain local.
 
-The suite exits nonzero when it finds a limit. A nonzero result is evidence to record, not by itself authorization to change the agent. Agent changes require a separate owner-approved strategy and verification.
+The suite exits nonzero when any hard check does not pass. A nonzero result is evidence to record, not by itself authorization to change the agent. A new qualification attempt does not require an implementation or support change. Agent changes require a separate owner-approved strategy and verification.
 
-Each V1 case has a five-minute deadline and runs in sequence. The small gate does not run concurrent model tasks. The canonical platform gate already proves process concurrency, Python and Node execution, cancellation, isolation, resource limits, and teardown.
+Each V1 case has a five-minute deadline and runs in sequence. The small gate does not run concurrent model tasks. The current-candidate canonical platform gate must prove bounded overlap, Python and Node execution, cancellation, isolation, resource limits, and teardown. macOS requires two overlapping no-NIC VM lifetimes through one Core. Windows requires two overlapping typed guest-process lifetimes through one Core. Both runs are pending.
 
 All other small-profile cases remain available through `--case` for focused diagnosis. The context-session and scaled commands are optional model-characterization tools. Do not run them for normal V1 acceptance, and do not make V1 depend on a larger or smarter model.
 
@@ -98,9 +115,9 @@ The concurrent suite observed `maximumRunning: 3` and completed in 480.157 s. Th
 
 The ignored reports are `scaled-sequential-2026-07-27T06-21-22.942Z.json` and `scaled-concurrent-2026-07-27T07-14-39.715Z.json`. They retain exact prompts, decisions, code, execution output, termination evidence, and ordered events. This is macOS evidence only. At that point, they proved the million-row-file target and concurrent scheduling while identifying ten million streamed XLSX rows as beyond the bounded repair behavior; they did not authorize larger limits or a deterministic document subsystem.
 
-## Latest continuation evidence
+## Historical continuation evidence
 
-The minimal continuation repair kept the existing six-execution, 120-second, 4 GiB, and 128 MiB workspace limits. Stress commands now print event changes plus a 15-second heartbeat, and the runner simulates the user's explicit Continue action while retaining every prior snapshot and trace.
+These July results apply only to their recorded earlier build. They do not qualify the current candidate bytes. The minimal continuation repair kept the existing six-execution, 120-second, 4 GiB, and 128 MiB workspace limits. Stress commands now print event changes plus a 15-second heartbeat, and the runner simulates the user's explicit Continue action while retaining every prior snapshot and trace.
 
 | Case | Latest physical result |
 |---|---|
@@ -110,4 +127,4 @@ The minimal continuation repair kept the existing six-execution, 120-second, 4 G
 | 50 XLSX / 10,000,000 rows | Passed 500 matches and total 12,752,750 in three checkpointed executions. |
 | Mixed XLSX and DOCX / 10,000,000 XLSX rows | Saved progress at 6 of 20 XLSX files and started a continuation correctly; the resumed model then used an incompatible checkpoint key and stalled. DOCX evidence remained exact. |
 
-The passing small report is `small-2026-07-27T15-01-01.059Z.json`; the passing scaled XLSX-folder report is `scaled-sequential-2026-07-27T15-35-18.804Z.json`; and the mixed continuation limit is recorded in `scaled-sequential-2026-07-27T15-42-05.476Z.json`. The hours-long scaled concurrent suite was not rerun after these changes at the owner's direction; earlier concurrency evidence remains the current physical result.
+The passing small report is `small-2026-07-27T15-01-01.059Z.json`; the passing scaled XLSX-folder report is `scaled-sequential-2026-07-27T15-35-18.804Z.json`; and the mixed continuation limit is recorded in `scaled-sequential-2026-07-27T15-42-05.476Z.json`. The hours-long scaled concurrent suite was not rerun after these changes at the owner's direction. The earlier concurrency run remains historical evidence only.

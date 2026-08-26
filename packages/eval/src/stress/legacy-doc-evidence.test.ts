@@ -143,6 +143,7 @@ describe("legacy DOC stress order evidence", () => {
       passed: true,
       legacyDocMethodValid: true,
       legacyDocOrderValid: true,
+      repairMethod: "approved_legacy_doc_extraction",
     });
   });
 

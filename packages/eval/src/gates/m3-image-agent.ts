@@ -1,5 +1,6 @@
 import type { createVaultCore } from "@vault/core";
 import type { AgentRunSnapshot } from "@vault/shared";
+import { M3ProductCheckFailure } from "./m3-canonical-gate-reporting.js";
 
 type Core = Awaited<ReturnType<typeof createVaultCore>>;
 
@@ -32,7 +33,7 @@ export async function realImageEvidence(
     imageCalls.length !== 1 ||
     !snapshot.run.response?.toLowerCase().includes("camera")
   ) {
-    throw new Error(`Real image agent proof failed: ${JSON.stringify(snapshot)}`);
+    throw new M3ProductCheckFailure(`Real image agent proof failed: ${JSON.stringify(snapshot)}`);
   }
   await core.deleteSession(session.id);
   return { imageCalls: imageCalls.length, response: snapshot.run.response };
