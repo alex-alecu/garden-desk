@@ -76,7 +76,7 @@ describe("GenericToolRegistry output recovery", () => {
 
     expect(result).toMatchObject({
       failed: true,
-      guestExecutionsStarted: 2,
+      guestExecutionsStarted: 1,
       execution,
       content: "Error: spill boundary failed",
     });

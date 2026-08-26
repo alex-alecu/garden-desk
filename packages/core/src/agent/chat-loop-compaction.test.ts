@@ -38,9 +38,10 @@ function preparedTransportAttempt() {
 function orderedFailureExecutor(): AgentExecutor {
   let attempt = 0;
   return {
-    async execute(run) {
+    async execute(run, _signal, onStarted) {
       attempt += 1;
       if (attempt === 1) return execution(source(run), "older failure", 1);
+      onStarted?.();
       throw new AgentExecutionAttemptError(transportError, preparedTransportAttempt());
     },
   };

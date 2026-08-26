@@ -31,7 +31,17 @@ export class AgentExecutionAttemptError extends Error {
   }
 }
 
+export type AgentExecutionStarted = () => void;
+
 export interface AgentExecutor {
-  execute(input: AgentSessionExecution, signal?: AbortSignal): Promise<AgentExecutionResult>;
-  inspect?(input: AgentSessionExecution, signal?: AbortSignal): Promise<AgentExecutionResult>;
+  execute(
+    input: AgentSessionExecution,
+    signal?: AbortSignal,
+    onStarted?: AgentExecutionStarted,
+  ): Promise<AgentExecutionResult>;
+  inspect?(
+    input: AgentSessionExecution,
+    signal?: AbortSignal,
+    onStarted?: AgentExecutionStarted,
+  ): Promise<AgentExecutionResult>;
 }

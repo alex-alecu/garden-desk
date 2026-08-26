@@ -5,7 +5,11 @@ import type {
   AgentSessionExecution,
   ResolvedAgentSessionExecution,
 } from "@vault/workers";
-import { AgentExecutionAttemptError, type AgentExecutor } from "./agent-executor.js";
+import {
+  AgentExecutionAttemptError,
+  type AgentExecutionStarted,
+  type AgentExecutor,
+} from "./agent-executor.js";
 import type { AgentSessionManager } from "./session-manager.js";
 import type { AgentStore } from "./store.js";
 
@@ -51,6 +55,13 @@ function retainUpdate(
   else appendUpdate(input.store, state.recordId, update);
 }
 
+function markGuestExecutionStarted(
+  update: AgentExecutionUpdate,
+  onStarted: AgentExecutionStarted | undefined,
+): void {
+  if (update.kind === "diagnostic" && update.code === "process_start") onStarted?.();
+}
+
 function throwRecordedExecutionFailure(
   input: RunExecutorInput,
   state: RecordingState,
@@ -74,6 +85,7 @@ async function runRecordedExecution(
   input: RunExecutorInput,
   execution: AgentSessionExecution,
   signal: AbortSignal | undefined,
+  onStarted: AgentExecutionStarted | undefined,
 ): Promise<AgentExecutionResult> {
   const pathOnly = execution.language !== "shell" && execution.source === undefined;
   const executionId = randomUUID();
@@ -91,7 +103,10 @@ async function runRecordedExecution(
     const result = await input.sessions.execute(input.sessionId, execution, signal, {
       executionId,
       onPrepared: (resolved) => prepareRecord(input, state, resolved, executionId),
-      onUpdate: (update) => retainUpdate(input, state, update),
+      onUpdate: (update) => {
+        markGuestExecutionStarted(update, onStarted);
+        retainUpdate(input, state, update);
+      },
     });
     if (state.recordId === undefined) throw new Error("agent_execution_not_prepared");
     input.store.execution.complete(state.recordId, result);
@@ -116,12 +131,18 @@ export function createRunExecutor(input: {
     execution: AgentSessionExecution,
     signal: AbortSignal | undefined,
     recorded: boolean,
+    onStarted: AgentExecutionStarted | undefined,
   ): Promise<AgentExecutionResult> => {
-    if (!recorded) return await input.sessions.execute(input.sessionId, execution, signal);
-    return await runRecordedExecution(input, execution, signal);
+    if (!recorded) {
+      return await input.sessions.execute(input.sessionId, execution, signal, {
+        executionId: randomUUID(),
+        onUpdate: (update) => markGuestExecutionStarted(update, onStarted),
+      });
+    }
+    return await runRecordedExecution(input, execution, signal, onStarted);
   };
   return {
-    execute: async (execution, signal) => await run(execution, signal, true),
-    inspect: async (execution, signal) => await run(execution, signal, false),
+    execute: async (execution, signal, onStarted) => await run(execution, signal, true, onStarted),
+    inspect: async (execution, signal, onStarted) => await run(execution, signal, false, onStarted),
   };
 }

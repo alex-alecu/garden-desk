@@ -3,7 +3,12 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { AgentExecutionResult, ChatGenerationResult } from "@vault/shared";
-import type { AgentSessionExecution, CodeAgentLauncher } from "@vault/workers";
+import type {
+  AgentExecutionObserver,
+  AgentSessionExecution,
+  CodeAgentLauncher,
+  ResolvedAgentSessionExecution,
+} from "@vault/workers";
 import { AuditLog } from "../audit/log.js";
 import { ConversationStore } from "../conversations/store.js";
 import { JobStore } from "../jobs/jobs.js";
@@ -40,22 +45,35 @@ export function chatResult(
   };
 }
 
+type WorkspaceReader = (sessionId: string, path: string) => Promise<Buffer | undefined>;
+
+async function resolveTestExecution(
+  request: AgentSessionExecution,
+  sessionId: string,
+  readWorkspaceFile: WorkspaceReader | undefined,
+): Promise<ResolvedAgentSessionExecution> {
+  if (request.language === "shell" || request.source !== undefined) {
+    return request as ResolvedAgentSessionExecution;
+  }
+  const bytes = await readWorkspaceFile?.(sessionId, request.path);
+  if (bytes === undefined) throw new Error("agent_script_missing");
+  return { language: request.language, path: request.path, source: bytes.toString("utf8") };
+}
+
 function launcher(
   run: (request: AgentSessionExecution) => Promise<AgentExecutionResult>,
-  afterPrepared?: () => Promise<void>,
-  readWorkspaceFile?: (sessionId: string, path: string) => Promise<Buffer | undefined>,
+  afterPrepared?: (observer: AgentExecutionObserver | undefined) => Promise<void>,
+  readWorkspaceFile?: WorkspaceReader,
 ): CodeAgentLauncher {
   return {
-    async openAgentSession() {
+    async openAgentSession(options) {
       return {
         async execute(request, _signal, observer) {
-          const result = await run(request);
           await observer?.onPrepared?.(
-            result.language === "shell"
-              ? { language: "shell", command: result.command }
-              : { language: result.language, path: result.path, source: result.source },
+            await resolveTestExecution(request, options.sessionId, readWorkspaceFile),
           );
-          await afterPrepared?.();
+          await afterPrepared?.(observer);
+          const result = await run(request);
           if (result.stdout.length > 0)
             await observer?.onUpdate({
               kind: "stream",
@@ -82,8 +100,8 @@ function launcher(
 export async function fixture(
   inference: Partial<Pick<InferenceService, "chat" | "modelStatus">>,
   execute: (request: AgentSessionExecution) => Promise<AgentExecutionResult>,
-  afterPrepared?: () => Promise<void>,
-  readWorkspaceFile?: (sessionId: string, path: string) => Promise<Buffer | undefined>,
+  afterPrepared?: (observer: AgentExecutionObserver | undefined) => Promise<void>,
+  readWorkspaceFile?: WorkspaceReader,
 ) {
   const root = await mkdtemp(join(tmpdir(), "vault-agent-service-"));
   roots.push(root);

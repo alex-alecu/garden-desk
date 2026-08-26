@@ -93,6 +93,8 @@ it("records the exact source resolved for a path-only execution", async () => {
         artifacts: [],
       };
     },
+    undefined,
+    async () => Buffer.from(committedSource),
   );
 
   const run = service.start(conversations.createSession(null).id, "Rerun the saved script");
@@ -130,6 +132,7 @@ it("terminalizes a prepared execution when the guest boundary throws", async () 
     async () => {
       throw new Error("agent_helper_transport_failed");
     },
+    async () => Buffer.from(committedSource),
   );
 
   const run = service.start(conversations.createSession(null).id, "Rerun the saved script");

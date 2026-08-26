@@ -41,6 +41,35 @@ describe("ChatAgentLoop output spill budget", () => {
 });
 
 describe("ChatAgentLoop guest runtime failure budget", () => {
+  it("does not count valid calls that fail before the guest starts", async () => {
+    const calls = Array.from({ length: 25 }, (_, index) =>
+      tool("python", `launcher-${index}`, { source: `print(${index})` }),
+    );
+    const requests: Parameters<InferenceService["chat"]>[0][] = [];
+    const loop = new ChatAgentLoop(
+      model([generated("", calls), generated("Done after launcher failures.")], requests),
+    );
+    let attempts = 0;
+
+    const result = await loop.run(
+      input(
+        {
+          async execute() {
+            attempts += 1;
+            throw new Error("agent_launcher_failed");
+          },
+        },
+        ["python"],
+      ),
+    );
+
+    expect(result.response).toBe("Done after launcher failures.");
+    expect(attempts).toBe(25);
+    expect(result.guestExecutions).toBe(0);
+  });
+});
+
+describe("ChatAgentLoop started runtime failure budget", () => {
   it("counts valid calls that reach a failing guest boundary", async () => {
     const calls = Array.from({ length: 25 }, (_, index) =>
       tool("python", `runtime-${index}`, { source: `print(${index})` }),
@@ -55,8 +84,9 @@ describe("ChatAgentLoop guest runtime failure budget", () => {
     const result = await loop.run(
       input(
         {
-          async execute(run) {
+          async execute(run, _signal, onStarted) {
             attempts.push(run.language === "shell" ? run.command : (run.source ?? run.path));
+            onStarted?.();
             throw new Error("agent_helper_transport_failed");
           },
         },

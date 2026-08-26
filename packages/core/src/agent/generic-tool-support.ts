@@ -73,12 +73,16 @@ function executionText(result: AgentExecutionResult): string {
   ].join("\n");
 }
 
-function executionResult(result: AgentExecutionResult, recorded: boolean): AgentToolResult {
+function executionResult(
+  result: AgentExecutionResult,
+  recorded: boolean,
+  guestExecutionsStarted: number,
+): AgentToolResult {
   const failed = !isSuccessfulExecution(result);
   return {
     content: executionText(result),
     failed,
-    guestExecutionsStarted: 1,
+    guestExecutionsStarted,
     ...(recorded ? { execution: result } : { artifactExecution: result }),
     ...(failed
       ? {
@@ -103,13 +107,13 @@ function preparationError(error: unknown): AgentToolResult | undefined {
   };
 }
 
-function executionError(error: unknown): AgentToolResult {
+function executionError(error: unknown, guestExecutionsStarted: number): AgentToolResult {
   const preparation = preparationError(error);
   if (preparation !== undefined) return preparation;
   return {
     content: error instanceof Error ? `${error.name}: ${error.message}` : String(error),
     failed: true,
-    guestExecutionsStarted: 1,
+    guestExecutionsStarted,
   };
 }
 
@@ -121,19 +125,25 @@ export async function runExecution(
   const execute = recorded
     ? context.executor.execute
     : (context.executor.inspect ?? context.executor.execute);
+  let guestExecutionsStarted = 0;
+  const onStarted = () => {
+    guestExecutionsStarted = 1;
+  };
   try {
-    return executionResult(await execute(execution, context.signal), recorded);
+    const result = await execute(execution, context.signal, onStarted);
+    onStarted();
+    return executionResult(result, recorded, guestExecutionsStarted);
   } catch (error) {
     if (error instanceof DOMException && error.name === "AbortError") throw error;
     if (error instanceof AgentExecutionAttemptError) {
       return {
         content: `${error.name}: ${error.message}`,
         failed: true,
-        guestExecutionsStarted: 1,
+        guestExecutionsStarted,
         executionAttempt: error.attempt,
       };
     }
-    return executionError(error);
+    return executionError(error, guestExecutionsStarted);
   }
 }
 

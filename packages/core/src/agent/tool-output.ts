@@ -16,6 +16,7 @@ interface OutputChunk {
   bytes: Buffer;
   append: boolean;
   signal?: AbortSignal;
+  onStarted(): void;
 }
 
 interface SpillOptions {
@@ -161,7 +162,12 @@ async function writeChunk(chunk: OutputChunk): Promise<void> {
     path: `.vault-output/write-${randomUUID()}.py`,
     source,
   };
-  const result = await (chunk.executor.inspect ?? chunk.executor.execute)(execution, chunk.signal);
+  const result = await (chunk.executor.inspect ?? chunk.executor.execute)(
+    execution,
+    chunk.signal,
+    chunk.onStarted,
+  );
+  chunk.onStarted();
   if (!isSuccessfulExecution(result)) {
     throw new Error("tool_output_spill_failed");
   }
@@ -183,13 +189,19 @@ async function spill(
   try {
     for (let offset = 0; offset < bytes.length; offset += CHUNK_BYTES) {
       signal?.throwIfAborted();
-      reservation?.start();
-      options.onGuestExecutionStarted?.();
+      let started = false;
+      const onStarted = () => {
+        if (started) return;
+        started = true;
+        reservation?.start();
+        options.onGuestExecutionStarted?.();
+      };
       await writeChunk({
         executor,
         path,
         bytes: bytes.subarray(offset, offset + CHUNK_BYTES),
         append: offset > 0,
+        onStarted,
         ...(signal === undefined ? {} : { signal }),
       });
     }
