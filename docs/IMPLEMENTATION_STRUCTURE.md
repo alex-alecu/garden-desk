@@ -6,13 +6,12 @@ This blueprint accompanies [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md). M0,
 
 ## Startup Working Agreement
 
-1. Write the minimum clear code that passes the active M3 gate.
-2. Preserve the no-NIC, read-only-host, typed-IPC, current-user-RPC, audit, cancellation, and recovery boundaries completely.
-3. Implement only the generic agent and desktop flows named by M3.
-4. Return one typed unsupported result for cases outside the gate.
-5. Add a second abstraction or option only when two current implementations require it.
-6. Keep product logic in TypeScript/Node. Rust and Swift own only OS capabilities.
-7. Do not create the post-V1 document-intelligence folders before that follow-up is activated.
+The Minimum Implementation Rule and Test Rule in [AGENTS.md](../AGENTS.md) apply. In addition:
+
+1. Preserve the no-network, read-only-host, typed-IPC, current-user-RPC, audit, cancellation, and recovery boundaries completely.
+2. Implement only the generic agent and desktop flows named by M3.
+3. Keep product logic in TypeScript/Node. Rust and Swift own only OS capabilities.
+4. Do not create the post-V1 document-intelligence folders before that follow-up is activated.
 
 ## Dependency Direction
 
@@ -241,21 +240,3 @@ The existing source-limit gate remains authoritative. Prefer files below 300 lin
 - Model download, updater, or alternate model runtime.
 - Knowledge Bundle import.
 - Multi-user or office administration.
-
-## Revision History
-
-| Date | Change |
-|---|---|
-| 2026-07-13 | Created the original milestone-to-folder blueprint. |
-| 2026-07-20 | Replaced the former pre-product blueprint with the M3 generic offline dev-agent desktop structure. |
-| 2026-07-23 | Added protocol-v3 live execution frames, catalog-v7 normalized execution records, and Overview-first Technical details logs. |
-| 2026-07-24 | Added catalog-v8 content-addressed inference-turn traces and the Core-only read diagnostic. |
-| 2026-07-24 | Added the read-only local session debug snapshot over existing catalog and content-addressed stores. |
-| 2026-07-22 | Added the model header and persisted response-performance evidence surfaces. |
-| 2026-07-23 | Added the session-scoped guest lifecycle, live read-only source share, and persistent workspace boundary. |
-| 2026-07-24 | Moved the debug snapshot adapter into Core and limited installed-app creation and reveal to fixed Tauri commands. |
-| 2026-07-27 | Added the verified Windows CUDA/Vulkan resource package and signed copy-installed application directory. |
-| 2026-08-04 | Added final-response deliverable declarations, Core materialization/export adapters, and pinned DOCX/XLSX/PDF skill assets. |
-| 2026-08-14 | Added the reviewed guest Antiword package and replaced the DOCX-only skill with one Word document skill. |
-| 2026-08-15 | Added the 14 prompt-only professional review skills and kept domain selection outside Core. |
-| 2026-08-22 | Recorded generic skill loading, measured summary-queue behavior, and task-named artifact completion. |

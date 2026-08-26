@@ -44,9 +44,13 @@ The subsystem that hosts or connects to local and optionally remote model runtim
 
 A typed, versioned operation over canonical document data, such as search, filter, sort, join, compare, aggregate, calculate, extract, or export. It is preferred over model-generated code for supported operations.
 
+## No-Network MicroVM
+
+A small virtual machine started without any network interface (no NIC), so the guest has no network path at all. Vault Desk runs hostile document processing and agent-authored code only inside one.
+
 ## Code Interpreter
 
-A fallback worker that generates and executes short-lived code for unsupported transformations inside a disposable no-NIC microVM with read-only inputs, pinned offline libraries, resource limits, audit, verification, and no direct export authority.
+A fallback worker that generates and executes short-lived code for unsupported transformations inside a disposable no-network microVM with read-only inputs, pinned offline libraries, resource limits, audit, verification, and no direct export authority.
 
 ## Business Control Layer
 
@@ -59,11 +63,3 @@ An answer that exposes the documents, pages, chunks, tables, regions, and tool r
 ## Approval-Gated Action
 
 An action that requires preview, policy acceptance, and explicit human approval before execution.
-
-## Revision History
-
-| Date | Change |
-|---|---|
-| 2026-07-10 | Initial glossary created. |
-| 2026-07-12 | Distinguished passive Knowledge Bundles from behavioral Workflow Packs. |
-| 2026-07-13 | Added deterministic document tool and bounded code interpreter terminology. |

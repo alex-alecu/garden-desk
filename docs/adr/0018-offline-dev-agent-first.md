@@ -16,9 +16,9 @@ The repository owner instead requires the shortest path to a useful cross-platfo
 
 Vault Desk V1 is an offline dev-agent desktop application.
 
-Vault Core owns the agent loop, inference mediation, session state, policy, audit, cancellation, limits, and result validation. The model participates through a persistent native tool-calling conversation and never receives direct process, filesystem, VM-control, approval, export, or network authority. Every execution and file inspection still crosses a typed Core boundary into the no-NIC guest.
+Vault Core owns the agent loop, inference mediation, session state, policy, audit, cancellation, limits, and result validation. The model participates through a persistent native tool-calling conversation and never receives direct process, filesystem, VM-control, approval, export, or network authority. Every execution and file inspection still crosses a typed Core boundary into the no-network guest.
 
-Each conversation owns a reusable no-NIC microVM under ADR 0012. It stays alive through the current run and may remain in the memory-bounded warm-session pool for later follow-ups:
+Each conversation owns a reusable no-network microVM under ADR 0012. It stays alive through the current run and may remain in the memory-bounded warm-session pool for later follow-ups:
 
 - Zero virtual network devices and no general host-network proxy.
 - A verified immutable root image.
@@ -57,7 +57,7 @@ Positive:
 
 - Produces a usable desktop product earlier.
 - Supports broad file work before format-specific product features exist.
-- Reuses the already certified cross-platform no-NIC microVM boundary.
+- Reuses the already certified cross-platform no-network microVM boundary.
 - Keeps host source folders immutable while allowing iterative work in a durable session workspace.
 - Allows real usage to identify which deterministic document features deserve post-V1 maintenance.
 
@@ -83,20 +83,3 @@ Negative:
 - Chat requests cannot become a generic inference endpoint or escape their turn, token, tool, and output limits.
 - Session grouping, five-item pagination, New chat attachments, restart restoration, draft preservation, and folder removal behave as specified.
 - Packaged macOS and Windows applications launch with zero downloads and verify the exact sidecar, helpers, model assets, and guest image.
-
-## Revision History
-
-| Date | Change |
-|---|---|
-| 2026-07-20 | Made the generic offline dev agent and full desktop application the V1 product path. |
-| 2026-07-23 | Replaced one-execution snapshots with a session-scoped warm VM, live read-only source mount, durable bounded workspace, shell execution, and anchored repair context. |
-| 2026-07-23 | Added durable bounded live execution streams, allowlisted VM diagnostics, final-result completeness validation, and normalized execution recovery records. |
-| 2026-07-25 | Allowed memory-bounded parallel conversation VMs while retaining one serialized resident inference worker. |
-| 2026-07-28 | Raised new executable proposals to 32,768 output tokens and added bounded 8,192-token multi-turn workspace-edit recovery when generation reaches that limit. |
-| 2026-08-06 | Added inspectable current-run context compaction and required file delivery for verified results that exceed the response contract. |
-| 2026-08-12 | Superseded the single-stream inference worker: the resident worker now exposes multiple parallel context sequences on one loaded model, used for bounded sub-agent parallelism with overflow queued. |
-| 2026-08-08 | Derived execution and conversation turnover from the reported allocation and retained bounded evidence across repeated compactions. |
-| 2026-08-08 | Distinguished useful exit-zero output truncation from resource failures during source-recovery schema selection. |
-| 2026-08-11 | Replaced the structured single-action loop with native multi-turn generic tools, Markdown agents and on-demand skills, isolated child runs, measured compaction, and real interpreter-error recovery. |
-| 2026-08-14 | Raised native chat output from 8,192 to the physically certified 16,384-token ceiling, made direct question-tool tests action-first, and separated output-limit recovery from context compaction. |
-| 2026-08-22 | Added strict streamed text inspection, bounded JSON-aware output spill, task-named artifact completion, measured session-summary queue behavior, and prompt-only format verification methods. |

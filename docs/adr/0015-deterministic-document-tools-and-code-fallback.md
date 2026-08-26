@@ -26,7 +26,7 @@ The primary path is deterministic and product-owned:
 
 The secondary path is a bounded code-interpreter worker for unsupported or novel transformations:
 
-- Vault Core creates a new disposable no-NIC microVM for each code job.
+- Vault Core creates a new disposable no-network microVM for each code job.
 - Inputs are explicit, job-scoped, and read-only; writable scratch space is ephemeral and bounded.
 - The worker receives no credentials, user home, arbitrary workspace paths, host shell, generic host service, approval authority, or external network access.
 - The generation model remains in the narrow host-native accelerator worker. Completion requests and tool observations cross only versioned typed host/guest IPC; the guest receives no generic model-server socket.
@@ -38,7 +38,7 @@ The secondary path is a bounded code-interpreter worker for unsupported or novel
 
 The code interpreter is a fallback chosen by policy after deterministic capabilities are considered. It is not exposed as an unrestricted terminal, generic development environment, or product backend.
 
-OpenCode may be evaluated as a reference implementation for the guest-side agent loop because it can generate and execute code. It is not an accepted runtime dependency. Adoption requires evidence that it reduces maintained code while preserving the no-NIC boundary, typed model proxy, pinned offline environment, cancellation, audit, deterministic result contract, and packaged footprint. A smaller Vault Desk-owned loop is the default if OpenCode fails any gate.
+OpenCode may be evaluated as a reference implementation for the guest-side agent loop because it can generate and execute code. It is not an accepted runtime dependency. Adoption requires evidence that it reduces maintained code while preserving the no-network boundary, typed model proxy, pinned offline environment, cancellation, audit, deterministic result contract, and packaged footprint. A smaller Vault Desk-owned loop is the default if OpenCode fails any gate.
 
 ## Consequences
 
@@ -70,10 +70,3 @@ Negative:
 
 - [OpenCode server](https://opencode.ai/docs/server/)
 - [OpenCode tools and permissions](https://opencode.ai/docs/tools/)
-
-## Revision History
-
-| Date | Change |
-|---|---|
-| 2026-07-13 | Adopted deterministic document operations with a disposable no-NIC code-interpreter fallback for long-tail transformations. |
-| 2026-07-20 | Superseded the deterministic-first V1 sequence with the generic offline dev-agent decision in ADR 0018. |

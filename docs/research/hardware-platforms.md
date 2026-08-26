@@ -54,9 +54,3 @@ Examples:
 - High-throughput extraction appliance.
 
 Actual naming remains open.
-
-## Revision History
-
-| Date | Change |
-|---|---|
-| 2026-07-10 | Initial hardware platforms research summary created. |

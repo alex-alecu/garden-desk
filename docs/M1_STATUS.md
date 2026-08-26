@@ -6,7 +6,7 @@ M1 is complete across macOS and Windows. M2 was not authorized at M1 closure, wa
 
 ## Change Brief
 
-- Goal: implement the smallest cross-platform workspace, security, daemon, CLI health, worker-protocol, and certified no-NIC microVM foundations.
+- Goal: implement the smallest cross-platform workspace, security, daemon, CLI health, worker-protocol, and certified no-network microVM foundations.
 - Authority: M1 was activated by the repository owner's explicit 2026-07-17 request and closed on 2026-07-18 after the final Windows daemon endpoint gate passed.
 - Product boundaries: Vault Core alone owns authoritative workspace mutation; local RPC authenticates current-user-only endpoints and has no TCP mode; workers receive bounded already-authorized staged inputs and bounded scratch under one cancellation deadline; certified guests have no virtual NIC and accept only the fixed typed socket protocol.
 - Dependencies at M1 closure: `better-sqlite3` was the only consumed package addition. M3 later moved product Core persistence to the Node 24 built-in `node:sqlite`; `better-sqlite3` remains only in historical M1 evaluation coverage. The Swift and Rust helpers use system frameworks or APIs and pinned standard-library toolchains. The Windows pipe guard adds no third-party crate.

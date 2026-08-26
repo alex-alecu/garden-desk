@@ -216,7 +216,7 @@ Small composable layers reduce download size and licensing conflicts, but overla
 
 Archive and document safety are independent of signature validity. A trusted publisher account can be compromised, and legitimate bundles contain parser-hostile formats.
 
-The importer should use the same no-NIC microVM boundary as hostile document work and enforce path, expansion, nesting, resource, schema, checksum, and media-type limits. The host should activate only a complete verified result through an atomic catalog transaction.
+The importer should use the same no-network microVM boundary as hostile document work and enforce path, expansion, nesting, resource, schema, checksum, and media-type limits. The host should activate only a complete verified result through an atomic catalog transaction.
 
 Knowledge bundles should remain passive. Executable scripts, macros, workflows, tools, active HTML, or policy changes must not acquire authority merely because they arrived inside a signed library.
 
@@ -276,9 +276,3 @@ Measure import time, installed size, deduplication, rebuild time, retrieval reca
 - [OCI Image Layout](https://specs.opencontainers.org/image-spec/image-layout/?v=v1.1.0)
 - [OCI 1.1 artifact and referrer guidance](https://opencontainers.org/posts/blog/2024-03-13-image-and-distribution-1-1/)
 - [Frictionless Data Package v1](https://specs.frictionlessdata.io/data-package/)
-
-## Revision History
-
-| Date | Change |
-|---|---|
-| 2026-07-12 | Added live-web research on standards, storage alternatives, offline trust, provenance, rights, security, composition, and retrieval compatibility for domain knowledge bundles. |

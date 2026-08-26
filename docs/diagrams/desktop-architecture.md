@@ -16,7 +16,7 @@ flowchart TD
     Core --> Agent["Core-owned agent loop"]
 
     Agent --> Inference["Constrained host-native inference"]
-    Agent --> VM["Session-scoped no-NIC microVM"]
+    Agent --> VM["Session-scoped no-network microVM"]
     VM --> Inputs["Live read-only /source"]
     VM --> Scratch["Persistent bounded /workspace"]
     VM --> Python["Fixed Python and libraries"]
@@ -35,11 +35,3 @@ flowchart TD
 - Vault Core owns grants, sessions, model mediation, limits, cancellation, audit, and result validation.
 - The microVM has zero virtual NICs and cannot write to the selected host folder.
 - Post-V1 document intelligence may add deterministic fast paths without changing these boundaries.
-
-## Revision History
-
-| Date | Change |
-|---|---|
-| 2026-07-10 | Created the initial desktop architecture diagram. |
-| 2026-07-20 | Reframed the desktop around folder sessions and the generic offline dev-agent microVM. |
-| 2026-07-23 | Added the live read-only source mount, durable session workspace, and guest shell/tool capability. |

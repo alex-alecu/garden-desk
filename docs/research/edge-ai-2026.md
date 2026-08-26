@@ -168,9 +168,3 @@ Validate before implementation:
 - Docling versus MarkItDown versus Unstructured agreement on accounting and legal PDFs.
 - Hybrid retrieval recall with EmbeddingGemma plus lexical search.
 - Multi-compaction answer consistency over long folder sessions.
-
-## Revision History
-
-| Date | Change |
-|---|---|
-| 2026-07-10 | Added current edge-AI research review and architectural challenge findings. |

@@ -26,7 +26,7 @@ Primary package records are the official [Node.js release archive](https://nodej
 
 ## Boundary and maintenance decision
 
-- These packages execute only inside the session-scoped no-NIC guest as an unprivileged user over a live read-only source mount, immutable attachments, and a bounded persistent tmpfs workspace.
+- These packages execute only inside the session-scoped no-network guest as an unprivileged user over a live read-only source mount, immutable attachments, and a bounded persistent tmpfs workspace.
 - XML hardening remains enabled through `defusedxml`; document results are untrusted artifacts until Core validates their protocol, count, size, and content hash.
 - Antiword has no active upstream. The Buildroot package applies all six Debian 0.37-17 patches: `10_fix_buffer_overflow_wordole_c.patch`, `50_antiword-manpage-hyphen-to-minus.patch`, `docx.patch`, `remove-dead-upstream-links.patch`, `use-snprintf.patch`, and `stop-parsing-documentsummary.patch`. This set includes the fixed CVE-2014-8123 overflow and removal of unsafe document-summary parsing. The package compiles only the `antiword` executable and installs no GUI script, PDF helper script, Java runtime, or package-manager path. Its stripped binary and required text resources must remain at or below 1 MiB. LibreOffice and Apache POI are rejected because the text-only M3 use case does not justify their larger runtimes and dependency sets.
 - The final aarch64 image installs 254,284 Antiword bytes: 236,299 runtime bytes plus the 17,985-byte GPL notice. The final x86_64 image installs 258,548 bytes: 240,563 runtime bytes plus the same notice. Both stripped runtime sets are below the 1 MiB dependency gate.

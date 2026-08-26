@@ -14,7 +14,7 @@ A package or process boundary is not a sufficient hostile-code boundary. Command
 
 ## Decision
 
-The certified hostile-work boundary is a no-NIC microVM. Document parsing may use a disposable job-scoped VM; the V1 development agent uses a reusable session-scoped VM. Network denial is structural: the guest receives no virtual NIC, route, DNS service, bridged interface, NAT interface, or general host-network proxy. Vault Desk must not implement this guarantee by matching individual commands, executables, hostnames, URLs, IP addresses, or protocols.
+The certified hostile-work boundary is a no-network microVM. Document parsing may use a disposable job-scoped VM; the V1 development agent uses a reusable session-scoped VM. Network denial is structural: the guest receives no virtual NIC, route, DNS service, bridged interface, NAT interface, or general host-network proxy. Vault Desk must not implement this guarantee by matching individual commands, executables, hostnames, URLs, IP addresses, or protocols.
 
 The microVM exposes only a narrow host/guest socket for versioned typed IPC. That socket is not a network broker and cannot forward arbitrary destinations. Executed children receive no control-socket descriptor and an OS-enforced syscall filter denies new sockets, including VSOCK connections to other host services. Explicit attachments arrive as immutable session-owned bytes. For the offline dev agent, the selected folder is a platform-native live read-only share at `/source`, and the bounded writable `/workspace` persists only through validated content-addressed manifests. The guest root remains immutable. The VM is session-scoped, admits one execution at a time, and is discarded on eviction, revocation, deletion, Core shutdown, or containment failure.
 
@@ -83,14 +83,3 @@ Negative:
 - Packaging tests proving that process-only compatibility mode cannot be reported as microVM-certified.
 - Windows package tests proving that the desktop remains `asInvoker`, only the fixed setup helper elevates, tampered helper bytes are rejected, and macOS packages exclude the helper and any administrator setup.
 - Generated-code tests covering dependency-install attempts, network and host-path access, process storms, infinite loops, resource exhaustion, oversized output, malformed result IPC, generic model-endpoint access, and approval/export attempts.
-
-## Revision History
-
-| Date | Change |
-|---|---|
-| 2026-07-11 | Accepted supervised, capability-scoped worker isolation and untrusted-document handling requirements. |
-| 2026-07-12 | Replaced process-only network policy with a certified no-NIC microVM boundary, typed host/guest socket IPC, explicit platform targets, and a narrower native accelerator exception. |
-| 2026-07-13 | Applied the same boundary to the generated-code fallback and added typed host-mediated inference plus code-specific limits. |
-| 2026-07-20 | Applied the boundary to the V1 generic offline dev agent under ADR 0018. |
-| 2026-07-23 | Added the live read-only folder share and session-scoped persistent workspace boundary, including required macOS VirtioFS and Windows Plan9 enforcement. |
-| 2026-08-01 | Replaced recurring Windows desktop elevation with a signed one-time Hyper-V Administrators membership helper while preserving non-elevated macOS operation. |

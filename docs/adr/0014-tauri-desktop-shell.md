@@ -76,9 +76,3 @@ Negative:
 - [Tauri](https://github.com/tauri-apps/tauri)
 - [Tauri v2 sidecars](https://v2.tauri.app/develop/sidecar/)
 - [Tauri distribution](https://v2.tauri.app/distribute/)
-
-## Revision History
-
-| Date | Change |
-|---|---|
-| 2026-07-13 | Replaced Electron with a thin Tauri v2 shell while retaining React/TypeScript and the separate Vault Core daemon. |

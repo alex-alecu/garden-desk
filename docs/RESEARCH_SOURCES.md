@@ -62,7 +62,7 @@ On 2026-07-11 a full live-web revalidation pass was run across the model stack, 
 
 Official Tauri v2 sources were reviewed for the operating-system webview architecture, React/TypeScript compatibility, capability-scoped commands, external-binary sidecars, and platform distribution. These remain research-derived until M0 validates a pinned Tauri version, signed Vault Core sidecar packaging, webview behavior, and capability denial on supported Windows and macOS targets.
 
-Official OpenCode sources were reviewed as an interaction and agent-loop reference. OpenCode is not an accepted dependency. M3 starts with a minimal Vault Desk-owned guest loop under offline, no-NIC, typed-inference, resource, audit, cancellation, package-footprint, and result-validation gates.
+Official OpenCode sources were reviewed as an interaction and agent-loop reference. OpenCode is not an accepted dependency. M3 starts with a minimal Vault Desk-owned guest loop under offline, no-network, typed-inference, resource, audit, cancellation, package-footprint, and result-validation gates.
 
 ## 2026-07-15 Development And Contribution Workflow Review
 
@@ -120,17 +120,3 @@ Before code or public claims:
 - Review IP ownership and employment agreement implications with counsel.
 - Validate pinned Tauri v2 capability denial, signed sidecar identity, local transport bootstrap, WebView2/WKWebView behavior, and packaged lifecycle.
 - Compare OpenCode with a minimal guest loop on the same offline functional and adversarial code-interpreter corpus before adopting either implementation.
-
-## Revision History
-
-| Date | Change |
-|---|---|
-| 2026-07-10 | Initial research source document created from supplied file references. |
-| 2026-07-10 | Added current Gemma, document tooling, and vector-search web sources and validation backlog. |
-| 2026-07-10 | Added edge-AI, long-context, compaction, and Local 12 and Local 16 validation sources and backlog items. |
-| 2026-07-11 | Recorded the full live-web revalidation pass, moved verified claims out of the research-derived list, and updated the validation backlog to the revised component stack. |
-| 2026-07-12 | Added the live-web standards and architecture review for passive, domain-scoped offline Knowledge Bundles. |
-| 2026-07-13 | Added official Tauri and OpenCode sources for the desktop-shell and hybrid-execution decisions. |
-| 2026-07-15 | Added ECC workflow, DCO, and GitHub sign-off sources and documented the selective adoption boundary. |
-| 2026-08-15 | Added live research for the M3 prompt-only professional review skill set. |
-| 2026-07-22 | Reframed the open memory and context benchmarks around automatic macOS tiers and detected Windows GPU VRAM. |

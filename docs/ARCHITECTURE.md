@@ -2,7 +2,7 @@
 
 Updated: 2026-08-22
 
-Vault Desk V1 is a local desktop application with three isolated layers: a thin Tauri interface, an authoritative Node.js control plane, and session-scoped no-NIC agent microVMs plus a narrow host-native inference worker.
+Vault Desk V1 is a local desktop application with three isolated layers: a thin Tauri interface, an authoritative Node.js control plane, and session-scoped no-network agent microVMs plus a narrow host-native inference worker.
 
 ## System Shape
 
@@ -82,7 +82,7 @@ Vault Core owns the loop; the guest owns execution.
 7. Core records observable activity, validates and commits the workspace manifest, and retains the guest in a least-recently-used warm pool bounded by total RAM, the inference cap, a host reserve, and the fixed guest limit.
 8. On successful finalization, Core commits the assistant response and valid observed deliverables in one logical completion flow. `artifacts.materialize` creates a verified owner-only temporary copy. `artifacts.export` performs an atomic host write chosen through the native dialog; the webview never receives the destination path.
 
-OpenCode informs the persistent conversation, generic tool, sub-agent, and compaction design but is not a runtime dependency. Vault Desk implements those behaviors within its existing no-NIC execution and audit boundaries.
+OpenCode informs the persistent conversation, generic tool, sub-agent, and compaction design but is not a runtime dependency. Vault Desk implements those behaviors within its existing no-network execution and audit boundaries.
 
 ## Inference Worker
 
@@ -118,7 +118,7 @@ Raw hidden model reasoning is never persisted. Supported typed thought segments 
 
 V1 packages the Tauri host, exact Vault Core sidecar, native helpers, approved model assets, and verified guest image. First launch performs zero downloads. The Windows package alone contains the one-time Hyper-V membership helper; its signature and hash are recorded in the application-anchored resource manifest and verified before elevation. The macOS bundle excludes it.
 
-Platform packages verify identities, hashes, signatures, notices, SBOMs, current-user endpoint permissions, no-NIC VM configuration, model confinement, and restart behavior on physical macOS and Windows systems.
+Platform packages verify identities, hashes, signatures, notices, SBOMs, current-user endpoint permissions, no-network VM configuration, model confinement, and restart behavior on physical macOS and Windows systems.
 
 ## Post-V1 Document Intelligence
 
@@ -127,21 +127,3 @@ Canonical parsing, OCR/layout, retrieval, evidence packs, citations, and determi
 ## Later Deployment Shapes
 
 The same control-plane boundaries may later support supported personal computers and multi-user office appliances. Identity, shared storage, network brokers, backup, governance, and organization policy require separate decisions and are not part of V1.
-
-## Revision History
-
-| Date | Change |
-|---|---|
-| 2026-07-10 | Created the original multi-plane architecture. |
-| 2026-07-12 | Adopted the certified no-NIC hostile-work boundary. |
-| 2026-07-13 | Selected Tauri v2 and a separate Vault Core daemon. |
-| 2026-07-20 | Made the generic offline dev-agent desktop the V1 architecture and moved document intelligence after launch. |
-| 2026-07-22 | Grouped sidebar creation actions under their Chats and Folders sections. |
-| 2026-07-22 | Added hardware-derived model-plus-context budgets, full Windows GPU VRAM use, automatic context fitting, and the unsupported 8 GB Mac state. |
-| 2026-07-25 | Added RAM-bounded parallel conversation guests and serialized model-turn reuse of one resident Gemma worker. |
-| 2026-08-01 | Capped automatic context at 64K through 32 GB Mac unified memory or 24 GB Windows VRAM and at 128K above those thresholds. |
-| 2026-08-04 | Added declared deliverable persistence plus hash-verified materialization and atomic user-selected export. |
-| 2026-08-04 | Restricted Windows memory budgets and context tiers to one selected device's dedicated VRAM. |
-| 2026-08-12 | Recorded that the resident worker exposes multiple parallel context sequences so several model turns generate concurrently on one loaded model, with user turns prioritized over sub-agent turns and overflow queued. |
-| 2026-08-15 | Added neutral Windows dedicated-first GPU selection and shared-memory tiers without vendor rules. |
-| 2026-08-22 | Recorded strict streamed text inspection, bounded output spill, task-named artifact completion, and measured summary-queue behavior. |

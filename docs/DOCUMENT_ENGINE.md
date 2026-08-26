@@ -68,7 +68,7 @@ Use a layered parser strategy rather than one universal converter. Roles below w
 
 | Tool | Recommended role | Notes |
 |---|---|---|
-| Native Node parsers (pdf.js text layer, mammoth, ExcelJS/SheetJS, officeParser, mailparser) | Born-digital PDFs, DOCX, XLSX, CSV, and email in no-NIC microVM document workers | Permissively licensed; covers most files without the heavy Python pipeline while placing hostile inputs behind a VM boundary |
+| Native Node parsers (pdf.js text layer, mammoth, ExcelJS/SheetJS, officeParser, mailparser) | Born-digital PDFs, DOCX, XLSX, CSV, and email in no-network microVM document workers | Permissively licensed; covers most files without the heavy Python pipeline while placing hostile inputs behind a VM boundary |
 | Granite-Docling-258M (GGUF under llama.cpp) | Layout-aware page-image-to-DocTags conversion for high-value PDFs, tables, and reading order | Apache 2.0; runs through the same llama.cpp runtime family as Gemma, avoiding a Python dependency |
 | Docling (Python sidecar) | Full-pipeline layout-aware conversion when the GGUF path is insufficient | MIT; preferred for the hardest legal and accounting layouts |
 | PaddleOCR-VL (GGUF under llama.cpp) | Primary OCR for scanned pages and image-only PDFs | Apache 2.0; ~3 GB; specialized document VLM, ahead of classical OCR pipelines on business scans |
@@ -76,7 +76,7 @@ Use a layered parser strategy rather than one universal converter. Roles below w
 | Unstructured (Python sidecar) | Partition fallback and parser-disagreement comparison | Strategy levels drive low-confidence warnings |
 | Gemma 4 multimodal inspection | Ambiguous page regions, charts, forms, handwriting, or extraction conflicts | Escalation and cross-check path, not primary parsing or transcription |
 
-Delivery rule: native Node and Python parsers run inside the same certified no-NIC microVM boundary, using separate minimal worker images only where their dependencies require it. The guest receives capability-scoped read-only inputs, bounded scratch storage, typed host/guest IPC, resource limits, and cancellation. It has no virtual network adapter or general proxy, and network denial is never implemented by matching commands or destinations. GPU-backed OCR and layout runtimes may use the documented native accelerator exception when microVM execution would lose required acceleration. See [adr/0012-worker-isolation-and-untrusted-documents.md](adr/0012-worker-isolation-and-untrusted-documents.md).
+Delivery rule: native Node and Python parsers run inside the same certified no-network microVM boundary, using separate minimal worker images only where their dependencies require it. The guest receives capability-scoped read-only inputs, bounded scratch storage, typed host/guest IPC, resource limits, and cancellation. It has no virtual network adapter or general proxy, and network denial is never implemented by matching commands or destinations. GPU-backed OCR and layout runtimes may use the documented native accelerator exception when microVM execution would lose required acceleration. See [adr/0012-worker-isolation-and-untrusted-documents.md](adr/0012-worker-isolation-and-untrusted-documents.md).
 
 ## Deterministic Operations And Code Fallback
 
@@ -222,15 +222,3 @@ Every folder job should record enough timing and memory data to support profile 
 - Peak VRAM if any parser, OCR, embedding, or multimodal step uses GPU.
 - Cache hits and misses.
 - Resume point after cancellation or failure.
-
-## Revision History
-
-| Date | Change |
-|---|---|
-| 2026-07-10 | Initial huge-document and folder-scale document engine architecture created. |
-| 2026-07-10 | Added Local 12 and Local 16 performance implications, minimal parser surface, and folder-job performance records. |
-| 2026-07-11 | Revalidated tooling strategy: native Node parsers for born-digital files, Granite-Docling GGUF as the least-code layout path, PaddleOCR-VL as primary OCR, and a single sandboxed Python sidecar rule for remaining Python parsers. |
-| 2026-07-11 | Moved native parsers into supervised document workers and linked hostile-document isolation requirements. |
-| 2026-07-12 | Moved hostile document parsing to the certified no-NIC microVM boundary and documented the narrow GPU accelerator exception. |
-| 2026-07-13 | Made typed deterministic document operations the default and added the audited no-NIC code-interpreter fallback for novel transformations. |
-| 2026-07-22 | Replaced fixed profile terminology with the automatic supported hardware tiers. |

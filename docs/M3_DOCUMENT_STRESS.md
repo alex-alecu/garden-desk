@@ -3,7 +3,7 @@
 Created: 2026-07-26
 Updated: 2026-08-14
 
-This evaluation measures the M3 generic offline development agent with the real Gemma 4 12B QAT worker, current-user daemon, and no-NIC microVM. It does not add a product document parser.
+This evaluation measures the M3 generic offline development agent with the real Gemma 4 12B QAT worker, current-user daemon, and no-network microVM. It does not add a product document parser.
 
 The V1 release gate accepts the limits of the certified local model. It proves a few normal product paths. It does not require the model to solve large corpora, long context-turnover tasks, or several complex tasks at the same time. Model-quality limits from those optional tests are evidence. They are not V1 release failures.
 
@@ -12,7 +12,7 @@ The V1 release gate accepts the limits of the certified local model. It proves a
 | Case | Generated input | Required proof |
 |---|---|---|
 | Source inspection | 1 small TypeScript file | Find and report one exact value. |
-| Legacy DOC read | 1 pinned binary DOC fixture | Load `word-documents`, run Antiword in the no-NIC guest, report two exact facts including UTF-8 punctuation, and create no file. |
+| Legacy DOC read | 1 pinned binary DOC fixture | Load `word-documents`, run Antiword in the no-network guest, report two exact facts including UTF-8 punctuation, and create no file. |
 | XLSX edit | 1 small workbook | Change two requested cells and preserve the workbook structure. |
 | DOCX edit | 1 small document | Change and add requested text while preserving document structure. |
 | Invalid document | 1 truncated PDF | Stop after bounded validation without creating an artifact. |

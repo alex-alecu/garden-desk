@@ -32,12 +32,9 @@ Each implementation change follows this sequence:
 
 1. Confirm the active milestone and allowed scope.
 2. Inspect existing contracts and research maintained solutions using primary sources.
-3. Define the behavior and risk-relevant acceptance evidence before coding.
-4. Implement the smallest clear change that passes the gate.
-5. Run targeted verification and `pnpm verify`; run a milestone gate only when closing that milestone.
-6. Self-review the diff and record remaining risks or an explicit handoff.
-
-Vault Desk does not use a blanket coverage percentage. Tests protect product behavior and invariants identified in [docs/IMPLEMENTATION_QUALITY_BAR.md](docs/IMPLEMENTATION_QUALITY_BAR.md).
+3. Implement the smallest clear change that passes the gate and apply the Test Rule in [AGENTS.md](AGENTS.md#test-rule): a bug fix starts with one failing reproduction test; anything else is implemented first and gets at most one focused test.
+4. Run `pnpm lint && pnpm typecheck && pnpm test`; CI runs the full `pnpm verify`. Run a milestone gate only when closing that milestone.
+5. Self-review the diff and record remaining risks or an explicit handoff.
 
 ## Commit Authorship And DCO
 
@@ -86,14 +83,11 @@ Never contribute customer documents, confidential data, employer-owned work, pri
 
 ## Pull Requests
 
-Keep each pull request tied to one accepted issue and one independently verifiable stage within the active milestone. Do not begin the next stage until the current pull request is merged or explicitly closed. The pull request must state:
+Keep each pull request tied to one accepted issue and one independently verifiable stage within the active milestone. Do not begin the next stage until the current pull request is merged or explicitly closed. The pull request body states:
 
-- The active milestone and linked issue.
-- What changed and what was intentionally excluded.
-- Product and security boundaries touched.
-- Exact verification commands and their results.
-- Dependency, licensing, offline, telemetry, and packaging impact.
-- Remaining risks, failures, or unverified assumptions.
+- What changed and what was intentionally left out.
+- The exact verification commands and their results, and what was not run and why.
+- Product or security boundaries touched and dependency, licensing, or packaging impact, when any.
 
 External pull requests require maintainer review. Pull requests use squash merging after required checks and review are complete. Review conversations must be resolved before merge.
 

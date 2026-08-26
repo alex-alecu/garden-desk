@@ -156,21 +156,3 @@ Recommended sequence:
 7. Discuss strategic investment after traction.
 
 Avoid company-wide exclusivity. Vendor-specific SKUs are acceptable, but the community product should remain hardware-agnostic.
-
-## Revision History
-
-| Date | Change |
-|---|---|
-| 2026-07-10 | Initial hardware strategy document created from supplied concept material. |
-| 2026-07-10 | Added Gemma 4 12B QAT 16 GB target and 64 GB Gemma-family validation profiles. |
-| 2026-07-10 | Added Q4_0 model-load memory caveats for Gemma 4 12B, 26B A4B, and 31B. |
-| 2026-07-10 | Recentered certification on Local 12 and Local 16 with Gemma 4 12B QAT and context size as the only product capability difference. |
-| 2026-07-11 | Aligned the first desktop runtime with ADR 0013 and made hardware capability classification an implementation gate. |
-| 2026-07-22 | Added automatic macOS 10/12/16 GiB model-plus-context budgets, an unsupported 8 GB state, complete Windows GPU VRAM use, and automatic context fitting. |
-| 2026-07-25 | Added the public V1 launch baseline of Apple silicon with at least 16 GB unified memory or Windows with NVIDIA and at least 12 GB VRAM, explicitly pending physical certification and signed installers. |
-| 2026-07-27 | Defined one Windows package containing CUDA plus Vulkan, with bundled cuBLAS and no user-installed CUDA Toolkit. |
-| 2026-07-28 | Physically validated the single package's CUDA and Vulkan initialization plus real-Gemma CUDA execution on an RTX 4080 and AMD Radeon 610M system. |
-| 2026-08-01 | Added 64K and 128K context caps with separate Mac unified-memory and Windows VRAM thresholds. |
-| 2026-08-04 | Restricted Windows automatic budgets and context tiers to one device's dedicated VRAM. |
-| 2026-08-15 | Added vendor-neutral Windows dedicated-first selection and integrated 8/12/16 GiB shared-memory tiers. |
-| 2026-08-17 | Made the Windows integrated tier use the highest fixed budget allowed by installed RAM and isolated runtime capacity. |
