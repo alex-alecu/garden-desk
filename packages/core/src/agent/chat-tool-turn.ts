@@ -49,15 +49,22 @@ function eventDetail(call: ChatToolCall): Partial<AgentEventDetail> {
   if (call.name === "bash" && typeof value.command === "string") {
     return { ...detail, command: value.command };
   }
-  if ((call.name === "python" || call.name === "node") && typeof value.source === "string") {
+  if (call.name === "python" || call.name === "node") {
     return {
       ...detail,
       language: call.name,
-      source: value.source,
+      source: typeof value.source === "string" ? value.source : null,
       path: typeof value.path === "string" ? value.path : null,
     };
   }
   return detail;
+}
+
+function pathOnlyCodeCall(call: ChatToolCall): boolean {
+  if (call.name !== "python" && call.name !== "node") return false;
+  if (typeof call.params !== "object" || call.params === null) return false;
+  const params = call.params as Record<string, unknown>;
+  return typeof params.path === "string" && params.source === undefined;
 }
 
 function stable(value: unknown): string {
@@ -89,7 +96,7 @@ function beforeExecution(
   if (call.name === "task" && executable) {
     input.onEvent?.("subagent.started", subagentTitle(call), detail);
   }
-  if (CODE_TOOLS.has(call.name) && !repeated && executable) {
+  if (CODE_TOOLS.has(call.name) && !pathOnlyCodeCall(call) && !repeated && executable) {
     input.onEvent?.("execution.started", "Running code.", detail);
   }
 }
@@ -100,6 +107,14 @@ function completedExecution(
   result: AgentToolResult,
 ): void {
   if (result.execution === undefined) return;
+  if (pathOnlyCodeCall(call)) {
+    input.onEvent?.("execution.started", "Running code.", {
+      ...eventDetail(call),
+      language: result.execution.language,
+      path: result.execution.path,
+      source: result.execution.source,
+    });
+  }
   input.state.executions.push(result.execution);
   input.onEvent?.(
     "execution.completed",
@@ -147,9 +162,12 @@ async function toolResult(
         "Guest execution limit reached. Finish with the evidence already collected.",
       );
     }
+  }
+  const result = await input.registry.execute(call.name, call.params);
+  if (GUEST_TOOLS.has(call.name) && result.guestExecutionAttempted === true) {
     input.state.guestExecutions += 1;
   }
-  return await input.registry.execute(call.name, call.params);
+  return result;
 }
 
 async function executeToolCall(input: ToolTurnInput, call: ChatToolCall): Promise<boolean> {

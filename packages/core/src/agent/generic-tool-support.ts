@@ -25,8 +25,18 @@ export type AgentQuestionOutcome = { dismissed: false; answers: string[][] } | {
 export interface AgentToolResult {
   content: string;
   failed: boolean;
+  guestExecutionAttempted?: boolean;
   invalidInput?: boolean;
   execution?: AgentExecutionResult;
+  executionFailure?: {
+    termination: AgentExecutionResult["termination"];
+    exitCode: number;
+    errorText: string;
+  };
+  preparationFailure?:
+    | "agent_script_missing"
+    | "agent_script_invalid_text"
+    | "agent_script_source_oversized";
   status?: "already_loaded";
 }
 
@@ -60,6 +70,44 @@ function executionText(result: AgentExecutionResult): string {
   ].join("\n");
 }
 
+function executionResult(result: AgentExecutionResult, recorded: boolean): AgentToolResult {
+  const failed = !isSuccessfulExecution(result);
+  return {
+    content: executionText(result),
+    failed,
+    guestExecutionAttempted: true,
+    ...(recorded ? { execution: result } : {}),
+    ...(failed
+      ? {
+          executionFailure: {
+            termination: result.termination,
+            exitCode: result.exitCode,
+            errorText: result.stderr || result.stdout || "Execution failed without output.",
+          },
+        }
+      : {}),
+  };
+}
+
+const SCRIPT_PREPARATION_FAILURES = new Set([
+  "agent_script_missing",
+  "agent_script_invalid_text",
+  "agent_script_source_oversized",
+]);
+
+function executionError(error: unknown): AgentToolResult {
+  const message = error instanceof Error ? error.message : String(error);
+  const preparation = SCRIPT_PREPARATION_FAILURES.has(message)
+    ? (message as AgentToolResult["preparationFailure"])
+    : undefined;
+  return {
+    content: error instanceof Error ? `${error.name}: ${error.message}` : String(error),
+    failed: true,
+    guestExecutionAttempted: preparation === undefined,
+    ...(preparation === undefined ? {} : { preparationFailure: preparation }),
+  };
+}
+
 export async function runExecution(
   context: ToolContext,
   execution: AgentSessionExecution,
@@ -68,12 +116,11 @@ export async function runExecution(
   const execute = recorded
     ? context.executor.execute
     : (context.executor.inspect ?? context.executor.execute);
-  const result = await execute(execution, context.signal);
-  return {
-    content: executionText(result),
-    failed: !isSuccessfulExecution(result),
-    ...(recorded ? { execution: result } : {}),
-  };
+  try {
+    return executionResult(await execute(execution, context.signal), recorded);
+  } catch (error) {
+    return executionError(error);
+  }
 }
 
 export function scriptPath(language: "python" | "node", value?: string): string {

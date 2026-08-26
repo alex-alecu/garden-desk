@@ -223,6 +223,47 @@ describe("ChatAgentLoop guest execution budget", () => {
   });
 });
 
+describe("ChatAgentLoop path preparation budget", () => {
+  it("does not charge path preparation failures or emit false execution starts", async () => {
+    const missing = Array.from({ length: 24 }, (_, index) =>
+      tool("python", `missing-${index}`, { path: `steps/missing-${index}.py` }),
+    );
+    const requests: Parameters<InferenceService["chat"]>[0][] = [];
+    const loop = new ChatAgentLoop(
+      model(
+        [
+          generated("", [...missing, tool("python", "valid", { source: "print('valid')" })]),
+          generated("Done."),
+        ],
+        requests,
+      ),
+    );
+    const executed: string[] = [];
+    const events: string[] = [];
+
+    const result = await loop.run(
+      input(
+        {
+          async execute(run) {
+            if (run.language !== "shell" && run.source === undefined) {
+              throw new Error("agent_script_missing");
+            }
+            executed.push(source(run));
+            return execution(source(run));
+          },
+        },
+        ["python"],
+        { onEvent: (type) => events.push(type) },
+      ),
+    );
+
+    expect(result.response).toBe("Done.");
+    expect(executed).toEqual(["print('valid')"]);
+    expect(events.filter((type) => type === "execution.started")).toHaveLength(1);
+    expect(events.filter((type) => type === "execution.completed")).toHaveLength(1);
+  });
+});
+
 it("retries an output limit without compacting or removing tools", async () => {
   const requests: Parameters<InferenceService["chat"]>[0][] = [];
   const limited = { ...generated("partial table"), stopReason: "maxTokens" as const };
