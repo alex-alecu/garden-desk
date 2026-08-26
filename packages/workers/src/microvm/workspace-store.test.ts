@@ -92,6 +92,22 @@ describe("committed workspace file reads", () => {
     await expect(store.readFile(sessionId, "steps")).resolves.toBeUndefined();
     await expect(store.readFile(sessionId, "steps/missing.py")).resolves.toBeUndefined();
   });
+
+  it("finishes an accepted read before a concurrent delete", async () => {
+    const root = await mkdtemp(join(tmpdir(), "vault-workspace-read-delete-"));
+    roots.push(root);
+    const store = await AgentWorkspaceStore.create(root);
+    const sessionId = randomUUID();
+    const bytes = Buffer.alloc(4 * 1024 * 1024, "saved source");
+    await store.commit(sessionId, [file("steps/saved.py", bytes)]);
+
+    const reading = store.readFile(sessionId, "steps/saved.py");
+    const deleting = store.delete(sessionId);
+
+    await expect(reading).resolves.toEqual(bytes);
+    await deleting;
+    await expect(store.readFile(sessionId, "steps/saved.py")).resolves.toBeUndefined();
+  });
 });
 
 describe("agent workspace deltas", () => {

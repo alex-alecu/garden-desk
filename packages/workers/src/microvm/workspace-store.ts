@@ -213,18 +213,19 @@ export class AgentWorkspaceStore {
 
   async readFile(sessionId: string, workspacePath: string): Promise<Buffer | undefined> {
     AgentWorkspacePathSchema.parse(workspacePath);
-    await this.serial;
-    const manifest = await readManifest(
-      join(this.root, "manifests", `${sessionName(sessionId)}.json`),
-    );
-    const entry = manifest?.entries.find((item) => item.path === workspacePath);
-    if (entry?.kind !== "file") return undefined;
-    const loaded = await loadEntry(this.root, entry);
-    if (loaded.kind !== "file") throw new Error("workspace_manifest_invalid");
-    return Buffer.from(loaded.bytesBase64, "base64");
+    return await this.exclusive(async () => {
+      const manifest = await readManifest(
+        join(this.root, "manifests", `${sessionName(sessionId)}.json`),
+      );
+      const entry = manifest?.entries.find((item) => item.path === workspacePath);
+      if (entry?.kind !== "file") return undefined;
+      const loaded = await loadEntry(this.root, entry);
+      if (loaded.kind !== "file") throw new Error("workspace_manifest_invalid");
+      return Buffer.from(loaded.bytesBase64, "base64");
+    });
   }
 
-  private async mutate(operation: () => Promise<void>): Promise<void> {
+  private async exclusive<T>(operation: () => Promise<T>): Promise<T> {
     const previous = this.serial;
     let release = (): void => undefined;
     this.serial = new Promise<void>((accept) => {
@@ -232,10 +233,14 @@ export class AgentWorkspaceStore {
     });
     await previous;
     try {
-      await operation();
+      return await operation();
     } finally {
       release();
     }
+  }
+
+  private mutate(operation: () => Promise<void>): Promise<void> {
+    return this.exclusive(operation);
   }
 
   private async commitUnlocked(sessionId: string, entries: AgentWorkspaceEntry[]): Promise<void> {

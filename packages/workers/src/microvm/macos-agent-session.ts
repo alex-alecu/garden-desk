@@ -155,6 +155,7 @@ export class FramedAgentSession implements CodeAgentSession {
     signal?.addEventListener("abort", abort, { once: true });
     try {
       const resolved = await resolveExecution(request, this.options.store, this.options.sessionId);
+      signal?.throwIfAborted();
       const frame = AgentGuestExecuteRequestSchema.parse({
         protocolVersion: 3,
         requestId,
@@ -164,6 +165,7 @@ export class FramedAgentSession implements CodeAgentSession {
         limits: this.options.limits,
       });
       await observer?.onPrepared?.(resolved);
+      signal?.throwIfAborted();
       const result = AgentGuestResultSchema.parse(
         await this.options.transport.exchange(frame, undefined, {
           executionId,

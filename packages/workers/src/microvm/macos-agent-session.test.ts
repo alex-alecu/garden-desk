@@ -239,6 +239,7 @@ function pathOnlySession(bytes: Buffer | undefined) {
   } as unknown as AgentWorkspaceStore;
   return {
     frames,
+    store,
     session: new FramedAgentSession({
       sessionId: randomUUID(),
       limits: {
@@ -281,6 +282,26 @@ describe("committed saved-script execution", () => {
     await expect(session.execute({ language: "python", path: "steps/saved.py" })).rejects.toThrow(
       error,
     );
+  });
+
+  it("does not send an execution after cancellation during file resolution", async () => {
+    let release!: (bytes: Buffer) => void;
+    const delayed = new Promise<Buffer>((accept) => {
+      release = accept;
+    });
+    const { frames, session, store } = pathOnlySession(undefined);
+    vi.mocked(store.readFile).mockReturnValueOnce(delayed);
+    const controller = new AbortController();
+
+    const result = session.execute(
+      { language: "python", path: "steps/saved.py" },
+      controller.signal,
+    );
+    controller.abort(new DOMException("stop", "AbortError"));
+    release(Buffer.from("print('must not run')"));
+
+    await expect(result).rejects.toBeInstanceOf(DOMException);
+    expect(frames).toEqual([]);
   });
 });
 
