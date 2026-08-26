@@ -8,7 +8,9 @@ import {
   type SkillReader,
   scriptPath,
   type ToolContext,
+  type ToolExecutionResult,
   type ToolSpec,
+  type ToolValidation,
   textParam,
 } from "./generic-tool-support.js";
 import type { GuestExecutionBudget } from "./guest-execution-budget.js";
@@ -19,17 +21,21 @@ function errorText(error: unknown): string {
   return error instanceof Error ? `${error.name}: ${error.message}` : String(error);
 }
 
+function invalidValidation(content: string): ToolValidation {
+  return { status: "invalid", result: { content, failed: true, invalidInput: true } };
+}
+
 function failedOutputResult(
   error: unknown,
-  completed: AgentToolResult | undefined,
-  guestExecutionsStarted: number,
+  completed: ToolExecutionResult | undefined,
 ): AgentToolResult {
-  return {
+  const result = {
     ...(completed ?? {}),
     content: errorText(error),
     failed: true,
-    guestExecutionsStarted,
   };
+  delete result.guestExecutionsStarted;
+  return result;
 }
 
 export type {
@@ -37,6 +43,7 @@ export type {
   AgentToolResult,
   SkillReader,
   SubagentRequest,
+  ToolValidation,
 } from "./generic-tool-support.js";
 
 function codeParams(
@@ -69,7 +76,7 @@ function codeTool(language: "python" | "node"): ToolSpec {
     },
     parse: (value) => codeParams(language, value),
     execute: async (value, context) => {
-      const params = codeParams(language, value);
+      const params = value as ReturnType<typeof codeParams>;
       const path = params.path ?? scriptPath(language);
       return await runExecution(
         context,
@@ -95,8 +102,10 @@ function bashTool(): ToolSpec {
       params: objectSchema({ command: { type: "string" } }, ["command"]),
     },
     parse: bashParams,
-    execute: async (value, context) =>
-      await runExecution(context, { language: "shell", command: bashParams(value).command }, true),
+    execute: async (value, context) => {
+      const { command } = value as ReturnType<typeof bashParams>;
+      return await runExecution(context, { language: "shell", command }, true);
+    },
   };
 }
 
@@ -244,35 +253,27 @@ export class GenericToolRegistry {
     }
     return definitions;
   }
-  validate(name: string, params: unknown): AgentToolResult | undefined {
+  validate(name: string, params: unknown): ToolValidation {
     const tool = this.tools.get(name);
-    if (tool === undefined) {
-      return { content: `Unknown tool: ${name}`, failed: true, invalidInput: true };
-    }
+    if (tool === undefined) return invalidValidation(`Unknown tool: ${name}`);
     try {
-      tool.parse(params);
-      return undefined;
+      return { status: "valid", parsed: tool.parse(params), tool };
     } catch (error) {
-      return {
-        content: error instanceof Error ? `${error.name}: ${error.message}` : String(error),
-        failed: true,
-        invalidInput: true,
-      };
+      return invalidValidation(errorText(error));
     }
   }
   async execute(
     name: string,
     params: unknown,
     budget?: GuestExecutionBudget,
+    validation?: ToolValidation,
   ): Promise<AgentToolResult> {
-    const invalid = this.validate(name, params);
-    if (invalid !== undefined) return invalid;
-    const tool = this.tools.get(name) as ToolSpec;
-    const parsed = tool.parse(params);
+    const checked = validation ?? this.validate(name, params);
+    if (checked.status === "invalid") return checked.result;
     let guestExecutionsStarted = 0;
-    let completed: AgentToolResult | undefined;
+    let completed: ToolExecutionResult | undefined;
     try {
-      const result = await tool.execute(parsed, this.context);
+      const result = await checked.tool.execute(checked.parsed, this.context);
       completed = result;
       guestExecutionsStarted = result.guestExecutionsStarted ?? 0;
       budget?.recordStarted(guestExecutionsStarted);
@@ -287,10 +288,12 @@ export class GenericToolRegistry {
           },
         },
       );
-      return { ...result, content, guestExecutionsStarted };
+      const output = { ...result, content };
+      delete output.guestExecutionsStarted;
+      return output;
     } catch (error) {
       if (error instanceof DOMException && error.name === "AbortError") throw error;
-      return failedOutputResult(error, completed, guestExecutionsStarted);
+      return failedOutputResult(error, completed);
     }
   }
 }

@@ -39,22 +39,26 @@ describe("GenericToolRegistry output recovery", () => {
       },
       skills: { metadata: () => [], read: () => "" },
     });
+    const budget = new GuestExecutionBudget(1);
 
     const result = await registry.execute(
       "python",
       { source: execution.source, path: execution.path },
-      new GuestExecutionBudget(1),
+      budget,
     );
 
     expect(inspect).not.toHaveBeenCalled();
-    expect(result).toMatchObject({ failed: false, guestExecutionsStarted: 1, execution });
+    expect(result).toMatchObject({ failed: false, execution });
+    expect(budget.started).toBe(1);
     expect(result.content).toContain("Full output was not saved");
     expect(result.content).toMatch(/^exit_code: 0/u);
     expect(result.content).toContain("stdout:\nx");
     expect(result.content).toMatch(/stderr: \(empty\)$/u);
     expect(result.content.length).toBeLessThan(execution.stdout.length);
   });
+});
 
+describe("GenericToolRegistry spill failure", () => {
   it("retains a completed execution when its output spill fails", async () => {
     const execution = completedArtifactExecution();
     const registry = new GenericToolRegistry({
@@ -68,17 +72,19 @@ describe("GenericToolRegistry output recovery", () => {
       },
       skills: { metadata: () => [], read: () => "" },
     });
+    const budget = new GuestExecutionBudget(3);
 
-    const result = await registry.execute("python", {
-      source: execution.source,
-      path: execution.path,
-    });
+    const result = await registry.execute(
+      "python",
+      { source: execution.source, path: execution.path },
+      budget,
+    );
 
     expect(result).toMatchObject({
       failed: true,
-      guestExecutionsStarted: 1,
       execution,
       content: "Error: spill boundary failed",
     });
+    expect(budget.started).toBe(1);
   });
 });

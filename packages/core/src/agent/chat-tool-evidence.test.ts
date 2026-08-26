@@ -19,8 +19,6 @@ const blockedResults: Array<[string, AgentToolResult]> = [
     {
       content: "agent_script_missing",
       failed: true,
-      guestExecutionsStarted: 0,
-      preparationFailure: "agent_script_missing",
     },
   ],
 ];

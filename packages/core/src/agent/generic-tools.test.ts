@@ -68,6 +68,27 @@ describe("GenericToolRegistry task", () => {
   });
 });
 
+describe("GenericToolRegistry parsing", () => {
+  it("parses a direct tool call once", async () => {
+    let commandReads = 0;
+    const params = Object.defineProperty({}, "command", {
+      enumerable: true,
+      get: () => {
+        commandReads += 1;
+        return "printf ok";
+      },
+    });
+    const registry = new GenericToolRegistry({
+      executor: executorOnly,
+      skills: { metadata: () => [], read: () => "" },
+    });
+
+    await registry.execute("bash", params);
+
+    expect(commandReads).toBe(1);
+  });
+});
+
 describe("GenericToolRegistry resilient parameters", () => {
   it("supports source-only, saved-source, and committed-path code runs", async () => {
     const runs: Parameters<AgentExecutor["execute"]>[0][] = [];

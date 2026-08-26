@@ -9,7 +9,6 @@ import type { AgentSessionExecution } from "@vault/workers";
 import {
   AgentExecutionAttemptError,
   type AgentExecutor,
-  type AgentScriptPreparationFailure,
   agentScriptPreparationFailure,
 } from "./agent-executor.js";
 import { isSuccessfulExecution } from "./execution-success.js";
@@ -31,7 +30,6 @@ export type AgentQuestionOutcome = { dismissed: false; answers: string[][] } | {
 export interface AgentToolResult {
   content: string;
   failed: boolean;
-  guestExecutionsStarted?: number;
   invalidInput?: boolean;
   execution?: AgentExecutionResult;
   artifactExecution?: AgentExecutionResult;
@@ -40,11 +38,13 @@ export interface AgentToolResult {
     exitCode: number;
     errorText: string;
   };
-  preparationFailure?: AgentScriptPreparationFailure;
   executionAttempt?: AgentExecutionAttemptError["attempt"];
   status?: "already_loaded";
 }
 
+export interface ToolExecutionResult extends AgentToolResult {
+  guestExecutionsStarted?: number;
+}
 export interface ToolContext {
   executor: AgentExecutor;
   skills: SkillReader;
@@ -57,8 +57,12 @@ export interface ToolContext {
 export interface ToolSpec {
   definition: ChatToolDefinition;
   parse(value: unknown): unknown;
-  execute(value: unknown, context: ToolContext): Promise<AgentToolResult>;
+  execute(value: unknown, context: ToolContext): Promise<ToolExecutionResult>;
 }
+
+export type ToolValidation =
+  | { status: "invalid"; result: AgentToolResult }
+  | { status: "valid"; parsed: unknown; tool: ToolSpec };
 
 export function objectSchema(properties: Record<string, unknown>, required: string[] = []) {
   return { type: "object", properties, required, additionalProperties: false };
@@ -77,7 +81,7 @@ function executionResult(
   result: AgentExecutionResult,
   recorded: boolean,
   guestExecutionsStarted: number,
-): AgentToolResult {
+): ToolExecutionResult {
   const failed = !isSuccessfulExecution(result);
   return {
     content: executionText(result),
@@ -96,18 +100,17 @@ function executionResult(
   };
 }
 
-function preparationError(error: unknown): AgentToolResult | undefined {
+function preparationError(error: unknown): ToolExecutionResult | undefined {
   const preparation = agentScriptPreparationFailure(error);
   if (preparation === undefined) return undefined;
   return {
     content: error instanceof Error ? `${error.name}: ${error.message}` : String(error),
     failed: true,
     guestExecutionsStarted: 0,
-    preparationFailure: preparation,
   };
 }
 
-function executionError(error: unknown, guestExecutionsStarted: number): AgentToolResult {
+function executionError(error: unknown, guestExecutionsStarted: number): ToolExecutionResult {
   const preparation = preparationError(error);
   if (preparation !== undefined) return preparation;
   return {
@@ -121,7 +124,7 @@ export async function runExecution(
   context: ToolContext,
   execution: AgentSessionExecution,
   recorded: boolean,
-): Promise<AgentToolResult> {
+): Promise<ToolExecutionResult> {
   const execute = recorded
     ? context.executor.execute
     : (context.executor.inspect ?? context.executor.execute);
@@ -206,7 +209,7 @@ function inspectionTool(options: {
     },
     parse: options.parse,
     execute: async (value, context) => {
-      const params = options.parse(value);
+      const params = value as Record<string, unknown>;
       return await runExecution(
         context,
         {

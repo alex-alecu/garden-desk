@@ -24,7 +24,7 @@ import {
   pathOnlyCodeCall,
   retainWorkspaceEvidence,
 } from "./chat-tool-evidence.js";
-import type { AgentToolResult, GenericToolRegistry } from "./generic-tools.js";
+import type { AgentToolResult, GenericToolRegistry, ToolValidation } from "./generic-tools.js";
 import { GuestExecutionBudget } from "./guest-execution-budget.js";
 import { subagentTitle, toolCompletedSummary, toolStartedSummary } from "./tool-summaries.js";
 
@@ -53,6 +53,10 @@ interface ToolTurnInput {
   onEvent?(type: AgentEventType, summary: string, detail?: Partial<AgentEventDetail>): void;
   registry: GenericToolRegistry;
   state: ChatToolState;
+}
+
+function validationFailure(validation?: ToolValidation): AgentToolResult | undefined {
+  return validation?.status === "invalid" ? validation.result : undefined;
 }
 
 function stable(value: unknown): string {
@@ -141,6 +145,7 @@ async function toolResult(
   input: ToolTurnInput,
   call: ChatToolCall,
   repeated: boolean,
+  validation?: ToolValidation,
 ): Promise<AgentToolResult> {
   if (repeated) {
     return blockedToolResult(
@@ -154,7 +159,7 @@ async function toolResult(
       );
     }
   }
-  return await input.registry.execute(call.name, call.params, input.state.guestBudget);
+  return await input.registry.execute(call.name, call.params, input.state.guestBudget, validation);
 }
 
 async function executeToolCall(input: ToolTurnInput, call: ChatToolCall): Promise<boolean> {
@@ -164,14 +169,15 @@ async function executeToolCall(input: ToolTurnInput, call: ChatToolCall): Promis
   const loaded = liveLoadedSkillNames(input.state.loadedSkills, input.state.messages);
   const alreadyLoaded = skillName !== undefined && loaded.has(skillName);
   const repeated = corrupt ? false : repeatedCall(input.state, call);
-  const invalid = corrupt ? undefined : input.registry.validate(call.name, call.params);
+  const validation = corrupt ? undefined : input.registry.validate(call.name, call.params);
+  const invalid = validationFailure(validation);
   const hasBudget = !GUEST_TOOLS.has(call.name) || input.state.guestBudget.remaining > 0;
   beforeExecution(input, call, repeated, !corrupt && invalid === undefined && hasBudget);
   const result = corrupt
     ? invalidToolInputResult("Invalid tool input: protocol-control transition in arguments.")
     : alreadyLoaded && !repeated
       ? alreadyLoadedSkillResult(skillName)
-      : (invalid ?? (await toolResult(input, call, repeated)));
+      : (invalid ?? (await toolResult(input, call, repeated, validation)));
   finalizeToolCall(input, call, repeated, result);
   return result.invalidInput !== true;
 }
@@ -266,13 +272,14 @@ async function executeTaskGroup(input: ToolTurnInput, group: ChatToolCall[]): Pr
   const started = group.map((call) => {
     const corrupt = containsProtocolTransition(call.params);
     const repeated = corrupt ? false : repeatedCall(input.state, call);
-    const invalid = corrupt ? undefined : input.registry.validate(call.name, call.params);
+    const validation = corrupt ? undefined : input.registry.validate(call.name, call.params);
+    const invalid = validationFailure(validation);
     beforeExecution(input, call, repeated, !corrupt && invalid === undefined);
     const result = corrupt
       ? Promise.resolve(
           invalidToolInputResult("Invalid tool input: protocol-control transition in arguments."),
         )
-      : Promise.resolve(invalid ?? toolResult(input, call, repeated));
+      : Promise.resolve(invalid ?? toolResult(input, call, repeated, validation));
     return { call, repeated, result };
   });
   let validInput = false;
