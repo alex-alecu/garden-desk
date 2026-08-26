@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { rm } from "node:fs/promises";
 import {
+  type AgentExecutionResult,
   AgentGuestExecuteRequestSchema,
   AgentGuestHelloRequestSchema,
   AgentGuestHelloResultSchema,
@@ -33,13 +34,16 @@ interface GuestInitialization {
 }
 
 function invalidatedArtifactPaths(
-  artifacts: Array<{ name: string }>,
+  execution: Pick<AgentExecutionResult, "artifacts" | "exitCode" | "termination">,
   delta: AgentWorkspaceDelta,
 ): string[] {
-  const captured = new Set(artifacts.map((artifact) => artifact.name));
+  const captured =
+    execution.termination === "completed" && execution.exitCode === 0
+      ? new Set(execution.artifacts.map((artifact) => artifact.name))
+      : new Set<string>();
   const paths = new Set(delta.removedPaths);
   for (const entry of delta.entries) {
-    if (entry.kind === "file" && !captured.has(entry.path)) paths.add(entry.path);
+    if (entry.kind !== "file" || !captured.has(entry.path)) paths.add(entry.path);
   }
   return [...paths].filter((path) => !path.startsWith("steps/"));
 }
@@ -132,10 +136,7 @@ export class FramedAgentSession implements CodeAgentSession {
       await this.options.store.applyDelta(this.options.sessionId, result.workspaceDelta);
       return {
         ...result.execution,
-        invalidatedArtifactPaths: invalidatedArtifactPaths(
-          result.execution.artifacts,
-          result.workspaceDelta,
-        ),
+        invalidatedArtifactPaths: invalidatedArtifactPaths(result.execution, result.workspaceDelta),
       };
     } finally {
       signal?.removeEventListener("abort", abort);

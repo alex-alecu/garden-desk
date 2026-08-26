@@ -187,7 +187,27 @@ describe("agent artifact candidate invalidation", () => {
       undefined,
       { executionId, onUpdate() {} },
     );
-    expect(result.invalidatedArtifactPaths).toEqual(["deleted.pdf", "oversized.pdf"]);
+    expect(result.invalidatedArtifactPaths).toEqual(["deleted.pdf", "oversized.pdf", "reports"]);
+  });
+
+  it("invalidates every changed artifact path after a failed execution", async () => {
+    const executionId = AgentExecutionIdSchema.parse(randomUUID());
+    const frame = artifactInvalidationFrame(randomUUID(), executionId);
+    frame.execution.exitCode = 1;
+    const session = artifactInvalidationSession(frame);
+
+    const result = await session.execute(
+      { language: "python", path: "steps/live.py", source: "raise SystemExit(1)" },
+      undefined,
+      { executionId, onUpdate() {} },
+    );
+
+    expect(result.invalidatedArtifactPaths).toEqual([
+      "deleted.pdf",
+      "captured.pdf",
+      "oversized.pdf",
+      "reports",
+    ]);
   });
 });
 

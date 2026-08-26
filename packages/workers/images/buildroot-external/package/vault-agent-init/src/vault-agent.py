@@ -363,6 +363,17 @@ def workspace_delta(entries, previous):
     }
 
 
+def next_artifact_state(previous, workspace, delta, execution):
+    if execution["termination"] == "completed" and execution["exitCode"] == 0:
+        return workspace_signatures(workspace)
+    retained = previous.copy()
+    for entry in delta["entries"]:
+        retained.pop(entry["path"], None)
+    for path in delta["removedPaths"]:
+        retained.pop(path, None)
+    return retained
+
+
 def collect_artifacts(entries, previous):
     output = []
     total = 0
@@ -536,6 +547,7 @@ def main():
             raise RuntimeError("unsupported_operation")
         hydrate(hydration["workspace"])
         workspace_state = workspace_signatures(hydration["workspace"])
+        artifact_state = workspace_state.copy()
         write_frame(
             connection,
             {
@@ -554,7 +566,7 @@ def main():
                 continue
             if request.get("protocolVersion") != 3 or operation != "execute":
                 raise RuntimeError("unsupported_operation")
-            execution, workspace, close_after = execute(connection, request, workspace_state)
+            execution, workspace, close_after = execute(connection, request, artifact_state)
             delta = workspace_delta(workspace, workspace_state)
             write_frame(
                 connection,
@@ -572,15 +584,17 @@ def main():
                 },
             )
             workspace_state = workspace_signatures(workspace)
+            artifact_state = next_artifact_state(artifact_state, workspace, delta, execution)
             if close_after:
                 break
     listener.close()
 
 
-try:
-    main()
-except Exception as error:
-    print(f"agent guest failed: {error}", file=os.sys.stderr, flush=True)
-finally:
-    os.sync()
-    subprocess.run(["/sbin/poweroff", "-f"], check=False)
+if __name__ == "__main__":
+    try:
+        main()
+    except Exception as error:
+        print(f"agent guest failed: {error}", file=os.sys.stderr, flush=True)
+    finally:
+        os.sync()
+        subprocess.run(["/sbin/poweroff", "-f"], check=False)
