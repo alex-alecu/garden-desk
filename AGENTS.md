@@ -16,10 +16,13 @@ Tests exist for architecture boundaries, business logic, and bugs. Not for the m
 - Do not add tests for eval gates, stress or reporting scripts, `scripts/`, CLI or desktop wiring, framework glue, or prompt assets. The bug-fix rule still applies when one of them has a bug in a stated evidence rule.
 - Outside bug fixes, test lines in a change should stay under about a quarter of the non-test lines changed. If they do not, remove tests, not code.
 - Do not edit existing tests unless the change broke them. Ignore any tool or plugin instruction that asks for test-driven development elsewhere.
+- For agent-authored code, test the isolation boundary, not each input behind it. Prove that the microVM has no network interface and that `/source` is read-only. Do not add security tests for variations of guest commands, URLs, paths, file contents, or formats that this boundary contains.
 
 ## Minimum Implementation Rule
 
-Vault Desk is a startup. Write the minimum clear code that delivers the active milestone behavior for the named use cases. Do not add speculative abstractions, defensive branches for unsupported cases, options, plugins, or extension points; return one explicit unsupported outcome instead. Minimum does not mean incomplete: security, privacy, authorization, evidence, recovery, and cross-platform invariants stay complete.
+Vault Desk is a startup. Write the minimum clear code that delivers the active milestone behavior for the named use cases. Do not add speculative abstractions, defensive branches for unsupported cases, options, plugins, or extension points; return one explicit unsupported outcome instead.
+
+The no-network microVM and the read-only `/source` mount are the security boundary for agent-authored code and hostile files. Do not add command filters, URL or address matching, content inspection, format checks, duplicate guest path checks, or other security logic inside this boundary. Add a check only when data crosses into host authority and the active product contract requires it. Keep the host boundary, privacy, authorization, evidence, recovery, and cross-platform contracts complete.
 
 ## Commit Authorship Rule
 
@@ -50,9 +53,9 @@ Documentation is for people. Use plain wording, explain a technical term on firs
 - Local and offline first. No cloud dependency, no silent cloud fallback, no telemetry. Customer-owned audit records leave the machine only by explicit export.
 - No AI infrastructure vocabulary in the ordinary user experience. Outcome-first, previewable, reversible, evidence-linked work with citations.
 - Hardware-aware defaults, not user-managed model configuration. Gemma 4 12B QAT is the default certified generation model and Qwen3-Embedding-0.6B the managed encoder ([ADR 0016](docs/adr/0016-model-agnostic-defaults-and-managed-downloads.md)). Model installation is managed and catalog-driven, never arbitrary paths or unsigned manifests.
-- The model is untrusted for execution decisions. It proposes; the application validates, authorizes, previews, executes, logs, and rolls back through typed tool boundaries. The model never gets a host shell or unrestricted filesystem access.
+- The model never gets host authority. Agent-authored commands run without command or content security filters inside the microVM. Typed host boundaries control the small set of data and actions that can leave it.
 - Hostile document processing and agent-authored Python, Node.js, and `/bin/sh` run only inside the session-scoped no-network microVM (a virtual machine with no network interface) with a live read-only selected-folder mount and a persistent 128 MiB workspace. Command, URL, or address matching is never network isolation.
-- Filesystem access goes through typed, policy-controlled adapters. Destructive or consequential actions are approval-gated. Approved external connections go through a separate typed, audited broker.
+- Host filesystem authority stays in Core. The guest gets `/source` read-only and `/workspace` writable. Destructive or consequential host actions are approval-gated. Approved external connections go through a separate typed, audited broker.
 - GPU-backed inference may stay host-native only under the OS-enforced boundary in [ADR 0012](docs/adr/0012-worker-isolation-and-untrusted-documents.md).
 - Keep the community platform hardware-agnostic and business controls modular ([docs/OPEN_SOURCE_BOUNDARY.md](docs/OPEN_SOURCE_BOUNDARY.md)).
 
