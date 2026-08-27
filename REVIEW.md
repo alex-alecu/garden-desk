@@ -8,8 +8,8 @@ Vault Desk is a local, offline-first desktop agent. The model is untrusted for e
 
 `[security]`
 
-- Model, guest, or document content reaching a host shell, an unscoped filesystem path, a network call, or an unvalidated RPC argument
-- Destructive or consequential actions that skip validation, approval, audit, or rollback
+- Model, guest, or document content reaching a host shell, a writable host source path, a network call, or an unscoped argument at a typed host-authority crossing
+- Destructive or consequential host actions that skip approval, audit, or rollback
 - Product policy, filesystem authorization, network brokering, or parsing moved into the Rust or Swift helpers under `packages/*/native/`
 - Raw native-helper stderr, inference diagnostics, or customer content in reports, snapshots, UI data, or committed files
 - Any telemetry, cloud call, silent cloud fallback, or unpinned download
@@ -33,6 +33,7 @@ Vault Desk is a local, offline-first desktop agent. The model is untrusted for e
 `[clean-code]` - over-engineering is a defect, not a style preference
 
 - Code that handles a case no current supported workflow can reach: extra defensive branches, fallbacks, retries, compatibility shims, or configuration for hypothetical inputs
+- Security checks inside the no-network microVM boundary: command or URL filters, content or format inspection, or repeated validation of guest-only paths
 - Abstractions with one caller: interfaces, generics, factories, registries, option objects, or extension points added before a second concrete use exists
 - Boolean flag arguments, mixed command and query functions, and duplication that should be deleted rather than parameterized
 - Try/catch, null checks, or error wrapping at every call level: handle an error once, at the boundary that can recover, report, or audit it, and let everything else propagate
@@ -43,7 +44,8 @@ Vault Desk is a local, offline-first desktop agent. The model is untrusted for e
 - Flag over-testing as WARNING: more than one test per new behavior, tests for the same invariant in several files, tests for framework wiring, type checks, trivial getters, or unsupported scenarios
 - Flag tests that assert private implementation details, internal call order, or mock interactions instead of an observable outcome
 - Flag test helpers, fixtures, builders, or parameterized matrices introduced for a single test
-- Flag a missing test only when a realistic failure would silently break a security, authorization, audit, recovery, or cross-platform invariant; otherwise never request more tests
+- Flag a missing test only when the Test Rule in `AGENTS.md` requires one for a bug, architecture boundary, or business rule; otherwise never request more tests
+- For guest security, one focused isolation-boundary test is enough. Never request a security test matrix for command, URL, path, file-content, or format variations contained by the microVM.
 - Never suggest coverage for edge cases the active milestone does not support; an explicit unsupported outcome is the correct behavior
 
 **Skip these:**
@@ -53,6 +55,7 @@ Vault Desk is a local, offline-first desktop agent. The model is untrusted for e
 - Prose-only edits in `docs/research/`, `docs/strategy/`, and `site/`
 - Test-only code that intentionally violates production rules
 - Explicit unsupported outcomes in place of hypothetical case handling
+- Requests to filter or validate guest command text and file contents when the no-network microVM and read-only `/source` mount contain them
 - Patterns already used elsewhere in the codebase
 
 **Catalog migrations (`packages/core/src/workspace/migrations/*.sql` - DO review these):**

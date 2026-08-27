@@ -4,7 +4,7 @@ Created: 2026-07-10
 
 This document defines the implementation quality constraints for Vault Desk. M0 and M1 are complete, the macOS inference foundation exists, and M3 is active under [AGENTS.md](../AGENTS.md).
 
-The goal is the least amount of new code and the least amount of tests that still protects the product's privacy, correctness, auditability, and local performance promises.
+The goal is the least amount of new code and the least amount of tests that delivers the active product contracts. The architecture, not layers of input checks, protects the guest boundary.
 
 ## Minimal Code Rule
 
@@ -20,11 +20,13 @@ Add code only when it is required to express one of these product responsibiliti
 - Schema-versioned workspace recovery.
 - Worker supervision and resource limits.
 - MicroVM lifecycle, immutable guest images, and no-network verification.
-- Bounded generic-agent orchestration, inference mediation, result validation, and audit.
+- Bounded generic-agent orchestration, inference mediation, and audit.
 - Tauri session/folder interface and packaged sidecar lifecycle.
 - The minimal Tauri sidecar and capability boundary.
 
 Do not write custom infrastructure when a maintained local dependency can satisfy a narrow adapter contract.
+
+The no-network microVM and read-only `/source` mount contain agent-authored commands and hostile files. Do not add source-pattern filters, URL or address matching, content scans, format allowlists, or repeated checks for paths used only inside the guest. Add validation only when data crosses into host authority and the active product contract names the check. Do not duplicate a check at more than one boundary.
 
 ## Post-V1 Component Research (Not Active)
 
@@ -101,7 +103,6 @@ Preferred shape:
 - Small policy engine.
 - Small manifest store.
 - Small evidence-pack builder.
-- Small verifier orchestration layer.
 - Small compaction state manager.
 
 Avoid a central "agent brain" module. Vault Desk should be a set of explicit workflows and typed tools with model calls as one step inside those workflows.

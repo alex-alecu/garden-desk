@@ -27,6 +27,8 @@ Inspect the relevant source, tests, schemas, adapters, and recent history. Check
 Create a short-lived branch and open a focused pull request for every stage. Do not start the next stage until the current pull request is merged or closed.
 
 - Write only what the active gate consumes and keep security boundaries complete.
+- Treat the no-network microVM and read-only `/source` mount as the primary containment for guest-authored commands and hostile files. Do not add security checks for command text, URLs, content, formats, or guest-only paths inside that boundary.
+- Add validation only at a host authority crossing and only when an active product contract requires it.
 - Handle named cases and return a typed unsupported outcome for the rest.
 - Add an abstraction only for an ADR-mandated seam or a second real implementation.
 - Keep policy separate from model output and adapters thin around dependencies.
