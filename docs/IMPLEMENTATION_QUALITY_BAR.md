@@ -20,13 +20,13 @@ Add code only when it is required to express one of these product responsibiliti
 - Schema-versioned workspace recovery.
 - Worker supervision and resource limits.
 - MicroVM lifecycle, immutable guest images, and no-network verification.
-- Bounded generic-agent orchestration, inference mediation, and audit.
+- Bounded generic-agent orchestration, inference mediation, result validation, and audit.
 - Tauri session/folder interface and packaged sidecar lifecycle.
 - The minimal Tauri sidecar and capability boundary.
 
 Do not write custom infrastructure when a maintained local dependency can satisfy a narrow adapter contract.
 
-The no-network microVM and read-only `/source` mount contain agent-authored commands and hostile files. Do not add source-pattern filters, URL or address matching, content scans, format allowlists, or repeated checks for paths used only inside the guest. Add validation only when data crosses into host authority and the active product contract names the check. Do not duplicate a check at more than one boundary.
+The no-network microVM and read-only `/source` mount contain agent-authored commands and hostile files. Do not add source-pattern filters, URL or address matching, content scans, format allowlists, or repeated checks for paths used only inside the guest. Add validation only when data crosses into host authority and the active product contract names the check.
 
 ## Post-V1 Component Research (Not Active)
 
@@ -103,6 +103,7 @@ Preferred shape:
 - Small policy engine.
 - Small manifest store.
 - Small evidence-pack builder.
+- Small verifier orchestration layer.
 - Small compaction state manager.
 
 Avoid a central "agent brain" module. Vault Desk should be a set of explicit workflows and typed tools with model calls as one step inside those workflows.
