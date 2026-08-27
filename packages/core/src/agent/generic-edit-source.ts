@@ -8,7 +8,7 @@ export function editSource(operation: EditName, params: unknown): string {
     `args = json.loads(${JSON.stringify(JSON.stringify(params))})`,
     "def text(name): return base64.b64decode(args[name]).decode('utf-8')",
     "path = Path(args['path'])",
-    "if not str(path.resolve()).startswith('/workspace/'): sys.exit('unsupported_path: write and edit change only files under /workspace')",
+    "if not path.resolve().as_posix().startswith('/workspace/'): sys.exit('unsupported_path: write and edit change only files under /workspace')",
     "if op == 'write':",
     "    data = text('content').encode('utf-8')",
     "    path.parent.mkdir(parents=True, exist_ok=True)",
