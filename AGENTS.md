@@ -23,7 +23,7 @@ Vault Desk is a startup. Write the minimum clear code that delivers the active m
 
 ## Commit Authorship Rule
 
-Every commit is authored solely by the repository owner (after contribution activation, by the human contributor with a DCO sign-off). Never add an AI assistant, model, or tool as author or co-author, and never add `Co-Authored-By: Claude ...`, "Generated with ...", or similar lines to commits or pull requests. Develop every change on a short-lived branch and merge it through a pull request; never commit implementation work directly to `main`. See [CONTRIBUTING.md](CONTRIBUTING.md).
+Every commit is authored solely by the repository owner (after contribution activation, by the human contributor with a DCO sign-off). Never add an AI assistant, model, or tool as author or co-author, and never add `Co-Authored-By: Claude ...`, "Generated with ...", or similar lines to commits or pull requests. Never include an AI session link, session ID, or session details (for example `Claude-Session: ...` or `claude.ai/code/session_...`) anywhere: not in commit messages, pull request titles or descriptions, pull request or issue comments, GitHub reviews, code, or documentation. Develop every change on a short-lived branch and merge it through a pull request; never commit implementation work directly to `main`. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Implementation Rule
 
