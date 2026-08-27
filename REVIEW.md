@@ -8,8 +8,9 @@ Vault Desk is a local, offline-first desktop agent. The model is untrusted for e
 
 `[security]`
 
-- Model, guest, or document content reaching a host shell, a writable host source path, a network call, or an unscoped argument at a typed host-authority crossing
-- Destructive or consequential host actions that skip approval, audit, or rollback
+- Model, guest, or document content reaching a host shell, a writable host source path, a network call, or host authority outside the active typed scope
+- Guest or worker data entering authoritative host state without contract-required validation of schema, path, size, bytes, hash, or protocol
+- Destructive or consequential host actions that skip contract-required validation, approval, audit, or rollback
 - Product policy, filesystem authorization, network brokering, or parsing moved into the Rust or Swift helpers under `packages/*/native/`
 - Raw native-helper stderr, inference diagnostics, or customer content in reports, snapshots, UI data, or committed files
 - Any telemetry, cloud call, silent cloud fallback, or unpinned download
