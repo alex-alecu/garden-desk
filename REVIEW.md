@@ -92,3 +92,5 @@ security X, business-logic X, performance X, clean-code X
 ```
 
 followed by one sentence naming the highest-risk finding and its file, or `No blocking issues.` when nothing is CRITICAL.
+
+End the review body with `Reviewed <full head sha>`. The next run reviews only the commits after that sha.
