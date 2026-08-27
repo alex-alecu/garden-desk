@@ -13,7 +13,7 @@ Review the given pull request. `REVIEW.md` at the repository root is the primary
 
 **Waiting for agents (this runs unattended, so it must never stall or loop):**
 - Agents run in the background. Tell every agent its time budget in its prompt ("You have N seconds; reply with what you have before then"). After launching a group of agents, call `TaskOutput` once per agent with `block: true` and the timeout given for that step. Do not poll, sleep, schedule wakeups, or use `Monitor`. Only a lens agent that is still running after its first wait gets one more `TaskOutput` with timeout `60000`; no agent gets a third.
-- An agent whose `TaskOutput` status is not `completed`, or whose output is empty or unusable, has failed: call `TaskStop` on it and apply the fallback given for that step.
+- An agent whose final `TaskOutput` status is not `completed`, or whose output is empty or unusable, has failed: call `TaskStop` on it and apply the fallback given for that step.
 - Never end your turn while an agent you launched is still running; every step below ends with all its agents collected or stopped.
 
 Follow these steps precisely:
