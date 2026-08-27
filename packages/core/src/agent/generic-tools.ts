@@ -1,7 +1,7 @@
 import type { ChatToolDefinition } from "@vault/shared";
+import { guestFileTools } from "./generic-file-tools.js";
 import {
   type AgentToolResult,
-  inspectionTools,
   object,
   objectSchema,
   runExecution,
@@ -98,7 +98,7 @@ function bashTool(): ToolSpec {
     definition: {
       name: "bash",
       description:
-        "Run a complete /bin/sh command inside the no-network guest. Commands start in /workspace; use /source explicitly for the selected folder.",
+        "Run a complete /bin/sh command inside the no-network guest. Commands start in /workspace; use /source for the selected folder.",
       params: objectSchema({ command: { type: "string" } }, ["command"]),
     },
     parse: bashParams,
@@ -154,7 +154,7 @@ function taskTool(): ToolSpec {
     definition: {
       name: "task",
       description:
-        "Delegate isolated exploration, a focused trial, or one independent multi-step work unit. Only the final report returns to this context; verify child outputs before final use.",
+        "Delegate isolated exploration, a focused trial, or one independent multi-step work unit. Only the final report returns to this context; verify child outputs before use.",
       params: objectSchema(
         {
           description: { type: "string" },
@@ -185,7 +185,7 @@ function imageTool(): ToolSpec {
     definition: {
       name: "image",
       description:
-        "Inspect one PNG or JPEG from /run/attachments or /source. Return only image facts needed for the task.",
+        "Inspect one PNG or JPEG from /run/attachments or /source. Return only the image facts needed.",
       params: objectSchema(
         {
           path: { type: "string", description: "Exact guest image path." },
@@ -219,7 +219,7 @@ function specs(skills: SkillReader, skillNames: string[]): ToolSpec[] {
     codeTool("python"),
     codeTool("node"),
     bashTool(),
-    ...inspectionTools(),
+    ...guestFileTools(),
     imageTool(),
     skillTool(skills, skillNames),
     taskTool(),

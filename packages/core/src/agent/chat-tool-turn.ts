@@ -31,8 +31,8 @@ import { subagentTitle, toolCompletedSummary, toolStartedSummary } from "./tool-
 const EXECUTION_LIMIT = 24;
 const DOOM_LOOP_COUNT = 3;
 const MAX_PARALLEL_TASKS = 2;
-const GUEST_TOOLS = new Set(["bash", "python", "node", "read", "glob", "grep", "list"]);
 const CODE_TOOLS = new Set(["bash", "python", "node"]);
+const GUEST_TOOLS = new Set([...CODE_TOOLS, "read", "glob", "grep", "list", "write", "edit"]);
 
 export interface ChatToolState {
   artifactExecutions: ArtifactExecutionEvidence[];

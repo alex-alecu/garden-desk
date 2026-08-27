@@ -1,6 +1,6 @@
 ---
 name: prior-authorization-document-review
-description: Administrative prior-authorization packet completeness review. Load after document-review. No medical necessity, coverage, approval, denial, diagnosis, treatment, triage, or coding decisions.
+description: Prior-authorization packet completeness review. Load after document-review. No medical necessity, coverage, approval, denial, diagnosis, treatment, triage, or coding decisions.
 ---
 
 Use only the supplied packet, payer policy, checklist, and user criteria. If no policy or checklist is supplied, inventory the packet and ask for the controlling requirements. Do not use model memory as a payer rule.
