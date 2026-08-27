@@ -11,7 +11,7 @@ import { isSuccessfulExecution } from "./execution-success.js";
 import { type ExecutionRow, executionFromRow } from "./records.js";
 
 export type ExecutionInput =
-  | { language: "python" | "node"; path: string; source: string }
+  | { language: "python" | "node"; path: string; source: string | null }
   | { language: "shell"; command: string };
 
 const MAX_STDIO_BYTES = 1_000_000;

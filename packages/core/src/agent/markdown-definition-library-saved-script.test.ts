@@ -16,7 +16,9 @@ describe("saved-script prompt contracts", () => {
     );
     expect(primary.body).toContain("Rerun the `steps/...` path");
     expect(primary.body).toContain("`/workspace/steps` is internal");
-    expect(primary.body).toContain("Python/Node `path` is relative `steps/...`");
+    expect(primary.body).toContain(
+      "Python/Node path: `steps/...`, `/workspace/steps/...`, or path-only `/source/...`",
+    );
     expect(primary.body).not.toContain("attachments `/run/attachments`. Use absolute paths");
     expect(primary.body).not.toContain("Never retype saved code");
     expect(primary.body).not.toContain("shorter complete replacement; do not patch/repeat");

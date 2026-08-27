@@ -1,9 +1,6 @@
 import { z } from "zod";
-import {
-  AgentExecutionResultSchema,
-  AgentVmDiagnosticCodeSchema,
-  AgentWorkspacePathSchema,
-} from "./agent.js";
+import { AgentExecutionResultSchema, AgentVmDiagnosticCodeSchema } from "./agent.js";
+import { AgentSourcePathSchema, AgentWorkspacePathSchema } from "./agent-path.js";
 import { VaultErrorSchema } from "./errors.js";
 import { AgentExecutionIdSchema, JobIdSchema, RequestIdSchema } from "./ids.js";
 
@@ -114,7 +111,7 @@ export const AgentGuestHydrateRequestSchema = z.object({
   workspace: z.array(AgentWorkspaceEntrySchema).max(10_000),
 });
 
-export const AgentGuestExecuteRequestSchema = z.discriminatedUnion("language", [
+export const AgentGuestExecuteRequestSchema = z.union([
   z.object({
     protocolVersion: z.literal(3),
     requestId: RequestIdSchema,
@@ -123,6 +120,16 @@ export const AgentGuestExecuteRequestSchema = z.discriminatedUnion("language", [
     language: z.enum(["python", "node"]),
     path: AgentWorkspacePathSchema,
     source: z.string().min(1).max(128_000),
+    limits: AgentGuestLimitsSchema,
+  }),
+  z.object({
+    protocolVersion: z.literal(3),
+    requestId: RequestIdSchema,
+    executionId: AgentExecutionIdSchema,
+    operation: z.literal("execute"),
+    language: z.enum(["python", "node"]),
+    path: AgentSourcePathSchema,
+    source: z.null(),
     limits: AgentGuestLimitsSchema,
   }),
   z.object({

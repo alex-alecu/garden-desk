@@ -262,6 +262,15 @@ def atomic_source(request):
     return path
 
 
+def direct_source_path(value):
+    if not value.startswith("/source/"):
+        raise RuntimeError("unsupported_execution_path")
+    parts = value[len("/source/") :].split("/")
+    if any(not part or part in (".", "..") for part in parts):
+        raise RuntimeError("unsafe_source_path")
+    return pathlib.Path(value)
+
+
 def append_output(target, chunk, limit):
     remaining = max(0, limit - len(target))
     retained = chunk[:remaining]
@@ -310,7 +319,7 @@ def command_for(request):
     language = request["language"]
     if language == "shell":
         return ["/bin/sh", "-c", request["command"]]
-    script = atomic_source(request)
+    script = direct_source_path(request["path"]) if request.get("source") is None else atomic_source(request)
     if language == "python":
         return ["/usr/bin/python3", str(script)]
     if language == "node":

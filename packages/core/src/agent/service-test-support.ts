@@ -45,6 +45,55 @@ export function chatResult(
   };
 }
 
+export function absolutePathInference(onInvalidResult: () => void) {
+  let turn = 0;
+  const calls: ChatGenerationResult["toolCalls"] = [
+    {
+      id: "call-workspace",
+      name: "python",
+      params: { path: "/workspace/steps/find.py", source: "print('workspace')" },
+    },
+    { id: "call-source", name: "python", params: { path: "/source/find_transactions.py" } },
+    { id: "call-invalid", name: "python", params: { path: "/tmp/bad.py" } },
+  ];
+  return {
+    async chat(input: ChatInput) {
+      const call = calls[turn];
+      turn += 1;
+      if (call !== undefined) return chatResult("", [call]);
+      if (
+        input.messages.some(
+          (message) =>
+            message.role === "tool" &&
+            message.toolCallId === "call-invalid" &&
+            message.result.includes("unsupported_execution_path"),
+        )
+      )
+        onInvalidResult();
+      return chatResult("Finished after the invalid call.", []);
+    },
+  };
+}
+
+export function absolutePathExecution(requests: AgentSessionExecution[]) {
+  return async (request: AgentSessionExecution): Promise<AgentExecutionResult> => {
+    requests.push(request);
+    if (request.language === "shell") throw new Error("unexpected_shell");
+    return {
+      language: request.language,
+      path: request.path,
+      source: request.path.startsWith("/source/") ? null : (request.source ?? null),
+      command: null,
+      exitCode: 0,
+      stdout: "ok\n",
+      stderr: "",
+      durationMs: 1,
+      termination: "completed",
+      artifacts: [],
+    };
+  };
+}
+
 type WorkspaceReader = (sessionId: string, path: string) => Promise<Buffer | undefined>;
 
 async function resolveTestExecution(
@@ -54,6 +103,9 @@ async function resolveTestExecution(
 ): Promise<ResolvedAgentSessionExecution> {
   if (request.language === "shell" || request.source !== undefined) {
     return request as ResolvedAgentSessionExecution;
+  }
+  if (request.path.startsWith("/source/")) {
+    return { language: request.language, path: request.path, source: null };
   }
   const bytes = await readWorkspaceFile?.(sessionId, request.path);
   if (bytes === undefined) throw new Error("agent_script_missing");
@@ -205,7 +257,9 @@ export async function artifactExecution(
   return {
     language: request.language,
     path: request.path,
-    source: request.source ?? "print('resolved path')",
+    source: request.path.startsWith("/source/")
+      ? null
+      : (request.source ?? "print('resolved path')"),
     command: null,
     exitCode: 0,
     stdout: "ok\n",

@@ -1,4 +1,5 @@
 import type {
+  AgentExecutionPath,
   AgentExecutionResult,
   AgentVmDiagnosticCode,
   MicroVmProbeReport,
@@ -33,11 +34,12 @@ export interface MicroVmAgentRequest {
 }
 
 export type AgentSessionExecution =
-  | { language: "python" | "node"; path: string; source?: string }
+  | { language: "python" | "node"; path: AgentExecutionPath; source?: string }
   | { language: "shell"; command: string };
 
 export type ResolvedAgentSessionExecution =
-  | { language: "python" | "node"; path: string; source: string }
+  | { language: "python" | "node"; path: AgentExecutionPath; source: string }
+  | { language: "python" | "node"; path: AgentExecutionPath; source: null }
   | { language: "shell"; command: string };
 
 export type AgentExecutionUpdate =

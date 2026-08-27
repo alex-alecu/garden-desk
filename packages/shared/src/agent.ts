@@ -1,5 +1,10 @@
 import { z } from "zod";
 import {
+  AgentExecutionPathSchema,
+  AgentSourcePathSchema,
+  AgentWorkspacePathSchema,
+} from "./agent-path.js";
+import {
   AgentArtifactIdSchema,
   AgentEventIdSchema,
   AgentExecutionIdSchema,
@@ -12,19 +17,6 @@ import {
 import { InferencePerformanceSchema } from "./inference.js";
 
 export const AgentLanguageSchema = z.enum(["python", "node", "shell"]);
-
-export const AgentWorkspacePathSchema = z
-  .string()
-  .min(1)
-  .max(1_000)
-  .refine(
-    (value) =>
-      !value.startsWith("/") &&
-      !value.includes("\\") &&
-      !value.includes("\0") &&
-      value.split("/").every((part) => part.length > 0 && part !== "." && part !== ".."),
-    "unsafe_workspace_path",
-  );
 
 export function isUserArtifactWorkspacePath(path: string): boolean {
   if (!AgentWorkspacePathSchema.safeParse(path).success) return false;
@@ -62,11 +54,17 @@ const AgentExecutionEvidenceSchema = z.object({
   recoverableArtifactPaths: z.array(AgentWorkspacePathSchema).max(20_000).optional(),
 });
 
-export const AgentExecutionResultSchema = z.discriminatedUnion("language", [
+export const AgentExecutionResultSchema = z.union([
   AgentExecutionEvidenceSchema.extend({
     language: z.enum(["python", "node"]),
     path: AgentWorkspacePathSchema,
     source: z.string().min(1).max(128_000),
+    command: z.null(),
+  }),
+  AgentExecutionEvidenceSchema.extend({
+    language: z.enum(["python", "node"]),
+    path: AgentSourcePathSchema,
+    source: z.null(),
     command: z.null(),
   }),
   AgentExecutionEvidenceSchema.extend({
@@ -136,7 +134,7 @@ export const AgentExecutionSnapshotSchema = z.object({
   runId: AgentRunIdSchema,
   sequence: z.number().int().nonnegative(),
   language: AgentLanguageSchema,
-  path: AgentWorkspacePathSchema.nullable(),
+  path: AgentExecutionPathSchema.nullable(),
   source: z.string().max(128_000).nullable(),
   command: z.string().max(128_000).nullable(),
   state: AgentExecutionStateSchema,
@@ -199,7 +197,7 @@ export const AgentEventSchema = z.object({
   toolName: z.string().min(1).max(128).nullable().default(null),
   toolCallId: z.string().min(1).max(255).nullable().default(null),
   language: AgentLanguageSchema.nullable().default(null),
-  path: AgentWorkspacePathSchema.nullable().default(null),
+  path: AgentExecutionPathSchema.nullable().default(null),
   source: z.string().max(128_000).nullable().default(null),
   command: z.string().max(128_000).nullable().default(null),
   exitCode: z.number().int().min(0).max(255).nullable().default(null),

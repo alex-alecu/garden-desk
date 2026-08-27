@@ -23,6 +23,7 @@ import {
   eventDetail,
   pathOnlyCodeCall,
   retainWorkspaceEvidence,
+  validatedEvidenceCall,
 } from "./chat-tool-evidence.js";
 import type { AgentToolResult, GenericToolRegistry, ToolValidation } from "./generic-tools.js";
 import { GuestExecutionBudget } from "./guest-execution-budget.js";
@@ -170,15 +171,16 @@ async function executeToolCall(input: ToolTurnInput, call: ChatToolCall): Promis
   const alreadyLoaded = skillName !== undefined && loaded.has(skillName);
   const repeated = corrupt ? false : repeatedCall(input.state, call);
   const validation = corrupt ? undefined : input.registry.validate(call.name, call.params);
+  const evidenceCall = validatedEvidenceCall(call, validation);
   const invalid = validationFailure(validation);
   const hasBudget = !GUEST_TOOLS.has(call.name) || input.state.guestBudget.remaining > 0;
-  beforeExecution(input, call, repeated, !corrupt && invalid === undefined && hasBudget);
+  beforeExecution(input, evidenceCall, repeated, !corrupt && invalid === undefined && hasBudget);
   const result = corrupt
     ? invalidToolInputResult("Invalid tool input: protocol-control transition in arguments.")
     : alreadyLoaded && !repeated
       ? alreadyLoadedSkillResult(skillName)
       : (invalid ?? (await toolResult(input, call, repeated, validation)));
-  finalizeToolCall(input, call, repeated, result);
+  finalizeToolCall(input, evidenceCall, repeated, result);
   return result.invalidInput !== true;
 }
 
@@ -273,14 +275,15 @@ async function executeTaskGroup(input: ToolTurnInput, group: ChatToolCall[]): Pr
     const corrupt = containsProtocolTransition(call.params);
     const repeated = corrupt ? false : repeatedCall(input.state, call);
     const validation = corrupt ? undefined : input.registry.validate(call.name, call.params);
+    const evidenceCall = validatedEvidenceCall(call, validation);
     const invalid = validationFailure(validation);
-    beforeExecution(input, call, repeated, !corrupt && invalid === undefined);
+    beforeExecution(input, evidenceCall, repeated, !corrupt && invalid === undefined);
     const result = corrupt
       ? Promise.resolve(
           invalidToolInputResult("Invalid tool input: protocol-control transition in arguments."),
         )
       : Promise.resolve(invalid ?? toolResult(input, call, repeated, validation));
-    return { call, repeated, result };
+    return { call: evidenceCall, repeated, result };
   });
   let validInput = false;
   for (const { call, repeated, result } of started) {

@@ -9,7 +9,7 @@ steps: 40
 
 Own outcome; take the smallest useful action; report progress.
 
-Offline. `/source` read-only; `/workspace` persistent; attachments `/run/attachments`. File/shell paths are absolute; Python/Node `path` is relative `steps/...`.
+Offline. `/source` read-only; `/workspace` persistent; attachments `/run/attachments`. File/shell paths are absolute. Python/Node path: `steps/...`, `/workspace/steps/...`, or path-only `/source/...`.
 
 Images: use `image` for direct PNG/JPEG facts. For transcription, structured extraction, or multiple images, one `general` child gets exact paths/fields and returns facts only. Do not load descriptions. Verify fields and paths; do not repeat extraction. Find a selected-folder image with `list` or `glob`.
 
