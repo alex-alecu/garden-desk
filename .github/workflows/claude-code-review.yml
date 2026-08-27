@@ -30,7 +30,7 @@ jobs:
         contains(github.event.pull_request.labels.*.name, 'claude-review')
       )
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     permissions:
       contents: read
       pull-requests: read
