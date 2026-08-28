@@ -38,7 +38,6 @@ export interface DuplicateRecoveryState {
 }
 
 export interface DuplicateCallDecision {
-  activated: boolean;
   blocked: boolean;
   signature: string;
 }
@@ -79,15 +78,15 @@ export function trackDuplicateCall(
   if (state.activeBlockedSignature === signature) {
     state.omittedCallIds.add(call.id);
     state.blockedCalls += 1;
-    return { activated: false, blocked: true, signature };
+    return { blocked: true, signature };
   }
   if (state.activeBlockedSignature !== undefined) {
-    return { activated: false, blocked: false, signature };
+    return { blocked: false, signature };
   }
   const repeated =
     state.recentCalls.length === 3 &&
     state.recentCalls.every((item) => item.signature === signature);
-  if (!repeated) return { activated: false, blocked: false, signature };
+  if (!repeated) return { blocked: false, signature };
   state.activeBlockedSignature = signature;
   state.blockedCalls = 1;
   delete state.latestUserDirection;
@@ -96,7 +95,7 @@ export function trackDuplicateCall(
   state.omittedCallIds.add(call.id);
   const retainedCallId = state.recentCalls[1]?.callId;
   if (retainedCallId !== undefined) state.retainedCallId = retainedCallId;
-  return { activated: true, blocked: true, signature };
+  return { blocked: true, signature };
 }
 
 export function recordDuplicateExecution(
