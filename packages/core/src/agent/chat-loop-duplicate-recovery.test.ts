@@ -101,6 +101,7 @@ it("blocks a repeated failing call, keeps one copy in prompts, and recovers afte
     expect.stringContaining("Inspect first"),
   ]);
   expect(userDirections(chat[7]?.messages ?? [])).toEqual([]);
+  expect([chat[2]?.temperature, chat[3]?.temperature, chat[7]?.temperature]).toEqual([0, 0.3, 0]);
   const compaction = scenario.requests.find((request) => request.tools.length === 0);
   expect(JSON.stringify(compaction?.messages)).not.toContain("The repeated action is blocked");
 });

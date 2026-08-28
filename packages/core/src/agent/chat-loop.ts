@@ -15,6 +15,7 @@ import {
   cleanedDuplicateHistory,
   duplicatePromptView,
   pruneOmittedDuplicateCalls,
+  RECOVERY_TEMPERATURE,
 } from "./chat-duplicate-recovery.js";
 import { executeGeneratedTools } from "./chat-generated-tools.js";
 import { generateWithInferenceRecovery } from "./chat-inference-recovery.js";
@@ -54,8 +55,9 @@ export class ChatAgentLoop {
     input: ChatAgentInput,
     messages: ChatMessage[],
     tools: ReturnType<GenericToolRegistry["definitions"]>,
-    phase: "chat" | "compaction",
+    turn: { phase: "chat" | "compaction"; temperature: number },
   ): Promise<{ result: ChatGenerationResult; turnId?: string }> {
+    const { phase, temperature } = turn;
     const identity = {
       requestId: randomUUID(),
       jobId: JobIdSchema.parse(randomUUID()),
@@ -67,7 +69,7 @@ export class ChatAgentLoop {
       tools,
       contextSize: this.requestedContextSize,
       maxTokens: chatOutputTokens(this.contextTokens, phase === "compaction"),
-      temperature: phase === "compaction" ? 0 : input.agent.temperature,
+      temperature,
     } as const;
     const turnId = await input.trace?.store.begin(input.trace.runId, phase, {
       input: request,
@@ -121,7 +123,7 @@ export class ChatAgentLoop {
             { role: "user", text: prompt },
           ],
           [],
-          "compaction",
+          { phase: "compaction", temperature: 0 },
         );
         addPerformance(performance, generated.result.performance);
         this.record(input, generated.turnId, "accepted_compaction");
@@ -203,13 +205,21 @@ export class ChatAgentLoop {
   private async turn(options: ChatTurnOptions): Promise<AgentRunResult | undefined> {
     const { input, state, registry, recovery, performance, finalTurn } = options;
     const promptMessages = () => duplicatePromptView(state.messages, state.duplicateRecovery);
+    const temperature = () =>
+      state.duplicateRecovery.activeBlockedSignature === undefined
+        ? input.agent.temperature
+        : RECOVERY_TEMPERATURE;
     const tools = () =>
       registry.definitions(
         input.agent.tools,
         liveLoadedSkillNames(state.loadedSkills, promptMessages()),
       );
     const generated = await generateWithInferenceRecovery({
-      generate: async () => await this.generate(input, promptMessages(), tools(), "chat"),
+      generate: async () =>
+        await this.generate(input, promptMessages(), tools(), {
+          phase: "chat",
+          temperature: temperature(),
+        }),
       recover: async () => {
         if (state.messages.length < 4) return;
         state.messages = await this.compact(input, state, 2, performance);

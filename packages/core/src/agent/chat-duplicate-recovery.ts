@@ -6,6 +6,9 @@ const RECOVERY_INSTRUCTION =
 
 export const DISMISSED_RECOVERY_DIRECTION = "Inspect current state before another execution.";
 
+/** Blocked turns sample instead of repeating the greedy output that produced the identical call. */
+export const RECOVERY_TEMPERATURE = 0.3;
+
 export const DUPLICATE_RECOVERY_QUESTION: AgentQuestion = {
   header: "Repeated action",
   question:
