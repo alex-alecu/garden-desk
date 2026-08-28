@@ -6,12 +6,11 @@ name: Claude Code Review
 # Abuse controls for a public repository:
 # - `pull_request` (never `pull_request_target`): fork PRs get no secrets and a
 #   read-only token.
-# - Runs only for trusted authors, or when a maintainer adds the
-#   `claude-review` label to an external PR after reading it.
-# - Read-only permissions; only `gh pr` read and comment commands, the two
-#   `gh api` read paths that compare commits and list earlier findings, plus
-#   inline comments. A second push reviews only the new commits. The
-#   repository-local `/vault-code-review` command reads REVIEW.md as the
+# - Runs when a trusted author opens a PR or makes a draft ready, or when a
+#   maintainer adds the `claude-review` label after reading the PR.
+# - The review job is read-only. A separate job has issue write permission only
+#   to remove the `claude-review` label and does not check out or run PR code.
+#   The repository-local `/vault-code-review` command reads REVIEW.md as the
 #   primary instructions and CLAUDE.md as secondary context.
 # - Actions pinned to commit SHAs; one run per PR at a time; hard timeout.
 # - Models and thinking levels are explicit: the orchestrator runs Sonnet 5 at
@@ -19,7 +18,7 @@ name: Claude Code Review
 
 on:
   pull_request:
-    types: [opened, synchronize, ready_for_review, reopened, labeled]
+    types: [opened, ready_for_review, labeled]
 
 concurrency:
   group: claude-review-${{ github.event.pull_request.number }}
@@ -29,6 +28,7 @@ jobs:
   claude-review:
     if: |
       github.event.pull_request.draft == false &&
+      (github.event.action != 'labeled' || github.event.label.name == 'claude-review') &&
       (
         contains(fromJSON('["OWNER", "MEMBER", "COLLABORATOR"]'), github.event.pull_request.author_association) ||
         contains(github.event.pull_request.labels.*.name, 'claude-review')
@@ -71,3 +71,21 @@ jobs:
           name: claude-review-transcript
           path: ${{ steps.claude-review.outputs.execution_file }}
           retention-days: 3
+
+  remove-review-label:
+    needs: claude-review
+    if: |
+      always() &&
+      needs['claude-review'].result != 'skipped' &&
+      contains(github.event.pull_request.labels.*.name, 'claude-review')
+    runs-on: ubuntu-latest
+    timeout-minutes: 1
+    permissions:
+      issues: write
+    steps:
+      - name: Remove review label
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPOSITORY: ${{ github.repository }}
+        run: gh api "repos/$REPOSITORY/issues/$PR_NUMBER/labels/claude-review" --method DELETE
