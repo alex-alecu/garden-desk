@@ -32,6 +32,7 @@ const images = join(repositoryRoot, "packages/workers/images");
 const modelRoot = join(repositoryRoot, "packages/eval/.generated/models");
 const imageFixture = join(repositoryRoot, "site/assets/product-icon.png");
 type WindowsArtifacts = { initramfs: string; kernel: string };
+type VaultCore = Awaited<ReturnType<typeof createVaultCore>>;
 interface AgentEvidenceInput {
   root: string;
   name: string;
@@ -99,10 +100,7 @@ function requireAgentEvidence(
   );
   return execution;
 }
-async function runAgentEvidence(
-  core: Awaited<ReturnType<typeof createVaultCore>>,
-  input: AgentEvidenceInput,
-) {
+async function runAgentEvidence(core: VaultCore, input: AgentEvidenceInput) {
   const source = join(input.root, `${input.name}-source`);
   await mkdir(source);
   const folder = await core.addFolder(source);
@@ -176,10 +174,7 @@ async function runWindowsAgentEvidence(root: string) {
     await core.close();
   }
 }
-async function runConcurrentAgentEvidence(
-  core: Awaited<ReturnType<typeof createVaultCore>>,
-  root: string,
-) {
+async function runConcurrentAgentEvidence(core: VaultCore, root: string) {
   const [pythonResult, nodeResult] = await Promise.all([
     runAgentEvidence(core, {
       root,
