@@ -4,9 +4,9 @@ import { defineConfig } from "vite";
 
 const siteRoot = resolve(import.meta.dirname, "../../site");
 
-export default defineConfig(({ command }) => ({
+export default defineConfig({
   appType: "mpa",
-  base: command === "serve" ? "/" : "/garden-desk/",
+  base: "/",
   plugins: [react()],
   resolve: {
     alias: {
@@ -43,4 +43,4 @@ export default defineConfig(({ command }) => ({
       },
     },
   },
-}));
+});
