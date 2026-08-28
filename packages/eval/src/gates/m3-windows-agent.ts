@@ -7,11 +7,16 @@ import type { AgentRunSnapshot } from "@vault/shared";
 import { WindowsMicroVmLauncher } from "@vault/workers";
 import { prepareAgentModelStore } from "./agent-model-store.js";
 import { maximumAgentProcessOverlap } from "./m3-agent-process-overlap.js";
-import { requireM3ProductCheck, runCanonicalGate } from "./m3-canonical-gate-reporting.js";
+import {
+  pollAgentRun,
+  requireM3ProductCheck,
+  runCanonicalGate,
+} from "./m3-canonical-gate-reporting.js";
 import { runGuestEvidence } from "./m3-guest.js";
 import { realImageEvidence } from "./m3-image-agent.js";
 import {
   boundedOutputEvidence,
+  hasRunningExecution,
   hasRunningLiveMarker,
   matchesTerminalAgentEvidence,
   selectedAgentEvidence,
@@ -62,15 +67,9 @@ async function awaitRun(
   const deadline = performance.now() + 10 * 60_000;
   let [live, cancelled] = [false, false];
   while (performance.now() < deadline) {
-    const snapshot = await core.getAgentRun(runId);
-    const runningLive = hasRunningLiveMarker(snapshot, liveToken);
-    const runningExecution = snapshot.executions.some(
-      (item) =>
-        item.state === "running" &&
-        item.vmDiagnostics.some((diagnostic) => diagnostic.code === "process_start"),
-    );
-    if (runningLive) live = true;
-    if (runningExecution && cancel && !cancelled)
+    const snapshot = await pollAgentRun(core, runId);
+    if (hasRunningLiveMarker(snapshot, liveToken)) live = true;
+    if (hasRunningExecution(snapshot) && cancel && !cancelled)
       cancelled = await core.cancelAgent(snapshot.run.jobId);
     if (snapshot.run.state !== "queued" && snapshot.run.state !== "running")
       return { snapshot, live };

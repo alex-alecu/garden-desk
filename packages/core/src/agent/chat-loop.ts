@@ -11,6 +11,12 @@ import type { InferenceService } from "../runtime/inference.js";
 import { artifactCandidateNames } from "./artifact-results.js";
 import { compactChatHistory } from "./chat-compaction.js";
 import { withCurrentTimeContext } from "./chat-current-time.js";
+import {
+  cleanedDuplicateHistory,
+  duplicatePromptView,
+  pruneOmittedDuplicateCalls,
+  RECOVERY_TEMPERATURE,
+} from "./chat-duplicate-recovery.js";
 import { executeGeneratedTools } from "./chat-generated-tools.js";
 import { generateWithInferenceRecovery } from "./chat-inference-recovery.js";
 import { initialChatMessages } from "./chat-initial-messages.js";
@@ -49,8 +55,9 @@ export class ChatAgentLoop {
     input: ChatAgentInput,
     messages: ChatMessage[],
     tools: ReturnType<GenericToolRegistry["definitions"]>,
-    phase: "chat" | "compaction",
+    turn: { phase: "chat" | "compaction"; temperature: number },
   ): Promise<{ result: ChatGenerationResult; turnId?: string }> {
+    const { phase, temperature } = turn;
     const identity = {
       requestId: randomUUID(),
       jobId: JobIdSchema.parse(randomUUID()),
@@ -62,7 +69,7 @@ export class ChatAgentLoop {
       tools,
       contextSize: this.requestedContextSize,
       maxTokens: chatOutputTokens(this.contextTokens, phase === "compaction"),
-      temperature: phase === "compaction" ? 0 : input.agent.temperature,
+      temperature,
     } as const;
     const turnId = await input.trace?.store.begin(input.trace.runId, phase, {
       input: request,
@@ -100,8 +107,9 @@ export class ChatAgentLoop {
     keepTurns: number,
     performance: ReturnType<typeof emptyPerformance>,
   ): Promise<ChatMessage[]> {
+    const promptMessages = cleanedDuplicateHistory(state.messages, state.duplicateRecovery);
     const compacted = await compactChatHistory(
-      state.messages,
+      promptMessages,
       input.systemPrompt("session-summary"),
       async (prompt) => {
         input.onEvent?.("inference.started", "Condensing the working context.");
@@ -115,7 +123,7 @@ export class ChatAgentLoop {
             { role: "user", text: prompt },
           ],
           [],
-          "compaction",
+          { phase: "compaction", temperature: 0 },
         );
         addPerformance(performance, generated.result.performance);
         this.record(input, generated.turnId, "accepted_compaction");
@@ -123,6 +131,9 @@ export class ChatAgentLoop {
       },
       {
         assistantTurns: keepTurns,
+        ...(state.duplicateRecovery.retainedCallId === undefined
+          ? {}
+          : { requiredToolCallIds: [state.duplicateRecovery.retainedCallId] }),
         workspaceState: {
           scriptPaths: state.scriptPaths,
           ...(state.lastExecutionFailure === undefined
@@ -131,6 +142,7 @@ export class ChatAgentLoop {
         },
       },
     );
+    pruneOmittedDuplicateCalls(state.duplicateRecovery, compacted.messages);
     return compacted.messages;
   }
   private finish(
@@ -192,13 +204,22 @@ export class ChatAgentLoop {
   // biome-ignore lint/complexity/noExcessiveLinesPerFunction: generation, tool execution, and recovery are one ordered model turn.
   private async turn(options: ChatTurnOptions): Promise<AgentRunResult | undefined> {
     const { input, state, registry, recovery, performance, finalTurn } = options;
-    const tools = () =>
-      registry.definitions(
-        input.agent.tools,
-        liveLoadedSkillNames(state.loadedSkills, state.messages),
-      );
+    const temperature = () =>
+      state.duplicateRecovery.activeBlockedSignature === undefined
+        ? input.agent.temperature
+        : RECOVERY_TEMPERATURE;
     const generated = await generateWithInferenceRecovery({
-      generate: async () => await this.generate(input, state.messages, tools(), "chat"),
+      generate: async () => {
+        const promptMessages = duplicatePromptView(state.messages, state.duplicateRecovery);
+        const tools = registry.definitions(
+          input.agent.tools,
+          liveLoadedSkillNames(state.loadedSkills, promptMessages),
+        );
+        return await this.generate(input, promptMessages, tools, {
+          phase: "chat",
+          temperature: temperature(),
+        });
+      },
       recover: async () => {
         if (state.messages.length < 4) return;
         state.messages = await this.compact(input, state, 2, performance);
@@ -235,7 +256,8 @@ export class ChatAgentLoop {
       registry,
       recovery,
       generated: generated.result,
-      record: () => this.record(input, generated.turnId, "accepted_tool_calls"),
+      finalTurn,
+      record: (outcome) => this.record(input, generated.turnId, outcome),
       recoverContext: async (promptTokens) =>
         await this.recoverContext(input, state, performance, promptTokens),
     });

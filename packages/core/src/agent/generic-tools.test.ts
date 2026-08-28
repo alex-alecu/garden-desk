@@ -112,7 +112,7 @@ describe("GenericToolRegistry resilient parameters", () => {
         source: { type: "string" },
         path: {
           type: "string",
-          description: "Relative path, /workspace/..., or path-only /source/....",
+          description: "steps/..., /workspace/..., or path-only /source/....",
         },
       },
       required: [],

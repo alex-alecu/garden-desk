@@ -4,7 +4,6 @@ import { request } from "@vault/cli/client";
 import { createVaultCore, startDaemon, type VaultDaemon } from "@vault/core";
 import {
   type AgentRunSnapshot,
-  AgentRunSnapshotSchema,
   AgentRunSummarySchema,
   type AgentTrace,
   AgentTraceSchema,
@@ -23,6 +22,7 @@ import type {
   M3QualityCandidate,
 } from "./m3-evidence-classification.js";
 import { createProgressReporter, stressResultFor, terminal } from "./m3-stress-reporting.js";
+import { pollStressRun } from "./m3-stress-run-polling.js";
 import { stressPlatform } from "./stress-platform.js";
 
 const repositoryRoot = process.cwd();
@@ -202,10 +202,6 @@ export async function startCase(
   };
 }
 
-async function pollRun(endpoint: string, runId: string): Promise<AgentRunSnapshot> {
-  return AgentRunSnapshotSchema.parse(await rpc(endpoint, "agent.get", { runId }));
-}
-
 interface PolledCase {
   item: ActiveCase;
   snapshot: AgentRunSnapshot;
@@ -213,7 +209,10 @@ interface PolledCase {
 
 async function pollCases(endpoint: string, cases: ActiveCase[]): Promise<PolledCase[]> {
   return Promise.all(
-    cases.map(async (item) => ({ item, snapshot: await pollRun(endpoint, item.runId) })),
+    cases.map(async (item) => ({
+      item,
+      snapshot: await pollStressRun(endpoint, item.runId, rpc),
+    })),
   );
 }
 
