@@ -18,8 +18,11 @@ const roots: string[] = [];
 const openResources: Array<() => Promise<void> | void> = [];
 
 function executeDecisionInference(): Pick<InferenceService, "chat"> {
+  let calls = 0;
   return {
     async chat() {
+      calls += 1;
+      if (calls > 1) throw new Error("agent_inference_failed");
       return {
         protocolVersion: 2,
         requestId: "agent-launch-failure-test",

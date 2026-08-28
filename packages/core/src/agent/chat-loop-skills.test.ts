@@ -105,6 +105,9 @@ describe("ChatAgentLoop repeated loaded skills", () => {
 
     const result = await loop.run(
       input(unusedExecutor, ["skill"], {
+        async askQuestion() {
+          return { dismissed: true };
+        },
         onEvent: (_type, summary) => events.push(summary),
         skills: {
           metadata: documentSkills.metadata,

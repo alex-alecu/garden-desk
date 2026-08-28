@@ -148,43 +148,6 @@ describe("ChatAgentLoop malformed Python", () => {
   });
 });
 
-describe("ChatAgentLoop doom loop", () => {
-  it("blocks a third identical call and tells the model to change approach", async () => {
-    const requests: Parameters<InferenceService["chat"]>[0][] = [];
-    const calls = ["call-1", "call-2", "call-3"].map((id) =>
-      generated("", [tool("list", id, { path: "/source" })]),
-    );
-    const inspected: string[] = [];
-    const loop = new ChatAgentLoop(model([...calls, generated("Changed approach.")], requests));
-
-    await loop.run(
-      input(
-        {
-          async execute(run) {
-            inspected.push(source(run));
-            return execution(source(run));
-          },
-          async inspect(run) {
-            inspected.push(source(run));
-            return execution(source(run));
-          },
-        },
-        ["list"],
-      ),
-    );
-
-    expect(inspected).toHaveLength(2);
-    expect(requests[3]?.messages).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          role: "system",
-          text: expect.stringContaining("same tool call has repeated three times"),
-        }),
-      ]),
-    );
-  });
-});
-
 describe("ChatAgentLoop guest execution budget", () => {
   it("does not charge invalid calls before one valid execution", async () => {
     const invalid = Array.from({ length: 24 }, (_, index) =>

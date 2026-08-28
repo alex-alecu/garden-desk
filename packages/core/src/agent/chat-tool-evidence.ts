@@ -7,6 +7,7 @@ import {
 import type { ArtifactExecutionEvidence } from "./artifact-results.js";
 import type { ChatToolState } from "./chat-tool-turn.js";
 import type { AgentToolResult, ToolValidation } from "./generic-tools.js";
+import { toolCompletedSummary } from "./tool-summaries.js";
 
 type ToolEventWriter = (
   type: AgentEventType,
@@ -91,6 +92,55 @@ export function emitCompletedExecutionAttempt(
     durationMs: attempt.durationMs,
     termination: attempt.termination,
   });
+}
+
+export function retainCompletedExecution(
+  state: ChatToolState,
+  onEvent: ToolEventWriter | undefined,
+  call: ChatToolCall,
+  result: AgentToolResult,
+): void {
+  if (result.execution === undefined) {
+    emitCompletedExecutionAttempt(onEvent, call, result);
+    return;
+  }
+  if (pathOnlyCodeCall(call)) {
+    onEvent?.("execution.started", "Running code.", {
+      ...eventDetail(call),
+      language: result.execution.language,
+      path: result.execution.path,
+      source: result.execution.source,
+    });
+  }
+  state.executions.push(result.execution);
+  onEvent?.(
+    "execution.completed",
+    result.failed ? "This step could not be completed." : "Finished this step.",
+    {
+      ...eventDetail(call),
+      exitCode: result.execution.exitCode,
+      stdout: result.execution.stdout,
+      stderr: result.execution.stderr,
+      durationMs: result.execution.durationMs,
+      termination: result.execution.termination,
+    },
+  );
+}
+
+export function emitCompletedTool(
+  onEvent: ToolEventWriter | undefined,
+  call: ChatToolCall,
+  result: AgentToolResult,
+): void {
+  const detail = { toolName: call.name, toolCallId: call.id, stdout: result.content };
+  onEvent?.("tool.completed", toolCompletedSummary(call, result.failed, result.status), detail);
+  if (call.name === "task") {
+    onEvent?.(
+      "subagent.completed",
+      result.failed ? "Sub-agent failed." : "Sub-agent completed.",
+      detail,
+    );
+  }
 }
 
 function completedExecutionFailure(result: AgentToolResult): ChatToolState["lastExecutionFailure"] {
