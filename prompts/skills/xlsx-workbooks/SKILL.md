@@ -3,7 +3,7 @@ name: xlsx-workbooks
 description: XLSX workbook work. Load for XLSX, Excel workbook, or spreadsheet deliverable.
 ---
 
-recursively find case-insensitive `.xlsx` in absolute `/source`; use `openpyxl`/stdlib, no `pandas`. `load_workbook(path, read_only=True, data_only=True)` program inspects sheets/header. Read-only: `reset_dimensions()`; `len(row)` before index. Match rows/path/sheet/cells; calculate/reconcile counts/totals; print Markdown/JSON verbatim.
+recursively find case-insensitive `.xlsx` in absolute `/source`; use `openpyxl`/stdlib, no `pandas`. `load_workbook(path, data_only=True)` program inspects sheets/header; never `read_only=True` (exports omit dimensions and read as empty). `len(row)` before index. Match rows/path/sheet/cells; calculate/reconcile counts/totals; print Markdown/JSON verbatim.
 
 Inspect representative rows, find the real header, map columns from observed labels and values, resolve relative dates from the supplied clock, then process and reconcile the corpus.
 
