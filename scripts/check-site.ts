@@ -3,7 +3,7 @@ import { extname, join, relative, resolve, sep } from "node:path";
 
 const root = process.cwd();
 const output = join(root, "site", "dist");
-const publishedRoot = new URL("https://alex-alecu.github.io/garden-desk/");
+const publishedRoot = new URL("https://gardendesk.ai/");
 const failures: string[] = [];
 const deploymentAssetPattern = /-[A-Za-z0-9_-]{8}\.(?:css|js|png|svg|woff2)$/u;
 const localAssetPattern = /(?:href|src)=["']([^"']+\.(?:css|js|png|svg|woff2))["']/giu;
@@ -145,7 +145,7 @@ if ((downloads.match(/Coming soon/gu) ?? []).length < 2) {
 
 const sitemap = await text("sitemap.xml");
 for (const route of ["/", "/demo/", "/downloads/", "/privacy/", "/terms/", "/security/"]) {
-  requireText(sitemap, `garden-desk${route}`, "sitemap");
+  requireText(sitemap, new URL(route, publishedRoot).href, "sitemap");
 }
 
 const socialCard = await readFile(join(output, "assets", "social-card.png"));
@@ -203,8 +203,8 @@ const demoScript = demoHtml.match(/src="([^"]+\.js)"/u)?.[1];
 if (demoScript === undefined) {
   failures.push("demo: missing bundled script");
 } else {
-  const bundlePath = demoScript.startsWith("/garden-desk/")
-    ? resolve(output, demoScript.slice("/garden-desk/".length))
+  const bundlePath = demoScript.startsWith("/")
+    ? resolve(output, demoScript.slice(1))
     : resolve(output, "demo", demoScript);
   const demoBundle = await readFile(bundlePath, "utf8").catch(() => "");
   if (demoBundle.length === 0) failures.push("demo: bundled script does not resolve");
