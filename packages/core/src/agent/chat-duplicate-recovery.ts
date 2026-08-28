@@ -1,9 +1,6 @@
 import type { AgentQuestion, ChatMessage, ChatToolCall } from "@vault/shared";
 import type { AgentQuestionOutcome } from "./generic-tool-support.js";
 
-const RECOVERY_INSTRUCTION =
-  "The repeated action is blocked. Use the retained latest tool evidence and make a different validated tool call with changed input before you retry it.";
-
 export const DISMISSED_RECOVERY_DIRECTION = "Inspect current state before another execution.";
 
 /** Blocked turns sample instead of repeating the greedy output that produced the identical call. */
@@ -32,6 +29,7 @@ interface RecentToolCall {
 
 export interface DuplicateRecoveryState {
   activeBlockedSignature?: string;
+  blockedCalls: number;
   latestUserDirection?: string;
   omittedCallIds: Set<string>;
   recentCalls: RecentToolCall[];
@@ -69,7 +67,7 @@ function stable(value: unknown): string {
 }
 
 export function initialDuplicateRecoveryState(): DuplicateRecoveryState {
-  return { omittedCallIds: new Set(), recentCalls: [], recoveryTurns: 0 };
+  return { blockedCalls: 0, omittedCallIds: new Set(), recentCalls: [], recoveryTurns: 0 };
 }
 
 export function trackDuplicateCall(
@@ -80,6 +78,7 @@ export function trackDuplicateCall(
   state.recentCalls = [...state.recentCalls, { callId: call.id, signature }].slice(-3);
   if (state.activeBlockedSignature === signature) {
     state.omittedCallIds.add(call.id);
+    state.blockedCalls += 1;
     return { activated: false, blocked: true, signature };
   }
   if (state.activeBlockedSignature !== undefined) {
@@ -90,6 +89,7 @@ export function trackDuplicateCall(
     state.recentCalls.every((item) => item.signature === signature);
   if (!repeated) return { activated: false, blocked: false, signature };
   state.activeBlockedSignature = signature;
+  state.blockedCalls = 1;
   delete state.latestUserDirection;
   state.recoveryTurns = 0;
   state.omittedCallIds.add(state.recentCalls[0]?.callId ?? call.id);
@@ -109,6 +109,7 @@ export function recordDuplicateExecution(
   delete state.activeBlockedSignature;
   delete state.latestUserDirection;
   delete state.retainedCallId;
+  state.blockedCalls = 0;
   state.recoveryTurns = 0;
   return true;
 }
@@ -183,13 +184,33 @@ export function cleanedDuplicateHistory(
     .filter((message): message is ChatMessage => message !== undefined);
 }
 
+function recoveryInstruction(
+  state: DuplicateRecoveryState,
+  messages: readonly ChatMessage[],
+): string {
+  const retained = messages.find(
+    (message) => message.role === "tool" && message.toolCallId === state.retainedCallId,
+  );
+  const errorLine =
+    retained?.role === "tool"
+      ? retained.result
+          .split("\n")
+          .findLast((line) => /error/iu.test(line))
+          ?.trim()
+          .slice(0, 200)
+      : undefined;
+  const failure = errorLine === undefined ? "" : ` and failed with: ${errorLine}`;
+  const rejected = `${state.blockedCalls} later identical ${state.blockedCalls === 1 ? "call was" : "calls were"} rejected without running`;
+  return `The repeated action is blocked: this exact call was already made twice with the same result${failure}, and ${rejected}. Use the retained evidence and make a different validated tool call with changed input before you retry it.`;
+}
+
 export function duplicatePromptView(
   messages: readonly ChatMessage[],
   state: DuplicateRecoveryState,
 ): ChatMessage[] {
   const cleaned = cleanedDuplicateHistory(messages, state);
   if (state.activeBlockedSignature === undefined) return cleaned;
-  cleaned.push({ role: "system", text: RECOVERY_INSTRUCTION });
+  cleaned.push({ role: "system", text: recoveryInstruction(state, messages) });
   if (state.latestUserDirection !== undefined) {
     cleaned.push({
       role: "user",
