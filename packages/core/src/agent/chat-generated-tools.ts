@@ -27,7 +27,10 @@ function rejectedDuplicate(options: GeneratedToolsInput): boolean {
 }
 
 async function requestRecoveryDirection(options: GeneratedToolsInput): Promise<void> {
-  if (options.input.askQuestion === undefined) throw new Error("agent_stalled_duplicate");
+  const ignoredDirection = options.state.duplicateRecovery.latestUserDirection !== undefined;
+  if (ignoredDirection || options.input.askQuestion === undefined) {
+    throw new Error("agent_stalled_duplicate");
+  }
   const outcome = await options.input.askQuestion([DUPLICATE_RECOVERY_QUESTION]);
   applyDuplicateRecoveryDirection(options.state.duplicateRecovery, outcome);
 }
