@@ -283,7 +283,7 @@ export class AgentStore {
       this.database,
       this.execution,
       (runId) => this.trace.interruptIncomplete(runId),
-      (runId) => this.appendEvent(runId, "run.failed", "Interrupted when Vault Desk restarted."),
+      (runId) => this.appendEvent(runId, "run.failed", "Interrupted when Garden Desk restarted."),
     );
     this.trace.interruptAllIncomplete();
     return recovered;

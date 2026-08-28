@@ -72,7 +72,7 @@ try {
   try {
     embedding = await core.embed({
       modelId: "qwen3-embedding-0.6b-q8_0",
-      input: "Vault Desk offline retrieval smoke",
+      input: "Garden Desk offline retrieval smoke",
       contextSize: 512,
     });
   } finally {

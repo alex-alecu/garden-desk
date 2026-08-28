@@ -33,7 +33,7 @@ function targetTriple(): string {
     "win32-x64": "x86_64-pc-windows-msvc",
   };
   const triple = triples[`${process.platform}-${process.arch}`];
-  if (triple === undefined) throw new Error("Unsupported Vault Desk desktop build host.");
+  if (triple === undefined) throw new Error("Unsupported Garden Desk desktop build host.");
   return triple;
 }
 

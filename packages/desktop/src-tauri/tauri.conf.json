@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Vault Desk",
+  "productName": "Garden Desk",
   "version": "0.0.0",
   "identifier": "dev.vaultdesk.desktop",
   "build": {

@@ -6,13 +6,13 @@ Status: Accepted as security direction
 
 ## Context
 
-Vault Desk will perform document work and may eventually modify files, create exports, query folders, or integrate with business systems.
+Garden Desk will perform document work and may eventually modify files, create exports, query folders, or integrate with business systems.
 
 Model output cannot be trusted as an execution authority. The application must own validation, approval, execution, and audit.
 
 ## Decision
 
-Vault Desk will use an approval-gated, typed tool sandbox.
+Garden Desk will use an approval-gated, typed tool sandbox.
 
 Models may propose tool calls. The control plane validates schema, checks policy, scopes filesystem access, requests approval where required, executes through a sandboxed tool, records an audit event, and exposes results back to the user and model.
 

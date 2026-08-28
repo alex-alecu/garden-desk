@@ -2,7 +2,7 @@
 
 Created: 2026-07-10
 
-This document captures the current document tooling baseline for Vault Desk. It was revalidated against live web sources on 2026-07-11. These tools should still be benchmarked on actual accounting, legal, spreadsheet, and scanned document corpora before implementation.
+This document captures the current document tooling baseline for Garden Desk. It was revalidated against live web sources on 2026-07-11. These tools should still be benchmarked on actual accounting, legal, spreadsheet, and scanned document corpora before implementation.
 
 ## Sources Reviewed
 
@@ -22,13 +22,13 @@ This document captures the current document tooling baseline for Vault Desk. It 
 - [node-llama-cpp](https://node-llama-cpp.withcat.ai)
 - [llama.cpp multimodal docs](https://github.com/ggml-org/llama.cpp/blob/master/docs/multimodal.md)
 - [Vercel AI SDK 6 announcement](https://vercel.com/blog/ai-sdk-6)
-- [OpenTelemetry GenAI observability](https://opentelemetry.io/blog/2026/genai-observability/) — reviewed and rejected for the product audit contract; Vault Desk uses a small local schema and no telemetry exporter.
+- [OpenTelemetry GenAI observability](https://opentelemetry.io/blog/2026/genai-observability/) — reviewed and rejected for the product audit contract; Garden Desk uses a small local schema and no telemetry exporter.
 
 ## Verified Parser Landscape (July 2026)
 
 License posture matters as much as quality for a redistributable desktop product. Verified summary:
 
-| Tool | Quality niche | License | Vault Desk fit |
+| Tool | Quality niche | License | Garden Desk fit |
 |---|---|---|---|
 | Docling | Best tables and complex layouts; offline; LF AI and Data project | MIT (code), Granite-Docling model Apache 2.0 | Primary high-fidelity path |
 | Granite-Docling-258M | End-to-end page-image-to-DocTags VLM; table TEDS-structure 0.97; runs as GGUF under llama.cpp | Apache 2.0 | Key least-code option: Docling-class parsing through the same llama.cpp runtime that already serves Gemma; no Python sidecar |
@@ -47,13 +47,13 @@ Benchmark flavor (vendor-run, research-derived): on a 200-document mixed busines
 
 Verdict as of mid-2026: small specialized document VLMs (sub-1B params) have overtaken classical OCR pipelines for scanned business documents, and they fit easily in the Local 12 and Local 16 memory budget (PaddleOCR-VL ~3 GB, Granite-Docling 258M runs even on CPU).
 
-Generalist VLM OCR has not: Gemma 4 multimodal is credible for understanding pages and cross-checking, but is not competitive with specialized document VLMs for faithful transcription of dense tables and small print, and long-table hallucination is the known failure mode. This confirms the existing Vault Desk rule: use Gemma for reasoning over already-extracted evidence and for escalation inspection of ambiguous regions, not as the transcription engine.
+Generalist VLM OCR has not: Gemma 4 multimodal is credible for understanding pages and cross-checking, but is not competitive with specialized document VLMs for faithful transcription of dense tables and small print, and long-table hallucination is the known failure mode. This confirms the existing Garden Desk rule: use Gemma for reasoning over already-extracted evidence and for escalation inspection of ambiguous regions, not as the transcription engine.
 
 All VLMs degrade on physically degraded scans (warp, illumination, skew). Parser-disagreement warnings remain necessary.
 
 ## Recommended Tool Roles
 
-The Local 12 and Local 16 performance constraint makes parser routing more important than adding model context. Vault Desk should preserve source structure, cache deterministic extraction, and send only selected evidence to Gemma 4 12B QAT.
+The Local 12 and Local 16 performance constraint makes parser routing more important than adding model context. Garden Desk should preserve source structure, cache deterministic extraction, and send only selected evidence to Gemma 4 12B QAT.
 
 ### Native Node Parsers For Born-Digital Files
 
@@ -73,14 +73,14 @@ Use Docling-class parsing for layout-aware conversion of high-value PDFs where t
 
 Two delivery options, in preference order for least code:
 
-1. Granite-Docling-258M as a GGUF vision model under llama.cpp: converts page images end-to-end to DocTags with layout, tables, and formulas preserved, through the same runtime family Vault Desk already ships for Gemma. No Python process needed.
+1. Granite-Docling-258M as a GGUF vision model under llama.cpp: converts page images end-to-end to DocTags with layout, tables, and formulas preserved, through the same runtime family Garden Desk already ships for Gemma. No Python process needed.
 2. Docling (Python) as a sandboxed sidecar process (PyInstaller onedir or python-build-standalone, spawned from Node, IPC over localhost or stdio) when the full Docling pipeline is required.
 
 ### MarkItDown
 
 Use MarkItDown as a broad first-pass converter inside the Python document worker for formats the native Node parsers do not cover. Do not rely on it for tables, spreadsheets, legal formatting, or high-value citations.
 
-Security note: MarkItDown runs with the privileges of its process. Vault Desk should run it inside the document worker sandbox and call the narrowest conversion path possible for the current file.
+Security note: MarkItDown runs with the privileges of its process. Garden Desk should run it inside the document worker sandbox and call the narrowest conversion path possible for the current file.
 
 ### Unstructured
 
@@ -88,7 +88,7 @@ Use Unstructured as a fallback and comparison parser for mixed document sets and
 
 ### Native Spreadsheet Parsing
 
-Use structured spreadsheet parsing for XLSX, XLS, and CSV. Markdown conversion is not enough. Vault Desk needs formulas, sheets, cell coordinates, row windows, typed values, display values, CSV dialects, and deterministic calculations. ExcelJS or SheetJS satisfy this natively in Node.
+Use structured spreadsheet parsing for XLSX, XLS, and CSV. Markdown conversion is not enough. Garden Desk needs formulas, sheets, cell coordinates, row windows, typed values, display values, CSV dialects, and deterministic calculations. ExcelJS or SheetJS satisfy this natively in Node.
 
 ### OCR
 
@@ -105,7 +105,7 @@ Verified Node-native options:
 
 ## Parser Agreement Strategy
 
-For high-value documents, Vault Desk should compare parser outputs:
+For high-value documents, Garden Desk should compare parser outputs:
 
 - Native text extraction versus layout parser.
 - Layout parser versus OCR.

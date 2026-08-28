@@ -223,7 +223,7 @@ export function Sidebar(props: SidebarProps) {
       style={{ "--sidebar-width": `${resize.width}px` } as CSSProperties}
     >
       <div aria-hidden="true" className="window-drag-region" data-tauri-drag-region="" />
-      <div className="brand">Vault Desk</div>
+      <div className="brand">Garden Desk</div>
       <div className="sidebar-content">
         <h2 className="sidebar-label">Chats</h2>
         <button

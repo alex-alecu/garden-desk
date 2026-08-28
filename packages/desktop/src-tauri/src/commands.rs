@@ -58,7 +58,7 @@ pub(crate) async fn choose_folder(
     let Some(selection) = app
         .dialog()
         .file()
-        .set_title("Choose a folder for Vault Desk")
+        .set_title("Choose a folder for Garden Desk")
         .blocking_pick_folder()
     else {
         return Ok(None);

@@ -173,15 +173,15 @@ For V1, use the generic offline dev agent for folder and attachment work. Prompt
 
 Only a request that cannot be expressed through supported operations may be routed by policy to the bounded code-interpreter microVM. Generated code is untrusted input to the verifier, not product authority. Its source, environment, inputs, outputs, logs, resource use, and termination are auditable, and any workspace write or export still crosses normal policy and approval boundaries.
 
-OpenCode may be benchmarked against a minimal Vault Desk-owned guest loop. It is adopted only if it passes the same offline, no-network, typed-inference, cancellation, audit, result-schema, footprint, and packaging gates while reducing maintained code.
+OpenCode may be benchmarked against a minimal Garden Desk-owned guest loop. It is adopted only if it passes the same offline, no-network, typed-inference, cancellation, audit, result-schema, footprint, and packaging gates while reducing maintained code.
 
 ## Agent Loop Principle
 
 The first accounting workflow should be an explicit, inspectable workflow rather than a generic agent loop. Deterministic document tools precede iterative model/tool use. Where bounded iterative read-tool use is needed, prefer a maintained framework only if it preserves the approval boundary and reduces code. Verified 2026-07-11: Vercel AI SDK 6 (Apache 2.0) is the primary candidate because its tool loop supports per-tool approval gating, typed tool schemas, and streaming. The fallback is a thin loop over the runtime adapter.
 
-Framework rule: policy checks, approval decisions, audit events, and rollback stay in Vault Desk code behind the tool registry contract. The framework only drives the propose-approve-execute-observe cycle; it must not own policy.
+Framework rule: policy checks, approval decisions, audit events, and rollback stay in Garden Desk code behind the tool registry contract. The framework only drives the propose-approve-execute-observe cycle; it must not own policy.
 
-Audit shape: define a small, versioned Vault Desk schema for agent invocation, model calls, and tool execution, persisted to a local append-only audit log with content hashes so sessions are replayable. Audit records are customer-owned local product data, not telemetry; the application configures no exporter and transmits nothing unless the user explicitly exports a scoped record.
+Audit shape: define a small, versioned Garden Desk schema for agent invocation, model calls, and tool execution, persisted to a local append-only audit log with content hashes so sessions are replayable. Audit records are customer-owned local product data, not telemetry; the application configures no exporter and transmits nothing unless the user explicitly exports a scoped record.
 
 ## Retrieval And Verification Principle
 

@@ -137,7 +137,7 @@ export function Composer({
         disabled={disabled}
         onChange={(event) => onChange(event.target.value)}
         onKeyDown={(event) => handleComposerKeyDown(event, canSend)}
-        placeholder="Ask Vault Desk to do anything"
+        placeholder="Ask Garden Desk to do anything"
         ref={textarea}
         rows={2}
         value={draft}

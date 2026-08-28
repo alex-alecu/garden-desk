@@ -9,7 +9,7 @@ const repositoryRoot = resolve(desktopRoot, "../..");
 const { inputRoots, requiredOutputs } = developmentResourceContract(desktopRoot, repositoryRoot);
 
 console.log(
-  "[Vault Desk startup] Checking offline desktop resources before starting the frontend.",
+  "[Garden Desk startup] Checking offline desktop resources before starting the frontend.",
 );
 
 async function newestModifiedAt(path: string): Promise<number> {
@@ -37,11 +37,11 @@ async function resourcesAreCurrent(): Promise<boolean> {
 }
 
 if (await resourcesAreCurrent()) {
-  console.log("[Vault Desk startup] Offline resources are current; starting the frontend.");
+  console.log("[Garden Desk startup] Offline resources are current; starting the frontend.");
 } else {
   console.log(
-    "[Vault Desk startup] Offline resources changed; rebuilding the self-contained development package.",
+    "[Garden Desk startup] Offline resources changed; rebuilding the self-contained development package.",
   );
   await buildSidecar("development");
-  console.log("[Vault Desk startup] Offline resources are ready; starting the frontend.");
+  console.log("[Garden Desk startup] Offline resources are ready; starting the frontend.");
 }

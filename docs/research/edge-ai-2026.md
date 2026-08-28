@@ -2,7 +2,7 @@
 
 Created: 2026-07-10
 
-This document records the July 10, 2026 research review used to challenge the Vault Desk planning docs. Claims here are research-derived until independently validated on Vault Desk hardware and document corpora.
+This document records the July 10, 2026 research review used to challenge the Garden Desk planning docs. Claims here are research-derived until independently validated on Garden Desk hardware and document corpora.
 
 A newer live-web revalidation pass ran on 2026-07-11; see [gemma-2026.md](gemma-2026.md), [document-tools-2026.md](document-tools-2026.md), [local-ai-runtimes.md](local-ai-runtimes.md), and [competitive-landscape.md](competitive-landscape.md) for the current verified baseline. This file is kept as a dated snapshot.
 

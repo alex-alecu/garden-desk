@@ -44,11 +44,11 @@ Verified lineup:
 | 26B A4B | 26B total, ~4B active | Mixture of experts | 256K | Text, image |
 | 31B | 30.7B | Dense | 256K | Text, image |
 
-Verified facts that matter to Vault Desk:
+Verified facts that matter to Garden Desk:
 
 - Gemma 4 is licensed under Apache 2.0, a change from the custom Gemma Terms of Use used through Gemma 3. This simplifies the open-source boundary for the generation model.
 - The 12B Unified model is encoder-free multimodal: image patches and 16 kHz audio are projected directly into the decoder embedding space. It approaches 26B A4B quality at under half the memory footprint.
-- Hybrid attention (interleaved local sliding-window plus global) keeps KV-cache growth sublinear at long context. RULER at 128K improved from 13.5 percent (Gemma 3) to 66.4 percent (Gemma 4). Long-context claims remain research-derived until validated on Vault Desk workloads.
+- Hybrid attention (interleaved local sliding-window plus global) keeps KV-cache growth sublinear at long context. RULER at 128K improved from 13.5 percent (Gemma 3) to 66.4 percent (Gemma 4). Long-context claims remain research-derived until validated on Garden Desk workloads.
 - Instruction-tuned variants support system roles, configurable thinking modes, and built-in function calling.
 - There is no "Gemma 4.5" and no "EmbeddingGemma 2" as of 2026-07-11. Claims to the contrary on aggregator sites are unverified.
 
@@ -58,7 +58,7 @@ Official QAT checkpoints for all five Gemma 4 sizes were released 2026-06-05, in
 
 - Gemma 4 12B QAT Q4_0 loads at approximately 6.6 to 7 GB of weights. Community figures for the rest of the family: E2B ~3 GB, E4B ~5 GB, 26B A4B ~15 GB, 31B ~18 GB (research-derived).
 - Google claims QAT quality above standard post-training quantization baselines. Community reports of 1 to 2 percent degradation versus BF16 are research-derived.
-- Packaging warning: self-converting QAT checkpoints to GGUF Q4_0 destroys the QAT quality benefit (Unsloth report). Vault Desk must ship or pin the official pre-converted QAT GGUFs, not perform its own conversion.
+- Packaging warning: self-converting QAT checkpoints to GGUF Q4_0 destroys the QAT quality benefit (Unsloth report). Garden Desk must ship or pin the official pre-converted QAT GGUFs, not perform its own conversion.
 - 26B A4B QAT at ~15 GB is marginal on 16 GB systems and not viable on 12 GB. This supports keeping 12B QAT as the only first-product generation model.
 
 ## Multi-Token Prediction Status
@@ -100,7 +100,7 @@ These support the Local 12 and Local 16 thesis: 12B QAT weights leave roughly 4 
 
 ## Product Implications
 
-Gemma 4 12B QAT remains the right product anchor for Local 12 and Local 16. Official memory claims for QAT weights do not remove KV cache, runtime overhead, multimodal components, indexing, OCR, or document workers from the product memory budget, so Vault Desk still needs retrieval-first prompting, bounded active context, and context compaction on local hardware.
+Gemma 4 12B QAT remains the right product anchor for Local 12 and Local 16. Official memory claims for QAT weights do not remove KV cache, runtime overhead, multimodal components, indexing, OCR, or document workers from the product memory budget, so Garden Desk still needs retrieval-first prompting, bounded active context, and context compaction on local hardware.
 
 The 256K context capability is a ceiling to validate, not a default. Use the context window for selected evidence, cached summaries, compacted task state, and verification passes, not for raw ingestion of every page in a folder.
 

@@ -2,7 +2,7 @@
 
 Created: 2026-07-10
 
-Vault Desk should avoid manufacturing hardware initially. The product should own the software, workflows, customer experience, validation process, and support relationship while using OEMs or specialist builders for assembly, warranty, shipping, and replacement.
+Garden Desk should avoid manufacturing hardware initially. The product should own the software, workflows, customer experience, validation process, and support relationship while using OEMs or specialist builders for assembly, warranty, shipping, and replacement.
 
 ## Hardware Principles
 
@@ -11,14 +11,14 @@ Vault Desk should avoid manufacturing hardware initially. The product should own
 - Certify a small number of configurations.
 - Classify all other hardware honestly.
 - Avoid large inventory.
-- Separate manufacturer warranty from Vault Desk support.
+- Separate manufacturer warranty from Garden Desk support.
 - Treat performance guarantees as a product feature.
 
 ## Hardware Classes
 
 ### Certified
 
-Tested by Vault Desk for specific model profiles and workflows.
+Tested by Garden Desk for specific model profiles and workflows.
 
 Certified hardware should include:
 
@@ -72,7 +72,7 @@ Initial personal systems should be standard Windows desktops or mini-PCs with hi
 They should:
 
 - Work as ordinary computers.
-- Include Vault Desk and validated models.
+- Include Garden Desk and validated models.
 - Be encrypted and recoverable.
 - Ship with benchmarked performance.
 - Default automatically to the validated bundled model. If a build includes multiple approved models, expose only those installed choices; a single-model build shows static model text with no selector.
@@ -114,7 +114,7 @@ The first office appliance should benchmark from real workflow demand, not from 
 Planned first-choice runtime directions:
 
 - Apple Silicon: node-llama-cpp through Metal with the pinned official QAT GGUF first; MLX-family serving is a later adapter-backed optimization candidate.
-- Windows: one package contains CUDA and Vulkan. The worker probes both and uses one adapter that it can map and isolate. CUDA has priority over Vulkan only for the same adapter. The user supplies a compatible display driver, not a separate Vault Desk installation.
+- Windows: one package contains CUDA and Vulkan. The worker probes both and uses one adapter that it can map and isolate. CUDA has priority over Vulkan only for the same adapter. The user supplies a compatible display driver, not a separate Garden Desk installation.
 - Shared appliance or Linux server: vLLM-class serving only after the automatic desktop tiers are validated and appliance profiles are re-opened.
 - NVIDIA-specific optimization: later, after exact model support is proven.
 
@@ -152,7 +152,7 @@ Recommended sequence:
 3. Build measurable workflow demonstrations.
 4. Run small professional-office pilots.
 5. Request pilot hardware, co-marketing, and OEM introductions.
-6. Demonstrate that Vault Desk creates hardware demand.
+6. Demonstrate that Garden Desk creates hardware demand.
 7. Discuss strategic investment after traction.
 
 Avoid company-wide exclusivity. Vendor-specific SKUs are acceptable, but the community product should remain hardware-agnostic.

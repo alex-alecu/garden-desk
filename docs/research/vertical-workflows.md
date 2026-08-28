@@ -2,7 +2,7 @@
 
 Created: 2026-07-10
 
-Vault Desk should start with professional workflows where document volume, sensitivity, repetition, and ROI are clear.
+Garden Desk should start with professional workflows where document volume, sensitivity, repetition, and ROI are clear.
 
 ## Accounting
 

@@ -2,7 +2,7 @@
 
 Created: 2026-07-10
 
-Vault Desk should create trust and distribution through a useful free community product, then sell certainty through support, hardware, business controls, installation, and professional workflow deployment.
+Garden Desk should create trust and distribution through a useful free community product, then sell certainty through support, hardware, business controls, installation, and professional workflow deployment.
 
 ## Community Software
 

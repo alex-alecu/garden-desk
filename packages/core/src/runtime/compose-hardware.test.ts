@@ -30,7 +30,7 @@ describe.skipIf(process.platform !== "darwin")("8 GB Mac composition", () => {
     try {
       await expect(core.modelStatus()).resolves.toMatchObject({
         state: "unsupported",
-        message: "This Mac has 8 GB of memory. Vault Desk requires more memory to run locally.",
+        message: "This Mac has 8 GB of memory. Garden Desk requires more memory to run locally.",
       });
       await expect(
         core.generate({

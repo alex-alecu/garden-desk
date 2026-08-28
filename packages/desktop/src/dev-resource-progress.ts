@@ -17,7 +17,7 @@ const stageLabels = {
 export type DevelopmentResourceStage = keyof typeof stageLabels;
 
 export function developmentResourceStageMessage(stage: DevelopmentResourceStage): string {
-  return `[Vault Desk startup] ${stageLabels[stage]}...`;
+  return `[Garden Desk startup] ${stageLabels[stage]}...`;
 }
 
 export function reportDevelopmentResourceStage(stage: DevelopmentResourceStage): void {

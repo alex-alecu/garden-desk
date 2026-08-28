@@ -52,7 +52,7 @@ export function App({ api, capabilities }: { api: DesktopApi; capabilities: Desk
         }
       })
       .catch(() => {
-        if (active) setDesktopError("Vault Desk could not finish loading.");
+        if (active) setDesktopError("Garden Desk could not finish loading.");
       });
     return () => {
       active = false;

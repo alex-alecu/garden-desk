@@ -3,7 +3,7 @@ import { extname, join, relative, resolve, sep } from "node:path";
 
 const root = process.cwd();
 const output = join(root, "site", "dist");
-const publishedRoot = new URL("https://alex-alecu.github.io/vault-desk/");
+const publishedRoot = new URL("https://alex-alecu.github.io/garden-desk/");
 const failures: string[] = [];
 const routeFiles = [
   "index.html",
@@ -136,7 +136,7 @@ if ((downloads.match(/Coming soon/gu) ?? []).length < 2) {
 
 const sitemap = await text("sitemap.xml");
 for (const route of ["/", "/demo/", "/downloads/", "/privacy/", "/terms/", "/security/"]) {
-  requireText(sitemap, `vault-desk${route}`, "sitemap");
+  requireText(sitemap, `garden-desk${route}`, "sitemap");
 }
 
 const socialCard = await readFile(join(output, "assets", "social-card.png"));
@@ -194,8 +194,8 @@ const demoScript = demoHtml.match(/src="([^"]+\.js)"/u)?.[1];
 if (demoScript === undefined) {
   failures.push("demo: missing bundled script");
 } else {
-  const bundlePath = demoScript.startsWith("/vault-desk/")
-    ? resolve(output, demoScript.slice("/vault-desk/".length))
+  const bundlePath = demoScript.startsWith("/garden-desk/")
+    ? resolve(output, demoScript.slice("/garden-desk/".length))
     : resolve(output, "demo", demoScript);
   const demoBundle = await readFile(bundlePath, "utf8").catch(() => "");
   if (demoBundle.length === 0) failures.push("demo: bundled script does not resolve");

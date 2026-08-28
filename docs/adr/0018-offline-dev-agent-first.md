@@ -14,7 +14,7 @@ The repository owner instead requires the shortest path to a useful cross-platfo
 
 ## Decision
 
-Vault Desk V1 is an offline dev-agent desktop application.
+Garden Desk V1 is an offline dev-agent desktop application.
 
 Vault Core owns the agent loop, inference mediation, session state, policy, audit, cancellation, limits, and result validation. The model participates through a persistent native tool-calling conversation and never receives direct process, filesystem, VM-control, approval, export, or network authority. Every execution and file inspection still crosses a typed Core boundary into the no-network guest.
 
@@ -49,7 +49,7 @@ Word, PDF, XLSX, and review-report methods are prompt-only skill guidance. The m
 
 Canonical parsing, OCR, retrieval, citations, and deterministic document tools move to one post-V1 document-intelligence follow-up. They may optimize common tasks when measurements justify maintained product code, but they are no longer prerequisites for the generic agent.
 
-OpenCode is an interaction and agent-loop reference, not an adopted runtime. Vault Desk owns the equivalent generic boundaries: Markdown agents, on-demand Markdown skills, isolated child runs, native multi-turn tools, bounded output spill, and measured compaction, while preserving its stricter offline microVM, audit, packaging, and artifact-verification authorities.
+OpenCode is an interaction and agent-loop reference, not an adopted runtime. Garden Desk owns the equivalent generic boundaries: Markdown agents, on-demand Markdown skills, isolated child runs, native multi-turn tools, bounded output spill, and measured compaction, while preserving its stricter offline microVM, audit, packaging, and artifact-verification authorities.
 
 ## Consequences
 

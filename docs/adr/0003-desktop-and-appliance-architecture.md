@@ -6,7 +6,7 @@ Status: Proposed
 
 ## Context
 
-Vault Desk needs to support both a single-user desktop application and a small-office appliance without becoming two unrelated products.
+Garden Desk needs to support both a single-user desktop application and a small-office appliance without becoming two unrelated products.
 
 The office appliance adds users, permissions, shared workspaces, audit, backup, and central inference. The desktop product still needs the same core document, model, and tool concepts.
 

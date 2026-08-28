@@ -2,7 +2,7 @@
 
 Updated: 2026-08-22
 
-Vault Desk V1 is a general-purpose local file agent with a limited prompt-only professional review set. The skill set gives the agent focused instructions; it does not add predefined workflow state machines, domain policy in Core, or the post-V1 document-intelligence system.
+Garden Desk V1 is a general-purpose local file agent with a limited prompt-only professional review set. The skill set gives the agent focused instructions; it does not add predefined workflow state machines, domain policy in Core, or the post-V1 document-intelligence system.
 
 ## V1 Interaction
 

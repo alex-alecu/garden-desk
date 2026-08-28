@@ -2,7 +2,7 @@
 
 Created: 2026-07-10
 
-Vault Desk should use a useful open-source community application to create trust, distribution, product feedback, and demand for supported deployments.
+Garden Desk should use a useful open-source community application to create trust, distribution, product feedback, and demand for supported deployments.
 
 The community product must be real software, not a crippled demo.
 
@@ -77,13 +77,13 @@ Known model-license facts (verified 2026-07-11):
 
 Implementation consequence: every model and native runtime begins as a development or candidate-to-ship asset. A candidate can be marked as shipping only after redistribution terms, required notices, platform package behavior, hashes, and offline operation are reviewed. Packaging must emit third-party notices plus dependency and model inventories.
 
-The same gate applies resource by resource to Knowledge Bundles. Public access does not establish copyright, database-rights, modification, or commercial redistribution permission. Each distributed bundle needs declared and concluded licenses, attribution, provenance, intended-use, review ownership, and a recorded redistribution decision. Locally built private bundles may reference lawfully obtained materials that Vault Desk itself is not permitted to redistribute.
+The same gate applies resource by resource to Knowledge Bundles. Public access does not establish copyright, database-rights, modification, or commercial redistribution permission. Each distributed bundle needs declared and concluded licenses, attribution, provenance, intended-use, review ownership, and a recorded redistribution decision. Locally built private bundles may reference lawfully obtained materials that Garden Desk itself is not permitted to redistribute.
 
 ## Intellectual Property Hygiene
 
 This repository should contain:
 
-- Original Vault Desk concepts.
+- Original Garden Desk concepts.
 - Public market knowledge.
 - Public prior-art summaries.
 - Architecture hypotheses.

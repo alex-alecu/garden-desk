@@ -1,9 +1,9 @@
 ---
 name: vault-verify-change
-description: Verify a Vault Desk change before claiming completion. Use after edits, before a pull request, or when an exact pass, fail, and not-run report is needed.
+description: Verify a Garden Desk change before claiming completion. Use after edits, before a pull request, or when an exact pass, fail, and not-run report is needed.
 ---
 
-# Verify A Vault Desk Change
+# Verify A Garden Desk Change
 
 1. Inspect the complete diff and changed-file list, including unrelated pre-existing changes.
 2. Run `pnpm lint && pnpm typecheck && pnpm test` plus the one targeted test the change added, if any.

@@ -15,7 +15,7 @@ import { nativeRuntimePackages } from "./src/runtime-package-contract.js";
 const desktopRoot = fileURLToPath(new URL(".", import.meta.url));
 const tauriRoot = join(desktopRoot, "src-tauri");
 const releaseRoot = join(tauriRoot, "target", "release");
-const packageRoot = join(releaseRoot, "bundle", "windows", "Vault Desk");
+const packageRoot = join(releaseRoot, "bundle", "windows", "Garden Desk");
 
 async function sha256(path: string): Promise<string> {
   const digest = createHash("sha256");
@@ -75,9 +75,9 @@ export async function stageWindowsApplication(): Promise<void> {
   }
   await rm(packageRoot, { recursive: true, force: true });
   await mkdir(packageRoot, { recursive: true });
-  const application = join(packageRoot, "Vault Desk.exe");
+  const application = join(packageRoot, "Garden Desk.exe");
   const sidecar = join(packageRoot, "vault-core.exe");
-  await copyFile(join(releaseRoot, "vault-desk-desktop.exe"), application);
+  await copyFile(join(releaseRoot, "garden-desk-desktop.exe"), application);
   const applicationSigningMode = signExecutable(application);
   await copyFile(join(tauriRoot, "binaries", "vault-core-x86_64-pc-windows-msvc.exe"), sidecar);
   await copyTree(join(tauriRoot, "resources", "core"), join(packageRoot, "resources", "core"));

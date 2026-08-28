@@ -45,7 +45,7 @@ describe("unsupported hardware status", () => {
           name: "Gemma 4 12B QAT",
           state: "unsupported",
           thinkingSupported: true,
-          message: "This Mac has 8 GB of memory. Vault Desk requires more memory to run locally.",
+          message: "This Mac has 8 GB of memory. Garden Desk requires more memory to run locally.",
         }}
         onAppearanceChange={() => undefined}
         onTechnicalDetailsOpen={() => undefined}

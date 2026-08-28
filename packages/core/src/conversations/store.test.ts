@@ -20,7 +20,7 @@ afterEach(() => {
 
 describe("Windows folder drive paths", () => {
   it("recognizes only the same Windows path on another drive", () => {
-    expect(sameWindowsPathAfterDriveChange("E:\\Code\\vault-desk", "D:\\Code\\vault-desk")).toBe(
+    expect(sameWindowsPathAfterDriveChange("E:\\Code\\garden-desk", "D:\\Code\\garden-desk")).toBe(
       true,
     );
     expect(sameWindowsPathAfterDriveChange("E:\\Code\\first", "D:\\Code\\second")).toBe(false);

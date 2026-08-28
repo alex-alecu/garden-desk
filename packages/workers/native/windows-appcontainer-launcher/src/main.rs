@@ -165,5 +165,5 @@ fn main() {
 
 #[cfg(not(windows))]
 fn main() {
-    println!("The Vault Desk AppContainer launcher is built only on Windows.");
+    println!("The Garden Desk AppContainer launcher is built only on Windows.");
 }

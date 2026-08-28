@@ -52,7 +52,7 @@ Negative:
 
 - The "one family" product message is gone; the support surface grows with each additionally certified model, bounded by per-model certification.
 - The model-download build adds a real network capability that must be built and audited to the broker standard, and its catalog becomes a signed asset to maintain.
-- Qwen3-Embedding retrieval thresholds are research-derived until the post-V1 document-intelligence follow-up measures them on Vault Desk corpora.
+- Qwen3-Embedding retrieval thresholds are research-derived until the post-V1 document-intelligence follow-up measures them on Garden Desk corpora.
 - MTEB comparisons informing the encoder swap mix overall and retrieval-subset scores; the post-V1 held-out gate is the deciding measurement.
 
 ## Follow-ups

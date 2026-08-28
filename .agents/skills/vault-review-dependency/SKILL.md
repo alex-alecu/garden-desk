@@ -1,9 +1,9 @@
 ---
 name: vault-review-dependency
-description: Evaluate a proposed Vault Desk library, tool, native component, or GitHub integration before adoption. Use when adding or replacing a dependency or comparing build-versus-adopt options.
+description: Evaluate a proposed Garden Desk library, tool, native component, or GitHub integration before adoption. Use when adding or replacing a dependency or comparing build-versus-adopt options.
 ---
 
-# Review A Vault Desk Dependency
+# Review A Garden Desk Dependency
 
 1. Define the exact capability needed and the active milestone that consumes it.
 2. Search the repository and the standard library for an existing solution.

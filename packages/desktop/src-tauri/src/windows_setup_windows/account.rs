@@ -124,13 +124,13 @@ fn group_sid() -> Result<LocalSid, String> {
 fn current_user() -> Result<(OwnedHandle, Vec<usize>), String> {
     let mut token = null_mut();
     if unsafe { OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &mut token) } == 0 {
-        return Err(last_error("Opening the Vault Desk user token"));
+        return Err(last_error("Opening the Garden Desk user token"));
     }
     let token = OwnedHandle(token);
     let mut length = 0;
     unsafe { GetTokenInformation(token.0, TOKEN_USER_CLASS, null_mut(), 0, &mut length) };
     if length == 0 || unsafe { GetLastError() } != ERROR_INSUFFICIENT_BUFFER {
-        return Err("Windows did not report the Vault Desk user token size.".to_owned());
+        return Err("Windows did not report the Garden Desk user token size.".to_owned());
     }
     let mut storage = vec![0_usize; (length as usize).div_ceil(size_of::<usize>())];
     if unsafe {
@@ -143,7 +143,7 @@ fn current_user() -> Result<(OwnedHandle, Vec<usize>), String> {
         )
     } == 0
     {
-        return Err(last_error("Reading the Vault Desk user token"));
+        return Err(last_error("Reading the Garden Desk user token"));
     }
     Ok((token, storage))
 }

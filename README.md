@@ -1,18 +1,18 @@
-# Vault Desk
+# Garden Desk
 
 **Private work should stay private.**
 
-Vault Desk is a local-first desktop agent for working with private files and folders. It is built for people who want useful AI assistance without uploading their work, managing model infrastructure, or becoming an AI developer.
+Garden Desk is a local-first desktop agent for working with private files and folders. It is built for people who want useful AI assistance without uploading their work, managing model infrastructure, or becoming an AI developer.
 
-## Why Vault Desk exists
+## Why Garden Desk exists
 
 Most AI tools ask people to accept one of three compromises: use a cloud-only service, use a hybrid product that still treats the cloud as its default, or configure a local stack designed primarily for developers.
 
-Vault Desk takes a different approach. The application, models, conversations, tools, and workspaces run on your computer. You choose a folder or attach files, describe the outcome you want, and Vault Desk handles the local infrastructure automatically. Your source folder remains read-only to the agent.
+Garden Desk takes a different approach. The application, models, conversations, tools, and workspaces run on your computer. You choose a folder or attach files, describe the outcome you want, and Garden Desk handles the local infrastructure automatically. Your source folder remains read-only to the agent.
 
 ## Nothing leaves your device
 
-Vault Desk collects **nothing**. There is no telemetry, analytics, feature-usage tracking, automatic crash reporting, background metrics export, prompt upload, or silent cloud fallback.
+Garden Desk collects **nothing**. There is no telemetry, analytics, feature-usage tracking, automatic crash reporting, background metrics export, prompt upload, or silent cloud fallback.
 
 Conversations, files, generated work, audit records, and diagnostic traces stay on the device. They leave only when you deliberately export or share them. The V1 product requires no account and no cloud service.
 
@@ -30,8 +30,8 @@ To run the desktop locally:
 1. Clone the repository.
 
    ```sh
-   git clone https://github.com/alex-alecu/vault-desk.git
-   cd vault-desk
+   git clone https://github.com/alex-alecu/garden-desk.git
+   cd garden-desk
    ```
 
 2. Install the packages.
@@ -46,17 +46,17 @@ To run the desktop locally:
    pnpm desktop:dev
    ```
 
-   On Windows Pro or Enterprise, Hyper-V must already be enabled. The first launch explains and requests one administrator-approved change that adds the current user to Hyper-V Administrators; sign out and back in once afterward. Vault Desk and later development launches remain non-elevated. macOS requires no administrator setup and continues to launch as the current user.
+   On Windows Pro or Enterprise, Hyper-V must already be enabled. The first launch explains and requests one administrator-approved change that adds the current user to Hyper-V Administrators; sign out and back in once afterward. Garden Desk and later development launches remain non-elevated. macOS requires no administrator setup and continues to launch as the current user.
 
    On Windows, Vite continues to reload frontend changes while `desktop:dev` disables Tauri's Rust file watcher. Some Windows filesystems report source-file reads as access changes, which Tauri can mistake for edits and restart forever. Restart `desktop:dev` after changing Rust desktop-host code. macOS keeps Tauri's normal Rust watcher.
 
 ## Public website
 
-Explore the [public website and interactive demo](https://alex-alecu.github.io/vault-desk/) or run it locally with `pnpm site:dev`.
+Explore the [public website and interactive demo](https://alex-alecu.github.io/garden-desk/) or run it locally with `pnpm site:dev`.
 
 ## More capable than file ingestion
 
-Vault Desk does more than place extracted text into a prompt. The agent can write and run Python, Node.js, and shell tasks inside an isolated Linux microVM, then use the results in its next step.
+Garden Desk does more than place extracted text into a prompt. The agent can write and run Python, Node.js, and shell tasks inside an isolated Linux microVM, then use the results in its next step.
 
 The agent can also inspect a PNG or JPEG attachment, or an image in the selected folder. A simple question about one direct image stays in the main chat. Exact extraction and multi-image work run in a general child agent, so only the requested facts return to the main context. Image inspection is local, on demand, and has no network access.
 
@@ -72,11 +72,11 @@ Every conversation uses a session-scoped microVM with no virtual network device,
 
 ### macOS
 
-On Apple silicon, Vault Desk uses Apple's **Virtualization.framework**. It provides native hardware isolation and direct control over the VM configuration, so Vault Desk can prove that no network device exists. **VirtioFS** supplies the live read-only folder, while a fixed virtio socket carries typed messages without opening a TCP port.
+On Apple silicon, Garden Desk uses Apple's **Virtualization.framework**. It provides native hardware isolation and direct control over the VM configuration, so Garden Desk can prove that no network device exists. **VirtioFS** supplies the live read-only folder, while a fixed virtio socket carries typed messages without opening a TCP port.
 
 ### Windows
 
-On Windows Pro and Enterprise with Hyper-V already enabled, Vault Desk uses **HCS and Hyper-V** utility VMs. These are the platform-native isolation and lifecycle primitives. A read-only **Plan9** share exposes the selected folder, and a fixed **Hyper-V socket** carries typed messages without adding a network adapter or general network path. A signed Windows-only helper elevates once to add the requesting user to Hyper-V Administrators; the application and Vault Core then run as that standard user without recurring UAC. This standing group membership gives every process under that Windows account Hyper-V management authority. Vault Desk does not enable or download Windows features.
+On Windows Pro and Enterprise with Hyper-V already enabled, Garden Desk uses **HCS and Hyper-V** utility VMs. These are the platform-native isolation and lifecycle primitives. A read-only **Plan9** share exposes the selected folder, and a fixed **Hyper-V socket** carries typed messages without adding a network adapter or general network path. A signed Windows-only helper elevates once to add the requesting user to Hyper-V Administrators; the application and Vault Core then run as that standard user without recurring UAC. This standing group membership gives every process under that Windows account Hyper-V management authority. Garden Desk does not enable or download Windows features.
 
 ## Project status
 
@@ -88,4 +88,4 @@ The community software is free. Signed public installers are not yet available.
 
 Read the [product overview](docs/PRODUCT.md), [architecture](docs/ARCHITECTURE.md), and [security model](docs/SECURITY.md). Exact models and hashes live in the [model manifest](assets/models.json); pinned dependencies, guest components, versions, licenses, and purposes live in the [compliance inventory](compliance/inventory.json).
 
-The development workflow was informed by [Everything Claude Code](https://github.com/affaan-m/ECC). Vault Desk uses original project-specific instructions and does not include that package or runtime.
+The development workflow was informed by [Everything Claude Code](https://github.com/affaan-m/ECC). Garden Desk uses original project-specific instructions and does not include that package or runtime.

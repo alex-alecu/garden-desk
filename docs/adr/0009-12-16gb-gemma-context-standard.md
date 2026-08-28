@@ -16,7 +16,7 @@ Official Gemma 4 documentation lists the 12B Q4_0 load estimate at 6.7 GB before
 
 ## Decision
 
-Vault Desk uses one Gemma 4 12B QAT model and selects the largest active context that fits a hardware-derived model-plus-context memory budget. The product does not expose profiles or token counts as user configuration.
+Garden Desk uses one Gemma 4 12B QAT model and selects the largest active context that fits a hardware-derived model-plus-context memory budget. The product does not expose profiles or token counts as user configuration.
 
 All supported hardware tiers use:
 

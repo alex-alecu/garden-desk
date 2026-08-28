@@ -164,8 +164,8 @@ if ((await sha256(archive)) !== manifest.builder.sourceSha256)
   throw new Error("Buildroot source SHA-256 mismatch.");
 const selected = architecture();
 const volumes: [string, string] = [
-  `vault-desk-${agentBuild ? "m3-agent" : "m1"}-${selected}-${process.pid}-first`,
-  `vault-desk-${agentBuild ? "m3-agent" : "m1"}-${selected}-${process.pid}-second`,
+  `garden-desk-${agentBuild ? "m3-agent" : "m1"}-${selected}-${process.pid}-first`,
+  `garden-desk-${agentBuild ? "m3-agent" : "m1"}-${selected}-${process.pid}-second`,
 ];
 const comparisonRoot = join(generatedRoot, "comparisons", String(process.pid));
 const roots: [string, string] = [join(comparisonRoot, "first"), join(comparisonRoot, "second")];

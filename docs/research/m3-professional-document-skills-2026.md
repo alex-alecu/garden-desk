@@ -2,7 +2,7 @@
 
 Created: 2026-08-15
 
-This review covers public Agent Skills design and public legal, finance, healthcare, and report workflows. Claims remain research-derived until the Vault Desk physical and qualified reviewer gates pass.
+This review covers public Agent Skills design and public legal, finance, healthcare, and report workflows. Claims remain research-derived until the Garden Desk physical and qualified reviewer gates pass.
 
 ## Findings
 
@@ -15,7 +15,7 @@ This review covers public Agent Skills design and public legal, finance, healthc
 
 ## M3 Decision
 
-Vault Desk adopts original prompt-only workflows. It does not copy public skill bodies or install their packages. One shared review skill owns evidence and safety rules. Twelve domain skills own focused tasks. One report skill owns a formal result when the user requests it.
+Garden Desk adopts original prompt-only workflows. It does not copy public skill bodies or install their packages. One shared review skill owns evidence and safety rules. Twelve domain skills own focused tasks. One report skill owns a formal result when the user requests it.
 
 The product uses only supplied files, policies, playbooks, and criteria. It does not use model memory as current law, accounting rules, payer policy, medical guidance, or code-set authority. Medical support is administrative only.
 

@@ -6,13 +6,13 @@ Status: Proposed; initial desktop runtime directions superseded by ADR 0013
 
 ## Context
 
-Vault Desk should support Apple, AMD, and NVIDIA hardware. No single vendor path should become the permanent product identity.
+Garden Desk should support Apple, AMD, and NVIDIA hardware. No single vendor path should become the permanent product identity.
 
 The local AI runtime market is changing quickly, and runtime support differs across platforms.
 
 ## Decision
 
-Vault Desk will use a hardware-aware runtime adapter strategy.
+Garden Desk will use a hardware-aware runtime adapter strategy.
 
 The user-facing product should expose capability tiers and workload guarantees, not low-level model or runtime choices.
 

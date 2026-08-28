@@ -22,7 +22,7 @@ try {
   try {
     const context = await model.createEmbeddingContext({ contextSize: 512 });
     try {
-      const embedding = await context.getEmbeddingFor("Vault Desk offline retrieval smoke");
+      const embedding = await context.getEmbeddingFor("Garden Desk offline retrieval smoke");
       if (embedding.vector.length === 0) throw new Error("Embedding vector is empty.");
       console.log(JSON.stringify({ modelId: asset.id, dimensions: embedding.vector.length }));
     } finally {

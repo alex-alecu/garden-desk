@@ -20,7 +20,7 @@ Tests exist for architecture boundaries, business logic, and bugs. Not for the m
 
 ## Minimum Implementation Rule
 
-Vault Desk is a startup. Write the minimum clear code that delivers the active milestone behavior for the named use cases. Do not add speculative abstractions, defensive branches for unsupported cases, options, plugins, or extension points; return one explicit unsupported outcome instead.
+Garden Desk is a startup. Write the minimum clear code that delivers the active milestone behavior for the named use cases. Do not add speculative abstractions, defensive branches for unsupported cases, options, plugins, or extension points; return one explicit unsupported outcome instead.
 
 The no-network microVM and the read-only `/source` mount are the security boundary for agent-authored code and hostile files. Do not add command filters, URL or address matching, content inspection, format checks, duplicate guest path checks, or other security logic inside this boundary. Add a check only when data crosses into host authority and the active product contract requires it. Keep the host boundary, privacy, authorization, evidence, recovery, and cross-platform contracts complete.
 

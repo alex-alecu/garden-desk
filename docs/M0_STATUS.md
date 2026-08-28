@@ -6,7 +6,7 @@ Milestone M0 is complete. The Mac and Windows checkpoints and published cross-pl
 
 ## Change Brief
 
-- Goal: establish the smallest reproducible Vault Desk workspace and validation surface required by M0.
+- Goal: establish the smallest reproducible Garden Desk workspace and validation surface required by M0.
 - Active milestone and issue: M0, started by the repository owner's explicit 2026-07-16 request; no separate issue was supplied.
 - Allowed scope: phase-rule updates, Apache 2.0 root license, pinned Node/pnpm/Rust and root tooling, M0-only `shared` and `eval` packages, model and compliance manifests, test-only Tauri and microVM probes, guest-image recipe, ADR 0017, and macOS/Windows CI.
 - Product boundaries: model manifests are canonical in `@vault/shared`; model fetching remains development-only in `@vault/eval`; Tauri exposes only a fixed test command and exact sidecar; hostile-work validation requires a no-network guest and typed host/guest IPC; no product UI or external integration is introduced.

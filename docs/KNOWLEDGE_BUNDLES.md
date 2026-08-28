@@ -2,7 +2,7 @@
 
 Created: 2026-07-12
 
-Vault Desk should support installable, domain-scoped libraries that remain fully useful without internet access.
+Garden Desk should support installable, domain-scoped libraries that remain fully useful without internet access.
 
 This document records a research-derived architecture proposal. The boundary is recommended now; exact serialization, archive transport, and maintained TypeScript libraries must be validated during M0 before an ADR makes the format stable.
 
@@ -44,7 +44,7 @@ Never make an embedding, summary, chunk, or vendor-specific database the only co
 
 ## Logical Bundle Layout
 
-The logical format should remain independent of its transport archive. A future `.vdkb` file may use ZIP64, tar plus Zstandard, or another validated envelope, but import must materialize verified content into Vault Desk's installed store rather than querying the archive in place.
+The logical format should remain independent of its transport archive. A future `.vdkb` file may use ZIP64, tar plus Zstandard, or another validated envelope, but import must materialize verified content into Garden Desk's installed store rather than querying the archive in place.
 
 Proposed logical layout:
 
@@ -98,7 +98,7 @@ Every bundle version should declare:
 - Source, normalized, evaluation, and accelerator roles for every payload.
 - Licenses, attribution requirements, redistribution status, and any access restrictions at bundle and resource level.
 - Whether personal, confidential, or contract-restricted information is present.
-- Minimum compatible Vault Desk bundle reader and canonical-document schema.
+- Minimum compatible Garden Desk bundle reader and canonical-document schema.
 - Signature references and update-channel identity.
 
 A semantic version alone is insufficient for professional knowledge. A tax bundle needs a tax period and jurisdiction; a legal bundle needs validity dates and source status; a manual bundle needs product and revision applicability.
@@ -179,7 +179,7 @@ A publisher may include an optional accelerator only when it declares the comple
 - Summary model, prompt, verifier, and generation settings.
 - Platform constraints where the artifact is not portable.
 
-Vault Desk may use an accelerator only on an exact compatibility match and after validating its references. Otherwise it rebuilds locally. Rebuilding retrieval state must never change bundle identity because accelerators are not authoritative payloads for evidence.
+Garden Desk may use an accelerator only on an exact compatibility match and after validating its references. Otherwise it rebuilds locally. Rebuilding retrieval state must never change bundle identity because accelerators are not authoritative payloads for evidence.
 
 Model-generated summaries must be visibly classified as derived, retain citations, and never substitute for the included source.
 
@@ -189,7 +189,7 @@ Checksums detect corruption; they do not establish who published a bundle. Every
 
 Use a TUF-style signed update repository for official channels and offline media:
 
-- Trusted root keys are provisioned with Vault Desk or by an organization administrator.
+- Trusted root keys are provisioned with Garden Desk or by an organization administrator.
 - Target metadata binds every bundle to its cryptographic hash and byte length.
 - Snapshot and version metadata prevent mix-and-match and rollback attacks.
 - Expiring metadata detects stale or frozen update channels.
@@ -199,7 +199,7 @@ Use a TUF-style signed update repository for official channels and offline media
 
 An air-gapped update medium must carry the complete metadata chain required for offline verification. Installed content may continue to work after repository metadata expires; a new install or update must not silently bypass expired metadata. Controlled environments need an audited procedure for trusted time, media issuance, emergency expiration recovery, and root rotation.
 
-Sigstore bundles are useful optional release attestations because current formats can carry signatures, certificates, transparency-log evidence, and timestamps for offline verification. They should not replace the local trust policy or TUF update roles: a valid signature proves control of an identity, not that Vault Desk should trust that identity to publish Romanian tax knowledge.
+Sigstore bundles are useful optional release attestations because current formats can carry signatures, certificates, transparency-log evidence, and timestamps for offline verification. They should not replace the local trust policy or TUF update roles: a valid signature proves control of an identity, not that Garden Desk should trust that identity to publish Romanian tax knowledge.
 
 Community sideloading may permit unsigned bundles only behind a clear untrusted status and explicit approval. Organization policy may prohibit it entirely. Signature trust must never grant execution capability.
 
@@ -220,7 +220,7 @@ Bundle inspection and extraction must run through the certified no-network micro
 - No execution of contained scripts, macros, HTML active content, or workflow definitions.
 - Atomic host-side commit only after the worker's result is validated.
 
-Vault Desk should render human-readable descriptions as inert content. A bundle cannot add tools, change prompts, alter approvals, request network access, or modify workspace policy.
+Garden Desk should render human-readable descriptions as inert content. A bundle cannot add tools, change prompts, alter approvals, request network access, or modify workspace policy.
 
 ## Rights And Governance
 
@@ -238,7 +238,7 @@ Required governance records should include:
 - Retention and withdrawal requirements.
 - Required notices shipped with the bundle.
 
-Public-source snapshots should retain the original publication and acquisition metadata. If redistribution is not permitted, Vault Desk may support a local user-created bundle from lawfully obtained materials, but must not distribute those materials itself.
+Public-source snapshots should retain the original publication and acquisition metadata. If redistribution is not permitted, Garden Desk may support a local user-created bundle from lawfully obtained materials, but must not distribute those materials itself.
 
 ## Quality Contract
 
@@ -257,7 +257,7 @@ Each curated bundle should ship a human-readable quality card and a machine-read
 - Claim-support and contradiction-detection targets.
 - License and attribution conformance checks.
 
-Publisher-supplied cases are conformance fixtures, not the held-out acceptance corpus. Vault Desk must maintain separate held-out evaluation and periodically test bundles against the exact production retrieval and verification pipeline.
+Publisher-supplied cases are conformance fixtures, not the held-out acceptance corpus. Garden Desk must maintain separate held-out evaluation and periodically test bundles against the exact production retrieval and verification pipeline.
 
 ## Update Lifecycle
 

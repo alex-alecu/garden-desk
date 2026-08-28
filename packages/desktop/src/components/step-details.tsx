@@ -141,7 +141,7 @@ function StepInference({
       </p>
       {thinking === null || thinking.length === 0 ? null : (
         <StepTextBlock
-          label="Thinking (cleared when Vault Desk closes)"
+          label="Thinking (cleared when Garden Desk closes)"
           live={thinkingLive}
           value={thinking}
         />

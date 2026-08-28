@@ -168,7 +168,7 @@ describe("package output safety", () => {
     ).toBeUndefined();
     expect(packageBuildTarget(desktop, "win32", "x64", ["build", "--debug"])).toBeUndefined();
     expect(packageBuildTarget(desktop, "win32", "x64", ["build"])?.packageRoot).toBe(
-      join(desktop, "src-tauri", "target", "release", "bundle", "windows", "Vault Desk"),
+      join(desktop, "src-tauri", "target", "release", "bundle", "windows", "Garden Desk"),
     );
   });
 });

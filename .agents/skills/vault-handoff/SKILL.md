@@ -1,9 +1,9 @@
 ---
 name: vault-handoff
-description: Create a privacy-safe Vault Desk work handoff for another session, contributor, issue, or pull request. Use when work is incomplete, blocked, or changing owners.
+description: Create a privacy-safe Garden Desk work handoff for another session, contributor, issue, or pull request. Use when work is incomplete, blocked, or changing owners.
 ---
 
-# Hand Off Vault Desk Work
+# Hand Off Garden Desk Work
 
 Produce:
 

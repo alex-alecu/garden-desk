@@ -2,7 +2,7 @@
 
 Created: 2026-07-10
 
-This document defines the implementation quality constraints for Vault Desk. M0 and M1 are complete, the macOS inference foundation exists, and M3 is active under [AGENTS.md](../AGENTS.md).
+This document defines the implementation quality constraints for Garden Desk. M0 and M1 are complete, the macOS inference foundation exists, and M3 is active under [AGENTS.md](../AGENTS.md).
 
 The goal is the least amount of new code and the least amount of tests that delivers the active product contracts. The architecture, not layers of input checks, protects the guest boundary.
 
@@ -42,12 +42,12 @@ V1 uses only the components present under `packages/`. The table below is resear
 | Remaining formats and fallback parsing | One Python worker image in the no-network microVM (Docling, MarkItDown, Unstructured) | — | One isolated dependency image instead of scattered host processes |
 | Hostile-work isolation | Platform microVM launcher with no virtual NIC and typed host/guest socket | Process-only sandbox, explicitly non-certified | Structural network denial and a separate guest kernel without command matching |
 | Deterministic document operations | Typed Vault Core queries over canonical documents | Format adapter escalation | Common search, filter, join, compare, calculate, and extraction behavior without model-generated scripts |
-| Long-tail transformation | Minimal Vault Desk-owned code-interpreter guest loop in a fresh no-network microVM | OpenCode only if it passes identical offline, security, footprint, and audit gates and reduces code | Keeps uncommon transformations possible without making a coding agent the product backend |
+| Long-tail transformation | Minimal Garden Desk-owned code-interpreter guest loop in a fresh no-network microVM | OpenCode only if it passes identical offline, security, footprint, and audit gates and reduces code | Keeps uncommon transformations possible without making a coding agent the product backend |
 | Index (lexical plus dense) | LanceDB (Apache 2.0) | sqlite-vec plus FTS5; turbovec via the Python sidecar if benchmarks justify | One embedded dependency covers full-text, vector, hybrid fusion, and quantization |
 | Embeddings | Qwen3-Embedding-0.6B via node-llama-cpp GGUF | Transformers.js ONNX | Same runtime as generation; Apache 2.0 official GGUF |
-| Tool loop | Vercel AI SDK 6 (Apache 2.0) with per-tool approval gating | Thin hand-rolled loop on node-llama-cpp | Approval-paused tool execution and typed schemas provided, policy stays in Vault Desk code |
+| Tool loop | Vercel AI SDK 6 (Apache 2.0) with per-tool approval gating | Thin hand-rolled loop on node-llama-cpp | Approval-paused tool execution and typed schemas provided, policy stays in Garden Desk code |
 | Structured output | JSON Schema to grammar via node-llama-cpp, schemas defined once in TypeScript | — | One schema source feeds grammar, validation, and tool typing |
-| Audit trace shape | Small versioned Vault Desk schema persisted to a local append-only log, with no telemetry exporter | — | Keeps the customer-owned audit contract explicit, stable, local, and limited to product needs |
+| Audit trace shape | Small versioned Garden Desk schema persisted to a local append-only log, with no telemetry exporter | — | Keeps the customer-owned audit contract explicit, stable, local, and limited to product needs |
 | Desktop shell | Tauri v2 with React/TypeScript and a minimal Rust host | — | Operating-system webview, capability-scoped native surface, sidecar packaging, and no product logic in the shell |
 
 Avoid:
@@ -106,7 +106,7 @@ Preferred shape:
 - Small verifier orchestration layer.
 - Small compaction state manager.
 
-Avoid a central "agent brain" module. Vault Desk should be a set of explicit workflows and typed tools with model calls as one step inside those workflows.
+Avoid a central "agent brain" module. Garden Desk should be a set of explicit workflows and typed tools with model calls as one step inside those workflows.
 
 ## Implementation Entry Gate
 

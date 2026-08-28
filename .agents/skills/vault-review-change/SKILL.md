@@ -1,9 +1,9 @@
 ---
 name: vault-review-change
-description: Review a Vault Desk diff or pull request for actionable defects. Use for self-review, maintainer review, or security-sensitive changes where findings must be ordered by severity and grounded in exact evidence.
+description: Review a Garden Desk diff or pull request for actionable defects. Use for self-review, maintainer review, or security-sensitive changes where findings must be ordered by severity and grounded in exact evidence.
 ---
 
-# Review A Vault Desk Change
+# Review A Garden Desk Change
 
 Use [AGENTS.md](../../../AGENTS.md), accepted ADRs, and the active milestone as the baseline. Review in the order and with the P0-P3 severities in [the development workflow](../../../docs/DEVELOPMENT_WORKFLOW.md#5-review-and-hand-off).
 
