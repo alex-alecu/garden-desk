@@ -5,6 +5,17 @@ const root = process.cwd();
 const output = join(root, "site", "dist");
 const publishedRoot = new URL("https://alex-alecu.github.io/garden-desk/");
 const failures: string[] = [];
+const deploymentAssetPattern = /-[A-Za-z0-9_-]{8}\.(?:css|js|png|svg|woff2)$/u;
+const localAssetPattern = /(?:href|src)=["']([^"']+\.(?:css|js|png|svg|woff2))["']/giu;
+const currentPageAssetAliases = [
+  "assets/demo-Cq8UkpJK.css",
+  "assets/demo-DsvKC27T.js",
+  "assets/favicon-DwYaNvUc.svg",
+  "assets/home-DxbzD8H7.js",
+  "assets/motion-NaJoQ8b7.css",
+  "assets/motion-DXxvGi6b.js",
+  "assets/product-icon-byrIb689.png",
+];
 const routeFiles = [
   "index.html",
   "demo/index.html",
@@ -17,6 +28,7 @@ const routeFiles = [
   "sitemap.xml",
   "assets/social-card.png",
   "assets/fonts/IBM-Plex-OFL.txt",
+  ...currentPageAssetAliases,
 ];
 
 async function text(path: string): Promise<string> {
@@ -106,6 +118,13 @@ for (const path of htmlFiles) {
   }
   if (/<form[^>]+action=/iu.test(source)) {
     failures.push(`${label}: data-submitting form`);
+  }
+  for (const match of source.matchAll(localAssetPattern)) {
+    const asset = match[1];
+    if (asset === undefined) continue;
+    if (deploymentAssetPattern.test(asset)) {
+      failures.push(`${label}: deployment-unstable asset ${asset}`);
+    }
   }
   await validateLinks(path, source);
 }
