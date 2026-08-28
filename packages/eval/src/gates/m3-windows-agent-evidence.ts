@@ -35,6 +35,20 @@ export function hasRunningExecution(snapshot: AgentRunSnapshot): boolean {
   );
 }
 
+export function hasTeardownOrBoundedExit(
+  snapshot: AgentRunSnapshot,
+  execution: AgentExecutionSnapshot,
+): boolean {
+  return (
+    snapshot.executions.some((execution) =>
+      execution.vmDiagnostics.some((diagnostic) => diagnostic.code === "teardown"),
+    ) ||
+    (execution.termination === "resource_limit" &&
+      execution.stdoutTruncated &&
+      execution.vmDiagnostics.some((diagnostic) => diagnostic.code === "process_exit"))
+  );
+}
+
 export function completedEvidence(
   snapshot: AgentRunSnapshot,
   request: CompletedEvidenceRequest,

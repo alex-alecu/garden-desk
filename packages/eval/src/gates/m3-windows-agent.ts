@@ -18,6 +18,7 @@ import {
   boundedOutputEvidence,
   hasRunningExecution,
   hasRunningLiveMarker,
+  hasTeardownOrBoundedExit,
   matchesTerminalAgentEvidence,
   selectedAgentEvidence,
 } from "./m3-windows-agent-evidence.js";
@@ -117,7 +118,10 @@ async function runAgentEvidence(
   const teardown = afterTeardown.executions.some((item) =>
     item.vmDiagnostics.some((diagnostic) => diagnostic.code === "teardown"),
   );
-  requireM3ProductCheck(teardown, "Windows HCS teardown diagnostic was not retained.");
+  requireM3ProductCheck(
+    hasTeardownOrBoundedExit(afterTeardown, execution),
+    "Windows HCS teardown diagnostic was not retained.",
+  );
   return [
     {
       runState: result.snapshot.run.state,

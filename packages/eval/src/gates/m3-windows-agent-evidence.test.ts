@@ -5,6 +5,7 @@ import {
   cancelledEvidence,
   completedEvidence,
   hasRunningLiveMarker,
+  hasTeardownOrBoundedExit,
   selectedAgentEvidence,
 } from "./m3-windows-agent-evidence.js";
 
@@ -151,6 +152,12 @@ describe("Windows agent evidence", () => {
     expect(
       boundedOutputEvidence(snapshot([limit], "succeeded"), { startToken: "limit-start" }),
     ).toBe(limit);
+  });
+
+  it("uses terminal bounded-output evidence without a separate teardown diagnostic", () => {
+    const limit = boundedOutput();
+
+    expect(hasTeardownOrBoundedExit(snapshot([limit], "succeeded"), limit)).toBe(true);
   });
 
   it("accepts the guest exit code for a killed bounded-output process", () => {
