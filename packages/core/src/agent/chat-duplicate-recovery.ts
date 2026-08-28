@@ -51,7 +51,6 @@ export interface DuplicateCallOutcome {
 }
 
 export interface ToolTurnOutcome {
-  changedApproach: boolean;
   recoveryQuestionRequired: boolean;
   validInput: boolean;
 }
@@ -149,7 +148,6 @@ export function finishDuplicateToolTurn(
   if (stalled) state.recoveryTurns += 1;
   return {
     validInput: outcomes.some((outcome) => outcome.validInput),
-    changedApproach,
     recoveryQuestionRequired: stalled && state.recoveryTurns >= 2,
   };
 }
