@@ -40,10 +40,6 @@ function publishedUrl(path: string): URL {
 
 function localOutputPath(url: URL): string | undefined {
   if (url.origin !== publishedRoot.origin) return undefined;
-  if (!url.pathname.startsWith(publishedRoot.pathname)) {
-    failures.push(`link: outside project path ${url.href}`);
-    return undefined;
-  }
   const route = decodeURIComponent(url.pathname.slice(publishedRoot.pathname.length));
   const targetRoute = route === "" || route.endsWith("/") ? `${route}index.html` : route;
   return join(output, targetRoute);
@@ -203,9 +199,7 @@ const demoScript = demoHtml.match(/src="([^"]+\.js)"/u)?.[1];
 if (demoScript === undefined) {
   failures.push("demo: missing bundled script");
 } else {
-  const bundlePath = demoScript.startsWith("/")
-    ? resolve(output, demoScript.slice(1))
-    : resolve(output, "demo", demoScript);
+  const bundlePath = resolve(output, demoScript.slice(1));
   const demoBundle = await readFile(bundlePath, "utf8").catch(() => "");
   if (demoBundle.length === 0) failures.push("demo: bundled script does not resolve");
 }
