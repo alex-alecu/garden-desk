@@ -171,32 +171,28 @@ function cleanedMessage(
   return { ...message, toolCalls };
 }
 
-function addRecoveryMessages(
-  messages: ChatMessage[],
+export function cleanedDuplicateHistory(
+  messages: readonly ChatMessage[],
   state: DuplicateRecoveryState,
-  options: { includeInstruction: boolean; includeUserDirection: boolean },
-): void {
-  if (state.activeBlockedSignature === undefined) return;
-  if (options.includeInstruction) messages.push({ role: "system", text: RECOVERY_INSTRUCTION });
-  if (!options.includeUserDirection || state.latestUserDirection === undefined) return;
-  messages.push({
-    role: "user",
-    text: `Latest user direction for repeated-action recovery:\n${state.latestUserDirection}`,
-  });
+): ChatMessage[] {
+  return messages
+    .map((message) => cleanedMessage(message, state.omittedCallIds))
+    .filter((message): message is ChatMessage => message !== undefined);
 }
 
 export function duplicatePromptView(
   messages: readonly ChatMessage[],
   state: DuplicateRecoveryState,
-  options: { includeRecoveryInstruction?: boolean; includeUserDirection?: boolean } = {},
 ): ChatMessage[] {
-  const cleaned = messages
-    .map((message) => cleanedMessage(message, state.omittedCallIds))
-    .filter((message): message is ChatMessage => message !== undefined);
-  addRecoveryMessages(cleaned, state, {
-    includeInstruction: options.includeRecoveryInstruction !== false,
-    includeUserDirection: options.includeUserDirection !== false,
-  });
+  const cleaned = cleanedDuplicateHistory(messages, state);
+  if (state.activeBlockedSignature === undefined) return cleaned;
+  cleaned.push({ role: "system", text: RECOVERY_INSTRUCTION });
+  if (state.latestUserDirection !== undefined) {
+    cleaned.push({
+      role: "user",
+      text: `Latest user direction for repeated-action recovery:\n${state.latestUserDirection}`,
+    });
+  }
   return cleaned;
 }
 

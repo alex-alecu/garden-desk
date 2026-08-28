@@ -11,7 +11,11 @@ import type { InferenceService } from "../runtime/inference.js";
 import { artifactCandidateNames } from "./artifact-results.js";
 import { compactChatHistory } from "./chat-compaction.js";
 import { withCurrentTimeContext } from "./chat-current-time.js";
-import { duplicatePromptView, pruneOmittedDuplicateCalls } from "./chat-duplicate-recovery.js";
+import {
+  cleanedDuplicateHistory,
+  duplicatePromptView,
+  pruneOmittedDuplicateCalls,
+} from "./chat-duplicate-recovery.js";
 import { executeGeneratedTools } from "./chat-generated-tools.js";
 import { generateWithInferenceRecovery } from "./chat-inference-recovery.js";
 import { initialChatMessages } from "./chat-initial-messages.js";
@@ -101,10 +105,7 @@ export class ChatAgentLoop {
     keepTurns: number,
     performance: ReturnType<typeof emptyPerformance>,
   ): Promise<ChatMessage[]> {
-    const promptMessages = duplicatePromptView(state.messages, state.duplicateRecovery, {
-      includeRecoveryInstruction: false,
-      includeUserDirection: false,
-    });
+    const promptMessages = cleanedDuplicateHistory(state.messages, state.duplicateRecovery);
     const compacted = await compactChatHistory(
       promptMessages,
       input.systemPrompt("session-summary"),

@@ -1,6 +1,6 @@
 # Workflows
 
-Updated: 2026-08-22
+Updated: 2026-08-28
 
 Vault Desk V1 is a general-purpose local file agent with a limited prompt-only professional review set. The skill set gives the agent focused instructions; it does not add predefined workflow state machines, domain policy in Core, or the post-V1 document-intelligence system.
 
@@ -41,7 +41,7 @@ The Word, PDF, XLSX, and review-report skills give prompt-only guest methods. Co
 
 For multi-step format work, a skill can require a guest-workspace checkpoint. The final output program must reread source facts, derive values again, compare them with the saved verified state, create each requested output, reopen it, and verify it before completion. This is a prompt method. It is not a Core format workflow.
 
-Python and Node source can be saved in the session workspace. A later path-only call runs the exact committed bytes. Only three consecutive identical calls trigger the generic change-approach stop; ordinary syntax or runtime failures remain evidence for repair.
+Python and Node source can be saved in the session workspace. A later path-only call runs the exact committed bytes. Only a third identical call triggers the generic duplicate-recovery stop; ordinary syntax or runtime failures remain evidence for repair.
 
 ## Post-V1 Workflow Specialization
 
