@@ -77,7 +77,6 @@ async function resolveExecution(
   if (request.language === "shell") return request;
   const sourcePath = AgentSourcePathSchema.safeParse(request.path);
   if (sourcePath.success) {
-    if (request.source !== undefined) throw new Error("source_mount_is_read_only");
     return { language: request.language, path: sourcePath.data, source: null };
   }
   if (request.source !== undefined) {
