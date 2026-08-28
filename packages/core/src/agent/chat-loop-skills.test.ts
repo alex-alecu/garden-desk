@@ -84,7 +84,7 @@ describe("ChatAgentLoop duplicate skill state", () => {
 });
 
 describe("ChatAgentLoop repeated loaded skills", () => {
-  it("stops repeated stale calls without removing earlier context", async () => {
+  it("treats repeated loaded skill calls as already loaded", async () => {
     const requests: Parameters<InferenceService["chat"]>[0][] = [];
     const reads: string[] = [];
     const events: string[] = [];
@@ -105,9 +105,6 @@ describe("ChatAgentLoop repeated loaded skills", () => {
 
     const result = await loop.run(
       input(unusedExecutor, ["skill"], {
-        async askQuestion() {
-          return { dismissed: true };
-        },
         onEvent: (_type, summary) => events.push(summary),
         skills: {
           metadata: documentSkills.metadata,
@@ -122,9 +119,9 @@ describe("ChatAgentLoop repeated loaded skills", () => {
     expect(result.response).toBe("Done.");
     expect(reads).toEqual(["documents-a"]);
     expect(events.filter((item) => item === "documents-a skill was already loaded.")).toHaveLength(
-      1,
+      4,
     );
-    expect(events.filter((item) => item === "Loading documents-a skill failed.")).toHaveLength(3);
+    expect(events).not.toContain("Loading documents-a skill failed.");
     expect(events).not.toContain("Backtracking to the last working step.");
   });
 });

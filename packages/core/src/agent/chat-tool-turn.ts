@@ -76,6 +76,7 @@ interface ToolResultOutcome {
 }
 
 interface PreparedToolCall {
+  alreadyLoadedSkill?: string;
   corrupt: boolean;
   decision: DuplicateCallDecision | undefined;
   evidenceCall: ChatToolCall;
@@ -139,13 +140,19 @@ function prepareToolCall(input: ToolTurnInput, call: ChatToolCall): PreparedTool
   const corrupt = containsProtocolTransition(call.params);
   const validation = corrupt ? undefined : input.registry.validate(call.name, call.params);
   const evidenceCall = validatedEvidenceCall(call, validation);
-  const decision = corrupt
-    ? undefined
-    : trackDuplicateCall(
-        input.state.duplicateRecovery,
-        validation?.status === "valid" ? evidenceCall : call,
-      );
+  const skillName = requestedSkillName(call);
+  const loaded = liveLoadedSkillNames(input.state.loadedSkills, input.state.messages);
+  const alreadyLoadedSkill =
+    skillName !== undefined && loaded.has(skillName) ? skillName : undefined;
+  const decision =
+    corrupt || alreadyLoadedSkill !== undefined
+      ? undefined
+      : trackDuplicateCall(
+          input.state.duplicateRecovery,
+          validation?.status === "valid" ? evidenceCall : call,
+        );
   return {
+    ...(alreadyLoadedSkill === undefined ? {} : { alreadyLoadedSkill }),
     corrupt,
     decision,
     evidenceCall,
@@ -158,7 +165,6 @@ async function resolvePreparedTool(
   input: ToolTurnInput,
   call: ChatToolCall,
   prepared: PreparedToolCall,
-  alreadyLoadedSkill: string | undefined,
 ): Promise<ToolResultOutcome> {
   if (prepared.corrupt) {
     return {
@@ -168,8 +174,8 @@ async function resolvePreparedTool(
       ),
     };
   }
-  if (alreadyLoadedSkill !== undefined && !prepared.decision?.blocked) {
-    return { executed: false, result: alreadyLoadedSkillResult(alreadyLoadedSkill) };
+  if (prepared.alreadyLoadedSkill !== undefined) {
+    return { executed: false, result: alreadyLoadedSkillResult(prepared.alreadyLoadedSkill) };
   }
   if (prepared.invalid !== undefined) return { executed: false, result: prepared.invalid };
   return await toolResult(input, call, prepared.decision?.blocked ?? false, prepared.validation);
@@ -180,10 +186,6 @@ async function executeToolCall(
   call: ChatToolCall,
 ): Promise<DuplicateCallOutcome> {
   const prepared = prepareToolCall(input, call);
-  const skillName = requestedSkillName(call);
-  const loaded = liveLoadedSkillNames(input.state.loadedSkills, input.state.messages);
-  const alreadyLoadedSkill =
-    skillName !== undefined && loaded.has(skillName) ? skillName : undefined;
   const hasBudget = !GUEST_TOOLS.has(call.name) || input.state.guestBudget.remaining > 0;
   beforeExecution(
     input,
@@ -191,7 +193,7 @@ async function executeToolCall(
     prepared.decision?.blocked ?? false,
     !prepared.corrupt && prepared.invalid === undefined && hasBudget,
   );
-  const completed = await resolvePreparedTool(input, call, prepared, alreadyLoadedSkill);
+  const completed = await resolvePreparedTool(input, call, prepared);
   finalizeToolCall(input, prepared.evidenceCall, completed.result);
   return completeDuplicateCall(
     input.state.duplicateRecovery,
@@ -273,7 +275,7 @@ async function executeTaskGroup(
       prepared.decision?.blocked ?? false,
       !prepared.corrupt && prepared.invalid === undefined,
     );
-    return { prepared, result: resolvePreparedTool(input, call, prepared, undefined) };
+    return { prepared, result: resolvePreparedTool(input, call, prepared) };
   });
   const outcomes: DuplicateCallOutcome[] = [];
   for (const { prepared, result } of started) {
