@@ -41,7 +41,7 @@ Successful runs expose the latest non-internal workspace files observed in execu
 
 For new runs, Core stores each exact message-history request, advertised tool schema, and returned text/tool-call payload in the immutable content-addressed store. The catalog links their hashes and request metadata to an ordered chat or compaction turn and records the accepted tool calls, response, or compaction outcome. Capture fails closed, while hidden thought segments remain transient and absent from traces.
 
-The host-native inference worker remains separately sandboxed so local acceleration is available. It serializes Core-owned history through the model's native chat wrapper and returns calls without executing handlers. The guest cannot choose a model path or connect to the inference worker directly.
+The host-native inference worker remains separately sandboxed so local acceleration is available. It serializes Core-owned history through a Vault-owned Gemma 4 chat wrapper in the model's native tool format and parses the returned call by token id without executing handlers. The guest cannot choose a model path or connect to the inference worker directly.
 
 The V1 desktop uses Tauri v2 and React under ADR 0014. Its sidebar contains a global New chat action and folder groups. A folder group shows its five most recent sessions and expands older sessions through Show more. New chat sessions accept explicit file attachments without granting a full folder. The webview receives opaque identifiers and display metadata, never unrestricted host paths or filesystem handles.
 
