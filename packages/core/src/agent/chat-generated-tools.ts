@@ -35,9 +35,7 @@ async function requestRecoveryDirection(options: GeneratedToolsInput): Promise<v
   applyDuplicateRecoveryDirection(options.state.duplicateRecovery, outcome);
 }
 
-export async function executeGeneratedTools(
-  options: GeneratedToolsInput,
-): Promise<ToolTurnOutcome> {
+export async function executeGeneratedTools(options: GeneratedToolsInput): Promise<void> {
   const { input, state, registry, recovery, generated } = options;
   input.onResponse?.(null);
   let outcome: ToolTurnOutcome;
@@ -62,5 +60,4 @@ export async function executeGeneratedTools(
   }
   await options.recoverContext(generated.performance.promptTokens);
   if (outcome.recoveryQuestionRequired) await requestRecoveryDirection(options);
-  return outcome;
 }
