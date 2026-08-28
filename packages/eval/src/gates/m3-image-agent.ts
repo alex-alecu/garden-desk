@@ -1,13 +1,13 @@
 import type { createVaultCore } from "@vault/core";
 import type { AgentRunSnapshot } from "@vault/shared";
-import { M3ProductCheckFailure } from "./m3-canonical-gate-reporting.js";
+import { M3ProductCheckFailure, pollAgentRun } from "./m3-canonical-gate-reporting.js";
 
 type Core = Awaited<ReturnType<typeof createVaultCore>>;
 
 async function awaitRun(core: Core, runId: string): Promise<AgentRunSnapshot> {
   const deadline = performance.now() + 10 * 60_000;
   while (performance.now() < deadline) {
-    const snapshot = await core.getAgentRun(runId);
+    const snapshot = await pollAgentRun(core, runId);
     if (snapshot.run.state !== "queued" && snapshot.run.state !== "running") return snapshot;
     await new Promise((accept) => setTimeout(accept, 500));
   }

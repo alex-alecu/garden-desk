@@ -1,7 +1,7 @@
 import { mkdir, readFile, rm } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { createVaultCore } from "@vault/core";
-import { requireM3ProductCheck } from "./m3-canonical-gate-reporting.js";
+import { pollAgentRun, requireM3ProductCheck } from "./m3-canonical-gate-reporting.js";
 import { requireSavedScriptRepairEvidence } from "./m3-saved-script-evidence.js";
 import {
   savedScriptRepairPrompt,
@@ -20,7 +20,7 @@ const modelRoot = join(repositoryRoot, "packages/eval/.generated/models");
 async function awaitTerminal(core: Awaited<ReturnType<typeof createVaultCore>>, runId: string) {
   const deadline = performance.now() + 10 * 60_000;
   while (performance.now() < deadline) {
-    const snapshot = await core.getAgentRun(runId);
+    const snapshot = await pollAgentRun(core, runId);
     if (snapshot.run.state !== "queued" && snapshot.run.state !== "running") return snapshot;
     await new Promise((accept) => setTimeout(accept, 350));
   }

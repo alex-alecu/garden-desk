@@ -8,6 +8,7 @@ import { prepareAgentModelStore } from "./agent-model-store.js";
 import { developmentInferenceWorkerEntryPath } from "./development-inference-path.js";
 import { macOsAgentOverlapEvidence } from "./m3-agent-process-overlap.js";
 import {
+  pollAgentRun,
   requireM3ProductCheck,
   requireM3RegularFile,
   runCanonicalGate,
@@ -61,7 +62,7 @@ async function awaitConcurrentRuns(
   const snapshots = new Map<RealLanguage, AgentRunSnapshot>();
   while (snapshots.size < runs.length && performance.now() < deadline) {
     const polled = await Promise.all(
-      runs.map(async (run) => ({ ...run, snapshot: await core.getAgentRun(run.id) })),
+      runs.map(async (run) => ({ ...run, snapshot: await pollAgentRun(core, run.id) })),
     );
     retainTerminalSnapshots(snapshots, polled);
     await new Promise((accept) => setTimeout(accept, 500));

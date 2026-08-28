@@ -203,7 +203,11 @@ export async function startCase(
 }
 
 async function pollRun(endpoint: string, runId: string): Promise<AgentRunSnapshot> {
-  return AgentRunSnapshotSchema.parse(await rpc(endpoint, "agent.get", { runId }));
+  const snapshot = AgentRunSnapshotSchema.parse(await rpc(endpoint, "agent.get", { runId }));
+  if (snapshot.question !== null) {
+    await rpc(endpoint, "agent.dismissQuestion", { runId, questionId: snapshot.question.id });
+  }
+  return snapshot;
 }
 
 interface PolledCase {

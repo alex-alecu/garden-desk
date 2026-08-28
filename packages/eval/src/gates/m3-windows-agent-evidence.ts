@@ -27,6 +27,14 @@ export function hasRunningLiveMarker(snapshot: AgentRunSnapshot, token: string):
   );
 }
 
+export function hasRunningExecution(snapshot: AgentRunSnapshot): boolean {
+  return snapshot.executions.some(
+    (item) =>
+      item.state === "running" &&
+      item.vmDiagnostics.some((diagnostic) => diagnostic.code === "process_start"),
+  );
+}
+
 export function completedEvidence(
   snapshot: AgentRunSnapshot,
   request: CompletedEvidenceRequest,
