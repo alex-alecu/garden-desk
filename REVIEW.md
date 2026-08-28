@@ -1,6 +1,17 @@
 # Code Review Instructions
 
-Vault Desk is a local, offline-first desktop agent. The model is untrusted for execution decisions; the no-network microVM and typed adapters are the only isolation. Review through the four lenses below. Each finding agent takes exactly one lens and prefixes its comment with the lens tag.
+Vault Desk is a local, offline-first desktop agent. The model is untrusted for execution decisions; the no-network microVM and typed adapters are the only isolation. Review through the four lenses below. A single agent reviews all lenses for a small or medium change. Each finding agent takes one lens for a large change.
+
+## REVIEW SIZE
+
+Measure the diff for this run: the complete PR in full mode or only the new commits in incremental mode. Count additions plus deletions and changed files. Do not count lock files (`pnpm-lock.yaml`, `package-lock.json`, and `yarn.lock`) or snapshot files under `__snapshots__/`.
+
+| Tier            | Rule                                                      | Review method                                                               |
+| --------------- | --------------------------------------------------------- | --------------------------------------------------------------------------- |
+| Small to medium | At most 400 changed lines and at most 15 changed files    | One `review-opus` agent reviews all four lenses and validates its findings. |
+| Large           | More than 400 changed lines or more than 15 changed files | One summary agent, one agent per lens, and one validator per finding.       |
+
+Select the tier one time before a lens agent starts. Both tiers use the same lenses, comment format, and summary format.
 
 # WHAT TO REVIEW
 
@@ -70,7 +81,7 @@ Vault Desk is a local, offline-first desktop agent. The model is untrusted for e
 # COMMENT FORMAT
 
 ```
-**[SEVERITY]:** `[lens]` Brief description
+**SEVERITY:** `lens` Brief description
 
 Explanation with a `file:line` citation traced through the actual call path.
 ```
@@ -89,12 +100,25 @@ For single-line fixes, use GitHub's suggestion syntax. The block replaces ONLY t
 
 ## Summary Format
 
-Start the review body with one line:
+Start every review body as follows:
 
 ```
-security X, business-logic X, performance X, clean-code X
+## Claude Code review
+
+**Status:** <status> | **Recommendation:** <recommendation>
+Tier: <single-agent or full-suite>
 ```
 
-followed by one sentence naming the highest-risk finding and its file, or `No blocking issues.` when nothing is CRITICAL.
+Use one of these status lines. `<n>` is the total number of findings.
+
+```
+**Status:** No Issues Found | **Recommendation:** Merge
+**Status:** 1 Suggestion Found | **Recommendation:** Merge
+**Status:** <n> Suggestions Found | **Recommendation:** Merge
+**Status:** 1 Issue Found | **Recommendation:** Address before merge
+**Status:** <n> Issues Found | **Recommendation:** Address before merge
+```
+
+Use the suggestion status only when all findings are SUGGESTION. Use the issue status when at least one finding is CRITICAL or WARNING. Follow the tier line with one sentence that names the highest-risk finding and its file, or `No blocking issues.` when there is no CRITICAL or WARNING finding.
 
 End the review body with `Reviewed <full head sha>`. The next run reviews only the commits after that sha.
