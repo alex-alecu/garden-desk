@@ -53,7 +53,7 @@ export async function executeGeneratedTools(options: GeneratedToolsInput): Promi
     throw error;
   }
   const duplicate = rejectedDuplicate(options);
-  options.record(duplicate ? "rejected_duplicate" : "accepted_tool_calls");
+  options.record(duplicate && !outcome.executed ? "rejected_duplicate" : "accepted_tool_calls");
   if (outcome.validInput) recovery.emptyResponsePending = false;
   if (options.finalTurn && options.state.duplicateRecovery.activeBlockedSignature !== undefined) {
     throw new Error("agent_stalled_duplicate");

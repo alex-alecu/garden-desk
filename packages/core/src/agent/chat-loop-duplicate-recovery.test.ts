@@ -4,6 +4,7 @@ import type { InferenceService } from "../runtime/inference.js";
 import { ChatAgentLoop } from "./chat-loop.js";
 import { execution, generated, input, source, tool } from "./chat-loop-test-support.js";
 import type { AgentQuestionOutcome } from "./generic-tool-support.js";
+import type { AgentTraceStore } from "./trace-store.js";
 
 type ChatRequest = Parameters<InferenceService["chat"]>[0];
 
@@ -116,5 +117,59 @@ it("stops the run when the model ignores the recovery direction", async () => {
   expect(scenario.askedAt).toEqual([5]);
   expect(userDirections(scenario.chat()[5]?.messages ?? [])).toEqual([
     expect.stringContaining("Inspect current state before another execution."),
+  ]);
+});
+
+it("records accepted tool calls when a mixed turn blocks a duplicate and executes a sibling", async () => {
+  const outcomes: string[] = [];
+  let sequence = 0;
+  const results = [
+    badCall(0),
+    badCall(1),
+    generated("", [
+      tool("python", "bad-3", { source: badSource }),
+      tool("python", "fixed", { source: fixedSource }),
+    ]),
+    generated("Recovered."),
+  ];
+  const loop = new ChatAgentLoop({
+    async chat() {
+      const result = results.shift();
+      if (result === undefined) throw new Error("Missing chat result.");
+      return result;
+    },
+  });
+
+  await loop.run(
+    input(
+      {
+        async execute(run) {
+          return execution(source(run));
+        },
+      },
+      ["python"],
+      {
+        trace: {
+          runId: "11111111-1111-4111-8111-111111111111",
+          store: {
+            async begin() {
+              sequence += 1;
+              return `turn-${sequence}`;
+            },
+            async captureResponse() {},
+            recordOutcome(_turnId: string, outcome: string) {
+              outcomes.push(outcome);
+            },
+          } as unknown as AgentTraceStore,
+        },
+      },
+    ),
+  );
+
+  expect(outcomes).toEqual([
+    "accepted_tool_calls",
+    "accepted_tool_calls",
+    "accepted_tool_calls",
+    "accepted_response",
   ]);
 });
