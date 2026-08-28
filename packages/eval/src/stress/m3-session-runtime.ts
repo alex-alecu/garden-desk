@@ -1,12 +1,12 @@
 import { request } from "@vault/cli/client";
 import {
   type AgentRunSnapshot,
-  AgentRunSnapshotSchema,
   AgentRunSummarySchema,
   type AgentTrace,
   AgentTraceSchema,
   SessionSummarySchema,
 } from "@vault/shared";
+import { pollStressRun } from "./m3-stress-run-polling.js";
 
 let rpcId = 50_000;
 
@@ -37,14 +37,6 @@ async function startRun(endpoint: string, sessionId: string, task: string, deadl
   throw new Error("Stress session remained busy after its previous terminal run.");
 }
 
-async function pollRun(endpoint: string, runId: string): Promise<AgentRunSnapshot> {
-  const snapshot = AgentRunSnapshotSchema.parse(await rpc(endpoint, "agent.get", { runId }));
-  if (snapshot.question !== null) {
-    await rpc(endpoint, "agent.dismissQuestion", { runId, questionId: snapshot.question.id });
-  }
-  return snapshot;
-}
-
 export async function runStressSessionTurn(
   endpoint: string,
   sessionId: string,
@@ -54,7 +46,7 @@ export async function runStressSessionTurn(
   const deadline = performance.now() + deadlineMs;
   const run = await startRun(endpoint, sessionId, task, deadline);
   while (performance.now() < deadline) {
-    const snapshot = await pollRun(endpoint, run.id);
+    const snapshot = await pollStressRun(endpoint, run.id, rpc);
     if (snapshot.run.state !== "queued" && snapshot.run.state !== "running") {
       return {
         snapshot,
