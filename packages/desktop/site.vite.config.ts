@@ -27,6 +27,11 @@ export default defineConfig(({ command }) => ({
     modulePreload: { polyfill: false },
     outDir: resolve(siteRoot, "dist"),
     rollupOptions: {
+      output: {
+        assetFileNames: "assets/[name][extname]",
+        chunkFileNames: "assets/[name].js",
+        entryFileNames: "assets/[name].js",
+      },
       input: {
         home: resolve(siteRoot, "index.html"),
         demo: resolve(siteRoot, "demo/index.html"),
