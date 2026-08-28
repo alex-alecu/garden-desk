@@ -4,7 +4,7 @@ Status: post-V1 follow-up design; not part of the active M3 implementation scope
 
 Created: 2026-07-10
 
-Vault Desk must produce answers, summaries, and exports that can be checked against local source documents.
+Garden Desk must produce answers, summaries, and exports that can be checked against local source documents.
 
 The retrieval and verification architecture should make correctness observable.
 
@@ -58,7 +58,7 @@ Fallback: sqlite-vec plus FTS5 (MIT/Apache dual) when a single SQLite file for a
 
 Naming, verified 2026-07-11: TurboQuant is the underlying algorithm — a Google Research online vector quantization method (arXiv 2504.19874, accepted to ICLR 2026). It is data-oblivious (random rotation plus optimal per-coordinate scalar quantization with a 1-bit residual stage), needs no codebook training or index rebuilds, and quantizes to 2 to 4 bits per coordinate with distortion near the information-theoretic lower bound. That makes it a strong fit for streaming folder ingest.
 
-Two implementations matter to Vault Desk:
+Two implementations matter to Garden Desk:
 
 - turbovec: an MIT-licensed community Rust vector index built on TurboQuant, with Python bindings only. It reports large memory savings (10M documents from 31 GB to 4 GB) and FAISS-beating filtered search. It has no Node.js bindings and is an index library, not a database.
 - Qdrant 1.18: ships TurboQuant natively, but requires a server process, which does not fit the desktop profile.
@@ -74,7 +74,7 @@ turbovec should be evaluated as an acceleration layer behind the retrieval adapt
 
 Adopt turbovec only if it beats the LanceDB baseline by enough to justify the extra process boundary. Desktop-scale corpora (thousands to hundreds of thousands of chunks) may not need TurboQuant-level compression at all.
 
-Whichever index is used, Vault Desk must keep uncompressed or reproducible embeddings for evaluation and audit. Compression accelerates retrieval; it must not become the only record of evidence.
+Whichever index is used, Garden Desk must keep uncompressed or reproducible embeddings for evaluation and audit. Compression accelerates retrieval; it must not become the only record of evidence.
 
 ## Chunking Strategy
 

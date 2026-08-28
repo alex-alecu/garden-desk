@@ -3808,7 +3808,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "vault-desk-desktop"
+name = "garden-desk-desktop"
 version = "0.0.0"
 dependencies = [
  "serde",

@@ -1,6 +1,6 @@
 # IBM Plex fonts
 
-Vault Desk self-hosts selected IBM Plex WOFF2 faces for consistent offline typography in the desktop application and public demo.
+Garden Desk self-hosts selected IBM Plex WOFF2 faces for consistent offline typography in the desktop application and public demo.
 
 - Source: <https://github.com/IBM/plex>
 - Pinned revision: `2f9ba1b25957d958db71a849e85d72e3ecfb845a`

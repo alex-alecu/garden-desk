@@ -8,13 +8,13 @@ Accepted as implementation direction
 
 ## Context
 
-Vault Desk must persist manifests, canonical documents, jobs, sessions, evidence packs, approvals, verification results, audit records, indexes, summaries, and caches. The earlier implementation plan named these stores independently without defining which records were authoritative, how writes survived crashes, how versions migrated, or how derived indexes were rebuilt.
+Garden Desk must persist manifests, canonical documents, jobs, sessions, evidence packs, approvals, verification results, audit records, indexes, summaries, and caches. The earlier implementation plan named these stores independently without defining which records were authoritative, how writes survived crashes, how versions migrated, or how derived indexes were rebuilt.
 
 Professional document work also requires predictable deletion, retention, recovery, and audit behavior. These properties cannot be added safely after multiple storage formats already exist.
 
 ## Decision
 
-Vault Desk will use one schema-versioned workspace format behind a typed `WorkspaceStore` boundary.
+Garden Desk will use one schema-versioned workspace format behind a typed `WorkspaceStore` boundary.
 
 The format has three classes of state:
 
@@ -35,7 +35,7 @@ Additional rules:
 - Orphan cleanup, cache limits, workspace deletion, and retention are explicit operations.
 - Routine audit records use hashes, identifiers, structured metadata, redacted previews, and artifact references instead of copying full sensitive inputs and outputs.
 
-For the first Community Desktop MVP, data-at-rest protection relies on the operating-system account boundary, per-user filesystem permissions, and encrypted system storage. Vault Desk must state this boundary honestly. Application-managed workspace encryption is deferred until a dedicated threat model also defines keys, recovery, backup, and migration.
+For the first Community Desktop MVP, data-at-rest protection relies on the operating-system account boundary, per-user filesystem permissions, and encrypted system storage. Garden Desk must state this boundary honestly. Application-managed workspace encryption is deferred until a dedicated threat model also defines keys, recovery, backup, and migration.
 
 ## Consequences
 

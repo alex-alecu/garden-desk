@@ -2,7 +2,7 @@
 
 Created: 2026-07-10
 
-Vault Desk should treat partnerships as a way to validate hardware, reduce operational burden, and reach customers. Partnerships should not define the product identity.
+Garden Desk should treat partnerships as a way to validate hardware, reduce operational burden, and reach customers. Partnerships should not define the product identity.
 
 ## Principles
 
@@ -11,7 +11,7 @@ Vault Desk should treat partnerships as a way to validate hardware, reduce opera
 - Keep the community platform hardware-agnostic.
 - Prefer vendor-specific certified SKUs over vendor lock-in.
 - Use partners to reduce hardware, warranty, replacement, distribution, and support friction.
-- Demonstrate that Vault Desk creates hardware demand before discussing strategic investment.
+- Demonstrate that Garden Desk creates hardware demand before discussing strategic investment.
 
 ## AMD Thesis
 
@@ -19,7 +19,7 @@ AMD may be a strong initial fit for personal computers and compact office applia
 
 Possible joint message:
 
-> Vault Desk turns AMD Agent Computers into complete private-AI products for small professional businesses.
+> Garden Desk turns AMD Agent Computers into complete private-AI products for small professional businesses.
 
 ## NVIDIA Thesis
 
@@ -27,7 +27,7 @@ NVIDIA may be strongest for premium office systems, higher throughput, and the m
 
 Possible joint message:
 
-> Vault Desk is the business application layer that turns local NVIDIA AI infrastructure into a managed private coworker for small firms.
+> Garden Desk is the business application layer that turns local NVIDIA AI infrastructure into a managed private coworker for small firms.
 
 ## OEM And System Builder Thesis
 
@@ -40,7 +40,7 @@ OEMs and specialist builders should handle:
 - Replacement.
 - Component change management.
 
-Vault Desk should own:
+Garden Desk should own:
 
 - Software.
 - Workflow quality.
@@ -56,7 +56,7 @@ Vault Desk should own:
 3. Build a measurable workflow demonstration.
 4. Run a small professional-office pilot.
 5. Request pilot hardware, co-marketing, and OEM introductions.
-6. Demonstrate hardware demand created by Vault Desk.
+6. Demonstrate hardware demand created by Garden Desk.
 7. Discuss strategic investment only after traction exists.
 
 ## Reseller Direction

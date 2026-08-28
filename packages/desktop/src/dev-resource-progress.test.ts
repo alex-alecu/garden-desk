@@ -4,16 +4,16 @@ import { developmentResourceStageMessage } from "./dev-resource-progress.js";
 describe("desktop development resource progress", () => {
   it("explains long-running offline startup stages", () => {
     expect(developmentResourceStageMessage("model")).toBe(
-      "[Vault Desk startup] Verifying the local generation model and image projector for packaging...",
+      "[Garden Desk startup] Verifying the local generation model and image projector for packaging...",
     );
     expect(developmentResourceStageMessage("visionRuntime")).toBe(
-      "[Vault Desk startup] Copying the local image inspection runtime...",
+      "[Garden Desk startup] Copying the local image inspection runtime...",
     );
     expect(developmentResourceStageMessage("manifest")).toBe(
-      "[Vault Desk startup] Hashing and recording the complete offline resource package...",
+      "[Garden Desk startup] Hashing and recording the complete offline resource package...",
     );
     expect(developmentResourceStageMessage("windowsPermissionSetup")).toBe(
-      "[Vault Desk startup] Building the one-time Windows permission helper...",
+      "[Garden Desk startup] Building the one-time Windows permission helper...",
     );
   });
 });

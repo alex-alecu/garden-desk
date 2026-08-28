@@ -116,7 +116,7 @@ impl CoreBridge {
 pub(crate) fn path_text(path: &Path) -> Result<String, String> {
     path.to_str()
         .map(str::to_owned)
-        .ok_or_else(|| "Vault Desk requires UTF-8 application paths.".to_owned())
+        .ok_or_else(|| "Garden Desk requires UTF-8 application paths.".to_owned())
 }
 
 fn remove_stale_ready_file(path: &Path) -> Result<(), String> {
@@ -241,7 +241,7 @@ fn main() {
             windows_setup::configure_secure_workspace,
         ])
         .build(tauri::generate_context!())
-        .expect("Vault Desk desktop failed");
+        .expect("Garden Desk desktop failed");
     app.run(|app, event| {
         if matches!(event, RunEvent::Exit | RunEvent::ExitRequested { .. })
             && let Some(core) = app.try_state::<CoreBridge>()

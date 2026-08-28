@@ -29,12 +29,12 @@ Accounting firms and bookkeeping teams have:
 Records reconciliation:
 
 1. User selects a folder of transaction records and a reference spreadsheet.
-2. Vault Desk extracts counterparties, record identifiers, dates, totals, tax, and line items.
-3. Vault Desk identifies duplicate records, missing fields, and inconsistent totals.
-4. Vault Desk compares extracted values to spreadsheet rows.
-5. Vault Desk creates an exception queue with citations.
+2. Garden Desk extracts counterparties, record identifiers, dates, totals, tax, and line items.
+3. Garden Desk identifies duplicate records, missing fields, and inconsistent totals.
+4. Garden Desk compares extracted values to spreadsheet rows.
+5. Garden Desk creates an exception queue with citations.
 6. User reviews and approves an export.
-7. Vault Desk produces a structured output file.
+7. Garden Desk produces a structured output file.
 
 ## Required Capabilities
 

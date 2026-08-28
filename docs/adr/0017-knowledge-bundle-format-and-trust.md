@@ -10,7 +10,7 @@ Accepted as a post-V1 direction. Platform and hostile-archive behavior remains r
 
 Knowledge Bundles must preserve immutable evidence, provenance, rights, citations, and offline update trust without becoming plugins or binding authoritative content to one retrieval engine. A future implementation must keep the logical layout readable unpacked and inspect removable-media transport inside the certified no-network microVM.
 
-No single reviewed standard covers semantic description, complete fixity, publisher authentication, rollback resistance, hostile-archive inspection, and Vault Desk citation anchors. The first implementation therefore needs a small profile with explicit ownership at each layer.
+No single reviewed standard covers semantic description, complete fixity, publisher authentication, rollback resistance, hostile-archive inspection, and Garden Desk citation anchors. The first implementation therefore needs a small profile with explicit ownership at each layer.
 
 ## Decision
 

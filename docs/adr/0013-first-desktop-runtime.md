@@ -10,7 +10,7 @@ Accepted as first certification target
 
 The product strategy calls for one supported model/runtime stack before adding alternatives. Earlier documents described MLX-family serving as the first Apple Silicon direction while the implementation plan selected node-llama-cpp and official QAT GGUF assets. Leaving both as simultaneous first choices would double packaging, memory, context, structured-output, and correctness certification before the first workflow is proven.
 
-Vault Desk also needs the same grammar-enforced structured-output and function-calling semantics on its initial Windows and macOS paths. Runtime-specific behavior must remain behind an adapter so later optimization does not change product contracts.
+Garden Desk also needs the same grammar-enforced structured-output and function-calling semantics on its initial Windows and macOS paths. Runtime-specific behavior must remain behind an adapter so later optimization does not change product contracts.
 
 ## Decision
 

@@ -35,7 +35,7 @@ describe("M3 Windows portable package", () => {
     expect(JSON.parse(configuration)).toEqual({ bundle: { active: false } });
     for (const value of [
       "windows-portable-directory",
-      "Vault Desk.exe",
+      "Garden Desk.exe",
       "vault-core.exe",
       "resource-manifest.json",
       "nativeRuntimePackages()",

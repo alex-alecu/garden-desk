@@ -19,11 +19,11 @@ export interface PackageBuildTarget {
 }
 
 function macPackageRoot(tauriRoot: string, profile: PackageProfile): string {
-  return join(tauriRoot, "target", profile, "bundle", "macos", "Vault Desk.app");
+  return join(tauriRoot, "target", profile, "bundle", "macos", "Garden Desk.app");
 }
 
 function windowsPackageRoot(tauriRoot: string): string {
-  return join(tauriRoot, "target", "release", "bundle", "windows", "Vault Desk");
+  return join(tauriRoot, "target", "release", "bundle", "windows", "Garden Desk");
 }
 
 export function packageBuildTarget(

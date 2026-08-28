@@ -20,7 +20,7 @@ describe("automatic inference hardware policy", () => {
   it("rejects an 8 GiB Mac before inference starts", () => {
     expect(resolveInferenceHardwarePolicy("auto", "darwin", 8 * GiB)).toEqual({
       supported: false,
-      message: "This Mac has 8 GB of memory. Vault Desk requires more memory to run locally.",
+      message: "This Mac has 8 GB of memory. Garden Desk requires more memory to run locally.",
     });
   });
 

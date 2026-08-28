@@ -6,13 +6,13 @@ Status: Proposed
 
 ## Context
 
-Vault Desk must work on folders with tens of large PDFs, spreadsheets, CSVs, Word documents, scanned files, and mixed professional records.
+Garden Desk must work on folders with tens of large PDFs, spreadsheets, CSVs, Word documents, scanned files, and mixed professional records.
 
 Model-only reading is not reliable or efficient enough for this workload, especially on constrained automatic memory tiers.
 
 ## Decision
 
-Vault Desk will use a deterministic document engine before model reasoning.
+Garden Desk will use a deterministic document engine before model reasoning.
 
 The engine will:
 

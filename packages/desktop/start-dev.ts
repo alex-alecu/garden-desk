@@ -15,7 +15,7 @@ if (hasWindowsStandardUserAuthority(process.platform)) {
   process.exitCode = result.status ?? 1;
 } else {
   console.error(
-    "[Vault Desk startup] Windows desktop development must run without administrator elevation.",
+    "[Garden Desk startup] Windows desktop development must run without administrator elevation.",
   );
   console.error("Close this terminal, open standard PowerShell, then run pnpm desktop:dev again.");
   process.exitCode = 1;

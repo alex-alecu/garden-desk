@@ -6,11 +6,11 @@ Status: Accepted as product direction
 
 ## Context
 
-Vault Desk targets individuals and small professional offices that handle sensitive documents. The market already contains local model launchers and generic RAG tools. Vault Desk needs a stronger promise: useful document work without mandatory cloud dependency.
+Garden Desk targets individuals and small professional offices that handle sensitive documents. The market already contains local model launchers and generic RAG tools. Garden Desk needs a stronger promise: useful document work without mandatory cloud dependency.
 
 ## Decision
 
-Vault Desk will be local and offline-first.
+Garden Desk will be local and offline-first.
 
 The product must not include application telemetry, usage analytics, automatic crash reporting, or background metrics export. Local customer-owned audit records stay on the device unless the user explicitly exports them.
 

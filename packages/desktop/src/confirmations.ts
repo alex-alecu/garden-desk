@@ -18,7 +18,7 @@ export function revokeFolderConfirmation(request: RevokeFolderConfirmation) {
   return {
     title: `Unmount “${folderName ?? "this folder"}”?`,
     description:
-      "Vault Desk will unmount this folder and remove its access grant. Files on your computer and existing conversation history are not deleted.",
+      "Garden Desk will unmount this folder and remove its access grant. Files on your computer and existing conversation history are not deleted.",
     confirmLabel: "Unmount folder",
     onConfirm: () => {
       void api

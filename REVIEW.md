@@ -1,6 +1,6 @@
 # Code Review Instructions
 
-Vault Desk is a local, offline-first desktop agent. The model is untrusted for execution decisions; the no-network microVM and typed adapters are the only isolation. Review through the four lenses below. A single agent reviews all lenses for a small or medium change. Each finding agent takes one lens for a large change.
+Garden Desk is a local, offline-first desktop agent. The model is untrusted for execution decisions; the no-network microVM and typed adapters are the only isolation. Review through the four lenses below. A single agent reviews all lenses for a small or medium change. Each finding agent takes one lens for a large change.
 
 ## REVIEW SIZE
 

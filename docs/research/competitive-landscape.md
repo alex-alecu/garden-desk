@@ -27,19 +27,19 @@ Sources: [AnythingLLM](https://github.com/Mintplex-Labs/anything-llm) ([privacy]
 
 ### AnythingLLM
 
-The nearest broad software comparison and the closest philosophical rival ("Stop renting your intelligence. Own it"). Strengths: page-numbered citations with verbatim chunk preview, mature workspace RAG, MCP agents, RBAC in Docker mode. Gaps relevant to Vault Desk: telemetry on by default (with an open bug about opt-out not fully working), no approval-gated actions, no documented audit trail, no verification pass, immature OCR, and full exposure of model/embedder/vector-DB configuration to the user.
+The nearest broad software comparison and the closest philosophical rival ("Stop renting your intelligence. Own it"). Strengths: page-numbered citations with verbatim chunk preview, mature workspace RAG, MCP agents, RBAC in Docker mode. Gaps relevant to Garden Desk: telemetry on by default (with an open bug about opt-out not fully working), no approval-gated actions, no documented audit trail, no verification pass, immature OCR, and full exposure of model/embedder/vector-DB configuration to the user.
 
 ### Open WebUI
 
-The dominant self-hosted chat UI (~145k stars) and proof that generic chat, RAG, provider selection, and multi-user interfaces are commoditized. Requires Docker and, for decent document extraction, two or three additional containers (Tika or Docling). Its April 2025 move from BSD-3 to a custom non-OSI license triggered community backlash — a cautionary lesson for Vault Desk's own license decision. A small office cannot realistically deploy it.
+The dominant self-hosted chat UI (~145k stars) and proof that generic chat, RAG, provider selection, and multi-user interfaces are commoditized. Requires Docker and, for decent document extraction, two or three additional containers (Tika or Docling). Its April 2025 move from BSD-3 to a custom non-OSI license triggered community backlash — a cautionary lesson for Garden Desk's own license decision. A small office cannot realistically deploy it.
 
 ### LM Studio
 
-The strongest model-management UX in the market: pre-download VRAM-fit estimation and automatic backend selection (MLX on Apple Silicon, CUDA/Vulkan on PC). Free for commercial use since July 2025. Not a document product: 5-file/30 MB per-chat ceiling, minimal citations, no audit. LM Studio sets the hardware-fit bar that Vault Desk's Local 12 and Local 16 profiles must match or exceed silently.
+The strongest model-management UX in the market: pre-download VRAM-fit estimation and automatic backend selection (MLX on Apple Silicon, CUDA/Vulkan on PC). Free for commercial use since July 2025. Not a document product: 5-file/30 MB per-chat ceiling, minimal citations, no audit. LM Studio sets the hardware-fit bar that Garden Desk's Local 12 and Local 16 profiles must match or exceed silently.
 
 ### Jan
 
-Apache 2.0, verifiably zero-telemetry, ~200-document practical RAG ceiling, no OCR, citations without page numbers. Its v0.8 inline MCP tool approval is a nascent version of Vault Desk's approval gating. Consumer chat framing.
+Apache 2.0, verifiably zero-telemetry, ~200-document practical RAG ceiling, no OCR, citations without page numbers. Its v0.8 inline MCP tool approval is a nascent version of Garden Desk's approval gating. Consumer chat framing.
 
 ### GPT4All
 
@@ -51,7 +51,7 @@ Closed-source, polished, non-technical-user focus, with a $349 lifetime license 
 
 ### Openwork
 
-Name is ambiguous; the relevant project is different-ai/openwork (MIT, Tauri desktop, built on the OpenCode CLI, ~17k stars). Positioned as an open-source agentic-coworker app, not a document product: no ingestion pipeline, OCR, or citations. Notable as the incumbent closest to Vault Desk's approval model: allow-once/allow-always/deny permission prompts and auditability framing, though without preview, rollback, or structured audit records. Windows support sits behind a paid plan; pre-1.0.
+Name is ambiguous; the relevant project is different-ai/openwork (MIT, Tauri desktop, built on the OpenCode CLI, ~17k stars). Positioned as an open-source agentic-coworker app, not a document product: no ingestion pipeline, OCR, or citations. Notable as the incumbent closest to Garden Desk's approval model: allow-once/allow-always/deny permission prompts and auditability framing, though without preview, rollback, or structured audit records. Windows support sits behind a paid plan; pre-1.0.
 
 ### Khoj, PrivateGPT/Zylon, Onyx, LibreChat
 
@@ -62,12 +62,12 @@ Khoj is personal-knowledge-management framing under AGPL. PrivateGPT pivoted to 
 - Hyperlink (Nexa AI): consumer-polished on-device file search with citations, NVIDIA-promoted. Closest newcomer to evidence-linked local answers; could move upmarket.
 - Morphik: open-source visual-document RAG explicitly targeting healthcare, law, and engineering precision.
 - kotaemon: open-source RAG UI with in-document citation preview — a citation-UX bar-setter.
-- Patient Protect PIPAA: a ~$2,000 pre-configured Mac Mini HIPAA-oriented local AI appliance for independent practices — direct precedent for Vault Desk Office in medical administration.
+- Patient Protect PIPAA: a ~$2,000 pre-configured Mac Mini HIPAA-oriented local AI appliance for independent practices — direct precedent for Garden Desk Office in medical administration.
 - LegalSphere-class vendors: on-premise legal LLM deployments at ~$299/user/month — the vertical space is served by services-style pricing, not owned products.
 
 ### Hardware Manufacturers
 
-AMD, NVIDIA, HP, Lenovo, Dell, and other OEMs increasingly provide capable local AI hardware. They validate the category but primarily sell hardware and developer platforms. Vault Desk should become the professional workflow and support layer that makes the hardware understandable and useful for small offices.
+AMD, NVIDIA, HP, Lenovo, Dell, and other OEMs increasingly provide capable local AI hardware. They validate the category but primarily sell hardware and developer platforms. Garden Desk should become the professional workflow and support layer that makes the hardware understandable and useful for small offices.
 
 ## Differentiation Assessment
 
@@ -91,14 +91,14 @@ Genuinely open — no incumbent combines these:
 6. Office-appliance mode across verticals (Patient Protect proves the single-vertical concept).
 7. No-AI-vocabulary UX. Every incumbent exposes embedders, vector DBs, quantization, or context windows. The closest to appliance-simple (GPT4All) is dormant.
 
-Bar-setting features Vault Desk must match:
+Bar-setting features Garden Desk must match:
 
 - Citation UX at or above AnythingLLM/kotaemon level: page and region anchors with in-document preview.
 - Hardware-fit UX at or above LM Studio level, but invisible: profiles decided for the user.
 - Document extraction at or above Docling-class layout and table quality.
 - An explicit position on MCP, which every major incumbent now speaks: adopt behind the policy layer or deliberately exclude, with rationale recorded in an ADR.
 - Multi-user RBAC as table stakes for the office appliance.
-- Scheduled recurring workflows (AnythingLLM cron agents set the expectation; monthly reconciliation is the natural Vault Desk shape).
+- Scheduled recurring workflows (AnythingLLM cron agents set the expectation; monthly reconciliation is the natural Garden Desk shape).
 - A plainly stated open-source license early; Open WebUI's license change backlash shows the cost of ambiguity.
 
 Market signals supporting the compliance-driven local thesis (research-derived): 41 percent of law firms using generative AI in 2026 (up from 28 percent), IRC section 7216 exposure for tax preparers using retaining cloud LLMs, a majority of 2025 HIPAA-AI breaches involving third-party cloud services, and the EU AI Act's August 2026 obligations driving on-premise demand.

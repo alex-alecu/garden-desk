@@ -1,10 +1,10 @@
-# Contributing To Vault Desk
+# Contributing To Garden Desk
 
-Thank you for helping build Vault Desk. Contributions must preserve the project's local-first privacy model, evidence requirements, approval boundaries, and deliberately small implementation.
+Thank you for helping build Garden Desk. Contributions must preserve the project's local-first privacy model, evidence requirements, approval boundaries, and deliberately small implementation.
 
 ## Current Contribution Status
 
-Vault Desk does not invite external implementation pull requests before its v1 launch. Beginning with M1, the repository owner develops each implementation stage on a short-lived branch and merges it through a pull request. External contributions open when v1 ships and the contribution workflow in [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) is activated.
+Garden Desk does not invite external implementation pull requests before its v1 launch. Beginning with M1, the repository owner develops each implementation stage on a short-lived branch and merges it through a pull request. External contributions open when v1 ships and the contribution workflow in [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) is activated.
 
 Until the v1 launch:
 
@@ -77,7 +77,7 @@ New or changed dependencies require a written review of:
 - Package footprint, native components, supported platforms, and supply-chain risk.
 - Fit behind the documented adapter boundary.
 
-Use official documentation, registries, source repositories, and license files. Mark behavior or suitability as research-derived until Vault Desk validates it. Do not copy substantial external text or code without preserving the required license and notice.
+Use official documentation, registries, source repositories, and license files. Mark behavior or suitability as research-derived until Garden Desk validates it. Do not copy substantial external text or code without preserving the required license and notice.
 
 Never contribute customer documents, confidential data, employer-owned work, private credentials, model files without approved redistribution status, or third-party fixtures without documented rights.
 

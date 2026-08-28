@@ -8,13 +8,13 @@ Accepted as security direction
 
 ## Context
 
-Vault Desk treats model output as untrusted, but document parsers, OCR models, inference runtimes, tool implementations, and document contents are also attack and failure surfaces. The earlier plan described supervised workers and network policy without defining a security boundary that remains effective after a worker is compromised.
+Garden Desk treats model output as untrusted, but document parsers, OCR models, inference runtimes, tool implementations, and document contents are also attack and failure surfaces. The earlier plan described supervised workers and network policy without defining a security boundary that remains effective after a worker is compromised.
 
 A package or process boundary is not a sufficient hostile-code boundary. Command matching, URL matching, destination allowlists inside a worker, and application-level requests to avoid networking are policy conveniences, not proof of network isolation. Malformed documents, decompression bombs, parser exploits, runaway generation, prompt injection inside source text, or worker compromise must not gain Vault Core permissions, reach a network, or corrupt authoritative workspace state.
 
 ## Decision
 
-The certified hostile-work boundary is a no-network microVM. Document parsing may use a disposable job-scoped VM; the V1 development agent uses a reusable session-scoped VM. Network denial is structural: the guest receives no virtual NIC, route, DNS service, bridged interface, NAT interface, or general host-network proxy. Vault Desk must not implement this guarantee by matching individual commands, executables, hostnames, URLs, IP addresses, or protocols.
+The certified hostile-work boundary is a no-network microVM. Document parsing may use a disposable job-scoped VM; the V1 development agent uses a reusable session-scoped VM. Network denial is structural: the guest receives no virtual NIC, route, DNS service, bridged interface, NAT interface, or general host-network proxy. Garden Desk must not implement this guarantee by matching individual commands, executables, hostnames, URLs, IP addresses, or protocols.
 
 The microVM exposes only a narrow host/guest socket for versioned typed IPC. That socket is not a network broker and cannot forward arbitrary destinations. Executed children receive no control-socket descriptor and an OS-enforced syscall filter denies new sockets, including VSOCK connections to other host services. Explicit attachments arrive as immutable session-owned bytes. For the offline dev agent, the selected folder is a platform-native live read-only share at `/source`, and the bounded writable `/workspace` persists only through validated content-addressed manifests. The guest root remains immutable. The VM is session-scoped, admits one execution at a time, and is discarded on eviction, revocation, deletion, Core shutdown, or containment failure.
 

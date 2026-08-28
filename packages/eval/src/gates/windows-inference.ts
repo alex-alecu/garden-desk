@@ -17,7 +17,7 @@ export interface WindowsInferencePaths {
  * desktop:build-sidecar` stages the same verified resources for headless runs.
  */
 const inferenceRoots = [
-  "packages/desktop/src-tauri/target/release/bundle/windows/Vault Desk/resources/core/inference",
+  "packages/desktop/src-tauri/target/release/bundle/windows/Garden Desk/resources/core/inference",
   "packages/desktop/src-tauri/resources/core/inference",
 ];
 export async function windowsInferencePaths(): Promise<WindowsInferencePaths> {

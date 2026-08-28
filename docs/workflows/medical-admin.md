@@ -4,7 +4,7 @@ Created: 2026-07-10
 
 Medical administration is a later full workflow target with stricter safety, privacy, and regulatory constraints.
 
-Vault Desk should avoid autonomous diagnosis, treatment recommendations, and triage.
+Garden Desk should avoid autonomous diagnosis, treatment recommendations, and triage.
 
 ## Current Skill-Only Support
 

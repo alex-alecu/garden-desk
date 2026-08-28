@@ -1,9 +1,9 @@
 ---
 name: vault-fix-bug
-description: Fix a Vault Desk bug with one reproducing test first. Use for any defect, regression, or failing behavior report; this is the only case where Vault Desk uses test-driven development.
+description: Fix a Garden Desk bug with one reproducing test first. Use for any defect, regression, or failing behavior report; this is the only case where Garden Desk uses test-driven development.
 ---
 
-# Fix A Vault Desk Bug
+# Fix A Garden Desk Bug
 
 1. Reproduce the bug. For agent-loop behavior, use the real-model reproduction in [the development workflow](../../../docs/DEVELOPMENT_WORKFLOW.md#real-model-reproduction); a fake inference run is not evidence.
 2. Write one failing test that reproduces the bug in the existing test file for the module (create a file only if none exists). Run it and confirm it fails for the expected reason.

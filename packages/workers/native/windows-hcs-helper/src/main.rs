@@ -112,5 +112,5 @@ fn main() {
 
 #[cfg(not(windows))]
 fn main() {
-    println!("The Vault Desk HCS helper is built only on Windows.");
+    println!("The Garden Desk HCS helper is built only on Windows.");
 }

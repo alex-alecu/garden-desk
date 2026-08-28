@@ -66,7 +66,7 @@ export class DemoDesktopApi implements DesktopApi {
   async getModelStatus() {
     return {
       modelId: "public-demo",
-      name: "Vault Desk demo",
+      name: "Garden Desk demo",
       state: "ready" as const,
       message: "Synthetic responses only",
       thinkingSupported: false,

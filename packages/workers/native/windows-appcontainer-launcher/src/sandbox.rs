@@ -87,7 +87,7 @@ pub(crate) struct AppContainer {
 impl AppContainer {
     pub(crate) fn open(name: &str) -> Result<Self, Box<dyn Error>> {
         let name = wide(OsStr::new(name));
-        let display = wide(OsStr::new("Vault Desk M2 Inference"));
+        let display = wide(OsStr::new("Garden Desk M2 Inference"));
         let description = wide(OsStr::new("Networkless native inference worker"));
         let mut sid = null_mut();
         let result = unsafe {

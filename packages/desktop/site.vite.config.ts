@@ -6,7 +6,7 @@ const siteRoot = resolve(import.meta.dirname, "../../site");
 
 export default defineConfig(({ command }) => ({
   appType: "mpa",
-  base: command === "serve" ? "/" : "/vault-desk/",
+  base: command === "serve" ? "/" : "/garden-desk/",
   plugins: [react()],
   resolve: {
     alias: {

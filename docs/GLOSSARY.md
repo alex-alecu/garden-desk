@@ -2,23 +2,23 @@
 
 Created: 2026-07-10
 
-This glossary defines product language for Vault Desk documentation.
+This glossary defines product language for Garden Desk documentation.
 
-## Vault Desk Community
+## Garden Desk Community
 
 The free and open-source desktop application for single-user local AI document work.
 
-## Vault Desk Personal Computer
+## Garden Desk Personal Computer
 
-A validated personal desktop, mini-PC, or later laptop that ships with Vault Desk installed, configured, tested, and supported.
+A validated personal desktop, mini-PC, or later laptop that ships with Garden Desk installed, configured, tested, and supported.
 
-## Vault Desk Office
+## Garden Desk Office
 
 A local network appliance for small professional offices, with shared workspaces, user accounts, policy controls, audit, backup, and central inference.
 
 ## Certainty
 
-The value Vault Desk sells: validated hardware, installed software, curated models, predictable performance, secure operation, support, recovery, and business controls.
+The value Garden Desk sells: validated hardware, installed software, curated models, predictable performance, secure operation, support, recovery, and business controls.
 
 ## Workflow Pack
 
@@ -46,7 +46,7 @@ A typed, versioned operation over canonical document data, such as search, filte
 
 ## No-Network MicroVM
 
-A small virtual machine started without any network interface (no NIC), route, DNS, or proxy. Its only connection to the host is one typed socket for host/guest messages (plus the read-only folder share on Windows), which is not a network path. Vault Desk runs hostile document processing and agent-authored code only inside one.
+A small virtual machine started without any network interface (no NIC), route, DNS, or proxy. Its only connection to the host is one typed socket for host/guest messages (plus the read-only folder share on Windows), which is not a network path. Garden Desk runs hostile document processing and agent-authored code only inside one.
 
 ## Code Interpreter
 

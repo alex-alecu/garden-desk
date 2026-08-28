@@ -117,17 +117,17 @@ mod windows {
     fn requester_sid_storage(pid: u32) -> Result<(OwnedHandle, Vec<usize>), Box<dyn Error>> {
         let process = OwnedHandle::open(
             unsafe { OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, 0, pid) },
-            "Opening the requesting Vault Desk process",
+            "Opening the requesting Garden Desk process",
         )?;
         let mut token = null_mut();
         if unsafe { OpenProcessToken(process.0, TOKEN_QUERY, &mut token) } == 0 {
             return Err(format!(
-                "Opening the requesting Vault Desk token failed with Windows error {}.",
+                "Opening the requesting Garden Desk token failed with Windows error {}.",
                 last_error()
             )
             .into());
         }
-        let token = OwnedHandle::open(token, "Opening the requesting Vault Desk token")?;
+        let token = OwnedHandle::open(token, "Opening the requesting Garden Desk token")?;
         let mut elevation = TokenElevation { elevated: 0 };
         let mut elevation_length = size_of::<TokenElevation>() as u32;
         if unsafe {
@@ -141,13 +141,13 @@ mod windows {
         } == 0
         {
             return Err(format!(
-                "Reading the requesting Vault Desk elevation state failed with Windows error {}.",
+                "Reading the requesting Garden Desk elevation state failed with Windows error {}.",
                 last_error()
             )
             .into());
         }
         if elevation.elevated != 0 {
-            return Err("The requesting Vault Desk process must be non-elevated.".into());
+            return Err("The requesting Garden Desk process must be non-elevated.".into());
         }
         let mut length = 0;
         unsafe {
@@ -169,7 +169,7 @@ mod windows {
         } == 0
         {
             return Err(format!(
-                "Reading the requesting Vault Desk user failed with Windows error {}.",
+                "Reading the requesting Garden Desk user failed with Windows error {}.",
                 last_error()
             )
             .into());
@@ -284,5 +284,5 @@ fn main() {
 
 #[cfg(not(windows))]
 fn main() {
-    println!("The Vault Desk Hyper-V setup helper is built only on Windows.");
+    println!("The Garden Desk Hyper-V setup helper is built only on Windows.");
 }

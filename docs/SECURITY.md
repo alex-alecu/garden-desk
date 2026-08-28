@@ -2,7 +2,7 @@
 
 Created: 2026-07-10
 
-Vault Desk must treat privacy, permissions, auditability, and reversibility as product features, not implementation details.
+Garden Desk must treat privacy, permissions, auditability, and reversibility as product features, not implementation details.
 
 ## Security Goals
 
@@ -34,9 +34,9 @@ Vault Desk must treat privacy, permissions, auditability, and reversibility as p
 
 ## Desktop Authority
 
-The Tauri desktop, Vault Core, inference process, and ordinary native helpers run as the current user on Windows and macOS. macOS requires no administrator grant. On Windows only, HCS requires membership in Administrators or Hyper-V Administrators. Vault Desk packages a fixed signed helper that elevates once, reads the requesting non-elevated desktop process token, and adds only that SID to the built-in Hyper-V Administrators group. It cannot accept an arbitrary SID, enable Hyper-V, run commands, install a service, or schedule work.
+The Tauri desktop, Vault Core, inference process, and ordinary native helpers run as the current user on Windows and macOS. macOS requires no administrator grant. On Windows only, HCS requires membership in Administrators or Hyper-V Administrators. Garden Desk packages a fixed signed helper that elevates once, reads the requesting non-elevated desktop process token, and adds only that SID to the built-in Hyper-V Administrators group. It cannot accept an arbitrary SID, enable Hyper-V, run commands, install a service, or schedule work.
 
-The helper is hash-verified and read-locked before UAC. The user receives an explicit disclosure before elevation and must sign out and back in before the new group SID enters the desktop token. Until then, Vault Desk is browse-only and the native task command rejects execution. Hyper-V Administrators is a standing account permission: every process under that Windows user can manage Hyper-V, not only Vault Desk. This is narrower than running the complete application as administrator but remains a material permission that must be visible in product and installation guidance.
+The helper is hash-verified and read-locked before UAC. The user receives an explicit disclosure before elevation and must sign out and back in before the new group SID enters the desktop token. Until then, Garden Desk is browse-only and the native task command rejects execution. Hyper-V Administrators is a standing account permission: every process under that Windows user can manage Hyper-V, not only Garden Desk. This is narrower than running the complete application as administrator but remains a material permission that must be visible in product and installation guidance.
 
 ## Agent Security Model
 
@@ -114,7 +114,7 @@ Tauri capabilities are defense in depth, not the product authorization layer. Va
 
 ## Filesystem Controls
 
-Vault Desk should enforce:
+Garden Desk should enforce:
 
 - Folder-scoped access.
 - Path traversal prevention.
@@ -173,7 +173,7 @@ Audit records should capture:
 
 Audit logs should avoid storing unnecessary sensitive content. Where possible, store hashes, references, redacted previews, and structured metadata.
 
-Audit logs are local product records, not telemetry. Vault Desk must not configure an exporter or transmit audit events, traces, timing, resource metrics, crash data, or usage data in the background. Any user-initiated export remains visible, scoped, and approval-gated.
+Audit logs are local product records, not telemetry. Garden Desk must not configure an exporter or transmit audit events, traces, timing, resource metrics, crash data, or usage data in the background. Any user-initiated export remains visible, scoped, and approval-gated.
 
 ## Business Control Layer
 

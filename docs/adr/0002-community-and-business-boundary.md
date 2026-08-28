@@ -6,13 +6,13 @@ Status: Proposed
 
 ## Context
 
-Vault Desk should build trust and distribution through a free open-source community product while generating revenue from support, hardware, governance, and business deployments.
+Garden Desk should build trust and distribution through a free open-source community product while generating revenue from support, hardware, governance, and business deployments.
 
 The community product must be useful enough to earn trust. The business product must add operational value rather than merely unlock basic function.
 
 ## Decision
 
-Vault Desk will separate the useful community application from a business control layer.
+Garden Desk will separate the useful community application from a business control layer.
 
 Community candidate modules include local desktop workflows, single-user document ingestion, local retrieval, safe folder access, basic approvals, exports, and hardware compatibility checks.
 

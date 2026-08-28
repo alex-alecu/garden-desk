@@ -27,7 +27,7 @@ export function resolveInferenceHardwarePolicy(
   if (totalMemoryBytes <= 8 * GiB) {
     return {
       supported: false,
-      message: "This Mac has 8 GB of memory. Vault Desk requires more memory to run locally.",
+      message: "This Mac has 8 GB of memory. Garden Desk requires more memory to run locally.",
     };
   }
   if (totalMemoryBytes <= 16 * GiB) {

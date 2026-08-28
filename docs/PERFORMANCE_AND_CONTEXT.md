@@ -2,7 +2,7 @@
 
 Created: 2026-07-10
 
-This document is the performance and context-management specification for the first Vault Desk implementation phase. It is planning material only and does not create implementation scaffolding.
+This document is the performance and context-management specification for the first Garden Desk implementation phase. It is planning material only and does not create implementation scaffolding.
 
 Research claims in this document are research-derived until validated on target hardware.
 
@@ -42,7 +42,7 @@ This makes the product easier to certify, easier to explain, and harder to accid
 
 ## Performance Thesis
 
-Maximum performance for Vault Desk is not maximum tokens per second.
+Maximum performance for Garden Desk is not maximum tokens per second.
 
 The V1 product benchmark is how quickly and reliably the user gets a useful, reviewable result from the offline agent over local files.
 
@@ -72,7 +72,7 @@ On macOS and Windows integrated GPUs, the worker searches the pinned runtime's C
 
 ## Memory Budget Rules
 
-Official Gemma 4 documentation lists the 12B Q4_0 load estimate at 6.7 GB before context and runtime overhead. Vault Desk applies the macOS budget, one isolated Windows dedicated device's complete memory, or the Windows integrated 8/12/16 GiB shared-pool tier. The pinned runtime uses the remainder for:
+Official Gemma 4 documentation lists the 12B Q4_0 load estimate at 6.7 GB before context and runtime overhead. Garden Desk applies the macOS budget, one isolated Windows dedicated device's complete memory, or the Windows integrated 8/12/16 GiB shared-pool tier. The pinned runtime uses the remainder for:
 
 - KV cache for prompt and generated tokens.
 - Runtime allocator overhead and graph buffers.
@@ -155,7 +155,7 @@ The model should never be the only holder of important state.
 
 ## Compaction Model
 
-Vault Desk must support long-running sessions that continue for many minutes after the first live context fills.
+Garden Desk must support long-running sessions that continue for many minutes after the first live context fills.
 
 Compaction should produce structured state, not a vague chat summary.
 

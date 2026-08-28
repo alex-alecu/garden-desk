@@ -62,24 +62,24 @@ On 2026-07-11 a full live-web revalidation pass was run across the model stack, 
 
 Official Tauri v2 sources were reviewed for the operating-system webview architecture, React/TypeScript compatibility, capability-scoped commands, external-binary sidecars, and platform distribution. These remain research-derived until M0 validates a pinned Tauri version, signed Vault Core sidecar packaging, webview behavior, and capability denial on supported Windows and macOS targets.
 
-Official OpenCode sources were reviewed as an interaction and agent-loop reference. OpenCode is not an accepted dependency. M3 starts with a minimal Vault Desk-owned guest loop under offline, no-network, typed-inference, resource, audit, cancellation, package-footprint, and result-validation gates.
+Official OpenCode sources were reviewed as an interaction and agent-loop reference. OpenCode is not an accepted dependency. M3 starts with a minimal Garden Desk-owned guest loop under offline, no-network, typed-inference, resource, audit, cancellation, package-footprint, and result-validation gates.
 
 ## 2026-07-15 Development And Contribution Workflow Review
 
-Everything Claude Code was reviewed as a development-workflow reference rather than as a product or build dependency. Vault Desk adopted the useful ideas of research before custom code, explicit verification evidence, on-demand reusable skills, findings-first review, and privacy-safe handoffs in original project-specific wording.
+Everything Claude Code was reviewed as a development-workflow reference rather than as a product or build dependency. Garden Desk adopted the useful ideas of research before custom code, explicit verification evidence, on-demand reusable skills, findings-first review, and privacy-safe handoffs in original project-specific wording.
 
-Vault Desk did not adopt ECC's package, installers, global agent configuration, Codex synchronization, Git hooks, MCP baseline, memory and autonomous-learning services, worktree orchestration, blanket coverage target, proactive delegation policy, generic application architecture, model routing, inference guidance, or runtime components. If substantial ECC material is copied later, its MIT license and required notice must be retained.
+Garden Desk did not adopt ECC's package, installers, global agent configuration, Codex synchronization, Git hooks, MCP baseline, memory and autonomous-learning services, worktree orchestration, blanket coverage target, proactive delegation policy, generic application architecture, model routing, inference guidance, or runtime components. If substantial ECC material is copied later, its MIT license and required notice must be retained.
 
 The canonical DCO text, DCO GitHub App, and GitHub commit sign-off documentation were reviewed for the M0 human-contributor authorship and enforcement workflow. The app and repository settings remain inactive until M0 selects the root license and explicitly opens implementation contributions.
 
 ## Research-Derived Claims
 
-Now verified against primary sources (2026-07-11), still requiring validation on Vault Desk's own hardware and corpora:
+Now verified against primary sources (2026-07-11), still requiring validation on Garden Desk's own hardware and corpora:
 
 - Gemma 4 licensing (Apache 2.0) and QAT checkpoint availability: verified. Memory and runtime behavior on every automatic macOS tier and representative Windows GPUs under full product load: still to benchmark.
 - Multi-Token Prediction runtime support: verified. Its memory, latency, and stability across the automatic hardware tiers, and node-llama-cpp MTP drafter support: still to validate.
 - EmbeddingGemma profile and license: verified; demoted to validated alternative by ADR 0016. Qwen3-Embedding-0.6B license (Apache 2.0), official GGUF availability, and published MTEB multilingual results: verified 2026-07-15. Retrieval quality of the default encoder on local professional corpora: still to benchmark.
-- Parser quality rankings and OCR benchmark scores: vendor and community benchmarks only; must be re-run on Vault Desk accounting and legal corpora.
+- Parser quality rankings and OCR benchmark scores: vendor and community benchmarks only; must be re-run on Garden Desk accounting and legal corpora.
 - Community tokens-per-second figures: research-derived, not lab results.
 
 Still research-derived and unverified:

@@ -1,9 +1,9 @@
 ---
 name: vault-plan-change
-description: Plan a Vault Desk change against the active milestone before editing. Use when starting non-trivial work, checking whether a request is authorized in the current phase, or deciding what stays out of scope.
+description: Plan a Garden Desk change against the active milestone before editing. Use when starting non-trivial work, checking whether a request is authorized in the current phase, or deciding what stays out of scope.
 ---
 
-# Plan A Vault Desk Change
+# Plan A Garden Desk Change
 
 1. Read the current phase and Test Rule in [AGENTS.md](../../../AGENTS.md) and the active gate in [the implementation plan](../../../docs/IMPLEMENTATION_PLAN.md).
 2. Stop if the work belongs to an inactive milestone; offer an issue, design note, or plan instead.

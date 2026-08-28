@@ -6,13 +6,13 @@ Status: Accepted, amended by [ADR 0009](0009-12-16gb-gemma-context-standard.md);
 
 ## Context
 
-The original architecture allowed broad model abstraction. That remains useful internally, but Vault Desk needs a simpler and more supportable product identity.
+The original architecture allowed broad model abstraction. That remains useful internally, but Garden Desk needs a simpler and more supportable product identity.
 
 The current product focus is Gemma 4 12B QAT across the automatic hardware-derived memory tiers, with Qwen3-Embedding-0.6B for retrieval and Gemma-family tool and safety capabilities where validated.
 
 ## Decision
 
-Vault Desk will standardize its first certified architecture around the Gemma family.
+Garden Desk will standardize its first certified architecture around the Gemma family.
 
 The first product profile is:
 

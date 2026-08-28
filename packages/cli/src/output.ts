@@ -3,7 +3,7 @@ export function writeResult(value: unknown, json: boolean): void {
     process.stdout.write(`${JSON.stringify(value)}\n`);
     return;
   }
-  process.stdout.write("Vault Desk daemon is healthy.\n");
+  process.stdout.write("Garden Desk daemon is healthy.\n");
 }
 
 export function writeError(message: string): void {

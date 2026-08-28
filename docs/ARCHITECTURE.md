@@ -2,7 +2,7 @@
 
 Updated: 2026-08-22
 
-Vault Desk V1 is a local desktop application with three isolated layers: a thin Tauri interface, an authoritative Node.js control plane, and session-scoped no-network agent microVMs plus a narrow host-native inference worker.
+Garden Desk V1 is a local desktop application with three isolated layers: a thin Tauri interface, an authoritative Node.js control plane, and session-scoped no-network agent microVMs plus a narrow host-native inference worker.
 
 ## System Shape
 
@@ -82,7 +82,7 @@ Vault Core owns the loop; the guest owns execution.
 7. Core records observable activity, validates and commits the workspace manifest, and retains the guest in a least-recently-used warm pool bounded by total RAM, the inference cap, a host reserve, and the fixed guest limit.
 8. On successful finalization, Core commits the assistant response and valid observed deliverables in one logical completion flow. `artifacts.materialize` creates a verified owner-only temporary copy. `artifacts.export` performs an atomic host write chosen through the native dialog; the webview never receives the destination path.
 
-OpenCode informs the persistent conversation, generic tool, sub-agent, and compaction design but is not a runtime dependency. Vault Desk implements those behaviors within its existing no-network execution and audit boundaries.
+OpenCode informs the persistent conversation, generic tool, sub-agent, and compaction design but is not a runtime dependency. Garden Desk implements those behaviors within its existing no-network execution and audit boundaries.
 
 ## Inference Worker
 

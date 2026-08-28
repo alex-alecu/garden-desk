@@ -2,11 +2,11 @@
 
 Created: 2026-07-10
 
-Vault Desk is a private AI coworker for local folders and files. It should help individuals and small offices complete useful work while keeping source material and executable agent work on their own computer.
+Garden Desk is a private AI coworker for local folders and files. It should help individuals and small offices complete useful work while keeping source material and executable agent work on their own computer.
 
 ## Core Thesis
 
-The community software is free. Vault Desk sells certainty.
+The community software is free. Garden Desk sells certainty.
 
 Certainty includes:
 
@@ -19,7 +19,7 @@ Certainty includes:
 - Business controls for several employees.
 - Backup, recovery, and accountable support.
 
-Vault Desk is not primarily a model launcher, a RAG configuration surface, or an unrestricted host-side coding environment.
+Garden Desk is not primarily a model launcher, a RAG configuration surface, or an unrestricted host-side coding environment.
 
 ## Problem
 
@@ -37,7 +37,7 @@ These decisions are acceptable for developers and enthusiasts. They are not acce
 
 ## Product Formats
 
-### Vault Desk Community
+### Garden Desk Community
 
 A free and open-source desktop application for people using their own hardware.
 
@@ -57,14 +57,14 @@ Expected characteristics:
 
 The community version must be genuinely useful. It should not be a restricted demo.
 
-### Vault Desk Personal Computer
+### Garden Desk Personal Computer
 
-A normal desktop, mini-PC, or later laptop that can replace a customer's existing computer while running Vault Desk well.
+A normal desktop, mini-PC, or later laptop that can replace a customer's existing computer while running Garden Desk well.
 
 It should:
 
 - Run ordinary Windows applications.
-- Include Vault Desk and validated models.
+- Include Garden Desk and validated models.
 - Arrive encrypted, configured, tested, and recoverable.
 - Provide defined performance guarantees.
 - Require no runtime configuration. A single-model system shows its validated model as static text; a multi-model system exposes only installed approved choices.
@@ -72,9 +72,9 @@ It should:
 
 Initial hardware should focus on desktops and mini-PCs. Laptops add warranty, keyboard layout, battery, thermal, and component variation complexity.
 
-### Vault Desk Office
+### Garden Desk Office
 
-A dedicated local appliance for small companies. Employees keep using existing Windows or Mac computers and access Vault Desk through a browser or lightweight client.
+A dedicated local appliance for small companies. Employees keep using existing Windows or Mac computers and access Garden Desk through a browser or lightweight client.
 
 Expected capabilities:
 
@@ -144,7 +144,7 @@ Every destructive or consequential action should support:
 
 ### Verifiable Privacy
 
-Vault Desk should provide stronger guarantees than "local by default":
+Garden Desk should provide stronger guarantees than "local by default":
 
 - No mandatory cloud dependency.
 - No silent cloud fallback.
@@ -158,7 +158,7 @@ Vault Desk should provide stronger guarantees than "local by default":
 
 ### Offline Knowledge
 
-Vault Desk should support passive Knowledge Bundles for domain reference material. A bundle carries immutable sources, provenance, rights, applicability metadata, and optional rebuildable retrieval accelerators. It remains separate from Workflow Packs: installed reference content can inform an answer but cannot add tools, prompts, approvals, or execution authority.
+Garden Desk should support passive Knowledge Bundles for domain reference material. A bundle carries immutable sources, provenance, rights, applicability metadata, and optional rebuildable retrieval accelerators. It remains separate from Workflow Packs: installed reference content can inform an answer but cannot add tools, prompts, approvals, or execution authority.
 
 Users should see understandable library concepts such as domain, jurisdiction, edition, effective period, publisher, and update status. They should not need to manage embeddings or vector databases. See [KNOWLEDGE_BUNDLES.md](KNOWLEDGE_BUNDLES.md).
 

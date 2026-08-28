@@ -178,5 +178,5 @@ export function developmentResourceContract(
   if (platform === "darwin" && architecture === "arm64") {
     return macContract(desktopRoot, repositoryRoot, resourcesRoot);
   }
-  throw new Error("Unsupported Vault Desk desktop development target.");
+  throw new Error("Unsupported Garden Desk desktop development target.");
 }

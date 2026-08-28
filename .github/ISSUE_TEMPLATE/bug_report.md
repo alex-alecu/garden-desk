@@ -1,6 +1,6 @@
 ---
 name: Bug report
-about: Report a reproducible Vault Desk defect without sensitive data
+about: Report a reproducible Garden Desk defect without sensitive data
 title: "bug: "
 labels: bug
 assignees: ""
@@ -23,7 +23,7 @@ assignees: ""
 
 ## Environment
 
-- Vault Desk version or commit:
+- Garden Desk version or commit:
 - Operating system and version:
 - Hardware profile, when relevant:
 - Active milestone, for development builds:

@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://alex-alecu.github.io/vault-desk/sitemap.xml
+Sitemap: https://alex-alecu.github.io/garden-desk/sitemap.xml

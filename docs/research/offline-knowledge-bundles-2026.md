@@ -2,13 +2,13 @@
 
 Created: 2026-07-12
 
-This document reviews current standards and practices relevant to distributing professional reference libraries that Vault Desk can install and use without internet access.
+This document reviews current standards and practices relevant to distributing professional reference libraries that Garden Desk can install and use without internet access.
 
 Claims are research-derived until validated through M0 prototypes, legal review, production corpora, and subject-matter review.
 
 ## Research Question
 
-What should Vault Desk store and distribute so a domain library is:
+What should Garden Desk store and distribute so a domain library is:
 
 - Fully usable offline.
 - Verifiable and safely updateable.
@@ -29,7 +29,7 @@ The best fit is a small profile assembled from mature boundaries:
 - SPDX Dataset metadata for rights and inventory where useful.
 - TUF for publisher trust, delegated update roles, rollback resistance, and offline update metadata.
 - Optional Sigstore bundles for release attestations that can be verified offline.
-- Vault Desk's own canonical document and citation contracts for local evidence use.
+- Garden Desk's own canonical document and citation contracts for local evidence use.
 
 This is preferable to adopting a vector database, archive format, model package, or container registry layout as the whole knowledge format.
 
@@ -41,7 +41,7 @@ This is preferable to adopting a vector database, archive format, model package,
 
 The 1.3 release is a small, backwards-compatible update from 1.2, chiefly updating workflow vocabulary URIs and the Schema.org context. Its profile mechanism is a good match for accounting, legal, medical-administration, and jurisdiction-specific additions.
 
-Fit for Vault Desk:
+Fit for Garden Desk:
 
 - Strong semantic and provenance baseline.
 - Designed to describe files and related entities rather than dictate a database.
@@ -53,13 +53,13 @@ Limits:
 - Does not by itself authenticate a publisher.
 - Does not provide secure update or rollback protection.
 - Does not require a complete cryptographic inventory of every byte in the package.
-- JSON-LD processing can add implementation complexity; Vault Desk should use a constrained profile and ordinary validation rather than require a graph database.
+- JSON-LD processing can add implementation complexity; Garden Desk should use a constrained profile and ordinary validation rather than require a graph database.
 
 ### BagIt 1.0
 
 [RFC 8493](https://datatracker.ietf.org/doc/html/rfc8493) defines a simple directory package containing opaque payload files and complete checksum manifests. A bag is complete only when required elements and all listed payloads exist; it is valid only when every checksum verifies. Implementations must support SHA-256 and SHA-512, and the RFC recommends SHA-512 by default for new bags.
 
-Fit for Vault Desk:
+Fit for Garden Desk:
 
 - Mature, simple, transport-independent fixity convention.
 - Complete payload enumeration detects missing and altered files.
@@ -76,10 +76,10 @@ Limits:
 
 [SPDX 3.0.1](https://spdx.github.io/spdx-spec/v3.0.1/scope/) covers software, AI models, datasets, provenance, integrity, licenses, copyright, suppliers, and relationships. Its [Dataset Profile](https://spdx.github.io/spdx-spec/v3.0.1/model/Dataset/Dataset/) requires declared and concluded license relationships for conforming dataset packages and provides fields for intended use, availability, preprocessing, sensitive personal information, suppliers, and integrity.
 
-Fit for Vault Desk:
+Fit for Garden Desk:
 
 - Avoids inventing license identifiers and dataset inventory semantics.
-- Can record both what a publisher declares and what Vault Desk concludes after review.
+- Can record both what a publisher declares and what Garden Desk concludes after review.
 - Supports attribution, supplier, integrity, and intended-use information.
 
 Limits:
@@ -93,7 +93,7 @@ Limits:
 
 The [W3C Selectors and States model](https://www.w3.org/TR/selectors-states/) defines text-position and text-quote selectors. Position selectors are compact but brittle after edits. Quote selectors preserve exact text plus optional prefix and suffix context. Using both alongside page, region, table, and cell anchors improves citation recovery without making web annotation machinery a runtime dependency.
 
-Fit for Vault Desk:
+Fit for Garden Desk:
 
 - Provides established names for derivation and source relationships.
 - Reinforces redundant, representation-aware citation anchors.
@@ -106,7 +106,7 @@ Limit:
 
 [TUF metadata](https://theupdateframework.io/docs/metadata/) assigns separate root, targets, snapshot, and timestamp roles. Target metadata binds files to hashes and sizes; snapshot metadata prevents inconsistent mixtures of repository versions; version and expiration checks address rollback and freeze attacks. Offline root keys and role separation reduce the damage from an online-key compromise.
 
-Fit for Vault Desk:
+Fit for Garden Desk:
 
 - Directly addresses bundle update trust rather than only file integrity.
 - Delegations can separate publishers, domains, jurisdictions, and organization-local repositories.
@@ -123,7 +123,7 @@ Limits and operational cautions:
 
 The current [Sigstore bundle format](https://docs.sigstore.dev/about/bundle/) contains signature verification material and may include transparency-log entries and RFC 3161 timestamps. Current Cosign documentation states that the newer bundle format supports offline verification and keeps signature, certificate, timestamps, and attestations together.
 
-Fit for Vault Desk:
+Fit for Garden Desk:
 
 - Useful optional build and release provenance.
 - Offline verification material can travel with an air-gapped artifact.
@@ -152,9 +152,9 @@ Why it is not the recommended user-facing bundle format yet:
 
 - Its manifest and layer semantics remain container-shaped.
 - It does not describe domain validity, evidence anchors, rights, or retrieval compatibility without a custom artifact profile.
-- Adopting OCI distribution tooling would add operational surface before Vault Desk needs a network registry.
+- Adopting OCI distribution tooling would add operational surface before Garden Desk needs a network registry.
 
-Vault Desk should borrow content-descriptor and immutable-object semantics. M0 may still select OCI layout as an internal or publisher-side transport if it demonstrably removes more code than it adds.
+Garden Desk should borrow content-descriptor and immutable-object semantics. M0 may still select OCI layout as an internal or publisher-side transport if it demonstrably removes more code than it adds.
 
 ### Frictionless Data Package
 
@@ -170,7 +170,7 @@ It may remain an import/export format for individual tabular resources inside a 
 
 ## Storage Alternatives
 
-| Alternative | Strength | Failure for Vault Desk |
+| Alternative | Strength | Failure for Garden Desk |
 |---|---|---|
 | Raw folder or archive | Simple to author | No stable identity, completeness, provenance, rights contract, update safety, or compatibility declaration |
 | SQLite database | Portable single file and excellent local queries | Encourages mixing source, mutable state, and derived index; poor content deduplication across bundles; schema and writer coupling |
@@ -194,7 +194,7 @@ Therefore:
 - Summaries should retain source citations and model/prompt provenance.
 - Bundle activation should not depend on a proprietary vector database format.
 
-This matches Vault Desk's existing rule that LanceDB, embeddings, summaries, and caches are derived state, while authoritative records and immutable artifacts remain sufficient for rebuild and replay.
+This matches Garden Desk's existing rule that LanceDB, embeddings, summaries, and caches are derived state, while authoritative records and immutable artifacts remain sufficient for rebuild and replay.
 
 ## Domain Composition Findings
 
@@ -226,7 +226,7 @@ The primary commercial risk is likely content rights, not file format. Statutes,
 
 Best practice is resource-level rights provenance and a concluded redistribution decision. `Publicly accessible`, `open data`, `public domain`, and `commercially redistributable` are not interchangeable labels.
 
-When redistribution is prohibited but local use is lawful, Vault Desk can provide a tool for a user or administrator to build a private bundle from their own licensed materials without uploading them. That locally created bundle must retain the same provenance, trust status, and passive-content boundaries.
+When redistribution is prohibited but local use is lawful, Garden Desk can provide a tool for a user or administrator to build a private bundle from their own licensed materials without uploading them. That locally created bundle must retain the same provenance, trust status, and passive-content boundaries.
 
 ## Recommended First Prototype
 
@@ -241,7 +241,7 @@ Prototype one small accounting bundle before designing a universal catalog:
 - TUF-protected offline repository snapshot.
 - No shipped vector index in the baseline.
 - Local hybrid-index rebuild.
-- A public conformance set and a separate held-out Vault Desk acceptance set.
+- A public conformance set and a separate held-out Garden Desk acceptance set.
 - Historical-date, supersession, conflict, unsupported-answer, and prompt-injection cases.
 
 Measure import time, installed size, deduplication, rebuild time, retrieval recall, citation precision, update/rollback behavior, and Local 12 memory impact before expanding to a second domain.

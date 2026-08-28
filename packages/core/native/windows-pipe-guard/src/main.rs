@@ -45,5 +45,5 @@ fn main() {
 
 #[cfg(not(windows))]
 fn main() {
-    println!("The Vault Desk pipe guard is built only on Windows.");
+    println!("The Garden Desk pipe guard is built only on Windows.");
 }

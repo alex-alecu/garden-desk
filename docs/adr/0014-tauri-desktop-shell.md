@@ -8,13 +8,13 @@ Accepted; supersedes the Electron portion of [ADR 0010](0010-electron-and-local-
 
 ## Context
 
-Vault Desk needs a small Windows and macOS desktop shell around an independently testable local backend. Electron was selected previously, but the product does not need a Node-enabled renderer or an embedded Chromium runtime. It benefits more from the operating-system webview, a narrow capability surface, smaller packaged shell overhead, and explicit Rust-side command boundaries.
+Garden Desk needs a small Windows and macOS desktop shell around an independently testable local backend. Electron was selected previously, but the product does not need a Node-enabled renderer or an embedded Chromium runtime. It benefits more from the operating-system webview, a narrow capability surface, smaller packaged shell overhead, and explicit Rust-side command boundaries.
 
 Tauri v2 supports a React/TypeScript web frontend, Rust commands, capability-scoped permissions, platform installers, and bundled external binaries. These are research-derived claims verified from the official Tauri documentation on 2026-07-13 and must be validated against pinned versions during M0.
 
 ## Decision
 
-Vault Desk Community Desktop will use Tauri v2 with a React and TypeScript frontend.
+Garden Desk Community Desktop will use Tauri v2 with a React and TypeScript frontend.
 
 The Tauri Rust host is a thin desktop adapter. It owns only window lifecycle, native dialogs, capability-scoped operating-system integration, secure startup and supervision of the packaged Vault Core sidecar, and connection bootstrap. It must not duplicate sessions, workflows, policy, retrieval, verification, approvals, audit, model routing, or workspace persistence.
 

@@ -11,7 +11,7 @@ Updated: 2026-07-28
 - License and redistribution: MIT OR Apache-2.0 with both license texts present in the pinned crate source.
 - Offline, telemetry, network, and credential behavior: deterministic in-process hashing only; no network, telemetry, credential, filesystem-discovery, or process behavior.
 - Footprint, native code, and platforms: no new resolved package; the default implementation is portable Rust and reuses the already locked `digest`, `cfg-if`, and `cpufeatures` dependencies.
-- Security and maintenance: RustCrypto is the existing Tauri dependency source for SHA-256. Vault Desk uses only streaming SHA-256 and keeps package policy in the desktop host.
+- Security and maintenance: RustCrypto is the existing Tauri dependency source for SHA-256. Garden Desk uses only streaming SHA-256 and keeps package policy in the desktop host.
 - Adapter fit: build-time hashes are embedded in the signed application; runtime hashing occurs before the fixed sidecar and sensitive helpers launch, and locked read handles prevent replacement until shutdown. The Windows setup helper receives the same verification and lock before its isolated UAC launch; the desktop and Core remain non-elevated.
 - Research-derived claims to validate: the final Windows package must rerun tamper rejection and normal launch with the release build.
 - Decision: **adopt** for the M3 Windows package integrity boundary.

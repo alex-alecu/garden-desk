@@ -12,5 +12,5 @@ export function nativeRuntimePackages(
       "@node-llama-cpp/win-x64-vulkan",
     ];
   }
-  throw new Error("Unsupported Vault Desk inference runtime target.");
+  throw new Error("Unsupported Garden Desk inference runtime target.");
 }

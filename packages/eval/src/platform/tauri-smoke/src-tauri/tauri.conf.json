@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Vault Desk M0 Capability Smoke",
+  "productName": "Garden Desk M0 Capability Smoke",
   "version": "0.0.0",
   "identifier": "dev.vaultdesk.m0-capability-smoke",
   "build": {
@@ -11,7 +11,7 @@
     "windows": [
       {
         "label": "main",
-        "title": "Vault Desk M0 Capability Smoke",
+        "title": "Garden Desk M0 Capability Smoke",
         "width": 560,
         "height": 280,
         "resizable": false

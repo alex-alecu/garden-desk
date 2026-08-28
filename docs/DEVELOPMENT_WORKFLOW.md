@@ -2,7 +2,7 @@
 
 Created: 2026-07-15
 
-This is the implementation and contribution workflow for Vault Desk. [AGENTS.md](../AGENTS.md) is authoritative, followed by accepted ADRs, [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md), and this document. M3 Offline Dev-Agent Desktop V1 is active; see [M3_STATUS.md](M3_STATUS.md) for current evidence.
+This is the implementation and contribution workflow for Garden Desk. [AGENTS.md](../AGENTS.md) is authoritative, followed by accepted ADRs, [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md), and this document. M3 Offline Dev-Agent Desktop V1 is active; see [M3_STATUS.md](M3_STATUS.md) for current evidence.
 
 ## Operating Principles
 
@@ -92,7 +92,7 @@ The skills under [.agents/skills](../.agents/skills) package this workflow for C
 
 ## Attribution
 
-The workflow review was informed by [Everything Claude Code](https://github.com/affaan-m/ECC) (research-before-code, explicit verification, reusable skills, review, and handoff). Vault Desk uses original wording and does not include ECC's package, installers, hooks, MCP baseline, memory database, autonomous learning, worktree services, coverage rules, model routing, or runtime components. If substantial ECC material is ever copied, its MIT license and notice must accompany it.
+The workflow review was informed by [Everything Claude Code](https://github.com/affaan-m/ECC) (research-before-code, explicit verification, reusable skills, review, and handoff). Garden Desk uses original wording and does not include ECC's package, installers, hooks, MCP baseline, memory database, autonomous learning, worktree services, coverage rules, model routing, or runtime components. If substantial ECC material is ever copied, its MIT license and notice must accompany it.
 
 ## Contribution Activation
 

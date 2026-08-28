@@ -10,13 +10,13 @@ The Electron shell decision is superseded by [ADR 0014](0014-tauri-desktop-shell
 
 ## Context
 
-Vault Desk needs a Windows and macOS desktop shell while keeping privileged orchestration outside the renderer. The implementation plan previously selected Electron while the architecture document still treated the shell as open, and it deferred Windows named-pipe support even though Windows is an initial product target.
+Garden Desk needs a Windows and macOS desktop shell while keeping privileged orchestration outside the renderer. The implementation plan previously selected Electron while the architecture document still treated the shell as open, and it deferred Windows named-pipe support even though Windows is an initial product target.
 
 Deferring the real process transport would allow most backend work to be tested only through an in-process API. That would postpone serialization, lifecycle, permissions, reconnect, streaming, and platform failures until the desktop milestone.
 
 ## Decision
 
-Vault Desk will use Electron with React and TypeScript for the first Community Desktop implementation.
+Garden Desk will use Electron with React and TypeScript for the first Community Desktop implementation.
 
 The Electron renderer has context isolation enabled and Node integration disabled. The preload exposes only a narrow, schema-validated IPC facade. The Electron main process is a client of Vault Core and does not duplicate product workflows or privileged business logic.
 

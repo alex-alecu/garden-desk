@@ -14,7 +14,7 @@ A general coding agent can solve some long-tail tasks by generating a short prog
 
 ## Decision
 
-Vault Desk uses a hybrid execution architecture.
+Garden Desk uses a hybrid execution architecture.
 
 The primary path is deterministic and product-owned:
 
@@ -38,7 +38,7 @@ The secondary path is a bounded code-interpreter worker for unsupported or novel
 
 The code interpreter is a fallback chosen by policy after deterministic capabilities are considered. It is not exposed as an unrestricted terminal, generic development environment, or product backend.
 
-OpenCode may be evaluated as a reference implementation for the guest-side agent loop because it can generate and execute code. It is not an accepted runtime dependency. Adoption requires evidence that it reduces maintained code while preserving the no-network boundary, typed model proxy, pinned offline environment, cancellation, audit, deterministic result contract, and packaged footprint. A smaller Vault Desk-owned loop is the default if OpenCode fails any gate.
+OpenCode may be evaluated as a reference implementation for the guest-side agent loop because it can generate and execute code. It is not an accepted runtime dependency. Adoption requires evidence that it reduces maintained code while preserving the no-network boundary, typed model proxy, pinned offline environment, cancellation, audit, deterministic result contract, and packaged footprint. A smaller Garden Desk-owned loop is the default if OpenCode fails any gate.
 
 ## Consequences
 

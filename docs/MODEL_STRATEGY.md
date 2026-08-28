@@ -2,7 +2,7 @@
 
 Created: 2026-07-10
 
-Vault Desk's product contracts are model-agnostic, with per-model certification and strong defaults, per [ADR 0016](adr/0016-model-agnostic-defaults-and-managed-downloads.md). Gemma 4 12B QAT is the default and first certified generation model. The first product should vary active context before it varies model, model size, retrieval policy, verification policy, or workflow eligibility.
+Garden Desk's product contracts are model-agnostic, with per-model certification and strong defaults, per [ADR 0016](adr/0016-model-agnostic-defaults-and-managed-downloads.md). Gemma 4 12B QAT is the default and first certified generation model. The first product should vary active context before it varies model, model size, retrieval policy, verification policy, or workflow eligibility.
 
 ## Current Recommendation
 
@@ -36,9 +36,9 @@ The first cross-platform desktop uses node-llama-cpp for resident chat generatio
 | Windows integrated GPU, more than 32 GiB installed RAM | Up to 16 GiB shared pool | 128K | Gemma 4 12B QAT (default) | Use the highest fixed tier within isolated capacity |
 | Retrieval | Separate bounded reservation | 32K | Qwen3-Embedding-0.6B | Dense retrieval and semantic search over local document corpora |
 
-Google's current Gemma 4 documentation lists approximate Q4_0 inference-load memory of 6.7 GB for 12B, 14.4 GB for 26B A4B, and 17.5 GB for 31B. Those numbers are model-load estimates, not whole-product budgets. Vault Desk still needs room for KV cache, runtime overhead, embeddings, document parsers, OCR, indexes, UI, and operating-system memory.
+Google's current Gemma 4 documentation lists approximate Q4_0 inference-load memory of 6.7 GB for 12B, 14.4 GB for 26B A4B, and 17.5 GB for 31B. Those numbers are model-load estimates, not whole-product budgets. Garden Desk still needs room for KV cache, runtime overhead, embeddings, document parsers, OCR, indexes, UI, and operating-system memory.
 
-Gemma 4's medium models support up to 256K context according to the current docs, but Vault Desk does not expose that trained maximum. The product caps automatic allocation at 64K or 128K according to hardware. Gemma 4's hybrid attention (interleaved local sliding-window plus global) keeps KV-cache growth sublinear at long context, which strengthens the hardware-derived budget strategy but is still research-derived until measured under full product load.
+Gemma 4's medium models support up to 256K context according to the current docs, but Garden Desk does not expose that trained maximum. The product caps automatic allocation at 64K or 128K according to hardware. Gemma 4's hybrid attention (interleaved local sliding-window plus global) keeps KV-cache growth sublinear at long context, which strengthens the hardware-derived budget strategy but is still research-derived until measured under full product load.
 
 Licensing (verified 2026-07-15): Gemma 4 is Apache 2.0 and Qwen3-Embedding-0.6B is Apache 2.0, so the default shipped stack is fully Apache 2.0. EmbeddingGemma remains under the Gemma Terms of Use; that burden is why it is no longer the default encoder (ADR 0016).
 
@@ -65,7 +65,7 @@ Notes:
 - The 12B multimodal projector and the hash-pinned llama.cpp b9842 image runtime are M3 package assets. The E2B projector remains development-only.
 - A digest mismatch on fetch is a hard failure: the upstream file changed and the pin must be re-reviewed deliberately, never auto-updated.
 
-Vault Desk does not mirror or rehost model weights during development. GitHub is unsuitable regardless of preference: release assets cap at 2 GiB and Git LFS at 2-5 GB per file, below the 12B GGUF. The official repositories also keep provenance verifiable: the fetcher pins the upstream SHA-256 per file, so a silent upstream change fails the fetch instead of entering the cache. The same official repositories later serve as the allowlisted sources for the ADR 0016 model-download build, behind the typed broker and signed catalog.
+Garden Desk does not mirror or rehost model weights during development. GitHub is unsuitable regardless of preference: release assets cap at 2 GiB and Git LFS at 2-5 GB per file, below the 12B GGUF. The official repositories also keep provenance verifiable: the fetcher pins the upstream SHA-256 per file, so a silent upstream change fails the fetch instead of entering the cache. The same official repositories later serve as the allowlisted sources for the ADR 0016 model-download build, behind the typed broker and signed catalog.
 
 See [PERFORMANCE_AND_CONTEXT.md](PERFORMANCE_AND_CONTEXT.md) and [adr/0009-12-16gb-gemma-context-standard.md](adr/0009-12-16gb-gemma-context-standard.md).
 
@@ -111,13 +111,13 @@ Recommended retrieval shape:
 - Embed title, heading, page, table, row, and paragraph-aware chunks.
 - Use Qwen3-Embedding-0.6B dense vectors.
 - Start with 768-dimensional embeddings for quality (the encoder supports 32 to 1024 output dimensions).
-- Evaluate dimension reductions from 768 toward 128 only after recall tests on Vault Desk corpora.
+- Evaluate dimension reductions from 768 toward 128 only after recall tests on Garden Desk corpora.
 - Size chunks by retrieval quality tests, not by the encoder's 32K input maximum; structure-aware chunks in the sub-2K range remain the starting point.
 - Pair dense retrieval with lexical BM25 search.
 - Use metadata filters for workspace, file type, date, page, sheet, table, and permission scope.
 - Use vector compression only as an acceleration layer, not as the sole evidence store.
 
-Qwen3-Embedding retrieval quality on Vault Desk corpora is research-derived until the post-V1 document-intelligence gate measures it.
+Qwen3-Embedding retrieval quality on Garden Desk corpora is research-derived until the post-V1 document-intelligence gate measures it.
 
 See [RETRIEVAL_AND_VERIFICATION.md](RETRIEVAL_AND_VERIFICATION.md).
 
@@ -125,7 +125,7 @@ See [RETRIEVAL_AND_VERIFICATION.md](RETRIEVAL_AND_VERIFICATION.md).
 
 DiffusionGemma is relevant because diffusion language models can generate text by iterative denoising rather than left-to-right token prediction and may improve latency for some generation workloads.
 
-For Vault Desk, it should be treated as:
+For Garden Desk, it should be treated as:
 
 - An experimental fast-draft model.
 - A possible local autocomplete or first-pass summarization model.
@@ -137,7 +137,7 @@ Correctness workflows should remain anchored on Gemma 4 QAT profiles until Diffu
 
 Gemma 4 Multi-Token Prediction is a first-party feature: each Gemma 4 size ships a paired lightweight drafter model, and draft-and-verify decoding produces output identical to standard decoding. Runtime support was verified on 2026-07-11: llama.cpp merged Gemma 4 MTP on 2026-06-07 (roughly 1.4x to 2.2x decode speedup for dense models), vLLM supports all variants, and Ollama supports it on the MLX backend.
 
-For Vault Desk, MTP should be treated as:
+For Garden Desk, MTP should be treated as:
 
 - An optional decode-speed optimization.
 - Not required for correctness (draft-and-verify output is provably identical, so the risk is memory and stability, not answer quality).
