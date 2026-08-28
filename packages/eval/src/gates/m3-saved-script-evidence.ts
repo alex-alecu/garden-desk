@@ -26,6 +26,11 @@ function matchesScript(
   return execution.language === requirement.language && execution.path === requirement.path;
 }
 
+/** The model may close a saved script with one newline; the executed program is the same. */
+function sameProgram(source: string | null, expected: string): boolean {
+  return source === expected || source === `${expected}\n`;
+}
+
 function hasProcessEvidence(execution: AgentExecutionSnapshot): boolean {
   return (
     execution.vmDiagnostics.some((item) => item.code === "process_start") &&
@@ -63,7 +68,7 @@ function auditEventsPresent(
 
 function repairObservation(sources: Array<string | null>, requirement: SavedScriptRequirement) {
   const source = sources[1];
-  if (typeof source === "string" && source !== requirement.brokenSource) {
+  if (typeof source === "string" && !sameProgram(source, requirement.brokenSource)) {
     return "resaved_source" as const;
   }
   if (source === null) return "edited_saved_file" as const;
@@ -113,7 +118,7 @@ export function savedScriptRepairEvidence(
       execution.exitCode !== null &&
       execution.exitCode !== 0 &&
       execution.termination === "crash" &&
-      execution.source === requirement.brokenSource,
+      sameProgram(execution.source, requirement.brokenSource),
   );
   const successfulRepairs = scripts.filter(
     (execution) =>
