@@ -1,4 +1,4 @@
-import { AgentEventSchema } from "@vault/shared";
+import { AgentEventSchema, AgentExecutionSnapshotSchema } from "@vault/shared";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { RunProgress } from "./components/run-progress.js";
@@ -58,6 +58,31 @@ const subagentCompleted = event({
   toolName: "reviewer",
   toolCallId: "subagent-1",
 });
+const directExecution = AgentExecutionSnapshotSchema.parse({
+  id: "30ea136e-6048-4865-a9f7-61acdb45b2a4",
+  runId,
+  sequence: 0,
+  language: "python",
+  path: "/source/find-transactions.py",
+  source: null,
+  command: null,
+  state: "completed",
+  exitCode: 0,
+  durationMs: 2,
+  termination: "completed",
+  stdout: "",
+  stderr: "",
+  vmDiagnostics: [],
+  stdoutBytes: 0,
+  stderrBytes: 0,
+  vmDiagnosticsBytes: 0,
+  stdoutTruncated: false,
+  stderrTruncated: false,
+  vmDiagnosticsTruncated: false,
+  createdAt,
+  updatedAt: createdAt,
+  completedAt: createdAt,
+});
 
 describe("tool activity timeline", () => {
   it("renders tool calls as activity steps with identity", () => {
@@ -108,4 +133,22 @@ describe("tool activity timeline", () => {
 
     expect(copied).toBe("First line\nSecond line");
   });
+});
+
+it("shows the live path for direct source execution", () => {
+  const markup = renderToStaticMarkup(
+    <StepDetails
+      step={{
+        id: "direct-source",
+        runId,
+        ordinal: 1,
+        kind: "execution",
+        title: "Inspecting the selected folder.",
+        execution: directExecution,
+      }}
+      thinking={null}
+    />,
+  );
+
+  expect(markup).toContain("/source/find-transactions.py");
 });

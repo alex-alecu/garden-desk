@@ -5,6 +5,7 @@ import type { CodeAgentLauncher, CodeAgentSession, MicroVmAgentRequest } from "@
 import { createLegacyDocFixture } from "../fixtures/legacy-doc.js";
 import { requireM3ProductCheck } from "./m3-canonical-gate-reporting.js";
 import { guestArtifactRecoveryEvidence } from "./m3-guest-artifact-recovery.js";
+import { directSourceProbes, prepareDirectSourceFiles } from "./m3-guest-direct-source.js";
 import { documentLibraryProbe } from "./m3-guest-documents.js";
 import { requireGuestSuccess } from "./m3-guest-execution.js";
 import { persistentFileProbe, rehydrationProbe } from "./m3-guest-persistence.js";
@@ -19,6 +20,7 @@ const limits: WorkerLimits = {
   outputBytes: 8 * 1024 * 1024,
   cpuCount: 2,
 };
+type LauncherFactory = (workspace: string) => CodeAgentLauncher;
 async function withSession<T>(
   launcher: CodeAgentLauncher,
   request: MicroVmAgentRequest,
@@ -44,6 +46,7 @@ async function prepareSource(root: string): Promise<string> {
   await (await open(sparse, "wx")).close();
   await truncate(sparse, 513 * 1024 * 1024);
   await writeFile(join(source, "input.txt"), "read-only evidence");
+  await prepareDirectSourceFiles(source);
   await createLegacyDocFixture(source);
   return source;
 }
@@ -193,6 +196,7 @@ export async function requirePathOnlyScript(
   const mismatch = "Guest path-only source did not match committed source.";
   requireM3ProductCheck(sourceMatches, mismatch);
 }
+
 // biome-ignore lint/complexity/noExcessiveLinesPerFunction: direct guest proof stays ordered.
 async function languageAndRepairProbes(session: CodeAgentSession, source: string) {
   const failed = await session.execute({
@@ -233,6 +237,7 @@ async function languageAndRepairProbes(session: CodeAgentSession, source: string
   const nodeProof = JSON.parse(node.stdout) as { major: number; npmAbsent: boolean };
   const nodeValid = nodeProof.major === 24 && nodeProof.npmAbsent;
   requireM3ProductCheck(nodeValid, "Node runtime proof failed.");
+  const directSource = await directSourceProbes(session, source);
   await writeFile(join(source, "input.txt"), "live edit evidence");
   const shell = await session.execute({
     language: "shell",
@@ -242,19 +247,16 @@ async function languageAndRepairProbes(session: CodeAgentSession, source: string
   return {
     repaired: repaired.stdout.trim(),
     nodeProof,
+    directSource,
     shell: shell.stdout.trim(),
   };
 }
 
-export async function runGuestEvidence(
-  root: string,
-  launcherForWorkspace: (workspace: string) => CodeAgentLauncher,
-) {
+export async function runGuestEvidence(root: string, launcherForWorkspace: LauncherFactory) {
   const source = await prepareSource(root);
   const workspaceStore = join(root, "workspace-store");
   const launcher = launcherForWorkspace(workspaceStore);
   const sessionId = "00000000-0000-4000-8000-000000000031";
-  console.error("m3_guest_stage:primary");
   const primary = await withSession(
     launcher,
     { sessionId, sourceFolder: source, readonlyInputs: [], limits },
@@ -284,6 +286,7 @@ export async function runGuestEvidence(
     python: primary.isolation.proof,
     documents: primary.documents,
     node: primary.language.nodeProof,
+    directSource: primary.language.directSource,
     shell: primary.language.shell,
     repair: primary.language.repaired,
     artifactRecovery: primary.artifactRecovery,

@@ -9,6 +9,7 @@ import {
   AgentGuestHydrateResultSchema,
   type AgentGuestInput,
   AgentGuestResultSchema,
+  AgentSourcePathSchema,
   type AgentWorkspaceDelta,
   isUserArtifactWorkspacePath,
 } from "@vault/shared";
@@ -74,6 +75,10 @@ async function resolveExecution(
   sessionId: string,
 ): Promise<ResolvedAgentSessionExecution> {
   if (request.language === "shell") return request;
+  const sourcePath = AgentSourcePathSchema.safeParse(request.path);
+  if (sourcePath.success) {
+    return { language: request.language, path: sourcePath.data, source: null };
+  }
   if (request.source !== undefined) {
     return { language: request.language, path: request.path, source: request.source };
   }

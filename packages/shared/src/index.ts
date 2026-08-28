@@ -1,4 +1,5 @@
 export * from "./agent.js";
+export * from "./agent-path.js";
 export * from "./agent-summary.js";
 export * from "./agent-trace.js";
 export * from "./audit.js";

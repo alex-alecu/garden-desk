@@ -6,13 +6,23 @@ import {
 } from "@vault/shared";
 import type { ArtifactExecutionEvidence } from "./artifact-results.js";
 import type { ChatToolState } from "./chat-tool-turn.js";
-import type { AgentToolResult } from "./generic-tools.js";
+import type { AgentToolResult, ToolValidation } from "./generic-tools.js";
 
 type ToolEventWriter = (
   type: AgentEventType,
   summary: string,
   detail?: Partial<AgentEventDetail>,
 ) => void;
+
+export function validatedEvidenceCall(
+  call: ChatToolCall,
+  validation?: ToolValidation,
+): ChatToolCall {
+  return {
+    ...call,
+    params: validation?.status === "valid" ? validation.parsed : {},
+  };
+}
 
 export function eventDetail(call: ChatToolCall): Partial<AgentEventDetail> {
   const detail = { toolName: call.name, toolCallId: call.id };

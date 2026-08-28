@@ -101,7 +101,11 @@ function StepEvidence({ step }: { step: AgentStep }) {
         Termination: {execution.termination ?? "in progress"}
         {execution.exitCode === null ? "" : ` · exit ${execution.exitCode}`}
       </p>
-      {source === null ? null : (
+      {source === null && execution.path !== null ? (
+        <p>
+          Source path: <code>{execution.path}</code>
+        </p>
+      ) : source === null ? null : (
         <details className="step-detail-block">
           <summary>Code the model wrote</summary>
           <SourceCode language={execution.language} path={path} source={source} />

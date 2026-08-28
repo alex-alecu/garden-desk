@@ -3,6 +3,8 @@ import { afterEach, describe, expect, it } from "vitest";
 import type { ChatInput } from "../runtime/inference.js";
 import type { DatabasePort } from "../workspace/database.js";
 import {
+  absolutePathExecution,
+  absolutePathInference,
   artifactExecution,
   chatResult,
   cleanServiceFixtures,
@@ -21,7 +23,7 @@ function outputExecution(
   return {
     language: request.language,
     path: request.path,
-    source: request.source ?? "print('resolved')",
+    source: request.path.startsWith("/source/") ? null : (request.source ?? "print('resolved')"),
     command: null,
     exitCode: 0,
     stdout,
@@ -83,6 +85,44 @@ describe("persisted chat agent success", () => {
     );
     expect(snapshot.executions).toHaveLength(1);
     expect(snapshot.artifacts.map((artifact) => artifact.name)).toEqual(["result.txt"]);
+    await service.close();
+    catalog.close();
+  });
+});
+
+describe("persisted code path recovery", () => {
+  it("normalizes agent paths and returns unsupported paths to the model", async () => {
+    let invalidResultReturned = false;
+    const requests: Parameters<typeof artifactExecution>[0][] = [];
+    const { catalog, conversations, service } = await fixture(
+      absolutePathInference(() => {
+        invalidResultReturned = true;
+      }),
+      absolutePathExecution(requests),
+    );
+
+    const run = service.start(conversations.createSession(null).id, "Run saved scripts");
+    const snapshot = await terminal(service, run.id);
+
+    expect(snapshot.run).toMatchObject({
+      state: "succeeded",
+      response: "Finished after the invalid call.",
+    });
+    expect(requests).toEqual([
+      { language: "python", path: "steps/find.py", source: "print('workspace')" },
+      { language: "python", path: "/source/find_transactions.py" },
+    ]);
+    expect(snapshot.executions).toEqual([
+      expect.objectContaining({ path: "steps/find.py", source: "print('workspace')" }),
+      expect.objectContaining({ path: "/source/find_transactions.py", source: null }),
+    ]);
+    expect(invalidResultReturned).toBe(true);
+    expect(snapshot.events.filter((event) => event.type === "tool.started")).toHaveLength(3);
+    expect(snapshot.events.filter((event) => event.type === "tool.completed")).toHaveLength(3);
+    expect(completedAuditExecutionCounts(catalog.database)).toMatchObject({
+      executions: 2,
+      guestExecutions: 2,
+    });
     await service.close();
     catalog.close();
   });

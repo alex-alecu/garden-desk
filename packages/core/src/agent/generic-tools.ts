@@ -1,4 +1,5 @@
 import type { ChatToolDefinition } from "@vault/shared";
+import { type CodeParams, codeParams } from "./code-execution-path.js";
 import { guestFileTools } from "./generic-file-tools.js";
 import {
   type AgentToolResult,
@@ -46,18 +47,6 @@ export type {
   ToolValidation,
 } from "./generic-tool-support.js";
 
-function codeParams(
-  language: "python" | "node",
-  value: unknown,
-): { source?: string; path?: string } {
-  const params = object(value);
-  const source = params.source === undefined ? undefined : textParam(params, "source");
-  const path =
-    params.path === undefined ? undefined : scriptPath(language, textParam(params, "path", 1_000));
-  if (source === undefined && path === undefined) throw new Error("source_or_path_required");
-  return { ...(source === undefined ? {} : { source }), ...(path === undefined ? {} : { path }) };
-}
-
 function codeTool(language: "python" | "node"): ToolSpec {
   return {
     definition: {
@@ -68,15 +57,15 @@ function codeTool(language: "python" | "node"): ToolSpec {
           source: { type: "string" },
           path: {
             type: "string",
-            description: "Relative workspace path. Use steps/... for reusable work.",
+            description: "Relative path, /workspace/..., or path-only /source/....",
           },
         },
         [],
       ),
     },
-    parse: (value) => codeParams(language, value),
+    parse: codeParams,
     execute: async (value, context) => {
-      const params = value as ReturnType<typeof codeParams>;
+      const params = value as CodeParams;
       const path = params.path ?? scriptPath(language);
       return await runExecution(
         context,
