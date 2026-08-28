@@ -204,22 +204,22 @@ export class ChatAgentLoop {
   // biome-ignore lint/complexity/noExcessiveLinesPerFunction: generation, tool execution, and recovery are one ordered model turn.
   private async turn(options: ChatTurnOptions): Promise<AgentRunResult | undefined> {
     const { input, state, registry, recovery, performance, finalTurn } = options;
-    const promptMessages = () => duplicatePromptView(state.messages, state.duplicateRecovery);
     const temperature = () =>
       state.duplicateRecovery.activeBlockedSignature === undefined
         ? input.agent.temperature
         : RECOVERY_TEMPERATURE;
-    const tools = () =>
-      registry.definitions(
-        input.agent.tools,
-        liveLoadedSkillNames(state.loadedSkills, promptMessages()),
-      );
     const generated = await generateWithInferenceRecovery({
-      generate: async () =>
-        await this.generate(input, promptMessages(), tools(), {
+      generate: async () => {
+        const promptMessages = duplicatePromptView(state.messages, state.duplicateRecovery);
+        const tools = registry.definitions(
+          input.agent.tools,
+          liveLoadedSkillNames(state.loadedSkills, promptMessages),
+        );
+        return await this.generate(input, promptMessages, tools, {
           phase: "chat",
           temperature: temperature(),
-        }),
+        });
+      },
       recover: async () => {
         if (state.messages.length < 4) return;
         state.messages = await this.compact(input, state, 2, performance);
