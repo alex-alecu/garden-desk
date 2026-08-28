@@ -204,9 +204,11 @@ function recoveryInstruction(
 }
 
 export function duplicatePromptView(
-  messages: readonly ChatMessage[],
+  messages: ChatMessage[],
   state: DuplicateRecoveryState,
 ): ChatMessage[] {
+  if (state.activeBlockedSignature === undefined && state.omittedCallIds.size === 0)
+    return messages;
   const cleaned = cleanedDuplicateHistory(messages, state);
   if (state.activeBlockedSignature === undefined) return cleaned;
   cleaned.push({ role: "system", text: recoveryInstruction(state, messages) });
