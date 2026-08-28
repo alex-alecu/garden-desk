@@ -41,7 +41,7 @@ The Word, PDF, XLSX, and review-report skills give prompt-only guest methods. Co
 
 For multi-step format work, a skill can require a guest-workspace checkpoint. The final output program must reread source facts, derive values again, compare them with the saved verified state, create each requested output, reopen it, and verify it before completion. This is a prompt method. It is not a Core format workflow.
 
-Python and Node source can be saved in the session workspace. A later path-only call runs the exact committed bytes. Only a third identical call triggers the generic duplicate-recovery stop; ordinary syntax or runtime failures remain evidence for repair.
+Python and Node source can be saved in the session workspace. A later path-only call runs the exact committed bytes. Only a third identical call triggers the generic duplicate-recovery stop; an already-loaded skill returns its zero-cost result without entering recovery. Ordinary syntax or runtime failures remain evidence for repair.
 
 ## Post-V1 Workflow Specialization
 
