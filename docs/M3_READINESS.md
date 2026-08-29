@@ -1,6 +1,6 @@
 # M3 Readiness
 
-Updated: 2026-08-28
+Updated: 2026-08-29
 
 This table records qualification of the current M3 candidate. [STRESS_TEST.md](../STRESS_TEST.md) keeps every earlier attempt. Earlier results remain visible, but they do not qualify changed candidate bytes.
 
@@ -15,17 +15,17 @@ Use only these report classifications:
 
 A readiness row can assign `model_limit` only when it combines a quality-only evaluator report with passing candidate evidence for typed runtime, workspace persistence, artifact bytes, the security boundary, and the audit chain. Evaluators record stable Core terminal codes as `qualityCandidate` and keep `product_failure`; a standalone evaluator never assigns `model_limit`. Every non-passed result must cite safe trace, audit, or report evidence. One clean complete run on the candidate build is sufficient qualification evidence. This is not a statistical reliability claim. Keep earlier attempts. They do not require code churn or capability removal. Only the repository owner can exclude a capability.
 
-The Windows gate candidate is commit `83343a8` and the macOS gate candidate is commit `a2348e5` (the same pull request after two eval and documentation commits). Their direct guest artifact recovery, saved-script repair and rerun, and canonical platform rows pass on both platforms, and the complete supported small suite passes on macOS. All other new qualification rows are pending.
+The current candidate is commit `d8f4593`. Its hosted macOS and Windows checks pass, but the physical M3 rows were not run for these changed inference-worker bytes. The physical results for earlier pull request 81 commits `83343a8` and `a2348e5` remain historical evidence. All new qualification rows are pending.
 
 | Capability or skill | Platform and candidate commit | Attempt date and command | Classification | Safe evidence | Qualified reviewer | State |
 |---|---|---|---|---|---|---|
-| Direct guest artifact recovery | macOS, `a2348e5` | 2026-08-28; `pnpm test:m3:macos` | `passed` | [macOS final check of pull request 81](../STRESS_TEST.md#2026-08-28-macos-final-check-of-pull-request-81) | Not required | Passed |
-| Direct guest artifact recovery | Windows, `83343a8` | 2026-08-28; `pnpm test:m3:windows` | `passed` | [Windows native tool-call platform gate](../STRESS_TEST.md#2026-08-28-windows-native-tool-call-platform-gate) | Not required | Passed |
-| Saved-script repair and rerun | macOS, `a2348e5` | 2026-08-28; `pnpm test:m3:macos` | `passed` | [macOS final check of pull request 81](../STRESS_TEST.md#2026-08-28-macos-final-check-of-pull-request-81) | Not required | Passed |
-| Saved-script repair and rerun | Windows, `83343a8` | 2026-08-28; `pnpm test:m3:windows` | `passed` | [Windows native tool-call platform gate](../STRESS_TEST.md#2026-08-28-windows-native-tool-call-platform-gate) | Not required | Passed |
-| Canonical M3 platform gate | macOS, `a2348e5` | 2026-08-28; `pnpm test:m3:macos` | `passed` | [macOS final check of pull request 81](../STRESS_TEST.md#2026-08-28-macos-final-check-of-pull-request-81) | Not required | Passed |
-| Canonical M3 platform gate | Windows, `83343a8` | 2026-08-28; `pnpm test:m3:windows` | `passed` | [Windows native tool-call platform gate](../STRESS_TEST.md#2026-08-28-windows-native-tool-call-platform-gate) | Not required | Passed |
-| Complete supported small suite | macOS, `a2348e5` | 2026-08-28; `pnpm test:stress:m3:small` | `passed` | [macOS final check of pull request 81](../STRESS_TEST.md#2026-08-28-macos-final-check-of-pull-request-81) | Not required | Passed |
+| Direct guest artifact recovery | macOS, `d8f4593` | Not run; deterministic direct-guest test | — | [Earlier pull request 81 result](../STRESS_TEST.md#2026-08-28-macos-final-check-of-pull-request-81) | Not required | Pending |
+| Direct guest artifact recovery | Windows, `d8f4593` | Not run; deterministic direct-guest test | — | [Earlier pull request 81 result](../STRESS_TEST.md#2026-08-28-windows-native-tool-call-platform-gate) | Not required | Pending |
+| Saved-script repair and rerun | macOS, `d8f4593` | Not run; real no-network repair case | — | [Earlier pull request 81 result](../STRESS_TEST.md#2026-08-28-macos-final-check-of-pull-request-81) | Not required | Pending |
+| Saved-script repair and rerun | Windows, `d8f4593` | Not run; real no-network repair case | — | [Earlier pull request 81 result](../STRESS_TEST.md#2026-08-28-windows-native-tool-call-platform-gate) | Not required | Pending |
+| Canonical M3 platform gate | macOS, `d8f4593` | Not run; `pnpm test:m3:macos` | — | [Earlier pull request 81 result](../STRESS_TEST.md#2026-08-28-macos-final-check-of-pull-request-81) | Not required | Pending |
+| Canonical M3 platform gate | Windows, `d8f4593` | Not run; `pnpm test:m3:windows` | — | [Earlier pull request 81 result](../STRESS_TEST.md#2026-08-28-windows-native-tool-call-platform-gate) | Not required | Pending |
+| Complete supported small suite | macOS, `d8f4593` | Not run; `pnpm test:stress:m3:small` | — | [Earlier pull request 81 result](../STRESS_TEST.md#2026-08-28-macos-final-check-of-pull-request-81) | Not required | Pending |
 | Complete supported small suite | Windows, pending candidate | Not run; `pnpm test:stress:m3:small` | — | [2026-08-25 clean historical run](../STRESS_TEST.md#2026-08-25-windows-m3-small-full-stress-suite-final-result) | Not required | Pending |
 | `legal-document-review` chain | macOS, pending candidate | Not run; `pnpm test:m3:skills` | — | No candidate report | Legal reviewer pending | Pending |
 | `legal-document-review` chain | Windows, pending candidate | Not run; `pnpm test:m3:skills` | — | No candidate report | Legal reviewer pending | Pending |
@@ -56,7 +56,7 @@ The Windows gate candidate is commit `83343a8` and the macOS gate candidate is c
 | `word-fact-check` negative routing | macOS, pending candidate | Not run; `pnpm test:m3:skills` | — | No candidate report | Not required | Pending |
 | `word-fact-check` negative routing | Windows, pending candidate | Not run; `pnpm test:m3:skills` | — | No candidate report | Not required | Pending |
 | Direct and delegated image inspection | macOS, pending candidate | Not run; named physical and packaged checks | — | Focused and static checks only | Not required | Pending |
-| Direct and delegated image inspection | Windows, pending candidate | Not run; named physical and packaged checks | — | One headless image check passed in the current platform gate; named checks remain pending | Not required | Pending |
+| Direct and delegated image inspection | Windows, pending candidate | Not run; named physical and packaged checks | — | One headless image check passed on an earlier pull request 81 head; named current checks remain pending | Not required | Pending |
 | Generated-file Open and Save As | macOS, pending candidate | Not run; packaged application checks | — | Earlier partial observations are in [M3 status](M3_STATUS.md) | Not required | Pending |
 | Generated-file Open and Save As | Windows, pending candidate | Not run; packaged application checks | — | Earlier partial observations are in [M3 status](M3_STATUS.md) | Not required | Pending |
 | Standard-user setup | Windows, pending candidate | Not run; dedicated standard-user check | — | Earlier administrator-account evidence is in [M3 status](M3_STATUS.md) | Not required | Pending |
