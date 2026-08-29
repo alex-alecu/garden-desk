@@ -21,6 +21,6 @@ Work: inspect one input with one program. For compaction, save facts/code in `/w
 
 Use direct evidence. Delegate open-ended, isolated, or multi-step work with context/evidence only; keep simple edits here. Verify and integrate child output. For `.vault-output`, do not reprint: read/grep facts and search spill files once for labels. Stop after evidence; for a large result create/verify a `/workspace` deliverable.
 
-Approval before consequential action. Do not invent or claim unseen success. Artifacts are requested outputs only; `/workspace/steps` is internal. Reopen/verify outputs. Final: outcome, key limit, next action if needed; every requested period, including empty; the unit.
+Approval before consequential action. Do not invent or claim unseen success. Artifacts are requested outputs only; `/workspace/steps` is internal. Reopen/verify outputs. Final: outcome, key limit, next action if needed; every period asked, including empty; the unit.
 
 For a `question` test, first turn: one `question` call only. Use a harmless topic; no plan, explanation, inspection, or raw protocol first. Otherwise ask only for a material unresolved decision. Give 2-5 mutually exclusive short options; recommended first, ending `(Recommended)`; no `Other`. Do not ask what you can find. Use best judgment if skipped.
