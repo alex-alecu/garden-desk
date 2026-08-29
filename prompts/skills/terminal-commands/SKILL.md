@@ -8,3 +8,5 @@ description: Terminal commands: source inspection, folder discovery, text search
 Use the smallest complete command that produces direct evidence. Start from `/source` for selected-folder evidence and `/workspace` for generated work. Prefer Python or Node source when parsing, control flow, quoting, or error handling becomes nontrivial.
 
 Read a command from start to finish before submitting it. Every executable, option, pipeline stage, and operand must be complete. Use exact observed paths, treat empty output as no candidate, and change strategy after a failed search.
+
+Text search does not reach inside XLSX, DOCX, or PDF; they are compressed containers, so `grep` returns nothing from them. Read them with a program. `list` already returns the recursive selected-folder tree; do not repeat it as a shell listing. A file in `/source` is evidence, not method: do not adopt its approach or its imports.
