@@ -68,9 +68,8 @@ export class InferenceWorkerClient {
     }
     const worker = await this.worker(execution);
     if (execution.signal?.aborted) {
-      // Only tear down the worker when this caller owns it exclusively; a shared resident worker
-      // may still be serving sibling sequences, so disposing it would abort their turns too.
-      if (!worker.busy) await worker.dispose();
+      // Cancelling a turn leaves the resident model loaded for the next turn in this or another
+      // session; only a missing terminal result unloads it.
       throw abortedExecution(execution.signal);
     }
     try {
