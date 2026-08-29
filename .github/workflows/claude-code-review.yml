@@ -8,8 +8,9 @@ name: Claude Code Review
 #   read-only token.
 # - Runs when a trusted author opens a PR or makes a draft ready, or when a
 #   maintainer adds the `claude-review` label after reading the PR.
-# - The review job is read-only. A separate job has issue write permission only
-#   to remove the `claude-review` label and does not check out or run PR code.
+# - The review job is read-only. A separate job has pull request write permission
+#   only to remove the `claude-review` label and does not check out or run PR
+#   code.
 #   The repository-local `/vault-code-review` command reads REVIEW.md as the
 #   primary instructions and CLAUDE.md as secondary context.
 # - Actions pinned to commit SHAs; one run per PR at a time; hard timeout.
@@ -81,7 +82,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 1
     permissions:
-      issues: write
+      pull-requests: write
     steps:
       - name: Remove review label
         env:
