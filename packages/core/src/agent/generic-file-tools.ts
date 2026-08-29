@@ -61,7 +61,8 @@ function writeTool(): ToolSpec {
   return {
     definition: {
       name: "write",
-      description: "Create or overwrite a /workspace file with exact UTF-8 text.",
+      description:
+        "Create or overwrite a /workspace file with exact UTF-8 text; edit changes part.",
       params: objectSchema({ path: { type: "string" }, content: { type: "string" } }, [
         "path",
         "content",
