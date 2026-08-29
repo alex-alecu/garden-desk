@@ -50,6 +50,15 @@ To run the desktop locally:
 
    On Windows, Vite continues to reload frontend changes while `desktop:dev` disables Tauri's Rust file watcher. Some Windows filesystems report source-file reads as access changes, which Tauri can mistake for edits and restart forever. Restart `desktop:dev` after changing Rust desktop-host code. macOS keeps Tauri's normal Rust watcher.
 
+## What we learned running Gemma 4
+
+Gemma 4 is the default model, and a few of its habits shaped the agent loop. These are the high-level fixes; the exact runs are in [STRESS_TEST.md](STRESS_TEST.md).
+
+- **Tool calls in Gemma's own format.** Gemma 4 writes tool arguments as `key:<|"|>value<|"|>`: bare keys, and strings between two delimiter tokens with no escaping. Generic runtimes rewrite that into JSON and force the arguments through a JSON grammar, so every quote in generated Python or Node code must be escaped in a format the model never learned; the result was corrupted scripts that the model regenerated unchanged turn after turn. The inference worker now renders tool declarations, calls, and results the way Gemma's own chat template does and reads the model's call from the generated tokens by token id, so a string keeps every byte the model wrote ([#81](https://github.com/alex-alecu/garden-desk/pull/81)).
+- **Repeated calls are stopped, not retried forever.** When the model proposes the same call a third time, Vault Core blocks it, keeps one copy of the call and its result in later prompts, samples at temperature 0.3 while the block is active, asks the person once, and ends the run as `agent_stalled_duplicate` if the model still repeats itself ([#76](https://github.com/alex-alecu/garden-desk/pull/76)).
+- **Reasoning stays private and bounded.** Gemma's thought channel is on with a token budget. Thoughts are shown live and are never stored in conversations, traces, or audit records.
+- **Small habits are handled where they appear.** Gemma ends a multi-line script with a newline before closing the string, can leak its delimiter token into plain prose, and skips openpyxl's `reset_dimensions()` in read-only mode. The evidence rules, the visible-answer cleanup, and the workbook skill account for each of these; nothing filters the model's code inside the no-network microVM.
+
 ## Public website
 
 Explore the [public website and interactive demo](https://alex-alecu.github.io/garden-desk/) or run it locally with `pnpm site:dev`.
