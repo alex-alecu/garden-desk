@@ -157,12 +157,10 @@ async function buildChatPool(request: ChatGenerationRequest, runtime: LoadedRunt
     sequenceCount === 1
       ? probe.context
       : await recreateContextWithSequences(probe.context, request, runtime, sequenceCount);
-  const wrapper = request.modelId.startsWith("gemma-4")
-    ? { chatWrapper: await loadVaultGemma4ChatWrapper() }
-    : {};
+  const chatWrapper = await loadVaultGemma4ChatWrapper();
   const chats = Array.from(
     { length: context.totalSequences },
-    () => new LlamaChat({ contextSequence: context.getSequence(), ...wrapper }),
+    () => new LlamaChat({ contextSequence: context.getSequence(), chatWrapper }),
   );
   return {
     requestedContextSize: request.contextSize,

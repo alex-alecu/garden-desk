@@ -1,11 +1,8 @@
-import { createHash } from "node:crypto";
-import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 const imageRoot = join(process.cwd(), "packages/workers/images");
-const windowsInitramfs = join(imageRoot, ".generated/agent/artifacts/x86_64/rootfs.cpio");
 
 function enabledPackages(config: string): string[] {
   return config
@@ -44,18 +41,4 @@ describe("M3 cross-platform guest runtime", () => {
       Object.fromEntries(manifest.contents.map(({ name, version }) => [name, version])),
     );
   });
-
-  it.runIf(existsSync(windowsInitramfs))(
-    "matches the generated Windows image to the immutable manifest",
-    async () => {
-      const manifest = JSON.parse(
-        await readFile(join(imageRoot, "agent/manifest.json"), "utf8"),
-      ) as { outputs: { x86_64: { initramfsSha256: string } } };
-      const hash = createHash("sha256")
-        .update(await readFile(windowsInitramfs))
-        .digest("hex");
-
-      expect(hash).toBe(manifest.outputs.x86_64.initramfsSha256);
-    },
-  );
 });

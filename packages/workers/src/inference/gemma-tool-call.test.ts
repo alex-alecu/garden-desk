@@ -17,6 +17,19 @@ function text(value: string): Token[] {
 }
 
 describe("Gemma native tool call", () => {
+  it("retains the protocol marker when a generated call is invalid", () => {
+    const collector = new NativeToolCallCollector(model);
+
+    collector.push(
+      [...text("Reading."), CALL_START, ...text("call:python{source:")],
+      "Reading.<|tool_call>call:python{source:",
+    );
+
+    expect(collector.finish("Reading.call:python{source:")).toEqual({
+      text: "Reading.<|tool_call>call:python{source:",
+    });
+  });
+
   it("keeps a double quote inside a generated string argument", () => {
     const collector = new NativeToolCallCollector(model);
     const source = 'value = cell.replace("€", "").replace(" ", "")';

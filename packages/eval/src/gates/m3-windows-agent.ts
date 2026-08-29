@@ -61,7 +61,7 @@ async function windowsArtifacts(): Promise<WindowsArtifacts> {
   return { kernel, initramfs };
 }
 async function awaitRun(
-  core: Awaited<ReturnType<typeof createVaultCore>>,
+  core: VaultCore,
   runId: string,
   liveToken: string,
   cancel: boolean,
@@ -118,7 +118,7 @@ async function runAgentEvidence(core: VaultCore, input: AgentEvidenceInput) {
   );
   requireM3ProductCheck(
     hasTeardownOrBoundedExit(afterTeardown, execution),
-    "Windows HCS teardown diagnostic was not retained.",
+    "Windows HCS teardown or bounded-output process-exit evidence was not retained.",
   );
   return [
     {

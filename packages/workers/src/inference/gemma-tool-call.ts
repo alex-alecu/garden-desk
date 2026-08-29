@@ -18,7 +18,7 @@ class NativeCallSyntaxError extends Error {}
 
 const DETOKENIZER_TRAIL = 8;
 const NAME = /^[A-Za-z_][\w.-]*/u;
-const LITERAL = /^(?:true|false|null|None)(?!\w)/u;
+const LITERAL = /^(?:true|false|null)(?!\w)/u;
 const NUMBER = /^-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?/u;
 
 function singleToken(model: NativeTokenizer, text: string): Token {
@@ -183,12 +183,17 @@ export class NativeToolCallCollector {
 
   /**
    * Returns the prose and the parsed call. A call the reader rejects comes back as the
-   * complete generated text, which Core rejects as raw protocol text and asks to redo.
+   * generated text with a literal start marker, which Core rejects and asks to redo.
    */
   finish(completeText: string): { text: string; call?: NativeToolCall } {
     const parts = this.parts();
     const call = parts === undefined ? undefined : parseNativeToolCall(parts);
-    if (call === undefined) return { text: completeText };
+    if (call === undefined) {
+      if (this.callTokens === undefined) return { text: completeText };
+      const prose = this.model.detokenize(this.textTokens, false);
+      const body = this.model.detokenize(this.callTokens, false, [...this.textTokens, this.start]);
+      return { text: `${prose}${NATIVE_CALL_START}${body}` };
+    }
     return { text: this.model.detokenize(this.textTokens, false), call };
   }
 

@@ -19,6 +19,10 @@ type NativeRuntime = Pick<
 >;
 type SpecialText = (text: string) => LlamaTextValue;
 
+function specialText(runtime: NativeRuntime): SpecialText {
+  return (text) => new runtime.SpecialTokensText(text);
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
@@ -71,7 +75,7 @@ function declarations(
   availableFunctions: ChatModelFunctions,
   documentParams: boolean,
 ): LlamaText {
-  const special: SpecialText = (text) => new runtime.SpecialTokensText(text);
+  const special = specialText(runtime);
   return runtime.LlamaText(
     Object.entries(availableFunctions).map(([name, definition]) =>
       runtime.LlamaText([
@@ -99,7 +103,7 @@ function declarations(
  * emitted call from the generated tokens itself (see `gemma-tool-call.ts`).
  */
 function vaultGemma4ChatWrapper(runtime: NativeRuntime): typeof Gemma4ChatWrapper {
-  const special: SpecialText = (text) => new runtime.SpecialTokensText(text);
+  const special = specialText(runtime);
   return class VaultGemma4ChatWrapper extends runtime.Gemma4ChatWrapper {
     override readonly wrapperName = "Vault Gemma 4";
 
