@@ -179,6 +179,21 @@ describe("saved-script repair evidence", () => {
   });
 });
 
+describe("saved-script trailing newline", () => {
+  it("accepts the broken script recorded with one trailing newline", () => {
+    const evidence = savedScriptRepairEvidence(
+      snapshot(
+        [execution({ source: `${requirement.brokenSource}\n` }), repaired(1), repaired(2)],
+        null,
+      ),
+      requirement,
+    );
+
+    expect(evidence.passed).toBe(true);
+    expect(evidence.observations.repair).toBe("resaved_source");
+  });
+});
+
 describe("saved-script repair process evidence", () => {
   it("requires typed process evidence for the repaired execution", () => {
     const withoutProcessEvidence = repaired(1);

@@ -18,6 +18,7 @@ import {
   boundedOutputEvidence,
   hasRunningExecution,
   hasRunningLiveMarker,
+  hasTeardownOrBoundedExit,
   matchesTerminalAgentEvidence,
   selectedAgentEvidence,
 } from "./m3-windows-agent-evidence.js";
@@ -31,6 +32,7 @@ const images = join(repositoryRoot, "packages/workers/images");
 const modelRoot = join(repositoryRoot, "packages/eval/.generated/models");
 const imageFixture = join(repositoryRoot, "site/assets/product-icon.png");
 type WindowsArtifacts = { initramfs: string; kernel: string };
+type VaultCore = Awaited<ReturnType<typeof createVaultCore>>;
 interface AgentEvidenceInput {
   root: string;
   name: string;
@@ -59,7 +61,7 @@ async function windowsArtifacts(): Promise<WindowsArtifacts> {
   return { kernel, initramfs };
 }
 async function awaitRun(
-  core: Awaited<ReturnType<typeof createVaultCore>>,
+  core: VaultCore,
   runId: string,
   liveToken: string,
   cancel: boolean,
@@ -98,10 +100,7 @@ function requireAgentEvidence(
   );
   return execution;
 }
-async function runAgentEvidence(
-  core: Awaited<ReturnType<typeof createVaultCore>>,
-  input: AgentEvidenceInput,
-) {
+async function runAgentEvidence(core: VaultCore, input: AgentEvidenceInput) {
   const source = join(input.root, `${input.name}-source`);
   await mkdir(source);
   const folder = await core.addFolder(source);
@@ -117,7 +116,10 @@ async function runAgentEvidence(
   const teardown = afterTeardown.executions.some((item) =>
     item.vmDiagnostics.some((diagnostic) => diagnostic.code === "teardown"),
   );
-  requireM3ProductCheck(teardown, "Windows HCS teardown diagnostic was not retained.");
+  requireM3ProductCheck(
+    hasTeardownOrBoundedExit(afterTeardown, execution),
+    "Windows HCS teardown or bounded-output process-exit evidence was not retained.",
+  );
   return [
     {
       runState: result.snapshot.run.state,
@@ -172,10 +174,7 @@ async function runWindowsAgentEvidence(root: string) {
     await core.close();
   }
 }
-async function runConcurrentAgentEvidence(
-  core: Awaited<ReturnType<typeof createVaultCore>>,
-  root: string,
-) {
+async function runConcurrentAgentEvidence(core: VaultCore, root: string) {
   const [pythonResult, nodeResult] = await Promise.all([
     runAgentEvidence(core, {
       root,

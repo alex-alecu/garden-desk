@@ -180,9 +180,9 @@ function expectPdf(library: MarkdownDefinitionLibrary): void {
 function expectXlsx(library: MarkdownDefinitionLibrary): void {
   const skill = library.skill("xlsx-workbooks");
   for (const text of [
-    "reset_dimensions()",
+    "never `read_only=True`",
     "recursively find case-insensitive",
-    "load_workbook(path, read_only=True, data_only=True)",
+    "load_workbook(path, data_only=True)",
     "Else reusable:",
     "sorted relative corpus",
     "`completed`",

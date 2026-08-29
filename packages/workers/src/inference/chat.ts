@@ -7,22 +7,7 @@ import type {
   LlamaChatResponseChunk,
   Token,
 } from "node-llama-cpp";
-
-const NATIVE_GRAMMAR_MAX_REPETITIONS = 1_999;
-
-function grammarSafeToolParams(value: unknown): unknown {
-  if (Array.isArray(value)) return value.map(grammarSafeToolParams);
-  if (typeof value !== "object" || value === null) return value;
-  return Object.fromEntries(
-    Object.entries(value).flatMap(([name, item]) =>
-      name === "maxLength" &&
-      typeof item === "number" &&
-      Math.floor(item) >= NATIVE_GRAMMAR_MAX_REPETITIONS + 1
-        ? []
-        : [[name, grammarSafeToolParams(item)]],
-    ),
-  );
-}
+import { NativeToolCallCollector } from "./gemma-tool-call.js";
 
 /**
  * Converts Core's owned conversation into the model's native chat history. Tool
@@ -89,15 +74,12 @@ function parseResult(result: string | undefined): unknown {
 /**
  * Declares the requested tools to the model without executing anything: Core runs
  * every tool in the guest, so the worker handlers are never invoked. They exist only
- * so the chat wrapper emits the function schema and can parse the model's calls.
+ * so the chat wrapper renders the native declarations; the worker parses the calls.
  */
 export function chatFunctions(request: ChatGenerationRequest): ChatModelFunctions {
   const functions: Record<string, { description: string; params: unknown }> = {};
   for (const tool of request.tools) {
-    functions[tool.name] = {
-      description: tool.description,
-      params: grammarSafeToolParams(tool.params),
-    };
+    functions[tool.name] = { description: tool.description, params: tool.params };
   }
   return functions as ChatModelFunctions;
 }
@@ -121,32 +103,36 @@ export async function generateChatTurn(
   callbacks: ChatGenerationCallbacks,
   signal?: AbortSignal,
 ): Promise<ChatTurn> {
-  const functions = chatFunctions(request);
+  const collector = new NativeToolCallCollector(chat.model);
   const result = await chat.generateResponse(toChatHistory(request.messages), {
-    functions,
+    functions: chatFunctions(request),
     documentFunctionParams: true,
-    maxParallelFunctionCalls: 4,
     maxTokens: request.maxTokens,
     budgets: { thoughtTokens: Math.min(1_024, Math.floor(request.maxTokens / 2)) },
     temperature: request.temperature,
-    onResponseChunk: callbacks.onResponseChunk,
+    onResponseChunk(chunk) {
+      if (chunk.type !== undefined) return callbacks.onResponseChunk(chunk);
+      const text = collector.push(chunk.tokens, chunk.text);
+      if (text.length > 0) callbacks.onResponseChunk({ ...chunk, text });
+    },
     onToken: callbacks.onToken,
     ...(signal === undefined ? {} : { signal }),
   });
-  const calls = result.functionCalls ?? [];
-  const toolCalls: ChatToolCall[] = calls.map((call) => {
+  const turn = collector.finish(result.response);
+  const toolCalls: ChatToolCall[] = [];
+  if (turn.call !== undefined) {
     toolCallCounter += 1;
-    return {
+    toolCalls.push({
       id: `call_${Date.now().toString(36)}_${toolCallCounter.toString(36)}`,
-      name: String(call.functionName),
-      params: call.params ?? {},
-    };
-  });
+      name: turn.call.name,
+      params: turn.call.params,
+    });
+  }
   const stopReason =
     result.metadata.stopReason === "maxTokens"
       ? "maxTokens"
       : toolCalls.length > 0
         ? "toolCalls"
         : "text";
-  return { text: result.response, toolCalls, stopReason };
+  return { text: turn.text, toolCalls, stopReason };
 }

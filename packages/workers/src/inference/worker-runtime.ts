@@ -5,6 +5,7 @@ import type {
 } from "@vault/shared";
 import type { LlamaChatSession, LlamaEmbeddingContext, LlamaModel } from "node-llama-cpp";
 import { ChatSequencePool } from "./chat-pool.js";
+import { loadVaultGemma4ChatWrapper } from "./gemma-native-format.js";
 import {
   combinedAllocationBytes,
   fitCombinedGenerationContext,
@@ -149,19 +150,17 @@ export async function chatSession(request: ChatGenerationRequest, runtime: Loade
 }
 
 async function buildChatPool(request: ChatGenerationRequest, runtime: LoadedRuntime) {
-  const { Gemma4ChatWrapper, LlamaChat } = await import("node-llama-cpp");
+  const { LlamaChat } = await import("node-llama-cpp");
   const probe = await createGenerationContext(request, runtime);
   const sequenceCount = await resolveChatSequenceCount(probe.context, runtime);
   const context =
     sequenceCount === 1
       ? probe.context
       : await recreateContextWithSequences(probe.context, request, runtime, sequenceCount);
-  const wrapper = request.modelId.startsWith("gemma-4")
-    ? { chatWrapper: new Gemma4ChatWrapper({ reasoning: true }) }
-    : {};
+  const chatWrapper = await loadVaultGemma4ChatWrapper();
   const chats = Array.from(
     { length: context.totalSequences },
-    () => new LlamaChat({ contextSequence: context.getSequence(), ...wrapper }),
+    () => new LlamaChat({ contextSequence: context.getSequence(), chatWrapper }),
   );
   return {
     requestedContextSize: request.contextSize,
