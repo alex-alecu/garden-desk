@@ -18,6 +18,7 @@ interface GoldenTask {
   name: string;
   prepare(sourceDir: string): Promise<void>;
   prompt: string;
+  deliverable: string;
   expectation: string;
   check(text: string): boolean;
 }
@@ -29,8 +30,9 @@ const GOLDEN_TASKS: GoldenTask[] = [
       await createXlsxCorpus(sourceDir, { files: 1, sheets: 1, rowsPerSheet: 8 });
     },
     prompt:
-      "Read the spreadsheet in /source and write a short plain-text summary to /workspace with the note and the amount on the row marked as a priority review.",
-    expectation: `deliverable contains "${XLSX_TARGET}" and "1001"`,
+      "Read the spreadsheet in /source and write a short plain-text summary to /workspace/summary.txt with the note and the amount on the row marked as a priority review.",
+    deliverable: "summary.txt",
+    expectation: `summary.txt contains "${XLSX_TARGET}" and "1001"`,
     check: (text) => text.includes(XLSX_TARGET) && text.includes("1001"),
   },
   {
@@ -39,8 +41,9 @@ const GOLDEN_TASKS: GoldenTask[] = [
       await createDocxCorpus(sourceDir, { files: 1, pagesPerFile: 3 });
     },
     prompt:
-      "Read the Word document in /source and write a short plain-text summary to /workspace with the total page count and the exact text of the last page.",
-    expectation: `deliverable contains "${WORD_PAGE_TARGET}" and "checksum=1003"`,
+      "Read the Word document in /source and write a short plain-text summary to /workspace/summary.txt with the total page count and the exact text of the last page.",
+    deliverable: "summary.txt",
+    expectation: `summary.txt contains "${WORD_PAGE_TARGET}" and "checksum=1003"`,
     check: (text) => text.includes(WORD_PAGE_TARGET) && text.includes("checksum=1003"),
   },
   {
@@ -49,9 +52,11 @@ const GOLDEN_TASKS: GoldenTask[] = [
       await createPdf(join(sourceDir, "policy-brief.pdf"), 3);
     },
     prompt:
-      "Read the PDF in /source and write a short plain-text summary to /workspace with the total page count and the exact text on the last page.",
-    expectation: `deliverable contains "${PDF_PAGE_TARGET}" and "checksum=51"`,
-    check: (text) => text.includes(PDF_PAGE_TARGET) && text.includes("checksum=51"),
+      "Read the PDF in /source and write a short plain-text summary to /workspace/summary.txt with the total page count and the exact text on the last page.",
+    deliverable: "summary.txt",
+    expectation: `summary.txt is plain text (not copied PDF bytes) containing "${PDF_PAGE_TARGET}" and "checksum=51"`,
+    check: (text) =>
+      !text.startsWith("%PDF") && text.includes(PDF_PAGE_TARGET) && text.includes("checksum=51"),
   },
   {
     name: "mixed-folder-report",
@@ -61,8 +66,9 @@ const GOLDEN_TASKS: GoldenTask[] = [
       await createPdf(join(sourceDir, "policy-brief.pdf"), 1);
     },
     prompt:
-      "Look at the different documents in /source and write a short plain-text report to /workspace listing each file's exact name.",
-    expectation: "deliverable lists all three source file names",
+      "Look at the different documents in /source and write a short plain-text report to /workspace/report.txt listing each file's exact name.",
+    deliverable: "report.txt",
+    expectation: "report.txt lists all three source file names",
     check: (text) =>
       text.includes("workbook-001.xlsx") &&
       text.includes("document-001.docx") &&
@@ -111,21 +117,19 @@ async function runOneTask(core: Core, root: string, task: GoldenTask): Promise<G
         reason: `run ended "${snapshot.run.state}" with ${snapshot.artifacts.length} deliverable files`,
       };
     }
-    for (const artifact of snapshot.artifacts) {
-      const text = await deliverableText(core, session.id, artifact.id);
-      if (task.check(text)) {
-        return {
-          name: task.name,
-          passed: true,
-          reason: `${artifact.name} matched: ${task.expectation}`,
-        };
-      }
+    const artifact = snapshot.artifacts.find((entry) => entry.name === task.deliverable);
+    if (artifact === undefined) {
+      return {
+        name: task.name,
+        passed: false,
+        reason: `run succeeded without the requested ${task.deliverable}`,
+      };
     }
-    return {
-      name: task.name,
-      passed: false,
-      reason: `no deliverable matched: ${task.expectation}`,
-    };
+    const text = await deliverableText(core, session.id, artifact.id);
+    if (task.check(text)) {
+      return { name: task.name, passed: true, reason: `matched: ${task.expectation}` };
+    }
+    return { name: task.name, passed: false, reason: `did not match: ${task.expectation}` };
   } catch (error) {
     return {
       name: task.name,
