@@ -23,11 +23,11 @@ function execution(stdout: string, source = "print('result')", failed = false) {
     exitCode: failed ? 1 : 0,
     durationMs: 1,
     termination: "completed",
-    stdout,
-    stderr: "",
+    stdout: failed ? "" : stdout,
+    stderr: failed ? stdout : "",
     vmDiagnostics: [],
-    stdoutBytes: Buffer.byteLength(stdout),
-    stderrBytes: 0,
+    stdoutBytes: failed ? 0 : Buffer.byteLength(stdout),
+    stderrBytes: failed ? Buffer.byteLength(stdout) : 0,
     vmDiagnosticsBytes: 0,
     stdoutTruncated: false,
     stderrTruncated: false,
@@ -170,10 +170,9 @@ describe("M3 stress result evidence", () => {
       expectedTokens: [],
       deliverables: [{ name: "report.pdf", facts: ["TOTAL=12"] }],
     });
-    expect(stressResultFor(active, snapshot("Done."), { verified: [] }).passed).toBe(false);
-    expect(stressResultFor(active, snapshot("Done."), { verified: ["report.pdf"] }).passed).toBe(
-      true,
-    );
+    const report = snapshot("Done.");
+    expect(stressResultFor(active, report, { verified: [] }).passed).toBe(false);
+    expect(stressResultFor(active, report, { verified: ["report.pdf"] }).passed).toBe(true);
     const artifacts = [artifact("report.pdf"), artifact("work.py")];
     const unexpected = stressResultFor(active, snapshot("Done.", "", artifacts), {
       verified: ["report.pdf"],
@@ -276,9 +275,10 @@ describe("invalid-input stress evidence", () => {
       runId: "run",
       startedAt: performance.now(),
     };
-    expect(stressResultFor(active, snapshot("The PDF could not be read.")).passed).toBe(false);
     const valid = snapshot("The PDF is INVALID.");
-    valid.executions.push(execution("invalid header", "pypdf", true));
+    valid.executions.push(execution("SyntaxError: invalid syntax", "pypdf", true));
+    expect(stressResultFor(active, valid).passed).toBe(false);
+    valid.executions[0] = execution("PdfStreamError", "pypdf", true);
     expect(stressResultFor(active, valid).passed).toBe(true);
     expect(
       stressResultFor(active, snapshot("The PDF is INVALID.", "", [artifact()])),

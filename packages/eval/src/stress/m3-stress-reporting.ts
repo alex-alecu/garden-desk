@@ -130,7 +130,6 @@ function calledSkillNames(trace: AgentTrace | undefined): string[] {
     .flatMap((turn) => toolCalls(turn.structuredResponse).map(skillName))
     .filter((name): name is string => name !== undefined);
 }
-
 function firstLoadedSkills(names: string[]): string[] {
   const seen = new Set<string>();
   return names.filter((name) => {
@@ -139,7 +138,6 @@ function firstLoadedSkills(names: string[]): string[] {
     return true;
   });
 }
-
 function sequenceIsOrdered(actual: string[], expected: string[]): boolean {
   let previous = -1;
   for (const name of expected) {
@@ -149,7 +147,6 @@ function sequenceIsOrdered(actual: string[], expected: string[]): boolean {
   }
   return true;
 }
-
 function skillEvidence(active: ActiveCase, trace: AgentTrace | undefined) {
   const requiredSkills = active.fixture.requiredSkills ?? [];
   const requiredSkillSequence = active.fixture.requiredSkillSequence ?? [];
@@ -167,12 +164,17 @@ function skillEvidence(active: ActiveCase, trace: AgentTrace | undefined) {
     calledForbiddenSkills: forbiddenSkills.filter((name) => skills.has(name)),
   };
 }
-
 function executionTextEvidence(active: ActiveCase, snapshot: AgentRunSnapshot) {
   const requiredExecutionText = active.fixture.requiredExecutionText ?? [];
   const executions = [...active.previousSnapshots, snapshot]
     .flatMap((run) => run.executions)
-    .filter(({ state }) => state === "completed" || state === "failed");
+    .filter(
+      ({ exitCode, state, stderr }) =>
+        (state === "completed" && exitCode === 0) ||
+        (active.fixture.id === "invalid-document" &&
+          state === "failed" &&
+          stderr.includes("PdfStreamError")),
+    );
   const text = executions
     .map(({ command, source }) => `${command ?? ""}\n${source ?? ""}`)
     .join("\n");
@@ -181,7 +183,6 @@ function executionTextEvidence(active: ActiveCase, snapshot: AgentRunSnapshot) {
     missingExecutionText: requiredExecutionText.filter((value) => !text.includes(value)),
   };
 }
-
 function responseEvidence(active: ActiveCase, snapshot: AgentRunSnapshot) {
   const output = snapshot.run.response ?? "";
   const forbiddenResponseText = active.fixture.forbiddenResponseText ?? [];
@@ -199,7 +200,6 @@ function responseEvidence(active: ActiveCase, snapshot: AgentRunSnapshot) {
     ),
   };
 }
-
 // biome-ignore lint/complexity/noExcessiveLinesPerFunction: one result keeps all acceptance gates visible.
 export function stressResultFor(
   active: ActiveCase,
