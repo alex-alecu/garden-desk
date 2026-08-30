@@ -21,7 +21,7 @@ Ship the first useful product as quickly as the security boundary permits:
 - A generic local agent inspired by modern coding-agent interaction.
 - Python, Node.js, and installed shell-tool execution in a session-scoped no-network microVM.
 - A reviewed fixed set of offline document and image libraries.
-- A prompt-only professional review set for legal, finance, and medical administration, with physical and qualified reviewer gates.
+- A prompt-only professional review set for legal, finance, and medical administration, with qualified human review of its outputs before release.
 - Live read-only selected-folder mount and persistent bounded guest workspace; no selected-folder writes.
 - Typed host-mediated local inference; no generic model endpoint in the guest.
 - Self-contained packages with zero-download first launch on supported macOS and Windows hardware.

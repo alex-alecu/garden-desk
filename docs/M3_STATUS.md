@@ -21,6 +21,7 @@ M3 Offline Dev-Agent Desktop V1 is active. The desktop runs one general-purpose 
 
 ## What Remains Open
 
+- Blind qualified-reviewer check of the professional review skills' outputs (legal, finance, medical administration) on both platforms before public release.
 - Packaged Open and Save As for generated files, observed on the built macOS and Windows applications.
 - Windows setup certified under a dedicated standard-user account (current evidence used an administrator account with UAC filtering).
 - Release signing: macOS Developer ID notarization and Windows Authenticode signing under the production certificate.
