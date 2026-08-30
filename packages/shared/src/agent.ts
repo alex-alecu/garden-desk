@@ -74,8 +74,9 @@ export const AgentExecutionResultSchema = z.union([
 export const AgentRunResultSchema = z.object({
   response: z.string().min(1),
   artifacts: z.array(AgentWorkspacePathSchema).max(16).default([]),
-  executions: z.array(AgentExecutionResultSchema).max(1_000),
-  guestExecutions: z.number().int().nonnegative().max(1_000),
+  // Ceiling: 40 turns x 32 tool calls per turn (HARD_TURN_LIMIT x MAX_CHAT_TOOLS).
+  executions: z.array(AgentExecutionResultSchema).max(1_280),
+  guestExecutions: z.number().int().nonnegative().max(1_280),
   inference: InferencePerformanceSchema,
 });
 
@@ -246,7 +247,7 @@ export const AgentQuestionAnswerSchema = z.array(z.string().min(1).max(300)).max
 export const AgentRunSnapshotSchema = z.object({
   run: AgentRunSummarySchema,
   events: z.array(AgentEventSchema).max(1_000),
-  executions: z.array(AgentExecutionSnapshotSchema).max(1_000).default([]),
+  executions: z.array(AgentExecutionSnapshotSchema).max(1_280).default([]),
   artifacts: z.array(AgentArtifactSummarySchema).max(100),
   thinking: z.string().max(64_000).nullable().default(null),
   contextUsedTokens: z.number().int().nonnegative().nullable().default(null),

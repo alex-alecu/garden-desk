@@ -1,3 +1,4 @@
+import { AgentRunResultSchema } from "@vault/shared";
 import { describe, expect, it } from "vitest";
 import type { InferenceService } from "../runtime/inference.js";
 import { ChatAgentLoop } from "./chat-loop.js";
@@ -195,5 +196,20 @@ describe("ChatAgentLoop turn limit", () => {
     );
 
     expect(requests[0]?.tools).toHaveLength(1);
+  });
+});
+
+describe("run result execution ceiling", () => {
+  it("accepts a run that used every tool call the turn cap allows", () => {
+    const result = AgentRunResultSchema.parse({
+      response: "Done.",
+      artifacts: [],
+      executions: Array.from({ length: 1_280 }, () => execution("print(1)")),
+      guestExecutions: 1_280,
+      inference: generated("Done.").performance,
+    });
+
+    expect(result.executions).toHaveLength(1_280);
+    expect(result.guestExecutions).toBe(1_280);
   });
 });
