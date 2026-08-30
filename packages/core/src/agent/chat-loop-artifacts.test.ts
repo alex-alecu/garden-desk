@@ -136,3 +136,37 @@ it("retains an artifact produced by a completed sub-agent task", async () => {
 
   expect(result.artifacts).toEqual(["report.docx"]);
 });
+
+it("keeps an artifact produced by a probe task internal", async () => {
+  const requests: Parameters<InferenceService["chat"]>[0][] = [];
+  const loop = new ChatAgentLoop(
+    model(
+      [
+        generated("", [
+          tool("task", "probe", {
+            description: "Check a document",
+            prompt: "Test one repair",
+            subagent_type: "probe",
+          }),
+        ]),
+        generated("Done."),
+      ],
+      requests,
+    ),
+  );
+  const child = successfulResult(["check.txt"]);
+
+  const result = await loop.run(
+    input(
+      {
+        async execute() {
+          return child;
+        },
+      },
+      ["task"],
+      { spawnTask: async () => ({ response: "Checked the repair", executions: [child] }) },
+    ),
+  );
+
+  expect(result.artifacts).toEqual([]);
+});

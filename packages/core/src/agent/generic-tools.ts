@@ -170,7 +170,7 @@ function taskTool(): ToolSpec {
       return {
         content: `<task_result>\n${result.response}\n</task_result>`,
         failed: false,
-        artifactExecutions: result.executions,
+        artifactExecutions: params.subagent_type === "general" ? result.executions : [],
       };
     },
   };
