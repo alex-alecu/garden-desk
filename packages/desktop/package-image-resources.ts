@@ -43,12 +43,23 @@ export function visionResourceNames(manifest: VisionRuntimeManifest, platform: s
   return names.sort();
 }
 
+async function requireFetchedAsset(path: string, fetchCommand: string): Promise<void> {
+  try {
+    await stat(path);
+  } catch {
+    throw new Error(
+      `Missing offline asset: ${path}. Run \`${fetchCommand}\` from the repository root to download it, then start again.`,
+    );
+  }
+}
+
 export async function installVisionResources(
   sha256: HashFile,
 ): Promise<Pick<ResourceHashes, "visionRuntime">> {
   reportDevelopmentResourceStage("visionRuntime");
   const platform = visionPlatform();
   const source = join(repositoryRoot, "packages/eval/.generated/vision", platform);
+  await requireFetchedAsset(source, "pnpm vision:fetch");
   const destination = join(resourcesRoot, "inference", "vision");
   const manifest = JSON.parse(
     await readFile(join(repositoryRoot, "assets/vision-runtime.json"), "utf8"),
@@ -95,6 +106,12 @@ export async function installImageModelResources(
       runtimeBuild: "llama.cpp@b9842",
     },
   ] as const;
+  for (const candidate of candidates) {
+    await requireFetchedAsset(
+      candidate.source,
+      `pnpm model:fetch --id ${candidate.modelId} --destination ${candidate.source}`,
+    );
+  }
   const [generation, projector] = await Promise.all(
     candidates.map(async (candidate) => ({
       modelId: candidate.modelId,

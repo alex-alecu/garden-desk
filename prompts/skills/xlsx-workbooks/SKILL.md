@@ -3,10 +3,43 @@ name: xlsx-workbooks
 description: XLSX workbook work. Load for XLSX, Excel workbook, or spreadsheet deliverable.
 ---
 
-recursively find case-insensitive `.xlsx` in `/source`; use installed `openpyxl` through `python`; no `bash`, package installs, or `pandas`. `load_workbook(path, data_only=True)`; never `read_only=True` (exports can be empty). `len(row)` before index. Cite path/sheet/row; exact output.
+## Library
 
-Find real header below preamble; map columns by label. Relative dates use clock. Settle date order from period label/names/leading number over 12; never guess. Never skip unparsed/unreadable input; no bare `except`. Print files/matched/parsed/mapped/grouped; stop if grouped < matched.
+Use the installed `openpyxl` through `python`. Do not install packages, and do not use `pandas`.
 
-Edit `data_only=False`; save/reopen `/workspace`; assert changed/preserved. `Workbook` filter: `output_sheet.append([source_path,sheet_name,*row_values])`; no row number; reopen/assert count/identity. Large XLSX: no spill. Normal library stderr: not failure; exit status/reopened output control success.
+## Find The Files
 
-Small: one pass. Else reusable: source+`steps/...` saves `/workspace/steps`; repair as primary; rerun path only. `checkpoint=Path("/workspace/steps/checkpoint.json")`; `temporary=Path("/workspace/steps/checkpoint.json.tmp")`. JSON: sorted relative corpus; `completed`; per-file SHA-256 identity/rows/counts/totals. Per-file replace/recompute contribution; write `temporary`; `os.replace(temporary,checkpoint)`. At `deadline=time.monotonic()+75`, save progress; successful continuation exit reports concise progress before next file: `SystemExit(0)`. Resume: remove missing/changed state; skip same identity; no double count. Only when `completed` equals rediscovered current corpus: create/reopen final workbook; `checkpoint.unlink()`.
+Search `/source` recursively for files whose name ends in `.xlsx`, case-insensitive.
+
+## Recipe
+
+Read with `data_only=True` so formulas resolve to their last calculated values. Never pass `read_only=True`; some exports return empty cells under it.
+
+```python
+from openpyxl import load_workbook
+workbook = load_workbook(path, data_only=True)
+for row in workbook["Sheet1"].iter_rows(values_only=True):
+    ...
+```
+
+Write a new sheet with `Workbook()`, or open an existing file with `data_only=False` to edit and resave it.
+
+```python
+from openpyxl import Workbook
+
+workbook = Workbook()
+workbook.active.append(["column_a", "column_b"])
+workbook.save(path)
+```
+
+## Verify
+
+Reopen every workbook you write and assert its row count matches what you intended to write. Print the count as evidence before you report the deliverable done.
+
+## Gotchas
+
+- Check `len(row)` before indexing into it; a short row raises `IndexError`.
+- Find the real header row by its content; it is often below a preamble of title or note rows, not row 1.
+- Catch the specific error you expect, never a bare `except`; report which file and row failed.
+- Cite results by path, sheet name, and row number.
+- A large workbook takes real time to load; that is normal, not a failure.

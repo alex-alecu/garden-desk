@@ -9,4 +9,4 @@ Extract each event date, time, actor, action, document type, subject, and exact 
 
 Order events by the best supported date. For a conflict, keep each value and source in one row. Do not select a correct date without supplied evidence. Mark inferred order `sequence inferred from supplied records` and state its basis.
 
-Output one table: date or range; event; actor; source fact; evidence location; status or conflict. Finish with missing periods, unresolved date conflicts, and questions for qualified human review. Do not state a legal conclusion.
+Output one table: date or range; event; actor; source fact; evidence location; status or conflict. Finish with missing periods, unresolved date conflicts, and questions for qualified human review. This skill does not state a legal conclusion.

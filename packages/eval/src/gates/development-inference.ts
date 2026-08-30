@@ -3,11 +3,9 @@ import { cp, mkdir, rm, stat } from "node:fs/promises";
 import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { build } from "esbuild";
-import {
-  failedEvaluationEvidence,
-  type M3EvaluationFailureStage,
-} from "../stress/m3-evidence-classification.js";
 import { developmentInferenceWorkerEntryPath } from "./development-inference-path.js";
+
+type HeadlessFailureStage = "fixture" | "environment_setup" | "runtime_startup";
 
 const repositoryRoot = process.cwd();
 const diagnosticRoot = join(
@@ -145,23 +143,18 @@ export async function runDevelopmentHeadlessEntry(
   entry: URL,
   failureClassification: string,
 ): Promise<void> {
-  let failureStage: M3EvaluationFailureStage = "environment_setup";
+  let stage: HeadlessFailureStage = "environment_setup";
   try {
-    failureStage = "fixture";
+    stage = "fixture";
     const output = await buildDevelopmentHeadlessEntry(entry);
-    failureStage = "environment_setup";
+    stage = "environment_setup";
     await prepareDevelopmentInferenceWorker(() => {
-      failureStage = "fixture";
+      stage = "fixture";
     });
-    failureStage = "runtime_startup";
+    stage = "runtime_startup";
     runHeadlessEntry(output);
   } catch {
-    console.error(
-      JSON.stringify({
-        classification: failureClassification,
-        ...failedEvaluationEvidence(failureStage),
-      }),
-    );
+    console.error(JSON.stringify({ classification: failureClassification, stage }));
     process.exitCode = 1;
   }
 }

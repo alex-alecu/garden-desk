@@ -9,4 +9,4 @@ Extract exact identifiers, dates, counterparties, currencies, units, quantities,
 
 Recalculate source arithmetic and balances. Report matched and missing records, unmatched entries, amount, currency, period, and tax differences, and entity or account conflicts. Do not treat a header as a record or combine currencies or exchange rates without an explicit source.
 
-Label a suspected duplicate `Possible duplicate`; identical fields or identifiers do not prove one transaction. Include record identifier in every exception row. Output one table: category; record identifier; each source and value; difference; required check. Do not claim an audit or give tax, fraud, compliance, or posting conclusions. Require qualified finance or accounting review.
+Label a suspected duplicate `Possible duplicate`; identical fields or identifiers do not prove one transaction. Include record identifier in every exception row. Output one table: category; record identifier; each source and value; difference; required check. Require qualified finance or accounting review. This skill does not claim an audit or give a tax, fraud, compliance, or posting conclusion.

@@ -29,14 +29,12 @@ export async function rehydrationProbe(
       language: "shell",
       command: [
         "test -f steps/probe.py",
-        "test -f steps/repair.py",
         "test -f large.bin",
-        'test "$(cat failed-persistence.txt)" = persisted-after-failure',
-        "/usr/bin/python3 steps/repair.py",
+        "/usr/bin/python3 steps/probe.py",
       ].join(" && "),
     });
     requireGuestSuccess(result);
-    return { failedWorkspacePersisted: true, output: result.stdout.trim() };
+    return { output: result.stdout.trim() };
   } finally {
     await session.close();
   }

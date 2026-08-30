@@ -9,4 +9,4 @@ State each file, version marker, date, and relationship. Match sections by subje
 
 Classify each result `added`, `removed`, `changed`, `conflicting`, `moved`, or `format only`. Do not classify a completed blank or changed identifier, amount, date, or obligation as `format only`. Put each changed field in one row. Report all distinct values when more than two documents differ.
 
-Output one table: subject; earlier and later source and value; change; possible effect; required check. Cite all compared locations. Do not invent a reason for change or say which version controls unless supplied documents establish it. Require qualified human review for legal decisions.
+Output one table: subject; earlier and later source and value; change; possible effect; required check. Cite all compared locations. Do not invent a reason for change or say which version controls unless supplied documents establish it. Require qualified human review for legal decisions. This skill does not determine which version is authoritative or give legal advice.

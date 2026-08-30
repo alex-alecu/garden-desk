@@ -1,8 +1,8 @@
-import {
-  type AgentEventDetail,
-  type AgentEventType,
-  AgentWorkspacePathSchema,
-  type ChatToolCall,
+import type {
+  AgentEventDetail,
+  AgentEventType,
+  AgentExecutionResult,
+  ChatToolCall,
 } from "@vault/shared";
 import type { ArtifactExecutionEvidence } from "./artifact-results.js";
 import type { ChatToolState } from "./chat-tool-turn.js";
@@ -50,26 +50,7 @@ export function pathOnlyCodeCall(call: ChatToolCall): boolean {
   return typeof params.path === "string" && params.source === undefined;
 }
 
-function codeLanguage(call: ChatToolCall): "python" | "node" | undefined {
-  if (call.name === "python" || call.name === "node") return call.name;
-  return undefined;
-}
-
-function reusableScriptPath(call: ChatToolCall, result: AgentToolResult): string | undefined {
-  const language = codeLanguage(call);
-  if (language === undefined) return undefined;
-  if (typeof call.params !== "object" || call.params === null) return undefined;
-  const requested = (call.params as Record<string, unknown>).path;
-  if (typeof requested !== "string") return undefined;
-  const execution =
-    result.execution ?? (pathOnlyCodeCall(call) ? result.executionAttempt : undefined);
-  if (execution?.language !== language) return undefined;
-  if (pathOnlyCodeCall(call) && execution.path !== requested) return undefined;
-  const parsed = AgentWorkspacePathSchema.safeParse(requested);
-  return parsed.success ? parsed.data : undefined;
-}
-
-export function emitCompletedExecutionAttempt(
+function emitCompletedExecutionAttempt(
   onEvent: ToolEventWriter | undefined,
   call: ChatToolCall,
   result: AgentToolResult,
@@ -94,7 +75,8 @@ export function emitCompletedExecutionAttempt(
   });
 }
 
-export function retainCompletedExecution(
+/** Records a completed code or shell execution as evidence for the run's UI timeline and audit. */
+export function recordCompletedExecution(
   state: ChatToolState,
   onEvent: ToolEventWriter | undefined,
   call: ChatToolCall,
@@ -133,7 +115,7 @@ export function emitCompletedTool(
   result: AgentToolResult,
 ): void {
   const detail = { toolName: call.name, toolCallId: call.id, stdout: result.content };
-  onEvent?.("tool.completed", toolCompletedSummary(call, result.failed, result.status), detail);
+  onEvent?.("tool.completed", toolCompletedSummary(call, result.failed), detail);
   if (call.name === "task") {
     onEvent?.(
       "subagent.completed",
@@ -143,23 +125,13 @@ export function emitCompletedTool(
   }
 }
 
-function completedExecutionFailure(result: AgentToolResult): ChatToolState["lastExecutionFailure"] {
-  const attempt = result.executionAttempt;
-  if (attempt === undefined) return result.executionFailure;
-  return {
-    termination: attempt.termination ?? "crash",
-    exitCode: attempt.exitCode,
-    errorText: result.content,
-  };
-}
-
-function artifactEvidence(
-  execution: NonNullable<AgentToolResult["artifactExecution"]>,
-): ArtifactExecutionEvidence {
+function artifactEvidence(execution: {
+  artifacts: AgentExecutionResult["artifacts"];
+  invalidatedArtifactPaths?: AgentExecutionResult["invalidatedArtifactPaths"];
+  recoverableArtifactPaths?: AgentExecutionResult["recoverableArtifactPaths"];
+}): ArtifactExecutionEvidence {
   return {
     artifacts: execution.artifacts,
-    exitCode: execution.exitCode,
-    termination: execution.termination,
     ...(execution.invalidatedArtifactPaths === undefined
       ? {}
       : { invalidatedArtifactPaths: execution.invalidatedArtifactPaths }),
@@ -169,46 +141,16 @@ function artifactEvidence(
   };
 }
 
-function artifactInvalidationEvidence(
-  execution: NonNullable<AgentToolResult["artifactExecution"]>,
-): ArtifactExecutionEvidence {
-  const invalidated = new Set([
-    ...(execution.invalidatedArtifactPaths ?? []),
-    ...(execution.recoverableArtifactPaths ?? []),
-    ...execution.artifacts.map(({ name }) => name),
-  ]);
-  return {
-    artifacts: [],
-    exitCode: 1,
-    termination: "completed",
-    invalidatedArtifactPaths: [...invalidated],
-  };
-}
-
-export function retainWorkspaceEvidence(
-  state: ChatToolState,
-  call: ChatToolCall,
-  result: AgentToolResult,
-): void {
+/**
+ * Every file an execution reports under `/workspace` is retained as run artifact evidence, along
+ * with the paths it invalidated or left for a live final read.
+ */
+export function retainWorkspaceEvidence(state: ChatToolState, result: AgentToolResult): void {
   for (const execution of result.artifactExecutions ?? []) {
-    state.artifactExecutions.push(
-      result.publishArtifactExecutions === false
-        ? artifactInvalidationEvidence(execution)
-        : artifactEvidence(execution),
-    );
+    state.artifactExecutions.push(artifactEvidence(execution));
   }
   const artifactExecution = result.execution ?? result.artifactExecution;
-  if (artifactExecution !== undefined)
+  if (artifactExecution !== undefined) {
     state.artifactExecutions.push(artifactEvidence(artifactExecution));
-  const path = reusableScriptPath(call, result);
-  if (path !== undefined) {
-    state.scriptPaths = [...state.scriptPaths.filter((item) => item !== path), path].slice(-8);
-  }
-  const failure = completedExecutionFailure(result);
-  if (failure !== undefined) {
-    state.lastExecutionFailure = {
-      ...failure,
-      errorText: failure.errorText.slice(0, 400),
-    };
   }
 }

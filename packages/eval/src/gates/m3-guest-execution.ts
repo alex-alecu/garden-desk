@@ -1,5 +1,5 @@
 import type { AgentExecutionResult } from "@vault/shared";
-import { M3ProductCheckFailure } from "./m3-canonical-gate-reporting.js";
+import { M3ProductCheckFailure } from "./m3-gate-support.js";
 
 export function requireGuestSuccess(result: AgentExecutionResult): void {
   if (result.exitCode !== 0 || result.termination !== "completed") {

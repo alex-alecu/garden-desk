@@ -9,4 +9,4 @@ Inventory document type, stated patient identifier, provider or facility, servic
 
 Compare repeated identity details, dates, encounter references, document types, recorded procedures, medications, allergies, measurements, and administrative status. Report conflicts without choosing a correct value. Do not interpret symptoms, results, diagnoses, treatments, doses, interactions, urgency, or clinical significance.
 
-Output one table: category; each source and value; evidence locations; administrative effect; human check. Keep missing evidence separate from a conflict. Do not claim HIPAA compliance, safe de-identification, clinical completeness, or medical correctness. Require qualified medical-administration and clinical review when the result can affect care.
+Output one table: category; each source and value; evidence locations; administrative effect; human check. Keep missing evidence separate from a conflict. Require qualified medical-administration and clinical review when the result can affect care. This skill does not claim HIPAA compliance, safe de-identification, clinical completeness, or medical correctness.

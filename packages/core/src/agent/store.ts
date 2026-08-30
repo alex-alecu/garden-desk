@@ -257,9 +257,7 @@ export class AgentStore {
     const executions = this.execution.list(runId);
     const artifacts = (
       this.database
-        .prepare(
-          "SELECT * FROM agent_artifacts WHERE run_id = ? AND lower(display_name) NOT IN ('checkpoint.json', 'checkpoints.json') ORDER BY created_at, id",
-        )
+        .prepare("SELECT * FROM agent_artifacts WHERE run_id = ? ORDER BY created_at, id")
         .all(runId) as ArtifactRow[]
     ).map(artifactFromRow);
     return AgentRunSnapshotSchema.parse({

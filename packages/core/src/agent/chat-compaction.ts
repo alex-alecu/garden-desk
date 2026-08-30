@@ -13,38 +13,8 @@ function serialized(message: ChatMessage): string {
   return `[${message.role === "user" ? "User" : "System"}]: ${message.text}`;
 }
 
-function requiredAssistantIndexes(
-  messages: readonly ChatMessage[],
-  callIds: Set<string>,
-): Set<number> {
+function retainedIndexes(messages: readonly ChatMessage[], assistantTurns: number): Set<number> {
   const retained = new Set<number>();
-  for (const [index, message] of messages.entries()) {
-    if (message.role !== "assistant") continue;
-    if (!message.toolCalls.some((call) => callIds.has(call.id))) continue;
-    retained.add(index);
-    for (const call of message.toolCalls) callIds.add(call.id);
-  }
-  return retained;
-}
-
-function requiredCallIndexes(
-  messages: readonly ChatMessage[],
-  requiredToolCallIds: readonly string[],
-): Set<number> {
-  const callIds = new Set(requiredToolCallIds);
-  const retained = requiredAssistantIndexes(messages, callIds);
-  for (const [index, message] of messages.entries()) {
-    if (message.role === "tool" && callIds.has(message.toolCallId)) retained.add(index);
-  }
-  return retained;
-}
-
-function retainedIndexes(
-  messages: readonly ChatMessage[],
-  assistantTurns: number,
-  requiredToolCallIds: readonly string[],
-): Set<number> {
-  const retained = requiredCallIndexes(messages, requiredToolCallIds);
   const latestUser = messages.findLastIndex((message) => message.role === "user");
   if (latestUser >= 1) retained.add(latestUser);
   let found = 0;
@@ -61,58 +31,23 @@ export interface CompactHistoryResult {
   summary: string;
 }
 
-export interface CompactionWorkspaceState {
-  scriptPaths: readonly string[];
-  lastExecutionFailure?: {
-    termination: "completed" | "timeout" | "cancelled" | "resource_limit" | "crash";
-    exitCode: number | null;
-    errorText: string;
-  };
-}
-
-function workspaceStateMessage(state: CompactionWorkspaceState): ChatMessage {
-  const record = {
-    scriptPaths: state.scriptPaths.slice(-8),
-    lastExecutionFailure:
-      state.lastExecutionFailure === undefined
-        ? null
-        : {
-            ...state.lastExecutionFailure,
-            errorText: state.lastExecutionFailure.errorText.slice(0, 400),
-          },
-  };
-  return {
-    role: "user",
-    text: `<workspace-state>\n${JSON.stringify(record)}\n</workspace-state>`,
-  };
-}
-
 export async function compactChatHistory(
   messages: readonly ChatMessage[],
   instructions: string,
   summarize: (prompt: string) => Promise<string>,
-  options: {
-    assistantTurns?: number;
-    requiredToolCallIds?: readonly string[];
-    workspaceState?: CompactionWorkspaceState;
-  } = {},
+  options: { assistantTurns?: number } = {},
 ): Promise<CompactHistoryResult> {
   const assistantTurns = options.assistantTurns ?? 2;
-  const workspaceState = options.workspaceState;
-  const retained = retainedIndexes(messages, assistantTurns, options.requiredToolCallIds ?? []);
+  const retained = retainedIndexes(messages, assistantTurns);
   const previous = messages.find(
     (message) => message.role === "user" && message.text.startsWith("<anchored-summary>"),
   );
-  const previousWorkspace = messages.find(
-    (message) => message.role === "user" && message.text.startsWith("<workspace-state>"),
-  );
-  const head = messages.slice(1).filter((message, index) => {
-    const absolute = index + 1;
-    return (
-      message !== previousWorkspace &&
-      (message === previous || !retained.has(absolute) || message.role === "user")
+  const head = messages
+    .slice(1)
+    .filter(
+      (message, index) =>
+        message === previous || !retained.has(index + 1) || message.role === "user",
     );
-  });
   if (head.length === 0) return { messages: [...messages], summary: "" };
   const prompt = [
     previous?.role === "user"
@@ -129,7 +64,6 @@ export async function compactChatHistory(
     messages: [
       messages[0] as ChatMessage,
       { role: "user", text: `<anchored-summary>\n${summary}\n</anchored-summary>` },
-      ...(workspaceState === undefined ? [] : [workspaceStateMessage(workspaceState)]),
       ...messages.filter((_, index) => retained.has(index)),
     ],
   };

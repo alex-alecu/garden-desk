@@ -2,15 +2,7 @@ import { type AgentQuestion, AgentQuestionSchema } from "@vault/shared";
 import { object, objectSchema, type ToolSpec } from "./generic-tool-support.js";
 
 function parsedQuestions(value: unknown): AgentQuestion[] {
-  const supplied = object(value).questions;
-  let items: unknown = supplied;
-  if (typeof supplied === "string") {
-    try {
-      items = JSON.parse(supplied);
-    } catch {
-      throw new Error("invalid_questions");
-    }
-  }
+  const items = object(value).questions;
   if (!Array.isArray(items) || items.length < 1 || items.length > 3) {
     throw new Error("invalid_questions");
   }
@@ -35,18 +27,35 @@ function answerText(questions: AgentQuestion[], answers: string[][]): string {
   return `The user answered your questions:\n${formatted}\nContinue the task with these answers in mind.`;
 }
 
-/**
- * The pinned Gemma chat adapter is certified with a flat string parameter here. Core still parses
- * and validates the canonical nested question contract before publishing anything to the desktop.
- * Keeping those two boundaries separate prevents one model's grammar constraints from weakening
- * shared contracts or leaking into the UI.
- */
+const QUESTION_ITEM_SCHEMA = {
+  type: "object",
+  properties: {
+    header: { type: "string" },
+    question: { type: "string" },
+    options: {
+      type: "array",
+      minItems: 2,
+      maxItems: 5,
+      items: {
+        type: "object",
+        properties: { label: { type: "string" }, description: { type: "string" } },
+        required: ["label"],
+      },
+    },
+    multiple: { type: "boolean" },
+  },
+  required: ["header", "question", "options"],
+};
+
 const MODEL_PARAMS = objectSchema(
   {
     questions: {
-      type: "string",
+      type: "array",
+      minItems: 1,
+      maxItems: 3,
+      items: QUESTION_ITEM_SCHEMA,
       description:
-        "JSON array of 1-3 items. Each has header, question, 2-5 options with label and optional description, and optional multiple.",
+        "1-3 items. Each has header, question, 2-5 options with label and optional description, and optional multiple.",
     },
   },
   ["questions"],
@@ -57,7 +66,7 @@ export function questionTool(): ToolSpec {
     definition: {
       name: "question",
       description:
-        "Ask 1-3 clarifying questions only when an outcome-changing decision cannot be resolved from /source. Encode questions as JSON. Give 2-5 choices; put a recommendation first with (Recommended). Do not add Other.",
+        "Ask 1-3 clarifying questions only when an outcome-changing decision cannot be resolved from /source. Give 2-5 choices; put a recommendation first with (Recommended). Do not add Other.",
       params: MODEL_PARAMS,
     },
     parse: questionParams,

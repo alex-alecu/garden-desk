@@ -1,7 +1,8 @@
 import { mkdir, mkdtemp, readFile, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
+import type { AgentExecutionResult } from "@vault/shared";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { AuditLog } from "../audit/log.js";
 import { ConversationStore } from "../conversations/store.js";
 import { JobStore } from "../jobs/jobs.js";
@@ -13,7 +14,14 @@ import {
   exportAndAuditArtifact,
   materializeArtifact,
 } from "./artifact-materialization.js";
+import { artifactCandidateNames } from "./artifact-results.js";
+import { AgentImageInputResolver } from "./image-inputs.js";
 import { AgentStore } from "./store.js";
+
+const PNG = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
+  "base64",
+);
 
 const roots: string[] = [];
 
@@ -41,6 +49,74 @@ async function fixture() {
   });
   return { root, catalog, artifacts, store, session, item, bytes };
 }
+
+async function imageFixture() {
+  const root = await mkdtemp(join(tmpdir(), "vault-image-input-test-"));
+  roots.push(root);
+  const scope = await WorkspaceScope.create(root);
+  const catalog = openWorkspaceCatalog(scope.root);
+  const store = new AgentStore(catalog.database, await ArtifactStore.create(scope));
+  const conversations = new ConversationStore(catalog.database);
+  return { root, catalog, store, conversations };
+}
+
+describe("artifact path policy", () => {
+  it("keeps Core bookkeeping paths out of user artifacts", () => {
+    const bookkeeping: Pick<AgentExecutionResult, "artifacts"> = {
+      artifacts: [".vault-tools/run.py", ".vault-output/result.txt"].map((name) => ({
+        name,
+        mediaType: "application/octet-stream",
+        bytesBase64: Buffer.from(name).toString("base64"),
+      })),
+    };
+    expect(artifactCandidateNames([bookkeeping])).toEqual([]);
+  });
+});
+
+describe("agent image input security", () => {
+  it("rejects a selected-folder link that escapes the grant", async () => {
+    const { root, catalog, store, conversations } = await imageFixture();
+    const selected = join(root, "selected");
+    await mkdir(selected);
+    const outside = join(root, "outside");
+    await mkdir(outside);
+    await writeFile(join(outside, "outside.png"), PNG);
+    await symlink(
+      outside,
+      join(selected, "escape"),
+      process.platform === "win32" ? "junction" : "dir",
+    );
+    const folder = conversations.addFolder(selected);
+    const session = conversations.createSession(folder.id);
+    const resolver = new AgentImageInputResolver(catalog.database, store);
+
+    await expect(resolver.resolve(session.id, "/source/escape/outside.png")).rejects.toThrow(
+      "image_path_outside_context",
+    );
+    catalog.close();
+  });
+
+  it("rejects an oversized attachment before loading its artifact bytes", async () => {
+    const { root, catalog, store, conversations } = await imageFixture();
+    const source = join(root, "large.png");
+    await writeFile(source, PNG);
+    const session = conversations.createSession(null);
+    const item = await store.addAttachment(session.id, source);
+    catalog.database
+      .prepare("UPDATE session_attachments SET byte_length = ? WHERE id = ?")
+      .run(32 * 1024 * 1024 + 1, item.id);
+    const readBytes = vi.spyOn(store, "attachmentBytes");
+
+    await expect(
+      new AgentImageInputResolver(catalog.database, store).resolve(
+        session.id,
+        "/run/attachments/01-large.png",
+      ),
+    ).rejects.toThrow("image_size_unsupported");
+    expect(readBytes).not.toHaveBeenCalled();
+    catalog.close();
+  });
+});
 
 describe("artifact materialization and export", () => {
   it("verifies ownership and hash before opening an owner-only temporary copy", async () => {

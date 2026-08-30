@@ -33,7 +33,10 @@ function requiredModelPath(): string {
 const milestone = milestoneArgument();
 if (milestone === "3") {
   runPnpm(["verify"]);
-  run(process.execPath, ["--import", "tsx", "packages/eval/src/gates/m3-readiness.ts"]);
+  runPnpm(["tauri:check"]);
+  if (process.platform === "darwin") runPnpm(["test:m3:macos"]);
+  else if (process.platform === "win32") runPnpm(["test:m3:windows"]);
+  else throw new Error("Milestone 3 acceptance runs on physical macOS or Windows hardware.");
 } else if (milestone === "2") {
   runPnpm(["verify"]);
   runPnpm(["test:native:m2"]);

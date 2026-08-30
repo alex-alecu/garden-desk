@@ -57,20 +57,14 @@ function failureSummary(detail: string): string {
   if (detail === "worker_input_limit_exceeded") {
     return "The selected files exceed this task's supported input limit.";
   }
+  if (detail === "agent_generation_limit") {
+    return "The answer exceeded the local model's output limit.";
+  }
   if (detail === "agent_memory_unavailable") {
     return "The local model needs more available memory to complete this task.";
   }
   if (detail === "agent_model_failed") {
     return "The local model could not be loaded or did not respond.";
-  }
-  if (detail === "agent_stalled_duplicate") {
-    return "The local model repeated the same program and could not make further progress.";
-  }
-  if (detail === "agent_decision_limit_exceeded") {
-    return "The local model could not produce a new executable plan within the planning limit.";
-  }
-  if (detail === "agent_generation_limit") {
-    return "The local model reached its output limit twice without completing the next action.";
   }
   return "The local task could not be completed safely.";
 }

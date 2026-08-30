@@ -1,7 +1,8 @@
 import type { AgentExecutionResult, ChatGenerationResult } from "@vault/shared";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type { ChatInput } from "../runtime/inference.js";
 import type { DatabasePort } from "../workspace/database.js";
+import { AgentRunCapacity } from "./run-capacity.js";
 import {
   absolutePathExecution,
   absolutePathInference,
@@ -128,49 +129,7 @@ describe("persisted code path recovery", () => {
   });
 });
 
-describe("persisted artifact recovery", () => {
-  it("restores an omitted artifact from committed workspace bytes after a later success", async () => {
-    let execution = 0;
-    const bytes = Buffer.from("recovered workspace bytes");
-    const { catalog, conversations, service } = await fixture(
-      {
-        async chat() {
-          return execution < 2
-            ? chatResult("", [
-                {
-                  id: `call-${execution + 1}`,
-                  name: "python",
-                  params: { source: `print(${execution + 1})` },
-                },
-              ])
-            : chatResult("Recovered the report.", []);
-        },
-      },
-      async (request) => {
-        execution += 1;
-        const result = outputExecution(request, "done\n");
-        if (execution === 1) {
-          result.invalidatedArtifactPaths = ["report.txt"];
-          result.recoverableArtifactPaths = ["report.txt"];
-        }
-        return result;
-      },
-      undefined,
-      async (_sessionId, path) => (path === "report.txt" ? bytes : undefined),
-    );
-
-    const run = service.start(conversations.createSession(null).id, "Recover the report");
-    const snapshot = await terminal(service, run.id);
-
-    expect(snapshot.run.state).toBe("succeeded");
-    expect(snapshot.artifacts.map((artifact) => artifact.name)).toEqual(["report.txt"]);
-    expect(snapshot.artifacts[0]?.contentHash).toMatch(/^sha256:/u);
-    await service.close();
-    catalog.close();
-  });
-});
-
-describe("persisted output spill budget", () => {
+describe("persisted output spill", () => {
   it("audits spill processes without adding them to execution snapshots", async () => {
     let processes = 0;
     const { catalog, conversations, service } = await fixture(
@@ -276,5 +235,35 @@ describe("persisted chat agent cancellation", () => {
     expect(snapshot.events.at(-1)?.type).toBe("run.cancelled");
     await service.close();
     catalog.close();
+  });
+});
+
+describe("agent run memory capacity", () => {
+  it("queues work above capacity and releases it in order", async () => {
+    const capacity = new AgentRunCapacity(1);
+    const first = await capacity.acquire(new AbortController().signal);
+    const secondReady = vi.fn();
+    const second = capacity.acquire(new AbortController().signal).then((release) => {
+      secondReady();
+      return release;
+    });
+
+    await Promise.resolve();
+    expect(secondReady).not.toHaveBeenCalled();
+    first();
+    const releaseSecond = await second;
+    expect(secondReady).toHaveBeenCalledOnce();
+    releaseSecond();
+  });
+
+  it("removes a cancelled queued run without consuming capacity", async () => {
+    const capacity = new AgentRunCapacity(1);
+    const first = await capacity.acquire(new AbortController().signal);
+    const controller = new AbortController();
+    const queued = capacity.acquire(controller.signal);
+    controller.abort(new DOMException("Cancelled.", "AbortError"));
+    await expect(queued).rejects.toMatchObject({ name: "AbortError" });
+    first();
+    await expect(capacity.acquire(new AbortController().signal)).resolves.toBeTypeOf("function");
   });
 });

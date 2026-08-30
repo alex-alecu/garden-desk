@@ -1,3 +1,4 @@
+import { AgentRunResultSchema } from "@vault/shared";
 import { describe, expect, it } from "vitest";
 import type { InferenceService } from "../runtime/inference.js";
 import { ChatAgentLoop } from "./chat-loop.js";
@@ -148,85 +149,6 @@ describe("ChatAgentLoop malformed Python", () => {
   });
 });
 
-describe("ChatAgentLoop guest execution budget", () => {
-  it("does not charge invalid calls before one valid execution", async () => {
-    const invalid = Array.from({ length: 24 }, (_, index) =>
-      tool("python", `invalid-${index}`, { source: index }),
-    );
-    const requests: Parameters<InferenceService["chat"]>[0][] = [];
-    const loop = new ChatAgentLoop(
-      model(
-        [
-          generated("", [...invalid, tool("python", "valid", { source: "print('valid')" })]),
-          generated("Done."),
-        ],
-        requests,
-      ),
-    );
-    const executed: string[] = [];
-    const events: string[] = [];
-
-    const result = await loop.run(
-      input(
-        {
-          async execute(run) {
-            executed.push(source(run));
-            return execution(source(run));
-          },
-        },
-        ["python"],
-        { onEvent: (type) => events.push(type) },
-      ),
-    );
-
-    expect(result.response).toBe("Done.");
-    expect(executed).toEqual(["print('valid')"]);
-    expect(events.filter((type) => type === "execution.started")).toHaveLength(1);
-    expect(events.filter((type) => type === "execution.completed")).toHaveLength(1);
-  });
-});
-
-describe("ChatAgentLoop path preparation budget", () => {
-  it("does not charge path preparation failures or emit false execution starts", async () => {
-    const missing = Array.from({ length: 24 }, (_, index) =>
-      tool("python", `missing-${index}`, { path: `steps/missing-${index}.py` }),
-    );
-    const requests: Parameters<InferenceService["chat"]>[0][] = [];
-    const loop = new ChatAgentLoop(
-      model(
-        [
-          generated("", [...missing, tool("python", "valid", { source: "print('valid')" })]),
-          generated("Done."),
-        ],
-        requests,
-      ),
-    );
-    const executed: string[] = [];
-    const events: string[] = [];
-
-    const result = await loop.run(
-      input(
-        {
-          async execute(run) {
-            if (run.language !== "shell" && run.source === undefined) {
-              throw new Error("agent_script_missing");
-            }
-            executed.push(source(run));
-            return execution(source(run));
-          },
-        },
-        ["python"],
-        { onEvent: (type) => events.push(type) },
-      ),
-    );
-
-    expect(result.response).toBe("Done.");
-    expect(executed).toEqual(["print('valid')"]);
-    expect(events.filter((type) => type === "execution.started")).toHaveLength(1);
-    expect(events.filter((type) => type === "execution.completed")).toHaveLength(1);
-  });
-});
-
 describe("ChatAgentLoop automatic context", () => {
   it("keeps the cold auto request stable while budgeting from the allocated context", async () => {
     const requests: Parameters<InferenceService["chat"]>[0][] = [];
@@ -251,5 +173,63 @@ describe("ChatAgentLoop automatic context", () => {
 
     expect(requests[0]).toMatchObject({ contextSize: "auto", maxTokens: 4_096 });
     expect(requests[1]).toMatchObject({ contextSize: "auto", maxTokens: 16_384 });
+  });
+});
+
+describe("ChatAgentLoop turn limit", () => {
+  it("keeps typed tools available on the last allowed model turn", async () => {
+    const requests: Parameters<InferenceService["chat"]>[0][] = [];
+    const loop = new ChatAgentLoop(
+      model([generated("", [tool("python", "last", { source: "print('last')" })])], requests),
+    );
+    const runInput = input(
+      {
+        async execute() {
+          throw new Error("unused");
+        },
+      },
+      ["python"],
+    );
+
+    await expect(loop.run({ ...runInput, agent: { ...runInput.agent, steps: 1 } })).rejects.toThrow(
+      "agent_turn_limit_exceeded",
+    );
+
+    expect(requests[0]?.tools).toHaveLength(1);
+  });
+});
+
+describe("run result execution ceiling", () => {
+  it("accepts a run that used every tool call the turn cap allows", () => {
+    const result = AgentRunResultSchema.parse({
+      response: "Done.",
+      artifacts: [],
+      executions: Array.from({ length: 1_280 }, () => execution("print(1)")),
+      guestExecutions: 1_280,
+      inference: generated("Done.").performance,
+    });
+
+    expect(result.executions).toHaveLength(1_280);
+    expect(result.guestExecutions).toBe(1_280);
+  });
+});
+
+describe("ChatAgentLoop output limit", () => {
+  it("rejects a truncated no-tool answer instead of storing it as success", async () => {
+    const truncated = { ...generated("Partial answer"), stopReason: "maxTokens" as const };
+    const loop = new ChatAgentLoop(model([truncated], []));
+
+    await expect(
+      loop.run(
+        input(
+          {
+            async execute() {
+              throw new Error("execution_should_not_start");
+            },
+          },
+          [],
+        ),
+      ),
+    ).rejects.toThrow("agent_generation_limit");
   });
 });

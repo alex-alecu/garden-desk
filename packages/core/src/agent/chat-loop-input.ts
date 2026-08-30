@@ -24,9 +24,7 @@ export interface ChatAttachmentInput {
 }
 
 export type ChatRecoveryState = {
-  emptyResponsePending: boolean;
   inferenceRetryUsed: boolean;
-  outputLimitRetryUsed: boolean;
 };
 
 export interface ChatTurnOptions {
@@ -35,7 +33,6 @@ export interface ChatTurnOptions {
   registry: GenericToolRegistry;
   recovery: ChatRecoveryState;
   performance: ReturnType<typeof emptyPerformance>;
-  finalTurn: boolean;
 }
 
 export interface ChatAgentInput {
@@ -51,7 +48,6 @@ export interface ChatAgentInput {
   onThinking?(text: string | null): void;
   onResponse?(text: string | null): void;
   onContext?(used: number, allocated: number, measured?: boolean): void;
-  savedScripts?: string[];
   signal?: AbortSignal;
   skills: SkillReader;
   inferencePriority?: "primary" | "secondary";

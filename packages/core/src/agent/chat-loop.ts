@@ -11,23 +11,13 @@ import type { InferenceService } from "../runtime/inference.js";
 import { artifactCandidateNames } from "./artifact-results.js";
 import { compactChatHistory } from "./chat-compaction.js";
 import { withCurrentTimeContext } from "./chat-current-time.js";
-import {
-  cleanedDuplicateHistory,
-  duplicatePromptView,
-  pruneOmittedDuplicateCalls,
-  RECOVERY_TEMPERATURE,
-} from "./chat-duplicate-recovery.js";
-import { executeGeneratedTools } from "./chat-generated-tools.js";
 import { generateWithInferenceRecovery } from "./chat-inference-recovery.js";
 import { initialChatMessages } from "./chat-initial-messages.js";
 import type { ChatAgentInput, ChatRecoveryState, ChatTurnOptions } from "./chat-loop-input.js";
 import { createToolRegistry } from "./chat-loop-registry.js";
 import { chatOutputTokens } from "./chat-output-budget.js";
-import { recoverOutputLimit } from "./chat-output-recovery.js";
-import { containsRawProtocolCall, visibleResponseText } from "./chat-protocol.js";
-import { liveLoadedSkillNames } from "./chat-skill-state.js";
 import { streamCallbacks } from "./chat-streaming.js";
-import { type ChatToolState, initialToolState } from "./chat-tool-turn.js";
+import { type ChatToolState, executeToolCalls, initialToolState } from "./chat-tool-turn.js";
 import type { GenericToolRegistry } from "./generic-tools.js";
 import { addPerformance, emptyPerformance } from "./inference-performance.js";
 
@@ -107,9 +97,8 @@ export class ChatAgentLoop {
     keepTurns: number,
     performance: ReturnType<typeof emptyPerformance>,
   ): Promise<ChatMessage[]> {
-    const promptMessages = cleanedDuplicateHistory(state.messages, state.duplicateRecovery);
     const compacted = await compactChatHistory(
-      promptMessages,
+      state.messages,
       input.systemPrompt("session-summary"),
       async (prompt) => {
         input.onEvent?.("inference.started", "Condensing the working context.");
@@ -129,56 +118,27 @@ export class ChatAgentLoop {
         this.record(input, generated.turnId, "accepted_compaction");
         return generated.result.text;
       },
-      {
-        assistantTurns: keepTurns,
-        ...(state.duplicateRecovery.retainedCallId === undefined
-          ? {}
-          : { requiredToolCallIds: [state.duplicateRecovery.retainedCallId] }),
-        workspaceState: {
-          scriptPaths: state.scriptPaths,
-          ...(state.lastExecutionFailure === undefined
-            ? {}
-            : { lastExecutionFailure: state.lastExecutionFailure }),
-        },
-      },
+      { assistantTurns: keepTurns },
     );
-    pruneOmittedDuplicateCalls(state.duplicateRecovery, compacted.messages);
     return compacted.messages;
   }
   private finish(
     input: ChatAgentInput,
     generated: { result: ChatGenerationResult; turnId?: string },
     state: ChatToolState,
-    options: {
-      recovery: ChatRecoveryState;
-      performance: ReturnType<typeof emptyPerformance>;
-      finalTurn: boolean;
-    },
+    performance: ReturnType<typeof emptyPerformance>,
   ): AgentRunResult | undefined {
-    const { recovery, performance, finalTurn } = options;
     if (generated.result.toolCalls.length > 0) return undefined;
-    const response = visibleResponseText(generated.result.text).trim();
+    if (generated.result.stopReason === "maxTokens") {
+      input.onResponse?.(null);
+      this.record(input, generated.turnId, "invalid_response");
+      throw new Error("agent_generation_limit");
+    }
+    const response = generated.result.text.trim();
     if (response.length === 0) {
       input.onResponse?.(null);
       this.record(input, generated.turnId, "invalid_response");
-      if (recovery.emptyResponsePending || finalTurn) throw new Error("agent_empty_response");
-      recovery.emptyResponsePending = true;
-      state.messages.pop();
-      state.messages.push({
-        role: "system",
-        text: "The previous answer was empty and was rejected. Return the completed result using the retained execution evidence.",
-      });
-      return undefined;
-    }
-    if (containsRawProtocolCall(response)) {
-      input.onResponse?.(null);
-      this.record(input, generated.turnId, "rejected_unbacked_response");
-      state.messages.pop();
-      state.messages.push({
-        role: "system",
-        text: "The previous output contained raw function-call protocol text and was rejected. Use an available tool through a real function call, or return a plain final answer without protocol markers.",
-      });
-      return undefined;
+      throw new Error("agent_empty_response");
     }
     this.record(input, generated.turnId, "accepted_response");
     input.onResponse?.(response);
@@ -187,7 +147,7 @@ export class ChatAgentLoop {
       response,
       artifacts: artifactCandidateNames(state.artifactExecutions),
       executions: state.executions,
-      guestExecutions: state.guestBudget.started,
+      guestExecutions: state.guestExecutionsStarted,
       inference: performance,
     });
   }
@@ -201,23 +161,14 @@ export class ChatAgentLoop {
       state.messages = await this.compact(input, state, 2, performance);
     }
   }
-  // biome-ignore lint/complexity/noExcessiveLinesPerFunction: generation, tool execution, and recovery are one ordered model turn.
   private async turn(options: ChatTurnOptions): Promise<AgentRunResult | undefined> {
-    const { input, state, registry, recovery, performance, finalTurn } = options;
-    const temperature = () =>
-      state.duplicateRecovery.activeBlockedSignature === undefined
-        ? input.agent.temperature
-        : RECOVERY_TEMPERATURE;
+    const { input, state, registry, recovery, performance } = options;
     const generated = await generateWithInferenceRecovery({
       generate: async () => {
-        const promptMessages = duplicatePromptView(state.messages, state.duplicateRecovery);
-        const tools = registry.definitions(
-          input.agent.tools,
-          liveLoadedSkillNames(state.loadedSkills, promptMessages),
-        );
-        return await this.generate(input, promptMessages, tools, {
+        const tools = registry.definitions(input.agent.tools);
+        return await this.generate(input, state.messages, tools, {
           phase: "chat",
-          temperature: temperature(),
+          temperature: input.agent.temperature,
         });
       },
       recover: async () => {
@@ -234,33 +185,20 @@ export class ChatAgentLoop {
       text: generated.result.text,
       toolCalls: generated.result.toolCalls,
     });
-    const recovered = await recoverOutputLimit({
-      compact: async () => await this.compact(input, state, 2, performance),
-      contextTokens: this.contextTokens,
-      finalTurn,
-      record: () => this.record(input, generated.turnId, "invalid_response"),
-      recovery,
-      result: generated.result,
-      state,
-    });
-    if (recovered) {
-      input.onResponse?.(null);
-      return undefined;
-    }
-    const result = this.finish(input, generated, state, { recovery, performance, finalTurn });
+    const result = this.finish(input, generated, state, performance);
     if (result !== undefined) return result;
-    if (generated.result.toolCalls.length === 0) return undefined;
-    await executeGeneratedTools({
-      input,
-      state,
-      registry,
-      recovery,
-      generated: generated.result,
-      finalTurn,
-      record: (outcome) => this.record(input, generated.turnId, outcome),
-      recoverContext: async (promptTokens) =>
-        await this.recoverContext(input, state, performance, promptTokens),
-    });
+    input.onResponse?.(null);
+    try {
+      await executeToolCalls(
+        { registry, state, ...(input.onEvent === undefined ? {} : { onEvent: input.onEvent }) },
+        generated.result.toolCalls,
+      );
+    } catch (error) {
+      this.record(input, generated.turnId, "accepted_tool_calls");
+      throw error;
+    }
+    this.record(input, generated.turnId, "accepted_tool_calls");
+    await this.recoverContext(input, state, performance, generated.result.performance.promptTokens);
     return undefined;
   }
   async run(input: ChatAgentInput): Promise<AgentRunResult> {
@@ -271,23 +209,12 @@ export class ChatAgentLoop {
     const registry = createToolRegistry(input);
     const performance = emptyPerformance();
     const state = initialToolState(initialChatMessages(input));
-    const recovery: ChatRecoveryState = {
-      emptyResponsePending: false,
-      inferenceRetryUsed: false,
-      outputLimitRetryUsed: false,
-    };
+    const recovery: ChatRecoveryState = { inferenceRetryUsed: false };
     const turns = Math.min(HARD_TURN_LIMIT, input.agent.steps);
     for (let turn = 0; turn < turns; turn += 1) {
       input.signal?.throwIfAborted();
       input.onEvent?.("inference.started", inferenceStepSummary(turn, input.modelNeedsLoad));
-      const result = await this.turn({
-        input,
-        state,
-        registry,
-        recovery,
-        performance,
-        finalTurn: turn === turns - 1,
-      });
+      const result = await this.turn({ input, state, registry, recovery, performance });
       if (result !== undefined) return result;
     }
     throw new Error("agent_turn_limit_exceeded");

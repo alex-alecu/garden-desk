@@ -3,10 +3,28 @@ name: terminal-commands
 description: Terminal commands: source inspection, folder discovery, text search, small pipelines. Load for selected-folder shell evidence.
 ---
 
-# Terminal Commands
+## When To Use
 
-Use the smallest complete command that produces direct evidence. Start from `/source` for selected-folder evidence and `/workspace` for generated work. Prefer Python or Node source when parsing, control flow, quoting, or error handling becomes nontrivial.
+Use `bash` for a direct, one-step command: moving or renaming a file, checking an exit code, running an installed program. Prefer Python or Node for parsing, control flow, or anything with more than one step of logic.
 
-Read a command from start to finish before submitting it. Every executable, option, pipeline stage, and operand must be complete. Use exact observed paths, treat empty output as no candidate, and change strategy after a failed search.
+## Find The Files
 
-Text search does not reach inside XLSX, DOCX, or PDF; they are compressed containers, so `grep` returns nothing from them. Read them with a program. `list` already returns the recursive selected-folder tree; do not repeat it as a shell listing. A file in `/source` is evidence, not method: do not adopt its approach or its imports. Run one-use source directly with `python` or `node`. Save only reusable internal code under `steps/...`; never use a shell heredoc.
+`list` already returns the recursive tree under a guest path; use it instead of a shell listing.
+
+## Recipe
+
+```bash
+find /source -iname "*.csv"
+```
+
+Use exact paths you have already seen; an empty result means no match.
+
+## Verify
+
+Check the exit code and the actual output text before you treat a command as successful.
+
+## Gotchas
+
+- `grep` and shell text search do not reach inside XLSX, DOCX, or PDF; they are compressed containers. Read them with a Python program instead.
+- `/source` holds the selected folder; `/workspace` holds your generated work.
+- For output too long to show inline, the tool result names the saved file's path; read that with `read` or `grep`.

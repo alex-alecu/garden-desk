@@ -42,9 +42,8 @@ Existing M0-M2 paths remain unless M3 replaces a provisional harness with produc
 All authored model instructions live under one repository-root prompt tree:
 
 ```text
-prompts/system/*.md                 base identity, boundary, task-state, and protocol prompts
-prompts/states/*.md                 conditional workflow-state instructions
-prompts/recovery/*.md               bounded repair instructions
+prompts/agents/*.md                 agent frontmatter (tools, temperature, turn cap) plus the system prompt body
+prompts/system/*.md                 compaction and session-summary instructions plus the legacy structured-path suffix (function-call.md)
 prompts/skills/<name>/SKILL.md      progressively disclosed Agent Skills-compatible workflows
 ```
 
@@ -187,18 +186,19 @@ The CLI does not create session snapshots. The private Core diagnostic adapter i
 
 ### `packages/eval`
 
-Add behavior-level gates:
+Behavior-level gates:
 
 ```text
-src/gates/m3-sessions.test.ts
-src/gates/m3-agent.test.ts
-src/gates/m3-desktop.test.ts
-src/gates/m3-package.test.ts
-src/gates/m3-platform.ts
-src/fixtures/agent-tasks.ts
+src/gates/m3-guest.ts                     shared no-network, read-only-source, cancellation, and resource-limit probes
+src/gates/m3-guest-security.ts(+.test)    focused security-boundary assertions on top of the probes
+src/gates/m3-golden-tasks.ts              shared golden-task runner (XLSX, DOCX, PDF extraction, mixed-folder report)
+src/gates/m3-macos-agent.ts               macOS entrypoint: runs the guest probes, then the golden tasks
+src/gates/m3-windows-agent.ts             Windows entrypoint: runs the guest probes, then the golden tasks
+src/gates/run.ts                          gate dispatcher
+src/stress/document-fixtures.ts           deterministic XLSX/DOCX/PDF fixture generators the golden tasks build on
 ```
 
-Deterministic fakes cover UI and state. The M3 gate uses the real daemon, inference worker, guest image, platform microVM, and packaged app.
+Deterministic fakes cover UI and state elsewhere in the unit suite. The M3 platform gate uses the real daemon, inference worker, guest image, platform microVM, and packaged app.
 
 ## Persistence Ownership
 
@@ -209,10 +209,10 @@ The existing workspace catalog remains the one authoritative database. M3 adds n
 - Turns and drafts.
 - Attachment identities and immutable staged bytes.
 - Agent runs, terminal state, observable events, and bounded numeric response-performance evidence.
-- Normalized execution attempts with identity, ordering, source or command, terminal evidence, 1 MB stdout, 1 MB stderr, 256 KiB allowlisted VM diagnostics, truncation flags, and recovery timestamps. Path-only Python and Node calls resolve their committed workspace bytes before execution and persist those exact bytes in the execution record. Catalog migration v7 backfills historical execution events. Those durable 1 MB stream caps are independent of the smaller middle-elided excerpt each stream contributes to the next decision prompt.
-- Versioned inference turns linked to runs, with prompt, schema, and pre-parse structured-result content hashes; worker request metadata; decision outcomes; execution links; and recovery timestamps. Catalog migration v8 leaves historical runs explicitly unrecorded.
-- One anchored session summary per session, replaced in place as later runs merge the largest allocation-fitting prefix of new turns into it and removed with its session. Catalog migration v12 adds it. Summary work starts only from a measured chat allocation of at least 16,384 tokens. It uses a per-session ordered non-fatal queue, fresh request identities and traces, and one retry only for an approved worker failure. Core cancels pending summary work at shutdown. This cross-run summary queue is separate from live chat compaction. Live compaction keeps its model-written summary and appends bounded data-only workspace state without creating another catalog record.
-- Generated-file metadata and immutable bytes are accepted only at successful finalization. Internal tool, output-spill, and checkpoint paths are excluded. Failed executions invalidate stale candidates and can retain changed safe bytes for a later successful recovery execution. Other workspace intermediates remain recoverable without artifact rows.
+- Normalized execution attempts with identity, ordering, source or command, terminal evidence, 1 MB stdout, 1 MB stderr, 256 KiB allowlisted VM diagnostics, and truncation flags. Path-only Python and Node calls resolve their committed workspace bytes before execution and persist those exact bytes in the execution record. Catalog migration v7 backfills historical execution events. Those durable 1 MB stream caps are independent of the smaller middle-elided excerpt each stream contributes to the next decision prompt.
+- Versioned inference turns linked to runs, with prompt, schema, and pre-parse structured-result content hashes; worker request metadata; decision outcomes; and execution links. Catalog migration v8 leaves historical runs explicitly unrecorded.
+- One anchored session summary per session, replaced in place as later runs merge the largest allocation-fitting prefix of new turns into it and removed with its session. Catalog migration v12 adds it. Summary work starts only from a measured chat allocation of at least 16,384 tokens. It uses a per-session ordered non-fatal queue, fresh request identities and traces, and one retry only for an approved worker failure. Core cancels pending summary work at shutdown. This cross-run summary queue is separate from live chat compaction, which keeps only its model-written summary in the conversation without creating another catalog record.
+- Generated-file metadata and immutable bytes are accepted only at successful finalization. Every file created or changed under `/workspace` during the run is an artifact candidate; there is no internal-versus-deliverable classification.
 - Session-scoped content-addressed workspace manifests stored under the private `.vault` state root.
 
 The newest-five sidebar query is ordered by last activity plus stable ID. Expansion uses an opaque stable cursor. Removing a grant does not delete session history or host files.

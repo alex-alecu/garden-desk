@@ -4,105 +4,47 @@ import {
   isUserArtifactWorkspacePath,
 } from "@vault/shared";
 import type { ArtifactStore } from "../workspace/artifacts.js";
-import { isSuccessfulExecution } from "./execution-success.js";
 import { attachmentMediaType } from "./records.js";
 
 const MAX_CURRENT_ARTIFACTS = 16;
 
-export interface ArtifactOutput {
-  name: string;
-  bytesBase64: string;
-}
-
-export type ArtifactExecutionEvidence = Pick<
-  AgentExecutionResult,
-  "artifacts" | "exitCode" | "invalidatedArtifactPaths" | "recoverableArtifactPaths" | "termination"
->;
-
-interface ArtifactCandidate {
+interface ArtifactOutput {
   name: string;
   bytesBase64?: string;
 }
 
-function applyExecutionArtifacts(
-  current: Map<string, ArtifactCandidate>,
-  pending: Map<string, ArtifactCandidate>,
+/**
+ * Every execution reports the `/workspace` files it changed, the paths it invalidated (deleted or
+ * replaced without capture), and the changed paths whose bytes must be reread from the live
+ * workspace. A path deleted by a later execution is not an artifact.
+ */
+export type ArtifactExecutionEvidence = Pick<
+  AgentExecutionResult,
+  "artifacts" | "invalidatedArtifactPaths" | "recoverableArtifactPaths"
+>;
+
+function foldExecutionArtifacts(
+  current: Map<string, ArtifactOutput>,
   execution: ArtifactExecutionEvidence,
 ): void {
-  const invalidated = new Set(execution.invalidatedArtifactPaths ?? []);
-  for (const path of invalidated) {
+  for (const path of execution.invalidatedArtifactPaths ?? []) current.delete(path);
+  for (const path of execution.recoverableArtifactPaths ?? []) {
+    if (!isUserArtifactWorkspacePath(path)) continue;
     current.delete(path);
-    pending.delete(path);
-  }
-  if (!isSuccessfulExecution(execution)) {
-    retainFailedArtifacts(current, pending, execution, invalidated);
-    return;
-  }
-  publishSuccessfulArtifacts(current, pending, execution);
-  for (const path of execution.recoverableArtifactPaths ?? []) {
-    if (isUserArtifactWorkspacePath(path)) {
-      current.delete(path);
-      current.set(path, { name: path });
-    }
-  }
-}
-
-function retainFailedArtifacts(
-  current: Map<string, ArtifactCandidate>,
-  pending: Map<string, ArtifactCandidate>,
-  execution: ArtifactExecutionEvidence,
-  invalidated: ReadonlySet<string>,
-): void {
-  for (const path of execution.recoverableArtifactPaths ?? []) {
-    if (isUserArtifactWorkspacePath(path)) pending.set(path, { name: path });
+    current.set(path, { name: path });
   }
   for (const artifact of execution.artifacts) {
-    if (!invalidated.has(artifact.name) || !isUserArtifactWorkspacePath(artifact.name)) continue;
+    if (!isUserArtifactWorkspacePath(artifact.name)) continue;
     current.delete(artifact.name);
-    pending.set(artifact.name, { name: artifact.name, bytesBase64: artifact.bytesBase64 });
+    current.set(artifact.name, { name: artifact.name, bytesBase64: artifact.bytesBase64 });
   }
-}
-
-function publishSuccessfulArtifacts(
-  current: Map<string, ArtifactCandidate>,
-  pending: Map<string, ArtifactCandidate>,
-  execution: ArtifactExecutionEvidence,
-): void {
-  for (const [name, output] of pending) {
-    current.delete(name);
-    current.set(name, output);
-  }
-  pending.clear();
-  for (const artifact of execution.artifacts) {
-    if (isUserArtifactWorkspacePath(artifact.name)) {
-      current.delete(artifact.name);
-      current.set(artifact.name, {
-        name: artifact.name,
-        bytesBase64: artifact.bytesBase64,
-      });
-    }
-  }
-}
-
-export function currentArtifactOutputs(
-  executions: readonly ArtifactExecutionEvidence[],
-): ReadonlyMap<string, ArtifactOutput> {
-  const current = currentArtifactCandidates(executions);
-  return new Map(
-    [...current].flatMap(([name, output]) =>
-      output.bytesBase64 === undefined
-        ? []
-        : [[name, { name, bytesBase64: output.bytesBase64 }] as const],
-    ),
-  );
 }
 
 function currentArtifactCandidates(
   executions: readonly ArtifactExecutionEvidence[],
-): ReadonlyMap<string, ArtifactCandidate> {
-  const current = new Map<string, ArtifactCandidate>();
-  const pending = new Map<string, ArtifactCandidate>();
-  for (const execution of executions) applyExecutionArtifacts(current, pending, execution);
+): Map<string, ArtifactOutput> {
+  const current = new Map<string, ArtifactOutput>();
+  for (const execution of executions) foldExecutionArtifacts(current, execution);
   return current;
 }
 

@@ -9,4 +9,4 @@ Extract each event date and time, event type, provider or facility, recorded act
 
 Order events by the best supported event date. Keep undated records separate. For date or fact conflicts, keep each value and source. Do not select one as correct without supplied evidence. Mark inferred sequence `sequence inferred from supplied records` and state its basis.
 
-Output one table: date or range; recorded event; provider or facility; source fact; evidence location; status or conflict. Do not interpret diagnoses, tests, treatments, medications, or clinical importance. Do not claim HIPAA compliance. Require qualified medical-administration and clinical review when the timeline can affect care.
+Output one table: date or range; recorded event; provider or facility; source fact; evidence location; status or conflict. Require qualified medical-administration and clinical review when the timeline can affect care. This skill does not interpret diagnoses, tests, treatments, medications, clinical importance, or claim HIPAA compliance.

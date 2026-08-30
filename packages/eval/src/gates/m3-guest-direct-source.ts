@@ -1,7 +1,7 @@
 import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { CodeAgentSession } from "@vault/workers";
-import { requireM3ProductCheck } from "./m3-canonical-gate-reporting.js";
+import { requireM3ProductCheck } from "./m3-gate-support.js";
 import { requireGuestSuccess } from "./m3-guest-execution.js";
 
 const DIRECT_PYTHON = [
