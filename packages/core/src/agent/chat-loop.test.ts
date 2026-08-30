@@ -213,3 +213,23 @@ describe("run result execution ceiling", () => {
     expect(result.guestExecutions).toBe(1_280);
   });
 });
+
+describe("ChatAgentLoop output limit", () => {
+  it("rejects a truncated no-tool answer instead of storing it as success", async () => {
+    const truncated = { ...generated("Partial answer"), stopReason: "maxTokens" as const };
+    const loop = new ChatAgentLoop(model([truncated], []));
+
+    await expect(
+      loop.run(
+        input(
+          {
+            async execute() {
+              throw new Error("execution_should_not_start");
+            },
+          },
+          [],
+        ),
+      ),
+    ).rejects.toThrow("agent_generation_limit");
+  });
+});

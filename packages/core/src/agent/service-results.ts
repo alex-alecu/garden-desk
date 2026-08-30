@@ -57,6 +57,9 @@ function failureSummary(detail: string): string {
   if (detail === "worker_input_limit_exceeded") {
     return "The selected files exceed this task's supported input limit.";
   }
+  if (detail === "agent_generation_limit") {
+    return "The answer exceeded the local model's output limit.";
+  }
   if (detail === "agent_memory_unavailable") {
     return "The local model needs more available memory to complete this task.";
   }

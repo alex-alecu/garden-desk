@@ -129,6 +129,11 @@ export class ChatAgentLoop {
     performance: ReturnType<typeof emptyPerformance>,
   ): AgentRunResult | undefined {
     if (generated.result.toolCalls.length > 0) return undefined;
+    if (generated.result.stopReason === "maxTokens") {
+      input.onResponse?.(null);
+      this.record(input, generated.turnId, "invalid_response");
+      throw new Error("agent_generation_limit");
+    }
     const response = generated.result.text.trim();
     if (response.length === 0) {
       input.onResponse?.(null);
