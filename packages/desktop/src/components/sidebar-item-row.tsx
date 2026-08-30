@@ -1,4 +1,4 @@
-import type { ComponentProps, DragEvent, KeyboardEvent } from "react";
+import type { ComponentProps, KeyboardEvent, PointerEvent } from "react";
 import { Icon } from "./icons.js";
 
 interface SidebarItemRowProps {
@@ -16,7 +16,9 @@ interface SidebarItemRowProps {
   onDelete(): void;
   onDragEnd?: (() => void) | undefined;
   onDragKeyDown?: ((event: KeyboardEvent<HTMLButtonElement>) => void) | undefined;
-  onDragStart?: ((event: DragEvent<HTMLButtonElement>) => void) | undefined;
+  onDragPointerDown?: ((event: PointerEvent<HTMLButtonElement>) => void) | undefined;
+  onDragPointerMove?: ((event: PointerEvent<HTMLButtonElement>) => void) | undefined;
+  onDragPointerUp?: ((event: PointerEvent<HTMLButtonElement>) => void) | undefined;
   onSelect(): void;
   onStartAction?(): void;
   working?: boolean;
@@ -31,16 +33,31 @@ function deleteTitle(props: SidebarItemRowProps): string | undefined {
 }
 
 function DragHandle(props: SidebarItemRowProps) {
-  if (props.dragLabel === undefined || props.onDragStart === undefined) return null;
+  if (props.dragLabel === undefined || props.onDragPointerDown === undefined) return null;
   return (
     <button
       aria-label={props.dragLabel}
       className="sidebar-item-drag"
       disabled={props.disabled}
-      draggable
-      onDragEnd={props.onDragEnd}
-      onDragStart={props.onDragStart}
       onKeyDown={props.onDragKeyDown}
+      onPointerCancel={(event) => {
+        props.onDragEnd?.();
+        if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+          event.currentTarget.releasePointerCapture(event.pointerId);
+        }
+      }}
+      onPointerDown={(event) => {
+        event.preventDefault();
+        event.currentTarget.setPointerCapture(event.pointerId);
+        props.onDragPointerDown?.(event);
+      }}
+      onPointerMove={props.onDragPointerMove}
+      onPointerUp={(event) => {
+        props.onDragPointerUp?.(event);
+        if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+          event.currentTarget.releasePointerCapture(event.pointerId);
+        }
+      }}
       title="Drag to reorder; use arrow keys while focused"
       type="button"
     >
@@ -67,7 +84,7 @@ function StartAction(props: SidebarItemRowProps) {
 
 export function SidebarItemRow(props: SidebarItemRowProps) {
   const hasStartAction = props.startIcon !== undefined && props.onStartAction !== undefined;
-  const hasDragHandle = props.dragLabel !== undefined && props.onDragStart !== undefined;
+  const hasDragHandle = props.dragLabel !== undefined && props.onDragPointerDown !== undefined;
   return (
     <div
       className={`sidebar-item-row${hasStartAction ? " sidebar-item-row-with-start" : ""}${hasDragHandle ? " sidebar-item-row-with-drag" : ""}`}

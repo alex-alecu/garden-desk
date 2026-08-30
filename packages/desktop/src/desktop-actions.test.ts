@@ -1,4 +1,5 @@
 import {
+  AgentRunSummarySchema,
   AttachmentSummarySchema,
   FolderSummarySchema,
   SessionDraftSchema,
@@ -35,6 +36,16 @@ const secondFolder = FolderSummarySchema.parse({
   id: "017b8017-6372-40dd-9f44-a09c70ae921f",
   name: "Research",
   createdAt: "2026-07-28T12:03:35.813Z",
+});
+const run = AgentRunSummarySchema.parse({
+  id: "00000000-0000-4000-8000-000000000004",
+  sessionId: session.id,
+  jobId: "00000000-0000-4000-8000-000000000005",
+  state: "succeeded",
+  response: "Done.",
+  error: null,
+  createdAt: session.createdAt,
+  updatedAt: session.updatedAt,
 });
 
 describe("desktop folder actions", () => {
@@ -118,6 +129,37 @@ describe("desktop session selection", () => {
         snapshots: [],
       },
     ]);
+  });
+});
+
+describe("desktop partial session selection", () => {
+  it("loads the conversation when past activity cannot be read", async () => {
+    const actions: DesktopAction[] = [];
+    const setError = vi.fn();
+    const api = {
+      listMessages: vi.fn(async () => []),
+      listAttachments: vi.fn(async () => []),
+      loadDraft: vi.fn(async () => undefined),
+      listAgentRuns: vi.fn(async () => [run]),
+      getAgentRun: vi.fn(async () => {
+        throw new Error("old activity format");
+      }),
+    } as unknown as DesktopApi;
+
+    await selectSession(api, session.id, (action) => actions.push(action), setError);
+
+    expect(actions.at(-1)).toEqual({
+      type: "session.loaded",
+      sessionId: session.id,
+      messages: [],
+      attachments: [],
+      removableIds: [],
+      draft: "",
+      snapshots: [],
+    });
+    expect(setError).toHaveBeenLastCalledWith(
+      "Some past activity could not be loaded. The conversation is still available.",
+    );
   });
 });
 

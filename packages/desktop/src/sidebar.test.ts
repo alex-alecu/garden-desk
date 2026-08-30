@@ -59,6 +59,7 @@ describe("sidebar rows", () => {
     expect(markup.match(/icon-message/gu)).toHaveLength(2);
     expect(markup.match(/icon-trash/gu)).toHaveLength(2);
     expect(markup.match(/icon-unmount/gu)).toHaveLength(1);
+    expect(markup).not.toContain("draggable");
     expect(markup).toContain("Add folder");
     expect(markup).toContain('aria-label="Open Project folder"');
     expect(markup).toContain('aria-label="Unmount Project"');
@@ -67,7 +68,9 @@ describe("sidebar rows", () => {
     expect(markup).toContain('class="sidebar-item-select sidebar-item-working"');
     expect(markup).toContain('aria-label="Working"');
   });
+});
 
+describe("folder ordering", () => {
   it("moves a dragged folder before or after its target", () => {
     expect(reorderedFolderIds(["a", "b", "c"], "c", "a", false)).toEqual(["c", "a", "b"]);
     expect(reorderedFolderIds(["a", "b", "c"], "a", "b", true)).toEqual(["b", "a", "c"]);

@@ -1,5 +1,6 @@
 import type { DesktopApi } from "./api.js";
 import { retryLocalRequest, waitForAgentRun } from "./run-polling.js";
+import { loadSessionActivity } from "./session-activity.js";
 import type { DesktopAction } from "./state.js";
 
 type Dispatch = (action: DesktopAction) => void;
@@ -94,12 +95,12 @@ export async function selectSession(
   setError(undefined);
   dispatch({ type: "session.select", sessionId });
   try {
-    const [messages, attachments, draft, runs] = await Promise.all([
+    const [messages, attachments, draft] = await Promise.all([
       api.listMessages(sessionId),
       api.listAttachments(sessionId),
       api.loadDraft(sessionId),
-      api.listAgentRuns(sessionId),
     ]);
+    const activity = await loadSessionActivity(api, sessionId);
     const lastUserMessage = messages.filter((message) => message.role === "user").at(-1);
     dispatch({
       type: "session.loaded",
@@ -112,8 +113,11 @@ export async function selectSession(
         )
         .map((item) => item.id),
       draft: draft?.content ?? "",
-      snapshots: await Promise.all(runs.map((run) => api.getAgentRun(run.id))),
+      snapshots: activity.snapshots,
     });
+    if (activity.incomplete) {
+      setError("Some past activity could not be loaded. The conversation is still available.");
+    }
   } catch {
     dispatch({ type: "session.load.failed", sessionId });
     setError("The conversation could not be loaded.");
