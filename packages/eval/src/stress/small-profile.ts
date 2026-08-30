@@ -183,8 +183,11 @@ const CASES: StressCaseDefinition<SmallCaseId>[] = [
       "LEGACY_DOC_TITLE=This is just a small test document.",
       "LEGACY_DOC_PUBLISHER=O’Reilly",
     ],
+    requiredExecutionCount: 1,
     requiredExecutionText: ["/usr/bin/antiword", "UTF-8.txt"],
     requiredSkills: ["word-documents"],
+    forbiddenSkills: ["terminal-commands"],
+    forbiddenTools: ["bash", "glob", "grep", "list", "node", "question", "read", "task"],
     forbidArtifacts: true,
   },
   {
