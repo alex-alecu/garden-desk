@@ -7,7 +7,7 @@ description: PDF reading, page work, creation. Load for PDF input or deliverable
 
 Use `pypdf` for text, structure, order, facts; no `try`, exception wrapper, or trailing brace. `PdfWriter.add_metadata()` uses slash keys: `{"/Title": "Report"}`. ReportLab Platypus: headings/page breaks/margins/fitting tables.
 
-Without PDF output: inspect/reopen with `pypdf` only. Use one source-only `python` call; no `list` or saved script. Do not create `/workspace/report.pdf` or require `/source/values.txt`:
+Without PDF output: inspect/reopen with `pypdf` only. Do not create `/workspace/report.pdf` or require `/source/values.txt`:
 
 ```python
 from pathlib import Path
