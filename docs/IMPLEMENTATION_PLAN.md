@@ -2,7 +2,7 @@
 
 Updated: 2026-08-28
 
-This is the authoritative implementation sequence for the first Garden Desk release. M0, cross-platform M1, and cross-platform M2 are complete. The repository owner activated M3 on 2026-07-20 as the first full product milestone. Earlier macOS and Windows headless, guest, and installed-product evidence is historical evidence for earlier builds. The current candidate needs new physical macOS and Windows platform, supported-suite, and professional-skill evidence. The latest results are in [STRESS_TEST.md](../STRESS_TEST.md); they do not close M3. Generated-file packaged-app evidence, dedicated-standard-user setup, macOS lower-tier context, and release-signing evidence also remain before M3 or Community Desktop V1 can close.
+This is the authoritative implementation sequence for the first Garden Desk release. M0, cross-platform M1, and cross-platform M2 are complete. The repository owner activated M3 on 2026-07-20 as the first full product milestone. Earlier macOS and Windows headless, guest, and installed-product evidence is historical evidence for earlier builds. The current candidate needs new physical macOS and Windows platform, supported-suite, and professional-skill evidence, checked with `pnpm test:m3:macos` and `pnpm test:m3:windows`. Generated-file packaged-app evidence, dedicated-standard-user setup, macOS lower-tier context, and release-signing evidence also remain before M3 or Community Desktop V1 can close.
 
 The shortest path to V1 is a generic offline desktop agent, not a format-specific document pipeline. The agent may write and run Python or Node.js programs and installed guest commands inside a session-scoped no-network microVM. It sees the selected folder live and read-only at `/source` and works in a persistent bounded `/workspace`. It cannot write to the selected host folder, install packages, reach a network, inherit credentials, or call an unrestricted host service.
 
@@ -124,7 +124,7 @@ The cross-platform supervisor, model resolver, memory scheduler, typed inference
 
 ### M3 — Offline Dev-Agent Desktop V1 — active
 
-Stage state: earlier macOS and Windows physical evidence is historical. The current reliability change has focused coverage and a current Stage 2 context-session stress result in [STRESS_TEST.md](../STRESS_TEST.md). Current physical macOS and Windows platform, supported-suite, and professional-skill evidence is pending. It must not be inferred from earlier gates, focused coverage, or Stage 2. Generated-file Open and Save As observations on both packaged platforms, dedicated-standard-user setup, macOS lower-tier context, and release-signing observations also remain open.
+Stage state: earlier macOS and Windows physical evidence is historical. The current reliability change has focused coverage. Current physical macOS and Windows platform, supported-suite, and professional-skill evidence is pending. It must not be inferred from earlier gates, focused coverage, or Stage 2. Generated-file Open and Save As observations on both packaged platforms, dedicated-standard-user setup, macOS lower-tier context, and release-signing observations also remain open.
 
 Scope:
 

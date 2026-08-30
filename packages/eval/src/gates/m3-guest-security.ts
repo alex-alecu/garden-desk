@@ -6,7 +6,7 @@ import {
   type WorkerLimits,
 } from "@vault/shared";
 import type { CodeAgentLauncher } from "@vault/workers";
-import { M3ProductCheckFailure, requireM3ProductCheck } from "./m3-canonical-gate-reporting.js";
+import { M3ProductCheckFailure, requireM3ProductCheck } from "./m3-gate-support.js";
 
 const limits: WorkerLimits = {
   wallTimeMs: 30_000,

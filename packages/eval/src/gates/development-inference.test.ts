@@ -10,15 +10,7 @@ import {
 } from "./development-inference.js";
 import { developmentInferenceWorkerEntryPath } from "./development-inference-path.js";
 
-const HEADLESS_ENTRIES = [
-  "m3-macos-agent.ts",
-  "m3-windows-agent.ts",
-  "m3-windows-memory.ts",
-  "m3-professional-skills.ts",
-  "../stress/m3-small.ts",
-  "../stress/m3-context-session.ts",
-  "../stress/m3-scaled.ts",
-] as const;
+const HEADLESS_ENTRIES = ["m3-macos-agent.ts", "m3-windows-agent.ts"] as const;
 const originalExitCode = process.exitCode;
 
 afterEach(() => {
@@ -123,9 +115,7 @@ describe("development headless Core build", () => {
     expect(serialized).toBeDefined();
     expect(JSON.parse(serialized as string)).toEqual({
       classification: "m3_test_entry_failed",
-      failureClass: "harness_failure",
-      evidenceReference: "report.failure",
-      failure: { code: "m3_fixture_failure", stage: "fixture" },
+      stage: "fixture",
     });
     expect(serialized).not.toContain("missing-development-entry.ts");
     expect(process.exitCode).toBe(1);

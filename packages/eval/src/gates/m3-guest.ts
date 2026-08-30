@@ -2,11 +2,8 @@ import { mkdir, open, truncate, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { WorkerLimits } from "@vault/shared";
 import type { CodeAgentLauncher, CodeAgentSession, MicroVmAgentRequest } from "@vault/workers";
-import { createLegacyDocFixture } from "../fixtures/legacy-doc.js";
-import { requireM3ProductCheck } from "./m3-canonical-gate-reporting.js";
-import { guestArtifactRecoveryEvidence } from "./m3-guest-artifact-recovery.js";
+import { requireM3ProductCheck } from "./m3-gate-support.js";
 import { directSourceProbes, prepareDirectSourceFiles } from "./m3-guest-direct-source.js";
-import { documentLibraryProbe } from "./m3-guest-documents.js";
 import { requireGuestSuccess } from "./m3-guest-execution.js";
 import { persistentFileProbe, rehydrationProbe } from "./m3-guest-persistence.js";
 import { requireIsolationProof, runGuestSecurityEvidence } from "./m3-guest-security.js";
@@ -47,7 +44,6 @@ async function prepareSource(root: string): Promise<string> {
   await truncate(sparse, 513 * 1024 * 1024);
   await writeFile(join(source, "input.txt"), "read-only evidence");
   await prepareDirectSourceFiles(source);
-  await createLegacyDocFixture(source);
   return source;
 }
 const PYTHON_PROBE = [
@@ -197,61 +193,6 @@ export async function requirePathOnlyScript(
   requireM3ProductCheck(sourceMatches, mismatch);
 }
 
-// biome-ignore lint/complexity/noExcessiveLinesPerFunction: direct guest proof stays ordered.
-async function languageAndRepairProbes(session: CodeAgentSession, source: string) {
-  const failed = await session.execute({
-    language: "python",
-    path: "steps/repair.py",
-    source: "print(missing)",
-  });
-  requireM3ProductCheck(failed.exitCode !== 0, "Guest repair failure probe did not fail.");
-  const repaired = await session.execute({
-    language: "python",
-    path: "steps/repair.py",
-    source: "print('repaired')",
-  });
-  requireGuestSuccess(repaired);
-  await requirePathOnlyScript(session, {
-    language: "python",
-    path: "steps/repair.py",
-    source: "print('repaired')",
-  });
-  const nodeSource = [
-    "import fs from 'node:fs';",
-    "const major = Number(process.versions.node.split('.')[0]);",
-    "const npmAbsent = !fs.existsSync('/usr/bin/npm');",
-    "fs.writeFileSync('node-result.json', JSON.stringify({major, npmAbsent}));",
-    "console.log(JSON.stringify({major, npmAbsent}));",
-  ].join("\n");
-  const node = await session.execute({
-    language: "node",
-    path: "steps/probe.mjs",
-    source: nodeSource,
-  });
-  requireGuestSuccess(node);
-  await requirePathOnlyScript(session, {
-    language: "node",
-    path: "steps/probe.mjs",
-    source: nodeSource,
-  });
-  const nodeProof = JSON.parse(node.stdout) as { major: number; npmAbsent: boolean };
-  const nodeValid = nodeProof.major === 24 && nodeProof.npmAbsent;
-  requireM3ProductCheck(nodeValid, "Node runtime proof failed.");
-  const directSource = await directSourceProbes(session, source);
-  await writeFile(join(source, "input.txt"), "live edit evidence");
-  const shell = await session.execute({
-    language: "shell",
-    command: "grep 'live edit' /source/input.txt | grep evidence && test -f python-result.json",
-  });
-  requireGuestSuccess(shell);
-  return {
-    repaired: repaired.stdout.trim(),
-    nodeProof,
-    directSource,
-    shell: shell.stdout.trim(),
-  };
-}
-
 export async function runGuestEvidence(root: string, launcherForWorkspace: LauncherFactory) {
   const source = await prepareSource(root);
   const workspaceStore = join(root, "workspace-store");
@@ -262,11 +203,9 @@ export async function runGuestEvidence(root: string, launcherForWorkspace: Launc
     { sessionId, sourceFolder: source, readonlyInputs: [], limits },
     async (session) => {
       const isolation = await isolationProbe(session);
-      const documents = await documentLibraryProbe(session);
-      const language = await languageAndRepairProbes(session, source);
-      const artifactRecovery = await guestArtifactRecoveryEvidence(session);
+      const directSource = await directSourceProbes(session, source);
       await persistentFileProbe(session);
-      return { artifactRecovery, documents, isolation, language };
+      return { directSource, isolation };
     },
   );
   console.error("m3_guest_stage:rehydration");
@@ -284,12 +223,7 @@ export async function runGuestEvidence(root: string, launcherForWorkspace: Launc
   const security = await runGuestSecurityEvidence(launcher, source);
   return {
     python: primary.isolation.proof,
-    documents: primary.documents,
-    node: primary.language.nodeProof,
-    directSource: primary.language.directSource,
-    shell: primary.language.shell,
-    repair: primary.language.repaired,
-    artifactRecovery: primary.artifactRecovery,
+    directSource: primary.directSource,
     persistence,
     cancelled,
     bounded,

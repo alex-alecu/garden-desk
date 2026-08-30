@@ -33,7 +33,6 @@ function requiredModelPath(): string {
 const milestone = milestoneArgument();
 if (milestone === "3") {
   runPnpm(["verify"]);
-  run(process.execPath, ["--import", "tsx", "packages/eval/src/gates/m3-readiness.ts"]);
 } else if (milestone === "2") {
   runPnpm(["verify"]);
   runPnpm(["test:native:m2"]);

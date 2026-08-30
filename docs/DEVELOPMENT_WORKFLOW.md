@@ -76,7 +76,7 @@ Use the real Gemma worker and no-network guest when diagnosing agent-loop behavi
 - Put the ephemeral workspace directly under `/tmp` so the macOS Unix-socket path stays within its length limit. If the restricted shell returns `listen EPERM` or denies Virtualization.framework, rerun the same command outside the restricted shell; that sandbox denial is not a product failure.
 - Capture the terminal run state, error, response, and complete ordered events, including generated code, stdout, stderr, and termination. Reproduce once before editing and rerun the identical fixture and task after the fix.
 - Keep models, generated helpers, guest images, reproduction scripts, fixtures, and workspaces uncommitted. After the focused reproduction passes, run `pnpm test:m3:macos` and `pnpm verify`; report Windows evidence separately and never infer it from macOS.
-- After every real stress-test run, add the results as a new [STRESS_TEST.md](../STRESS_TEST.md) change and ask the owner whether to push it.
+- After a real golden-task run, report the pass count (`golden: N/4 passed`) to the owner.
 
 Development inference diagnostics are described in [M3_STATUS.md](M3_STATUS.md#development-inference-diagnostics).
 

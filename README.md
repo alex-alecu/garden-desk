@@ -52,7 +52,7 @@ To run the desktop locally:
 
 ## What we learned running Gemma 4
 
-Gemma 4 is the default model, and a few of its habits shaped the agent loop. These are the high-level fixes; the exact runs are in [STRESS_TEST.md](STRESS_TEST.md).
+Gemma 4 is the default model, and a few of its habits shaped the agent loop. These are the high-level fixes.
 
 - **Tool calls in Gemma's own format.** Gemma 4 writes tool arguments as `key:<|"|>value<|"|>`: bare keys, and strings between two delimiter tokens with no escaping. Generic runtimes rewrite that into JSON and force the arguments through a JSON grammar, so every quote in generated Python or Node code must be escaped in a format the model never learned; the result was corrupted scripts that the model regenerated unchanged turn after turn. The inference worker now renders tool declarations, calls, and results the way Gemma's own chat template does and reads the model's call from the generated tokens by token id, so a string keeps every byte the model wrote ([#81](https://github.com/alex-alecu/garden-desk/pull/81)).
 - **Repeated calls are stopped, not retried forever.** When the model proposes the same call a third time, Vault Core blocks it, keeps one copy of the call and its result in later prompts, samples at temperature 0.3 while the block is active, asks the person once, and ends the run as `agent_stalled_duplicate` if the model still repeats itself ([#76](https://github.com/alex-alecu/garden-desk/pull/76)).
@@ -73,7 +73,7 @@ The immutable guest image includes pinned offline tools for common work with JSO
 
 ## Local stress results
 
-On an earlier build on a 48 GB Apple-silicon Mac, the real offline stack passed all 8 small sequential and concurrent cases, plus a 100-page PDF, a 1,000,000-row workbook, and a 50-workbook folder with 10,000,000 rows. A mixed 10,000,000-row XLSX and DOCX task could save and resume progress, but did not complete reliably. These results are historical and do not qualify the current candidate. The headless stress workflow and latest results are in [STRESS_TEST.md](STRESS_TEST.md).
+On an earlier build on a 48 GB Apple-silicon Mac, the real offline stack passed all 8 small sequential and concurrent cases, plus a 100-page PDF, a 1,000,000-row workbook, and a 50-workbook folder with 10,000,000 rows. A mixed 10,000,000-row XLSX and DOCX task could save and resume progress, but did not complete reliably. These results are historical and do not qualify the current candidate. `pnpm test:m3:macos` and `pnpm test:m3:windows` run four golden folder tasks with deterministic file checks before a release.
 
 ## Isolation on macOS and Windows
 

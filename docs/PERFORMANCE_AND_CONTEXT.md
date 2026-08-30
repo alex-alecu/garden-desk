@@ -188,7 +188,7 @@ The session-summary queue starts only after a completed run reports a measured c
 
 The queue keeps one ordered non-fatal sequence per session. Each summary attempt has a new request identity and a new trace. Core retries once only for an approved worker failure. A summary failure records its outcome but does not fail its completed run. Core cancels pending queue work during shutdown.
 
-The official M3 context-session stress evidence is in [STRESS_TEST.md](../STRESS_TEST.md). That evidence is separate from platform certification and does not make an unrun platform gate pass.
+Golden-task results are separate from platform certification and do not make an unrun platform gate pass.
 
 ## Long-Running Session Acceptance Test
 
