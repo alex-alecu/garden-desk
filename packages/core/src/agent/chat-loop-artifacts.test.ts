@@ -102,3 +102,37 @@ it("does not lose artifact eligibility during an internal inspection", async () 
   expect(result.artifacts).not.toContain("report-1.txt");
   expect(result.artifacts).toContain("report-17.txt");
 });
+
+it("retains an artifact produced by a completed sub-agent task", async () => {
+  const requests: Parameters<InferenceService["chat"]>[0][] = [];
+  const loop = new ChatAgentLoop(
+    model(
+      [
+        generated("", [
+          tool("task", "edit", {
+            description: "Edit a document",
+            prompt: "Create report.docx",
+            subagent_type: "general",
+          }),
+        ]),
+        generated("Done."),
+      ],
+      requests,
+    ),
+  );
+  const child = successfulResult(["report.docx"]);
+
+  const result = await loop.run(
+    input(
+      {
+        async execute() {
+          return child;
+        },
+      },
+      ["task"],
+      { spawnTask: async () => ({ response: "Created report.docx", executions: [child] }) },
+    ),
+  );
+
+  expect(result.artifacts).toEqual(["report.docx"]);
+});

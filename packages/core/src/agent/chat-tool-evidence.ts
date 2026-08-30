@@ -174,6 +174,9 @@ export function retainWorkspaceEvidence(
   call: ChatToolCall,
   result: AgentToolResult,
 ): void {
+  for (const execution of result.artifactExecutions ?? []) {
+    state.artifactExecutions.push(artifactEvidence(execution));
+  }
   const artifactExecution = result.execution ?? result.artifactExecution;
   if (artifactExecution !== undefined)
     state.artifactExecutions.push(artifactEvidence(artifactExecution));

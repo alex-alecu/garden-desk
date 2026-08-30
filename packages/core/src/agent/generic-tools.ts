@@ -162,12 +162,16 @@ function taskTool(): ToolSpec {
         return { content: "Sub-agents are unavailable from this agent.", failed: true };
       }
       const params = value as ReturnType<typeof taskParams>;
-      const report = await context.spawnTask({
+      const result = await context.spawnTask({
         description: params.description,
         prompt: params.prompt,
         subagentType: params.subagent_type,
       });
-      return { content: `<task_result>\n${report}\n</task_result>`, failed: false };
+      return {
+        content: `<task_result>\n${result.response}\n</task_result>`,
+        failed: false,
+        artifactExecutions: result.executions,
+      };
     },
   };
 }

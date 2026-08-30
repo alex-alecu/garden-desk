@@ -83,7 +83,7 @@ export async function runPrimaryAgent(input: PrimaryRunInput): Promise<AgentRunR
 async function runPrimarySubagent(
   input: PrimaryRunInput,
   request: Parameters<typeof runSubagent>[1],
-): Promise<string> {
+): Promise<Pick<AgentRunResult, "response" | "executions">> {
   return await runSubagent(
     {
       contextTokens: input.contextTokens,

@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import {
   type AgentExecutionResult,
   type AgentQuestion,
+  type AgentRunResult,
   AgentWorkspacePathSchema,
   type ChatToolDefinition,
 } from "@vault/shared";
@@ -24,15 +25,14 @@ export interface SubagentRequest {
   prompt: string;
   subagentType: "explore" | "general" | "probe";
 }
-
 export type AgentQuestionOutcome = { dismissed: false; answers: string[][] } | { dismissed: true };
-
 export interface AgentToolResult {
   content: string;
   failed: boolean;
   invalidInput?: boolean;
   execution?: AgentExecutionResult;
   artifactExecution?: AgentExecutionResult;
+  artifactExecutions?: AgentExecutionResult[];
   executionFailure?: {
     termination: AgentExecutionResult["termination"];
     exitCode: number;
@@ -49,7 +49,7 @@ export interface ToolContext {
   executor: AgentExecutor;
   skills: SkillReader;
   inspectImage?(path: string, prompt: string): Promise<string>;
-  spawnTask?(request: SubagentRequest): Promise<string>;
+  spawnTask?(request: SubagentRequest): Promise<Pick<AgentRunResult, "response" | "executions">>;
   askQuestion?(questions: AgentQuestion[]): Promise<AgentQuestionOutcome>;
   signal?: AbortSignal;
 }

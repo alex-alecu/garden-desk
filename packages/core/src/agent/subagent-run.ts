@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import type { AgentRunResult } from "@vault/shared";
 import type { JobStore } from "../jobs/jobs.js";
 import type { InferenceService } from "../runtime/inference.js";
 import type { DatabasePort } from "../workspace/database.js";
@@ -72,7 +73,10 @@ function skillReader(library: MarkdownDefinitionLibrary) {
   };
 }
 
-export async function runSubagent(ports: SubagentPorts, request: SubagentRequest): Promise<string> {
+export async function runSubagent(
+  ports: SubagentPorts,
+  request: SubagentRequest,
+): Promise<Pick<AgentRunResult, "response" | "executions">> {
   const child = createChild(ports, request);
   try {
     const result = await new ChatAgentLoop(ports.inference).run({
@@ -105,7 +109,7 @@ export async function runSubagent(ports: SubagentPorts, request: SubagentRequest
       });
       ports.jobs.transition(child.jobId, "succeeded");
     })();
-    return result.response;
+    return { response: result.response, executions: result.executions };
   } catch (error) {
     failChild(ports, child, error);
     throw error;

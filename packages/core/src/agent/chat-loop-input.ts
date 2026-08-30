@@ -1,4 +1,9 @@
-import type { AgentEventDetail, AgentEventType, AgentQuestion } from "@vault/shared";
+import type {
+  AgentEventDetail,
+  AgentEventType,
+  AgentQuestion,
+  AgentRunResult,
+} from "@vault/shared";
 import type { AgentExecutor } from "./agent-executor.js";
 import type { ChatToolState } from "./chat-tool-turn.js";
 import type {
@@ -51,7 +56,7 @@ export interface ChatAgentInput {
   skills: SkillReader;
   inferencePriority?: "primary" | "secondary";
   inspectImage?(path: string, prompt: string): Promise<string>;
-  spawnTask?(request: SubagentRequest): Promise<string>;
+  spawnTask?(request: SubagentRequest): Promise<Pick<AgentRunResult, "response" | "executions">>;
   askQuestion?(questions: AgentQuestion[]): Promise<AgentQuestionOutcome>;
   systemPrompt(name: string): string;
   task: string;
