@@ -77,35 +77,6 @@ describe("GenericToolRegistry question", () => {
 });
 
 describe("GenericToolRegistry question validation", () => {
-  it("keeps the model-facing schema flat while enforcing the full runtime contract", () => {
-    const registry = new GenericToolRegistry({
-      executor: executorOnly,
-      skills: { metadata: () => [], read: () => "" },
-    });
-    const question = registry.definitions(["question"])[0];
-    expect(question?.params).toMatchObject({ properties: { questions: { type: "string" } } });
-    expect(question?.params).not.toHaveProperty(
-      "properties.questions.items.properties.options.items.properties",
-    );
-  });
-
-  it("accepts the model-facing JSON encoding", async () => {
-    const asked: unknown[] = [];
-    const registry = new GenericToolRegistry({
-      executor: executorOnly,
-      skills: { metadata: () => [], read: () => "" },
-      async askQuestion(questions): Promise<AgentQuestionOutcome> {
-        asked.push(questions);
-        return { dismissed: true };
-      },
-    });
-    const result = await registry.execute("question", {
-      questions: JSON.stringify(singleQuestion),
-    });
-    expect(result.failed).toBe(false);
-    expect(asked).toEqual([singleQuestion]);
-  });
-
   it("rejects malformed question input before reaching the channel", async () => {
     let called = false;
     const registry = new GenericToolRegistry({

@@ -201,7 +201,7 @@ const questionCall = {
   id: "call-q",
   name: "question",
   params: {
-    questions: JSON.stringify([
+    questions: [
       {
         header: "Direction",
         question: "Which output?",
@@ -210,7 +210,7 @@ const questionCall = {
           { label: "Full", description: "Long." },
         ],
       },
-    ]),
+    ],
   },
 };
 

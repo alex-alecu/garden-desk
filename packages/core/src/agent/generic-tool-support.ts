@@ -23,7 +23,7 @@ export interface SkillReader {
 export interface SubagentRequest {
   description: string;
   prompt: string;
-  subagentType: "explore" | "general" | "probe";
+  subagentType: "explore" | "general";
 }
 export type AgentQuestionOutcome = { dismissed: false; answers: string[][] } | { dismissed: true };
 export interface AgentToolResult {
@@ -33,14 +33,12 @@ export interface AgentToolResult {
   execution?: AgentExecutionResult;
   artifactExecution?: AgentExecutionResult;
   artifactExecutions?: AgentExecutionResult[];
-  publishArtifactExecutions?: boolean;
   executionFailure?: {
     termination: AgentExecutionResult["termination"];
     exitCode: number;
     errorText: string;
   };
   executionAttempt?: AgentExecutionAttemptError["attempt"];
-  status?: "already_loaded";
 }
 export interface ToolExecutionResult extends AgentToolResult {
   guestExecutionsStarted?: number;

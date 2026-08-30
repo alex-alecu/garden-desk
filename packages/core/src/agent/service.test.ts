@@ -128,48 +128,6 @@ describe("persisted code path recovery", () => {
   });
 });
 
-describe("persisted artifact recovery", () => {
-  it("restores an omitted artifact from committed workspace bytes after a later success", async () => {
-    let execution = 0;
-    const bytes = Buffer.from("recovered workspace bytes");
-    const { catalog, conversations, service } = await fixture(
-      {
-        async chat() {
-          return execution < 2
-            ? chatResult("", [
-                {
-                  id: `call-${execution + 1}`,
-                  name: "python",
-                  params: { source: `print(${execution + 1})` },
-                },
-              ])
-            : chatResult("Recovered the report.", []);
-        },
-      },
-      async (request) => {
-        execution += 1;
-        const result = outputExecution(request, "done\n");
-        if (execution === 1) {
-          result.invalidatedArtifactPaths = ["report.txt"];
-          result.recoverableArtifactPaths = ["report.txt"];
-        }
-        return result;
-      },
-      undefined,
-      async (_sessionId, path) => (path === "report.txt" ? bytes : undefined),
-    );
-
-    const run = service.start(conversations.createSession(null).id, "Recover the report");
-    const snapshot = await terminal(service, run.id);
-
-    expect(snapshot.run.state).toBe("succeeded");
-    expect(snapshot.artifacts.map((artifact) => artifact.name)).toEqual(["report.txt"]);
-    expect(snapshot.artifacts[0]?.contentHash).toMatch(/^sha256:/u);
-    await service.close();
-    catalog.close();
-  });
-});
-
 describe("persisted output spill budget", () => {
   it("audits spill processes without adding them to execution snapshots", async () => {
     let processes = 0;

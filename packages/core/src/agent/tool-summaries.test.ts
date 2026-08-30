@@ -28,12 +28,6 @@ describe("tool summaries", () => {
     expect(toolCompletedSummary(call("bash", { command: "ls" }), true)).toBe("Running ls failed.");
   });
 
-  it("reports an already loaded skill without marking a failure", () => {
-    expect(
-      toolCompletedSummary(call("skill", { name: "workbooks" }), false, "already_loaded"),
-    ).toBe("workbooks skill was already loaded.");
-  });
-
   it("middle-truncates a long object so both ends stay readable", () => {
     const path = `/source/${"a".repeat(90)}/deep/name`;
     const summary = toolStartedSummary(call("read", { path }));

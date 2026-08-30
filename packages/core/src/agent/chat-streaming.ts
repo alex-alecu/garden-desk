@@ -1,6 +1,5 @@
 import type { InferenceStreamCallbacks } from "../runtime/inference.js";
 import type { ChatAgentInput } from "./chat-loop-input.js";
-import { visibleResponseText } from "./chat-protocol.js";
 
 export function streamCallbacks(
   input: ChatAgentInput,
@@ -19,8 +18,7 @@ export function streamCallbacks(
       : {
           onResponseDelta(delta: string) {
             response += delta;
-            const visible = visibleResponseText(response, true);
-            if (visible.trim().length > 0) input.onResponse?.(visible);
+            if (response.trim().length > 0) input.onResponse?.(response);
           },
         }),
   };

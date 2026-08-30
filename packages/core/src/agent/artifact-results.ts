@@ -4,7 +4,6 @@ import {
   isUserArtifactWorkspacePath,
 } from "@vault/shared";
 import type { ArtifactStore } from "../workspace/artifacts.js";
-import { isSuccessfulExecution } from "./execution-success.js";
 import { attachmentMediaType } from "./records.js";
 
 const MAX_CURRENT_ARTIFACTS = 16;
@@ -14,96 +13,27 @@ export interface ArtifactOutput {
   bytesBase64: string;
 }
 
-export type ArtifactExecutionEvidence = Pick<
-  AgentExecutionResult,
-  "artifacts" | "exitCode" | "invalidatedArtifactPaths" | "recoverableArtifactPaths" | "termination"
->;
+/** Every execution reports the `/workspace` files it changed; that is the whole artifact rule. */
+export type ArtifactExecutionEvidence = Pick<AgentExecutionResult, "artifacts">;
 
-interface ArtifactCandidate {
-  name: string;
-  bytesBase64?: string;
-}
-
-function applyExecutionArtifacts(
-  current: Map<string, ArtifactCandidate>,
-  pending: Map<string, ArtifactCandidate>,
-  execution: ArtifactExecutionEvidence,
-): void {
-  const invalidated = new Set(execution.invalidatedArtifactPaths ?? []);
-  for (const path of invalidated) {
-    current.delete(path);
-    pending.delete(path);
-  }
-  if (!isSuccessfulExecution(execution)) {
-    retainFailedArtifacts(current, pending, execution, invalidated);
-    return;
-  }
-  publishSuccessfulArtifacts(current, pending, execution);
-  for (const path of execution.recoverableArtifactPaths ?? []) {
-    if (isUserArtifactWorkspacePath(path)) {
-      current.delete(path);
-      current.set(path, { name: path });
-    }
-  }
-}
-
-function retainFailedArtifacts(
-  current: Map<string, ArtifactCandidate>,
-  pending: Map<string, ArtifactCandidate>,
-  execution: ArtifactExecutionEvidence,
-  invalidated: ReadonlySet<string>,
-): void {
-  for (const path of execution.recoverableArtifactPaths ?? []) {
-    if (isUserArtifactWorkspacePath(path)) pending.set(path, { name: path });
-  }
-  for (const artifact of execution.artifacts) {
-    if (!invalidated.has(artifact.name) || !isUserArtifactWorkspacePath(artifact.name)) continue;
-    current.delete(artifact.name);
-    pending.set(artifact.name, { name: artifact.name, bytesBase64: artifact.bytesBase64 });
-  }
-}
-
-function publishSuccessfulArtifacts(
-  current: Map<string, ArtifactCandidate>,
-  pending: Map<string, ArtifactCandidate>,
-  execution: ArtifactExecutionEvidence,
-): void {
-  for (const [name, output] of pending) {
-    current.delete(name);
-    current.set(name, output);
-  }
-  pending.clear();
-  for (const artifact of execution.artifacts) {
-    if (isUserArtifactWorkspacePath(artifact.name)) {
+function currentArtifactCandidates(
+  executions: readonly ArtifactExecutionEvidence[],
+): Map<string, ArtifactOutput> {
+  const current = new Map<string, ArtifactOutput>();
+  for (const execution of executions) {
+    for (const artifact of execution.artifacts) {
+      if (!isUserArtifactWorkspacePath(artifact.name)) continue;
       current.delete(artifact.name);
-      current.set(artifact.name, {
-        name: artifact.name,
-        bytesBase64: artifact.bytesBase64,
-      });
+      current.set(artifact.name, { name: artifact.name, bytesBase64: artifact.bytesBase64 });
     }
   }
+  return current;
 }
 
 export function currentArtifactOutputs(
   executions: readonly ArtifactExecutionEvidence[],
 ): ReadonlyMap<string, ArtifactOutput> {
-  const current = currentArtifactCandidates(executions);
-  return new Map(
-    [...current].flatMap(([name, output]) =>
-      output.bytesBase64 === undefined
-        ? []
-        : [[name, { name, bytesBase64: output.bytesBase64 }] as const],
-    ),
-  );
-}
-
-function currentArtifactCandidates(
-  executions: readonly ArtifactExecutionEvidence[],
-): ReadonlyMap<string, ArtifactCandidate> {
-  const current = new Map<string, ArtifactCandidate>();
-  const pending = new Map<string, ArtifactCandidate>();
-  for (const execution of executions) applyExecutionArtifacts(current, pending, execution);
-  return current;
+  return currentArtifactCandidates(executions);
 }
 
 export function artifactCandidateNames(executions: readonly ArtifactExecutionEvidence[]): string[] {
@@ -121,11 +51,11 @@ export async function prepareArtifacts(
   for (const name of names) {
     const output = current.get(name);
     const bytes =
-      output?.bytesBase64 === undefined
+      output === undefined
         ? await readWorkspaceFile?.(name)
         : Buffer.from(output.bytesBase64, "base64");
     if (bytes === undefined || bytes.byteLength > 8 * 1024 * 1024) continue;
-    if (output?.bytesBase64 !== undefined && bytes.toString("base64") !== output.bytesBase64) {
+    if (output !== undefined && bytes.toString("base64") !== output.bytesBase64) {
       throw new Error("agent_artifact_invalid");
     }
     prepared.push({
