@@ -1,4 +1,10 @@
-import type { AgentEventDetail, AgentEventType, ChatToolCall } from "@vault/shared";
+import type {
+  AgentEventDetail,
+  AgentEventType,
+  AgentExecutionResult,
+  ChatToolCall,
+} from "@vault/shared";
+import type { ArtifactExecutionEvidence } from "./artifact-results.js";
 import type { ChatToolState } from "./chat-tool-turn.js";
 import type { AgentToolResult, ToolValidation } from "./generic-tools.js";
 import { toolCompletedSummary } from "./tool-summaries.js";
@@ -119,13 +125,32 @@ export function emitCompletedTool(
   }
 }
 
-/** Every file an execution reports under `/workspace` is retained as run artifact evidence. */
+function artifactEvidence(execution: {
+  artifacts: AgentExecutionResult["artifacts"];
+  invalidatedArtifactPaths?: AgentExecutionResult["invalidatedArtifactPaths"];
+  recoverableArtifactPaths?: AgentExecutionResult["recoverableArtifactPaths"];
+}): ArtifactExecutionEvidence {
+  return {
+    artifacts: execution.artifacts,
+    ...(execution.invalidatedArtifactPaths === undefined
+      ? {}
+      : { invalidatedArtifactPaths: execution.invalidatedArtifactPaths }),
+    ...(execution.recoverableArtifactPaths === undefined
+      ? {}
+      : { recoverableArtifactPaths: execution.recoverableArtifactPaths }),
+  };
+}
+
+/**
+ * Every file an execution reports under `/workspace` is retained as run artifact evidence, along
+ * with the paths it invalidated or left for a live final read.
+ */
 export function retainWorkspaceEvidence(state: ChatToolState, result: AgentToolResult): void {
   for (const execution of result.artifactExecutions ?? []) {
-    state.artifactExecutions.push({ artifacts: execution.artifacts });
+    state.artifactExecutions.push(artifactEvidence(execution));
   }
   const artifactExecution = result.execution ?? result.artifactExecution;
   if (artifactExecution !== undefined) {
-    state.artifactExecutions.push({ artifacts: artifactExecution.artifacts });
+    state.artifactExecutions.push(artifactEvidence(artifactExecution));
   }
 }

@@ -1,5 +1,6 @@
 import type { AgentExecutionResult } from "@vault/shared";
 import { describe, expect, it } from "vitest";
+import { artifactCandidateNames } from "./artifact-results.js";
 import { retainWorkspaceEvidence } from "./chat-tool-evidence.js";
 import { initialToolState } from "./chat-tool-turn.js";
 
@@ -47,5 +48,23 @@ describe("inspection artifact evidence", () => {
         ],
       },
     ]);
+  });
+
+  it("drops a candidate that a later execution deletes", () => {
+    const state = initialToolState([]);
+    const created = completedExecution();
+    created.artifacts = [
+      {
+        name: "report.txt",
+        mediaType: "text/plain",
+        bytesBase64: Buffer.from("v1").toString("base64"),
+      },
+    ];
+    retainWorkspaceEvidence(state, { content: "ok", failed: false, artifactExecution: created });
+    const deleted = completedExecution();
+    deleted.invalidatedArtifactPaths = ["report.txt"];
+    retainWorkspaceEvidence(state, { content: "ok", failed: false, artifactExecution: deleted });
+
+    expect(artifactCandidateNames(state.artifactExecutions)).toEqual([]);
   });
 });
