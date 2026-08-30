@@ -5,9 +5,9 @@ description: Use for DOCX files and Word deliverables. Before any legacy .doc ac
 
 # Word Documents
 
-Load this skill before any DOC access; never use generic `read` or `cat`. Use `python-docx` for DOCX. Never create/edit `.doc`; create `.docx`.
+Load this skill before any DOC access; never use generic `read` or `cat`. DOCX uses installed `python-docx` via `python`; no `bash`/package installs. Never create/edit `.doc`; create `.docx`.
 
-Legacy: use this complete Python pattern below. No shell. Require zero exit, strict UTF-8, and nonblank text. Tables become text; layout and embedded content are lost. On encrypted, corrupt, mislabeled, or text failure, stop. No fallback. DOC edit is unsupported; DOCX states layout loss.
+Legacy: one source-only `python` call; use this complete Python pattern. No terminal-commands, bash, or shell. Require zero exit, strict UTF-8, nonblank text. Tables become text; layout/embedded content is lost. On encrypted/corrupt/mislabeled/text failure, stop. No fallback. DOC edit unsupported; DOCX states layout loss.
 
 ```python
 import os, subprocess
@@ -22,4 +22,4 @@ print(text)
 
 Run this block exactly. Keep `source`, `result`, `text`, and both `if` statements at column zero. Do not add a path check, path fallback, wrapper, function, `try`/`except`, `text=True`, decode change, or failure output.
 
-DOCX: save a `steps/...` script and `/workspace` output. Inspect/edit text, tables, styles, sections, headers, and footers; reopen/assert. Keep exact `LABEL=value` or `LABEL: value` in one paragraph/row. Preserve other content, format, setup, and relationships; no layout newlines. Repair by edit or short replacement; rerun path.
+DOCX: no delegation; scripts only in `steps/...`; requested output only in `/workspace` root. Inspect/edit text, tables, styles, sections, headers, footers; reopen/assert. Keep exact `LABEL=value` or `LABEL: value` in one paragraph/row. Preserve content/format/setup/relationships; no layout newlines. Repair by edit or short replacement; rerun path.
