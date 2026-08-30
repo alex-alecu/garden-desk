@@ -172,7 +172,7 @@ function executionTextEvidence(active: ActiveCase, snapshot: AgentRunSnapshot) {
   const requiredExecutionText = active.fixture.requiredExecutionText ?? [];
   const executions = [...active.previousSnapshots, snapshot]
     .flatMap((run) => run.executions)
-    .filter(({ exitCode, state }) => state === "completed" && exitCode === 0);
+    .filter(({ state }) => state === "completed" || state === "failed");
   const text = executions
     .map(({ command, source }) => `${command ?? ""}\n${source ?? ""}`)
     .join("\n");

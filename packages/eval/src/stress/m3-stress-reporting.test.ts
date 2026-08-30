@@ -1,6 +1,5 @@
 import {
   AgentArtifactSummarySchema,
-  type AgentExecutionSnapshot,
   AgentExecutionSnapshotSchema,
   type AgentRunSnapshot,
   AgentRunSnapshotSchema,
@@ -11,7 +10,7 @@ import { stressResultFor } from "./m3-stress-reporting.js";
 import type { ActiveCase } from "./m3-stress-runtime.js";
 
 const timestamp = "2026-07-27T08:00:00.000Z";
-function execution(stdout: string, source = "print('result')"): AgentExecutionSnapshot {
+function execution(stdout: string, source = "print('result')", failed = false) {
   return AgentExecutionSnapshotSchema.parse({
     id: "8ba23ef5-400e-49e6-9bb6-3e82cb9075bc",
     runId: "77ff5b22-555d-4ef2-9170-fdd7118738f1",
@@ -20,8 +19,8 @@ function execution(stdout: string, source = "print('result')"): AgentExecutionSn
     path: "steps/0001.py",
     source,
     command: null,
-    state: "completed",
-    exitCode: 0,
+    state: failed ? "failed" : "completed",
+    exitCode: failed ? 1 : 0,
     durationMs: 1,
     termination: "completed",
     stdout,
@@ -268,6 +267,7 @@ describe("invalid-input stress evidence", () => {
         expectedTokens: ["invalid"],
         forbidArtifacts: true,
         requiredExecutionCount: 1,
+        requiredExecutionText: ["pypdf"],
         forbiddenTools: ["skill"],
       },
       folderId: "folder",
@@ -277,7 +277,8 @@ describe("invalid-input stress evidence", () => {
       startedAt: performance.now(),
     };
     expect(stressResultFor(active, snapshot("The PDF could not be read.")).passed).toBe(false);
-    const valid = snapshot("The PDF is INVALID.", "pypdf");
+    const valid = snapshot("The PDF is INVALID.");
+    valid.executions.push(execution("invalid header", "pypdf", true));
     expect(stressResultFor(active, valid).passed).toBe(true);
     expect(
       stressResultFor(active, snapshot("The PDF is INVALID.", "", [artifact()])),
