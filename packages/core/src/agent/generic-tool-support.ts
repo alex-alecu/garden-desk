@@ -33,11 +33,6 @@ export interface AgentToolResult {
   execution?: AgentExecutionResult;
   artifactExecution?: AgentExecutionResult;
   artifactExecutions?: AgentExecutionResult[];
-  executionFailure?: {
-    termination: AgentExecutionResult["termination"];
-    exitCode: number;
-    errorText: string;
-  };
   executionAttempt?: AgentExecutionAttemptError["attempt"];
 }
 export interface ToolExecutionResult extends AgentToolResult {
@@ -80,21 +75,11 @@ function executionResult(
   recorded: boolean,
   guestExecutionsStarted: number,
 ): ToolExecutionResult {
-  const failed = !isSuccessfulExecution(result);
   return {
     content: executionText(result),
-    failed,
+    failed: !isSuccessfulExecution(result),
     guestExecutionsStarted,
     ...(recorded ? { execution: result } : { artifactExecution: result }),
-    ...(failed
-      ? {
-          executionFailure: {
-            termination: result.termination,
-            exitCode: result.exitCode,
-            errorText: result.stderr || result.stdout || "Execution failed without output.",
-          },
-        }
-      : {}),
   };
 }
 

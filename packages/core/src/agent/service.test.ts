@@ -129,7 +129,7 @@ describe("persisted code path recovery", () => {
   });
 });
 
-describe("persisted output spill budget", () => {
+describe("persisted output spill", () => {
   it("audits spill processes without adding them to execution snapshots", async () => {
     let processes = 0;
     const { catalog, conversations, service } = await fixture(

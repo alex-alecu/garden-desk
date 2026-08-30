@@ -33,13 +33,11 @@ Examples:
 
 Each folder is a sidebar group. Its five newest sessions are immediately visible and older sessions load through Show more. New chat is a separate global area for conversations with optional file attachments and no implicit folder grant.
 
-Sessions persist user messages, assistant messages, observable agent activity, accepted deliverable metadata and immutable bytes, warnings, drafts, and terminal outcomes. The anchored summary is continuity prose; bounded workspace state remains separate and recoverable through the debug snapshot. Sessions do not persist hidden model reasoning.
+Sessions persist user messages, assistant messages, observable agent activity, accepted deliverable metadata and immutable bytes, warnings, drafts, and terminal outcomes. The anchored summary is continuity prose. Sessions do not persist hidden model reasoning.
 
 ## Prompt-Only Format Methods
 
 The Word, PDF, XLSX, and review-report skills give prompt-only guest methods. Core advertises skill metadata and returns a body only when the model calls the generic `skill` tool. Core does not route file formats, select skill bodies, or parse document formats.
-
-For multi-step format work, a skill can require a guest-workspace checkpoint. The final output program must reread source facts, derive values again, compare them with the saved verified state, create each requested output, reopen it, and verify it before completion. This is a prompt method. It is not a Core format workflow.
 
 Python and Node source can be saved in the session workspace, then run again from that path without resending the source. Ordinary syntax or runtime failures remain evidence for repair; the model reads the error and edits the file. A run that loops or makes no progress simply reaches the 40-turn cap and ends.
 

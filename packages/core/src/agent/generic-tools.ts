@@ -151,7 +151,7 @@ function taskTool(): ToolSpec {
           subagent_type: {
             type: "string",
             enum: ["explore", "general"],
-            description: "explore: read-only tools; general: all tools.",
+            description: "explore: read-only inspection; general: also runs code.",
           },
         },
         ["description", "prompt", "subagent_type"],

@@ -29,7 +29,7 @@ const GOLDEN_TASKS: GoldenTask[] = [
       await createXlsxCorpus(sourceDir, { files: 1, sheets: 1, rowsPerSheet: 8 });
     },
     prompt:
-      "Read the spreadsheet in /source and write a short plain-text summary to /workspace with the total number of data rows and the note on the row marked as a priority review.",
+      "Read the spreadsheet in /source and write a short plain-text summary to /workspace with the note and the amount on the row marked as a priority review.",
     expectation: `deliverable contains "${XLSX_TARGET}" and "1001"`,
     check: (text) => text.includes(XLSX_TARGET) && text.includes("1001"),
   },

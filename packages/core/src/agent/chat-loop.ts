@@ -182,7 +182,6 @@ export class ChatAgentLoop {
     });
     const result = this.finish(input, generated, state, performance);
     if (result !== undefined) return result;
-    if (generated.result.toolCalls.length === 0) return undefined;
     input.onResponse?.(null);
     try {
       await executeToolCalls(

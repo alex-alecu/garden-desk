@@ -20,15 +20,11 @@ export const AgentLanguageSchema = z.enum(["python", "node", "shell"]);
 
 export function isUserArtifactWorkspacePath(path: string): boolean {
   if (!AgentWorkspacePathSchema.safeParse(path).success) return false;
-  const name = path.split("/").at(-1)?.toLowerCase();
   return !(
-    path.startsWith("steps/") ||
     path === ".vault-tools" ||
     path.startsWith(".vault-tools/") ||
     path === ".vault-output" ||
-    path.startsWith(".vault-output/") ||
-    name === "checkpoint.json" ||
-    name === "checkpoints.json"
+    path.startsWith(".vault-output/")
   );
 }
 

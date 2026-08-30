@@ -8,7 +8,7 @@ import { attachmentMediaType } from "./records.js";
 
 const MAX_CURRENT_ARTIFACTS = 16;
 
-export interface ArtifactOutput {
+interface ArtifactOutput {
   name: string;
   bytesBase64: string;
 }
@@ -28,12 +28,6 @@ function currentArtifactCandidates(
     }
   }
   return current;
-}
-
-export function currentArtifactOutputs(
-  executions: readonly ArtifactExecutionEvidence[],
-): ReadonlyMap<string, ArtifactOutput> {
-  return currentArtifactCandidates(executions);
 }
 
 export function artifactCandidateNames(executions: readonly ArtifactExecutionEvidence[]): string[] {

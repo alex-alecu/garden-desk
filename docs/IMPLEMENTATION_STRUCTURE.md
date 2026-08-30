@@ -43,7 +43,7 @@ All authored model instructions live under one repository-root prompt tree:
 
 ```text
 prompts/agents/*.md                 agent frontmatter (tools, temperature, turn cap) plus the system prompt body
-prompts/system/*.md                 compaction and session-summary instructions
+prompts/system/*.md                 compaction and session-summary instructions plus the legacy structured-path suffix (function-call.md)
 prompts/skills/<name>/SKILL.md      progressively disclosed Agent Skills-compatible workflows
 ```
 

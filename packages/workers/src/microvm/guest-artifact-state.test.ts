@@ -152,7 +152,7 @@ describe("guest artifact baseline", () => {
       "nested/Checkpoints.JSON",
       "reports/checkpoint.json.tmp",
     ];
-    const expected = [true, true, false, false, false, false, false, true];
+    const expected = [true, true, true, false, false, true, true, true];
 
     expect(paths.map(isUserArtifactWorkspacePath)).toEqual(expected);
     expect(pythonArtifactPolicy(paths)).toEqual(expected);

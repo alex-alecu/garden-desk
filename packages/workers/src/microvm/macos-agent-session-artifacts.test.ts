@@ -231,7 +231,7 @@ describe("agent artifact candidate invalidation", () => {
       { executionId, onUpdate() {} },
     );
     expect(result.invalidatedArtifactPaths).toEqual(["deleted.pdf", "oversized.pdf", "reports"]);
-    expect(result.recoverableArtifactPaths).toEqual(["oversized.pdf"]);
+    expect(result.recoverableArtifactPaths).toEqual(["oversized.pdf", "steps/ignored.py"]);
   });
 
   it("invalidates every changed artifact path after a failed execution", async () => {
@@ -252,7 +252,11 @@ describe("agent artifact candidate invalidation", () => {
       "oversized.pdf",
       "reports",
     ]);
-    expect(result.recoverableArtifactPaths).toEqual(["captured.pdf", "oversized.pdf"]);
+    expect(result.recoverableArtifactPaths).toEqual([
+      "captured.pdf",
+      "oversized.pdf",
+      "steps/ignored.py",
+    ]);
   });
 });
 

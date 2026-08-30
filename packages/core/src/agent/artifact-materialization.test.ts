@@ -61,17 +61,15 @@ async function imageFixture() {
 }
 
 describe("artifact path policy", () => {
-  it("does not expose working scripts as user artifacts", () => {
-    const script: Pick<AgentExecutionResult, "artifacts"> = {
-      artifacts: [
-        {
-          name: "steps/repair.py",
-          mediaType: "application/octet-stream",
-          bytesBase64: Buffer.from("steps/repair.py").toString("base64"),
-        },
-      ],
+  it("keeps Core bookkeeping paths out of user artifacts", () => {
+    const bookkeeping: Pick<AgentExecutionResult, "artifacts"> = {
+      artifacts: [".vault-tools/run.py", ".vault-output/result.txt"].map((name) => ({
+        name,
+        mediaType: "application/octet-stream",
+        bytesBase64: Buffer.from(name).toString("base64"),
+      })),
     };
-    expect(artifactCandidateNames([script])).toEqual([]);
+    expect(artifactCandidateNames([bookkeeping])).toEqual([]);
   });
 });
 

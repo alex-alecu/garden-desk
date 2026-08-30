@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { InferenceFailure } from "../runtime/inference-errors.js";
-import { agentFailureEvent, agentFailureText, inferenceRunContext } from "./service-results.js";
+import { agentFailureText, inferenceRunContext } from "./service-results.js";
 
 describe("agent inference context", () => {
   it.each([
@@ -42,12 +42,6 @@ describe("agent failure privacy", () => {
     );
     expect(agentFailureText(new InferenceFailure("out_of_memory", "Inference failed."))).toBe(
       "agent_memory_unavailable",
-    );
-  });
-
-  it("reports planning stalls without claiming execution capacity was exhausted", () => {
-    expect(agentFailureEvent(false, "agent_decision_limit_exceeded").summary).toBe(
-      "The local model could not produce a new executable plan within the planning limit.",
     );
   });
 });

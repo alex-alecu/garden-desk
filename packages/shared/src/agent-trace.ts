@@ -21,6 +21,7 @@ export const AgentInferenceOutcomeSchema = z.enum([
   "accepted_skill_request",
   "accepted_tool_calls",
   "accepted_compaction",
+  // Historical values kept only so existing local trace catalogs still parse.
   "rejected_duplicate",
   "rejected_unbacked_response",
   "invalid_response",

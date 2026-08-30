@@ -95,22 +95,6 @@ describe("M3 live folder capacity", () => {
   });
 });
 
-describe("M3 visible deliverables", () => {
-  it("keeps legacy internal checkpoints out of restored generated files", async () => {
-    const { catalog, store, conversations, jobs } = await fixture();
-    const session = conversations.createSession(null);
-    const run = store.createRun(session.id, jobs.create("agent", "legacy-artifacts").id);
-    const contentHash = `sha256:${"0".repeat(64)}` as const;
-    const artifact = { mediaType: "application/json", byteLength: 2, contentHash };
-    store.addArtifact(run.id, { name: "checkpoint.json", ...artifact });
-    store.addArtifact(run.id, { name: "checkpoints.json", ...artifact });
-    store.addArtifact(run.id, { name: "requested.json", ...artifact });
-
-    expect(store.snapshot(run.id).artifacts.map((item) => item.name)).toEqual(["requested.json"]);
-    catalog.close();
-  });
-});
-
 describe("M3 interrupted run recovery", () => {
   it("makes an interrupted run explicitly failed and observable", async () => {
     const { catalog, store, conversations, jobs } = await fixture();

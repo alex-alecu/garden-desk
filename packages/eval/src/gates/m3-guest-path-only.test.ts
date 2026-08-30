@@ -28,22 +28,19 @@ function session(resolvedSource: string, exitCode = 0) {
   return { requests, value };
 }
 
-describe("direct saved-script path-only proof", () => {
+describe("direct path-only proof", () => {
   it.each([
     ["python", "steps/repair.py", "print('repaired')\n"],
     ["node", "steps/probe.mjs", "console.log('passed');\n"],
-  ] as const)(
-    "runs saved %s source through a path-only request",
-    async (language, path, source) => {
-      const fake = session(source);
+  ] as const)("runs %s source through a path-only request", async (language, path, source) => {
+    const fake = session(source);
 
-      await requirePathOnlyScript(fake.value, { language, path, source });
+    await requirePathOnlyScript(fake.value, { language, path, source });
 
-      expect(fake.requests).toEqual([{ language, path }]);
-    },
-  );
+    expect(fake.requests).toEqual([{ language, path }]);
+  });
 
-  it("rejects a result that does not record the saved source", async () => {
+  it("rejects a result that does not record the committed source", async () => {
     const fake = session("print('other bytes')\n");
 
     await expect(

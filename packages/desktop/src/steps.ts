@@ -41,8 +41,8 @@ function isStep(item: TimelineItem): boolean {
 /**
  * Events carry no execution or turn identifier, so a step joins its evidence by counting
  * executions in order: the Nth `execution.started` of a run belongs to execution N - 1.
- * Planning steps consume trace turns in order. A structured-call retry has no extra event
- * and is skipped before the next step; generation-limit recovery emits its own event.
+ * Planning steps consume trace turns in order; an inference_failed turn whose retry has
+ * no extra event of its own is skipped before the next step.
  */
 export function agentSteps(
   timeline: TimelineItem[],

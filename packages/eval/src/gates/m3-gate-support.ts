@@ -1,4 +1,3 @@
-import { stat } from "node:fs/promises";
 import type { createVaultCore } from "@vault/core";
 import type { AgentRunSnapshot } from "@vault/shared";
 
@@ -18,15 +17,4 @@ export async function pollAgentRun(
   const snapshot = await core.getAgentRun(runId);
   if (snapshot.question !== null) await core.dismissQuestion(runId, snapshot.question.id);
   return snapshot;
-}
-
-export async function requireM3RegularFile(path: string, message: string): Promise<void> {
-  try {
-    requireM3ProductCheck((await stat(path)).isFile(), message);
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
-      throw new M3ProductCheckFailure(message);
-    }
-    throw error;
-  }
 }

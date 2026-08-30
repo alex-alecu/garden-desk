@@ -373,14 +373,11 @@ def workspace_delta(entries, previous):
 
 
 def is_artifact_candidate(path):
-    name = path.rsplit("/", 1)[-1].lower()
     return not (
-        path.startswith("steps/")
-        or path == ".vault-tools"
+        path == ".vault-tools"
         or path.startswith(".vault-tools/")
         or path == ".vault-output"
         or path.startswith(".vault-output/")
-        or name in ("checkpoint.json", "checkpoints.json")
     )
 
 

@@ -183,7 +183,7 @@ export class NativeToolCallCollector {
 
   /**
    * Returns the prose and the parsed call. A call the reader rejects comes back as the
-   * generated text with a literal start marker, which Core rejects and asks to redo.
+   * generated text with a literal start marker, which Core returns as ordinary response text.
    */
   finish(completeText: string): { text: string; call?: NativeToolCall } {
     const parts = this.parts();

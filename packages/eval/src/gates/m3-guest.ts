@@ -193,6 +193,16 @@ export async function requirePathOnlyScript(
   requireM3ProductCheck(sourceMatches, mismatch);
 }
 
+async function pathOnlyProbe(session: CodeAgentSession) {
+  const script = {
+    language: "python" as const,
+    path: "path-only-probe.py",
+    source: "print('path-only')",
+  };
+  requireGuestSuccess(await session.execute(script));
+  await requirePathOnlyScript(session, script);
+}
+
 export async function runGuestEvidence(root: string, launcherForWorkspace: LauncherFactory) {
   const source = await prepareSource(root);
   const workspaceStore = join(root, "workspace-store");
@@ -204,6 +214,7 @@ export async function runGuestEvidence(root: string, launcherForWorkspace: Launc
     async (session) => {
       const isolation = await isolationProbe(session);
       const directSource = await directSourceProbes(session, source);
+      await pathOnlyProbe(session);
       await persistentFileProbe(session);
       return { directSource, isolation };
     },

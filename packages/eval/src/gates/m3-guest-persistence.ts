@@ -34,7 +34,7 @@ export async function rehydrationProbe(
       ].join(" && "),
     });
     requireGuestSuccess(result);
-    return { failedWorkspacePersisted: true, output: result.stdout.trim() };
+    return { output: result.stdout.trim() };
   } finally {
     await session.close();
   }
