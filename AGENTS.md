@@ -8,7 +8,7 @@ M0, M1, and M2 are complete. M3 Offline Dev-Agent Desktop V1 is active, includin
 
 ## Test Rule
 
-Tests exist for architecture boundaries, business logic, and bugs. Not for the model.
+Tests exist for architecture boundaries, business logic, and bugs. Not for the model. Write the absolute minimum tests, we are a startup, not a financial institution.
 
 - Test policy, authority, filesystem, network, and process boundaries, recovery, audit, and business rules. Never test model behavior, prompt wording, or inference quality. The model is not tested; `pnpm test:m3:macos` and `pnpm test:m3:windows` run a few golden folder tasks with deterministic file checks before a release.
 - Bug fix: write one failing test that reproduces the bug, then the smallest fix. That test is the only test the fix adds.
@@ -50,7 +50,7 @@ Code, tests, schemas, fixtures, configuration, commands, and the authoritative d
 
 ## Writing Rule
 
-Documentation is for people. Use plain wording, explain a technical term on first use, and do not add long technical explanations to `.md` files. Say "no-network microVM"; use "no-NIC" only with an explanation. Follow the Clean Code principles in [docs/IMPLEMENTATION_QUALITY_BAR.md](docs/IMPLEMENTATION_QUALITY_BAR.md).
+Documentation is for people. Write the absolute minimum amount of code comments, default to zero. Use plain wording, explain a technical term on first use, and do not add long technical explanations to `.md` files. Say "no-network microVM"; use "no-NIC" only with an explanation. Follow the Clean Code principles in [docs/IMPLEMENTATION_QUALITY_BAR.md](docs/IMPLEMENTATION_QUALITY_BAR.md).
 
 ## Product And Security Principles
 
