@@ -10,6 +10,7 @@ import {
   resultError,
 } from "./m3-evidence-classification.js";
 import type { ActiveCase, StressCaseResult } from "./m3-stress-runtime.js";
+import { toolContractEvidence } from "./m3-tool-contract.js";
 export function terminal(snapshot: AgentRunSnapshot): boolean {
   return snapshot.run.state !== "queued" && snapshot.run.state !== "running";
 }
@@ -59,7 +60,6 @@ function measuredRunMs(active: ActiveCase, snapshot: AgentRunSnapshot): number {
     Math.round(performance.now() - active.startedAt),
   );
 }
-
 function gfmTableRows(response: string): string[][] {
   return response
     .split(/\r?\n/u)
@@ -77,7 +77,6 @@ function gfmTableRows(response: string): string[][] {
         !cells.every((cell) => /^:?-{3,}:?$/u.test(cell.replaceAll(/[\t ]/gu, ""))),
     );
 }
-
 function amountPattern(amount: number): RegExp {
   const digits = String(amount);
   const leading = digits.slice(0, digits.length % 3 || 3);
@@ -87,7 +86,6 @@ function amountPattern(amount: number): RegExp {
   );
   return new RegExp(`(?<!\\d)${formatted.join("[\\s,.]?")}(?:[,.]0+)?(?!\\d)`, "u");
 }
-
 function missingTableRows(response: string, expected: ExpectedTableRow[]): ExpectedTableRow[] {
   const rows = gfmTableRows(response);
   return expected.filter(
@@ -99,7 +97,6 @@ function missingTableRows(response: string, expected: ExpectedTableRow[]): Expec
       ),
   );
 }
-
 function executionMetrics(active: ActiveCase, snapshot: AgentRunSnapshot) {
   const runs = [...active.previousSnapshots, snapshot];
   const allExecutions = runs.flatMap((run) => run.executions);
@@ -114,13 +111,11 @@ function executionMetrics(active: ActiveCase, snapshot: AgentRunSnapshot) {
     ),
   };
 }
-
 function toolCalls(response: unknown): unknown[] {
   if (typeof response !== "object" || response === null) return [];
   const calls = (response as { toolCalls?: unknown }).toolCalls;
   return Array.isArray(calls) ? calls : [];
 }
-
 function skillName(call: unknown): string | undefined {
   if (typeof call !== "object" || call === null) return undefined;
   const tool = call as { name?: unknown; params?: unknown };
@@ -129,7 +124,6 @@ function skillName(call: unknown): string | undefined {
   const name = (tool.params as { name?: unknown }).name;
   return typeof name === "string" ? name : undefined;
 }
-
 function calledSkillNames(trace: AgentTrace | undefined): string[] {
   if (trace?.captureVersion !== 1) return [];
   return trace.turns
@@ -232,6 +226,7 @@ export function stressResultFor(
   );
   const { artifactViolation, error } = errorEvidence;
   const metrics = executionMetrics(active, snapshot);
+  const toolContract = toolContractEvidence(active.fixture, metrics.executions, verification.trace);
   const inferenceFailures = inferenceFailureCount(verification.trace);
   const quality = qualityCandidate(error, inferenceFailures);
   const expectedDeliverables = active.fixture.deliverables?.length ?? 0;
@@ -244,6 +239,8 @@ export function stressResultFor(
     skills.missingSkills.length === 0 &&
     skills.skillOrderValid &&
     skills.calledForbiddenSkills.length === 0 &&
+    toolContract.calledForbiddenTools.length === 0 &&
+    toolContract.executionCountValid &&
     executionText.missingExecutionText.length === 0 &&
     legacyDoc.orderValid &&
     legacyDoc.methodValid &&
@@ -253,6 +250,7 @@ export function stressResultFor(
     ...response,
     ...executionText,
     ...skills,
+    ...toolContract,
     legacyDocMethodValid: legacyDoc.methodValid,
     legacyDocOrderValid: legacyDoc.orderValid,
     artifactViolation,
@@ -286,6 +284,7 @@ export function stressResultFor(
     ...response,
     ...executionText,
     ...skills,
+    ...toolContract,
     legacyDocMethodValid: legacyDoc.methodValid,
     legacyDocOrderValid: legacyDoc.orderValid,
     producedArtifacts,

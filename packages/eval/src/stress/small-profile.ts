@@ -196,6 +196,9 @@ const CASES: StressCaseDefinition<SmallCaseId>[] = [
       return { bytes: Buffer.byteLength(content), files: 1, expected: {} };
     },
     expected: () => ["invalid"],
+    requiredExecutionCount: 1,
+    requiredExecutionText: ["pypdf"],
+    forbiddenTools: ["bash", "glob", "grep", "list", "node", "read", "task"],
     forbidArtifacts: true,
   },
   {

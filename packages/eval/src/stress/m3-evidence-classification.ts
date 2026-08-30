@@ -29,6 +29,8 @@ export type M3EvidenceReference =
   | "result.missingSkills"
   | "result.skillOrderValid"
   | "result.calledForbiddenSkills"
+  | "result.calledForbiddenTools"
+  | "result.executions"
   | "result.missingExecutionText"
   | "result.legacyDocMethodValid"
   | "result.legacyDocOrderValid"
@@ -171,7 +173,9 @@ export function inferenceFailureCount(trace: AgentTrace | undefined): number {
 interface ProductEvidence {
   artifactViolation: boolean;
   calledForbiddenSkills: string[];
+  calledForbiddenTools: string[];
   error: string | null;
+  executionCountValid: boolean;
   expectedDeliverables: number;
   legacyDocMethodValid: boolean;
   legacyDocOrderValid: boolean;
@@ -187,6 +191,7 @@ interface ProductEvidence {
 
 export function productEvidenceReference(result: ProductEvidence): M3EvidenceReference {
   if (result.artifactViolation) return "result.producedArtifacts";
+  if (!result.executionCountValid) return "result.executions";
   const arrays: Array<[readonly unknown[], M3EvidenceReference]> = [
     [result.missingTokens, "result.missingTokens"],
     [result.missingTableRows, "result.missingTableRows"],
@@ -194,6 +199,7 @@ export function productEvidenceReference(result: ProductEvidence): M3EvidenceRef
     [result.presentForbiddenResponsePatterns, "result.presentForbiddenResponsePatterns"],
     [result.missingSkills, "result.missingSkills"],
     [result.calledForbiddenSkills, "result.calledForbiddenSkills"],
+    [result.calledForbiddenTools, "result.calledForbiddenTools"],
     [result.missingExecutionText, "result.missingExecutionText"],
   ];
   const arrayReference = arrays.find(([values]) => values.length > 0)?.[1];

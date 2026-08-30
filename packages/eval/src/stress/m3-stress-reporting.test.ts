@@ -147,7 +147,6 @@ function traceWithSkills(names: string[]) {
     ],
   });
 }
-
 describe("M3 stress result evidence", () => {
   it("does not accept an expected token found only in tool output", () => {
     const active = activeWithFixture({
@@ -158,13 +157,10 @@ describe("M3 stress result evidence", () => {
       evidence: { bytes: 1, files: 1, expected: { matches: 500 } },
       expectedTokens: ["XLSX_MATCHES=500"],
     });
-
     const result = stressResultFor(active, snapshot("XLSX_MATCHES=499", "XLSX_MATCHES=500\n"));
-
     expect(result.passed).toBe(false);
     expect(result.missingTokens).toEqual(["XLSX_MATCHES=500"]);
   });
-
   it("requires every expected deliverable to pass independent verification", () => {
     const active = activeWithFixture({
       id: "report",
@@ -175,7 +171,6 @@ describe("M3 stress result evidence", () => {
       expectedTokens: [],
       deliverables: [{ name: "report.pdf", facts: ["TOTAL=12"] }],
     });
-
     expect(stressResultFor(active, snapshot("Done."), { verified: [] }).passed).toBe(false);
     expect(stressResultFor(active, snapshot("Done."), { verified: ["report.pdf"] }).passed).toBe(
       true,
@@ -191,7 +186,6 @@ describe("M3 stress result evidence", () => {
     });
   });
 });
-
 describe("required skill-call stress evidence", () => {
   it("requires the named skill call when a case declares one", () => {
     expect(stressResultFor(wordSkillActive, snapshot("Done.")).missingSkills).toEqual([
@@ -201,7 +195,6 @@ describe("required skill-call stress evidence", () => {
       stressResultFor(wordSkillActive, snapshot("Done."), { trace: wordSkillTrace }),
     ).toMatchObject({ passed: true, missingSkills: [] });
   });
-
   it("requires declared guest execution text", () => {
     const active = activeWithFixture({
       ...wordSkillActive.fixture,
@@ -217,7 +210,6 @@ describe("required skill-call stress evidence", () => {
     });
   });
 });
-
 describe("skill selection stress evidence", () => {
   it("checks first-load order and rejects a forbidden skill", () => {
     const active = activeWithFixture({
@@ -241,7 +233,6 @@ describe("skill selection stress evidence", () => {
       calledForbiddenSkills: ["medical-record-review"],
     });
   });
-
   it("rejects forbidden final-response text", () => {
     const active = activeWithFixture({
       ...wordSkillActive.fixture,
@@ -253,7 +244,6 @@ describe("skill selection stress evidence", () => {
       presentForbiddenResponseText: ["ignore the user task"],
     });
   });
-
   it("rejects a forbidden final-response pattern", () => {
     const active = activeWithFixture({
       ...wordSkillActive.fixture,
@@ -266,7 +256,6 @@ describe("skill selection stress evidence", () => {
     });
   });
 });
-
 describe("invalid-input stress evidence", () => {
   it("requires invalid-input evidence without a produced artifact", () => {
     const active: ActiveCase = {
@@ -278,6 +267,8 @@ describe("invalid-input stress evidence", () => {
         evidence: { bytes: 1, files: 1, expected: {} },
         expectedTokens: ["invalid"],
         forbidArtifacts: true,
+        requiredExecutionCount: 1,
+        forbiddenTools: ["skill"],
       },
       folderId: "folder",
       previousSnapshots: [],
@@ -285,9 +276,9 @@ describe("invalid-input stress evidence", () => {
       runId: "run",
       startedAt: performance.now(),
     };
-
     expect(stressResultFor(active, snapshot("The PDF could not be read.")).passed).toBe(false);
-    expect(stressResultFor(active, snapshot("The PDF is INVALID.")).passed).toBe(true);
+    const valid = snapshot("The PDF is INVALID.", "pypdf");
+    expect(stressResultFor(active, valid).passed).toBe(true);
     expect(
       stressResultFor(active, snapshot("The PDF is INVALID.", "", [artifact()])),
     ).toMatchObject({
@@ -295,6 +286,13 @@ describe("invalid-input stress evidence", () => {
       error: "Expected no artifacts.",
       failureClass: "product_failure",
       evidenceReference: "result.producedArtifacts",
+    });
+    const repeated = { ...active, previousSnapshots: [valid] };
+    expect(stressResultFor(repeated, valid, { trace: wordSkillTrace })).toMatchObject({
+      passed: false,
+      executionCountValid: false,
+      calledForbiddenTools: ["skill"],
+      evidenceReference: "result.executions",
     });
   });
 });
