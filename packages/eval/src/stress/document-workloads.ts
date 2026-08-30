@@ -36,6 +36,8 @@ export interface PreparedStressCase<Id extends string = string> {
   requiredSkills?: string[];
   requiredSkillSequence?: string[];
   forbiddenSkills?: string[];
+  forbiddenTools?: string[];
+  requiredExecutionCount?: number;
   expectedTableRows?: ExpectedTableRow[];
   deliverables?: DeliverableExpectation[];
   forbidArtifacts?: boolean;
@@ -52,6 +54,8 @@ export interface StressCaseDefinition<Id extends string = string> {
   requiredSkills?: string[];
   requiredSkillSequence?: string[];
   forbiddenSkills?: string[];
+  forbiddenTools?: string[];
+  requiredExecutionCount?: number;
   expectedTableRows?(evidence: FixtureEvidence): ExpectedTableRow[];
   deliverables?(evidence: FixtureEvidence): DeliverableExpectation[];
   forbidArtifacts?: boolean;
@@ -109,6 +113,17 @@ export function mixedTokens(evidence: FixtureEvidence): string[] {
   ];
 }
 
+function toolContract<Id extends string>(definition: StressCaseDefinition<Id>) {
+  return {
+    ...(definition.forbiddenTools === undefined
+      ? {}
+      : { forbiddenTools: definition.forbiddenTools }),
+    ...(definition.requiredExecutionCount === undefined
+      ? {}
+      : { requiredExecutionCount: definition.requiredExecutionCount }),
+  };
+}
+
 export async function prepareStressCase<Id extends string>(
   root: string,
   definition: StressCaseDefinition<Id>,
@@ -142,6 +157,7 @@ export async function prepareStressCase<Id extends string>(
     ...(definition.forbiddenSkills === undefined
       ? {}
       : { forbiddenSkills: definition.forbiddenSkills }),
+    ...toolContract(definition),
     ...(definition.expectedTableRows === undefined
       ? {}
       : { expectedTableRows: definition.expectedTableRows(evidence) }),

@@ -10,6 +10,7 @@ import {
   resultError,
 } from "./m3-evidence-classification.js";
 import type { ActiveCase, StressCaseResult } from "./m3-stress-runtime.js";
+import { toolContractEvidence } from "./m3-tool-contract.js";
 export function terminal(snapshot: AgentRunSnapshot): boolean {
   return snapshot.run.state !== "queued" && snapshot.run.state !== "running";
 }
@@ -53,14 +54,12 @@ function outputHasToken(output: string, token: string): boolean {
   const escaped = token.replaceAll(/[.*+?^${}()|[\]\\]/gu, "\\$&");
   return new RegExp(`(?:^|\\n)${escaped}(?:\\.0+)?[\\t ]*(?:$|\\n)`, "u").test(output);
 }
-
 function measuredRunMs(active: ActiveCase, snapshot: AgentRunSnapshot): number {
   return Math.max(
     Date.parse(snapshot.run.updatedAt) - Date.parse(snapshot.run.createdAt),
     Math.round(performance.now() - active.startedAt),
   );
 }
-
 function gfmTableRows(response: string): string[][] {
   return response
     .split(/\r?\n/u)
@@ -78,7 +77,6 @@ function gfmTableRows(response: string): string[][] {
         !cells.every((cell) => /^:?-{3,}:?$/u.test(cell.replaceAll(/[\t ]/gu, ""))),
     );
 }
-
 function amountPattern(amount: number): RegExp {
   const digits = String(amount);
   const leading = digits.slice(0, digits.length % 3 || 3);
@@ -88,7 +86,6 @@ function amountPattern(amount: number): RegExp {
   );
   return new RegExp(`(?<!\\d)${formatted.join("[\\s,.]?")}(?:[,.]0+)?(?!\\d)`, "u");
 }
-
 function missingTableRows(response: string, expected: ExpectedTableRow[]): ExpectedTableRow[] {
   const rows = gfmTableRows(response);
   return expected.filter(
@@ -100,7 +97,6 @@ function missingTableRows(response: string, expected: ExpectedTableRow[]): Expec
       ),
   );
 }
-
 function executionMetrics(active: ActiveCase, snapshot: AgentRunSnapshot) {
   const runs = [...active.previousSnapshots, snapshot];
   const allExecutions = runs.flatMap((run) => run.executions);
@@ -115,13 +111,11 @@ function executionMetrics(active: ActiveCase, snapshot: AgentRunSnapshot) {
     ),
   };
 }
-
 function toolCalls(response: unknown): unknown[] {
   if (typeof response !== "object" || response === null) return [];
   const calls = (response as { toolCalls?: unknown }).toolCalls;
   return Array.isArray(calls) ? calls : [];
 }
-
 function skillName(call: unknown): string | undefined {
   if (typeof call !== "object" || call === null) return undefined;
   const tool = call as { name?: unknown; params?: unknown };
@@ -130,14 +124,12 @@ function skillName(call: unknown): string | undefined {
   const name = (tool.params as { name?: unknown }).name;
   return typeof name === "string" ? name : undefined;
 }
-
 function calledSkillNames(trace: AgentTrace | undefined): string[] {
   if (trace?.captureVersion !== 1) return [];
   return trace.turns
     .flatMap((turn) => toolCalls(turn.structuredResponse).map(skillName))
     .filter((name): name is string => name !== undefined);
 }
-
 function firstLoadedSkills(names: string[]): string[] {
   const seen = new Set<string>();
   return names.filter((name) => {
@@ -146,7 +138,6 @@ function firstLoadedSkills(names: string[]): string[] {
     return true;
   });
 }
-
 function sequenceIsOrdered(actual: string[], expected: string[]): boolean {
   let previous = -1;
   for (const name of expected) {
@@ -156,7 +147,6 @@ function sequenceIsOrdered(actual: string[], expected: string[]): boolean {
   }
   return true;
 }
-
 function skillEvidence(active: ActiveCase, trace: AgentTrace | undefined) {
   const requiredSkills = active.fixture.requiredSkills ?? [];
   const requiredSkillSequence = active.fixture.requiredSkillSequence ?? [];
@@ -174,12 +164,17 @@ function skillEvidence(active: ActiveCase, trace: AgentTrace | undefined) {
     calledForbiddenSkills: forbiddenSkills.filter((name) => skills.has(name)),
   };
 }
-
 function executionTextEvidence(active: ActiveCase, snapshot: AgentRunSnapshot) {
   const requiredExecutionText = active.fixture.requiredExecutionText ?? [];
   const executions = [...active.previousSnapshots, snapshot]
     .flatMap((run) => run.executions)
-    .filter(({ exitCode, state }) => state === "completed" && exitCode === 0);
+    .filter(
+      ({ exitCode, state, stderr }) =>
+        (state === "completed" && exitCode === 0) ||
+        (active.fixture.id === "invalid-document" &&
+          state === "failed" &&
+          stderr.includes("PdfStreamError")),
+    );
   const text = executions
     .map(({ command, source }) => `${command ?? ""}\n${source ?? ""}`)
     .join("\n");
@@ -188,7 +183,6 @@ function executionTextEvidence(active: ActiveCase, snapshot: AgentRunSnapshot) {
     missingExecutionText: requiredExecutionText.filter((value) => !text.includes(value)),
   };
 }
-
 function responseEvidence(active: ActiveCase, snapshot: AgentRunSnapshot) {
   const output = snapshot.run.response ?? "";
   const forbiddenResponseText = active.fixture.forbiddenResponseText ?? [];
@@ -206,7 +200,6 @@ function responseEvidence(active: ActiveCase, snapshot: AgentRunSnapshot) {
     ),
   };
 }
-
 // biome-ignore lint/complexity/noExcessiveLinesPerFunction: one result keeps all acceptance gates visible.
 export function stressResultFor(
   active: ActiveCase,
@@ -224,13 +217,16 @@ export function stressResultFor(
   const skills = skillEvidence(active, verification.trace);
   const executionText = executionTextEvidence(active, snapshot);
   const legacyDoc = legacyDocEvidence(active.fixture.id, snapshot, verification.trace);
+  const producedArtifacts = snapshot.artifacts.map((artifact) => artifact.name);
   const errorEvidence = resultError(
     active.fixture.forbidArtifacts,
-    snapshot.artifacts.length,
+    producedArtifacts,
+    active.fixture.deliverables,
     snapshot.run.error,
   );
   const { artifactViolation, error } = errorEvidence;
   const metrics = executionMetrics(active, snapshot);
+  const toolContract = toolContractEvidence(active.fixture, metrics.executions, verification.trace);
   const inferenceFailures = inferenceFailureCount(verification.trace);
   const quality = qualityCandidate(error, inferenceFailures);
   const expectedDeliverables = active.fixture.deliverables?.length ?? 0;
@@ -243,6 +239,8 @@ export function stressResultFor(
     skills.missingSkills.length === 0 &&
     skills.skillOrderValid &&
     skills.calledForbiddenSkills.length === 0 &&
+    toolContract.calledForbiddenTools.length === 0 &&
+    toolContract.executionCountValid &&
     executionText.missingExecutionText.length === 0 &&
     legacyDoc.orderValid &&
     legacyDoc.methodValid &&
@@ -252,6 +250,7 @@ export function stressResultFor(
     ...response,
     ...executionText,
     ...skills,
+    ...toolContract,
     legacyDocMethodValid: legacyDoc.methodValid,
     legacyDocOrderValid: legacyDoc.orderValid,
     artifactViolation,
@@ -285,9 +284,10 @@ export function stressResultFor(
     ...response,
     ...executionText,
     ...skills,
+    ...toolContract,
     legacyDocMethodValid: legacyDoc.methodValid,
     legacyDocOrderValid: legacyDoc.orderValid,
-    producedArtifacts: snapshot.artifacts.map((artifact) => artifact.name),
+    producedArtifacts,
     error,
     inferenceFailures,
     qualityCandidate: quality,

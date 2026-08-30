@@ -51,13 +51,13 @@ function codeTool(language: "python" | "node"): ToolSpec {
   return {
     definition: {
       name: language,
-      description: `Run ${language} offline. Source runs now; source plus path saves; path runs committed bytes.`,
+      description: `Run ${language} offline. No path: run once. Source+path: save. Path only: run.`,
       params: objectSchema(
         {
           source: { type: "string" },
           path: {
             type: "string",
-            description: "steps/..., /workspace/..., or path-only /source/....",
+            description: "steps/... internal; /workspace/... user-requested; /source/... runs.",
           },
         },
         [],
@@ -142,13 +142,16 @@ function taskTool(): ToolSpec {
   return {
     definition: {
       name: "task",
-      description:
-        "Delegate isolated exploration, a focused trial, or one independent multi-step work unit. Only the final report returns to this context; verify child outputs before use.",
+      description: "Delegate work; keep simple edits here. Final report only; verify.",
       params: objectSchema(
         {
           description: { type: "string" },
           prompt: { type: "string" },
-          subagent_type: { type: "string", enum: ["explore", "general", "probe"] },
+          subagent_type: {
+            type: "string",
+            enum: ["explore", "general", "probe"],
+            description: "explore read-only; general edits; probe checks.",
+          },
         },
         ["description", "prompt", "subagent_type"],
       ),
@@ -159,12 +162,17 @@ function taskTool(): ToolSpec {
         return { content: "Sub-agents are unavailable from this agent.", failed: true };
       }
       const params = value as ReturnType<typeof taskParams>;
-      const report = await context.spawnTask({
+      const result = await context.spawnTask({
         description: params.description,
         prompt: params.prompt,
         subagentType: params.subagent_type,
       });
-      return { content: `<task_result>\n${report}\n</task_result>`, failed: false };
+      return {
+        content: `<task_result>\n${result.response}\n</task_result>`,
+        failed: false,
+        artifactExecutions: result.executions,
+        publishArtifactExecutions: params.subagent_type === "general",
+      };
     },
   };
 }

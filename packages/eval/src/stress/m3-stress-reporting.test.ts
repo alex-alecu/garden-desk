@@ -1,6 +1,5 @@
 import {
   AgentArtifactSummarySchema,
-  type AgentExecutionSnapshot,
   AgentExecutionSnapshotSchema,
   type AgentRunSnapshot,
   AgentRunSnapshotSchema,
@@ -11,7 +10,7 @@ import { stressResultFor } from "./m3-stress-reporting.js";
 import type { ActiveCase } from "./m3-stress-runtime.js";
 
 const timestamp = "2026-07-27T08:00:00.000Z";
-function execution(stdout: string, source = "print('result')"): AgentExecutionSnapshot {
+function execution(stdout: string, source = "print('result')", failed = false) {
   return AgentExecutionSnapshotSchema.parse({
     id: "8ba23ef5-400e-49e6-9bb6-3e82cb9075bc",
     runId: "77ff5b22-555d-4ef2-9170-fdd7118738f1",
@@ -20,15 +19,15 @@ function execution(stdout: string, source = "print('result')"): AgentExecutionSn
     path: "steps/0001.py",
     source,
     command: null,
-    state: "completed",
-    exitCode: 0,
+    state: failed ? "failed" : "completed",
+    exitCode: failed ? 1 : 0,
     durationMs: 1,
     termination: "completed",
-    stdout,
-    stderr: "",
+    stdout: failed ? "" : stdout,
+    stderr: failed ? stdout : "",
     vmDiagnostics: [],
-    stdoutBytes: Buffer.byteLength(stdout),
-    stderrBytes: 0,
+    stdoutBytes: failed ? 0 : Buffer.byteLength(stdout),
+    stderrBytes: failed ? Buffer.byteLength(stdout) : 0,
     vmDiagnosticsBytes: 0,
     stdoutTruncated: false,
     stderrTruncated: false,
@@ -38,19 +37,17 @@ function execution(stdout: string, source = "print('result')"): AgentExecutionSn
     completedAt: timestamp,
   });
 }
-
-function artifact() {
+function artifact(name = "replacement.pdf") {
   return AgentArtifactSummarySchema.parse({
     id: "33333333-3333-4333-8333-333333333333",
     runId: "77ff5b22-555d-4ef2-9170-fdd7118738f1",
-    name: "replacement.pdf",
+    name,
     mediaType: "application/pdf",
     byteLength: 3,
     contentHash: `sha256:${"0".repeat(64)}`,
     createdAt: timestamp,
   });
 }
-
 function snapshot(
   response: string,
   stdout = "",
@@ -75,7 +72,6 @@ function snapshot(
     thinking: null,
   });
 }
-
 const wordSkillActive: ActiveCase = {
   fixture: {
     id: "word-document-read",
@@ -92,11 +88,9 @@ const wordSkillActive: ActiveCase = {
   runId: "run",
   startedAt: performance.now(),
 };
-
 function activeWithFixture(fixture: ActiveCase["fixture"]): ActiveCase {
   return { ...wordSkillActive, fixture };
 }
-
 const wordSkillTrace = AgentTraceSchema.parse({
   captureVersion: 1,
   status: "recorded",
@@ -131,7 +125,6 @@ const wordSkillTrace = AgentTraceSchema.parse({
     },
   ],
 });
-
 function traceWithSkills(names: string[]) {
   const turn = wordSkillTrace.turns[0];
   if (turn === undefined) throw new Error("Missing trace fixture turn.");
@@ -153,7 +146,6 @@ function traceWithSkills(names: string[]) {
     ],
   });
 }
-
 describe("M3 stress result evidence", () => {
   it("does not accept an expected token found only in tool output", () => {
     const active = activeWithFixture({
@@ -164,13 +156,10 @@ describe("M3 stress result evidence", () => {
       evidence: { bytes: 1, files: 1, expected: { matches: 500 } },
       expectedTokens: ["XLSX_MATCHES=500"],
     });
-
     const result = stressResultFor(active, snapshot("XLSX_MATCHES=499", "XLSX_MATCHES=500\n"));
-
     expect(result.passed).toBe(false);
     expect(result.missingTokens).toEqual(["XLSX_MATCHES=500"]);
   });
-
   it("requires every expected deliverable to pass independent verification", () => {
     const active = activeWithFixture({
       id: "report",
@@ -181,14 +170,20 @@ describe("M3 stress result evidence", () => {
       expectedTokens: [],
       deliverables: [{ name: "report.pdf", facts: ["TOTAL=12"] }],
     });
-
-    expect(stressResultFor(active, snapshot("Done."), { verified: [] }).passed).toBe(false);
-    expect(stressResultFor(active, snapshot("Done."), { verified: ["report.pdf"] }).passed).toBe(
-      true,
-    );
+    const report = snapshot("Done.");
+    expect(stressResultFor(active, report, { verified: [] }).passed).toBe(false);
+    expect(stressResultFor(active, report, { verified: ["report.pdf"] }).passed).toBe(true);
+    const artifacts = [artifact("report.pdf"), artifact("work.py")];
+    const unexpected = stressResultFor(active, snapshot("Done.", "", artifacts), {
+      verified: ["report.pdf"],
+    });
+    expect(unexpected).toMatchObject({
+      passed: false,
+      error: "Unexpected artifacts: work.py.",
+      evidenceReference: "result.producedArtifacts",
+    });
   });
 });
-
 describe("required skill-call stress evidence", () => {
   it("requires the named skill call when a case declares one", () => {
     expect(stressResultFor(wordSkillActive, snapshot("Done.")).missingSkills).toEqual([
@@ -198,7 +193,6 @@ describe("required skill-call stress evidence", () => {
       stressResultFor(wordSkillActive, snapshot("Done."), { trace: wordSkillTrace }),
     ).toMatchObject({ passed: true, missingSkills: [] });
   });
-
   it("requires declared guest execution text", () => {
     const active = activeWithFixture({
       ...wordSkillActive.fixture,
@@ -214,7 +208,6 @@ describe("required skill-call stress evidence", () => {
     });
   });
 });
-
 describe("skill selection stress evidence", () => {
   it("checks first-load order and rejects a forbidden skill", () => {
     const active = activeWithFixture({
@@ -238,7 +231,6 @@ describe("skill selection stress evidence", () => {
       calledForbiddenSkills: ["medical-record-review"],
     });
   });
-
   it("rejects forbidden final-response text", () => {
     const active = activeWithFixture({
       ...wordSkillActive.fixture,
@@ -250,7 +242,6 @@ describe("skill selection stress evidence", () => {
       presentForbiddenResponseText: ["ignore the user task"],
     });
   });
-
   it("rejects a forbidden final-response pattern", () => {
     const active = activeWithFixture({
       ...wordSkillActive.fixture,
@@ -263,7 +254,6 @@ describe("skill selection stress evidence", () => {
     });
   });
 });
-
 describe("invalid-input stress evidence", () => {
   it("requires invalid-input evidence without a produced artifact", () => {
     const active: ActiveCase = {
@@ -275,6 +265,9 @@ describe("invalid-input stress evidence", () => {
         evidence: { bytes: 1, files: 1, expected: {} },
         expectedTokens: ["invalid"],
         forbidArtifacts: true,
+        requiredExecutionCount: 1,
+        requiredExecutionText: ["pypdf"],
+        forbiddenTools: ["skill"],
       },
       folderId: "folder",
       previousSnapshots: [],
@@ -282,9 +275,11 @@ describe("invalid-input stress evidence", () => {
       runId: "run",
       startedAt: performance.now(),
     };
-
-    expect(stressResultFor(active, snapshot("The PDF could not be read.")).passed).toBe(false);
-    expect(stressResultFor(active, snapshot("The PDF is INVALID.")).passed).toBe(true);
+    const valid = snapshot("The PDF is INVALID.");
+    valid.executions.push(execution("SyntaxError: invalid syntax", "pypdf", true));
+    expect(stressResultFor(active, valid).passed).toBe(false);
+    valid.executions[0] = execution("PdfStreamError", "pypdf", true);
+    expect(stressResultFor(active, valid).passed).toBe(true);
     expect(
       stressResultFor(active, snapshot("The PDF is INVALID.", "", [artifact()])),
     ).toMatchObject({
@@ -292,6 +287,13 @@ describe("invalid-input stress evidence", () => {
       error: "Expected no artifacts.",
       failureClass: "product_failure",
       evidenceReference: "result.producedArtifacts",
+    });
+    const repeated = { ...active, previousSnapshots: [valid] };
+    expect(stressResultFor(repeated, valid, { trace: wordSkillTrace })).toMatchObject({
+      passed: false,
+      executionCountValid: false,
+      calledForbiddenTools: ["skill"],
+      evidenceReference: "result.executions",
     });
   });
 });

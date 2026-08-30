@@ -29,6 +29,8 @@ export type M3EvidenceReference =
   | "result.missingSkills"
   | "result.skillOrderValid"
   | "result.calledForbiddenSkills"
+  | "result.calledForbiddenTools"
+  | "result.executions"
   | "result.missingExecutionText"
   | "result.legacyDocMethodValid"
   | "result.legacyDocOrderValid"
@@ -136,11 +138,30 @@ export function contextCompactionCount(trace: AgentTrace | undefined): number {
 
 export function resultError(
   forbidArtifacts: boolean | undefined,
-  artifactCount: number,
+  producedArtifacts: string[],
+  expectedArtifacts: Array<{ extension?: string; name?: string }> | undefined,
   runError: string | null,
 ): { artifactViolation: boolean; error: string | null } {
-  const artifactViolation = forbidArtifacts === true && artifactCount > 0;
-  return { artifactViolation, error: artifactViolation ? "Expected no artifacts." : runError };
+  const unexpected =
+    expectedArtifacts === undefined
+      ? []
+      : producedArtifacts.filter(
+          (name) =>
+            !expectedArtifacts.some(
+              (expected) =>
+                expected.name === name ||
+                (expected.extension !== undefined &&
+                  name.toLowerCase().endsWith(expected.extension.toLowerCase())),
+            ),
+        );
+  const forbidden = forbidArtifacts === true && producedArtifacts.length > 0;
+  const artifactViolation = forbidden || unexpected.length > 0;
+  const error = forbidden
+    ? "Expected no artifacts."
+    : unexpected.length > 0
+      ? `Unexpected artifacts: ${unexpected.join(", ")}.`
+      : runError;
+  return { artifactViolation, error };
 }
 
 export function inferenceFailureCount(trace: AgentTrace | undefined): number {
@@ -152,7 +173,9 @@ export function inferenceFailureCount(trace: AgentTrace | undefined): number {
 interface ProductEvidence {
   artifactViolation: boolean;
   calledForbiddenSkills: string[];
+  calledForbiddenTools: string[];
   error: string | null;
+  executionCountValid: boolean;
   expectedDeliverables: number;
   legacyDocMethodValid: boolean;
   legacyDocOrderValid: boolean;
@@ -168,6 +191,7 @@ interface ProductEvidence {
 
 export function productEvidenceReference(result: ProductEvidence): M3EvidenceReference {
   if (result.artifactViolation) return "result.producedArtifacts";
+  if (!result.executionCountValid) return "result.executions";
   const arrays: Array<[readonly unknown[], M3EvidenceReference]> = [
     [result.missingTokens, "result.missingTokens"],
     [result.missingTableRows, "result.missingTableRows"],
@@ -175,6 +199,7 @@ export function productEvidenceReference(result: ProductEvidence): M3EvidenceRef
     [result.presentForbiddenResponsePatterns, "result.presentForbiddenResponsePatterns"],
     [result.missingSkills, "result.missingSkills"],
     [result.calledForbiddenSkills, "result.calledForbiddenSkills"],
+    [result.calledForbiddenTools, "result.calledForbiddenTools"],
     [result.missingExecutionText, "result.missingExecutionText"],
   ];
   const arrayReference = arrays.find(([values]) => values.length > 0)?.[1];

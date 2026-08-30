@@ -21,7 +21,7 @@ describe("GenericToolRegistry task", () => {
       skills: { metadata: () => [], read: () => "" },
       async spawnTask(request) {
         requests.push(request);
-        return "Only this final report returns.";
+        return { response: "Only this final report returns.", executions: [] };
       },
     });
 
@@ -47,7 +47,7 @@ describe("GenericToolRegistry task", () => {
       skills: { metadata: () => [], read: () => "" },
       async spawnTask(request) {
         requests.push(request);
-        return "Candidate checked.";
+        return { response: "Candidate checked.", executions: [] };
       },
     });
 
@@ -112,7 +112,7 @@ describe("GenericToolRegistry resilient parameters", () => {
         source: { type: "string" },
         path: {
           type: "string",
-          description: "steps/..., /workspace/..., or path-only /source/....",
+          description: "steps/... internal; /workspace/... user-requested; /source/... runs.",
         },
       },
       required: [],

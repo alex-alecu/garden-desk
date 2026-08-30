@@ -69,6 +69,10 @@ export interface StressCaseResult {
   legacyDocOrderValid: boolean;
   forbiddenSkills: string[];
   calledForbiddenSkills: string[];
+  forbiddenTools: string[];
+  calledForbiddenTools: string[];
+  requiredExecutionCount: number | null;
+  executionCountValid: boolean;
   missingTokens: string[];
   missingTableRows: ExpectedTableRow[];
   producedArtifacts: string[];
