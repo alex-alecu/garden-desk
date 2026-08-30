@@ -51,13 +51,13 @@ function codeTool(language: "python" | "node"): ToolSpec {
   return {
     definition: {
       name: language,
-      description: `Run ${language} offline. Source runs now; source plus path saves; path runs committed bytes.`,
+      description: `Run ${language} offline. No path: run once. Source+path: save. Path only: run.`,
       params: objectSchema(
         {
           source: { type: "string" },
           path: {
             type: "string",
-            description: "steps/..., /workspace/..., or path-only /source/....",
+            description: "steps/... internal; /workspace/... user-requested; /source/... runs.",
           },
         },
         [],
