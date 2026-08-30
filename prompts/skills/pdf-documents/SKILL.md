@@ -3,25 +3,36 @@ name: pdf-documents
 description: PDF reading, page work, creation. Load for PDF input or deliverable.
 ---
 
-# PDF Documents
+## Library
 
-Use `pypdf` for text, structure, order, facts; no `try`, exception wrapper, or trailing brace. `PdfWriter.add_metadata()` uses slash keys: `{"/Title": "Report"}`. ReportLab Platypus: headings/page breaks/margins/fitting tables.
+Use the installed `pypdf` through `python` for reading and page work, and `reportlab` (Platypus) to create a PDF. Do not install packages.
 
-Without PDF output: inspect/reopen with `pypdf` only. Do not create `/workspace/report.pdf` or require `/source/values.txt`:
+## Find The Files
+
+Search `/source` recursively for files ending in `.pdf`, case-insensitive.
+
+## Recipe
 
 ```python
-from pathlib import Path
 from pypdf import PdfReader
 
-for source in sorted(path for path in Path("/source").rglob("*") if path.is_file() and path.suffix.lower() == ".pdf"):
-    reader = PdfReader(source)
-    for page in reader.pages:
-        print(page.extract_text() or "")
+reader = PdfReader(path)
+for number, page in enumerate(reader.pages, start=1):
+    print(f"page {number}: {page.extract_text() or ''}")
 ```
 
-Only for requested PDF output:
+Cite every fact by page number, using this same one-based numbering.
 
-- In one `pypdf` program, derive requested labels directly from the actual source PDF. Do not assume `/source/values.txt`, `COUNT`, `TOTAL`, or `report.pdf`.
-- Use the task-specified output name. Put each derived result in visible ReportLab PDF text as exact `LABEL=value`; keep the requested label unchanged.
+To create a PDF, build a ReportLab `SimpleDocTemplate` with Platypus flowables (headings, paragraphs, tables); it handles page breaks and margins for you.
 
-Do not copy prior values. Reopen/verify text, page count/order, rotation, size, metadata, and every requested pair before completion.
+## Verify
+
+Reopen the PDF you write with `PdfReader` and assert its page count and the text of each page you generated.
+
+## Gotchas
+
+- `extract_text()` can return `None` on an image-only or scanned page; treat that as no text, not an error.
+- Set metadata with `PdfWriter.add_metadata()` using slash-prefixed keys, for example `{"/Title": "Report"}`.
+- Derive every value from the actual source PDF; do not assume a fixed input file name.
+- A rotated page can still report text in reading order; check `page.rotation` if layout looks wrong.
+- Reopen and check page count, order, rotation, and metadata before you report the deliverable done.

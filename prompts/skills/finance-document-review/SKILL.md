@@ -7,4 +7,4 @@ Use supplied sources only; no assumed framework/tax/accounting/audit/investment 
 
 Recalculate subtotals/cash; compare repeats; report discrepancies. Cite period/unit/currency/sign/precision/amount/opinion/locations. Source currency/rate; materiality needs supplied amount/context, never fixed percentage.
 
-Table category/sources/values/difference/location/check. No audit/assurance/tax/investment/compliance/fraud conclusion. Qualified finance/accounting review before report/filing/financial decision.
+Table category/sources/values/difference/location/check. Qualified finance/accounting review before report/filing/financial decision. This skill does not give an audit, assurance, tax, investment, compliance, or fraud conclusion.

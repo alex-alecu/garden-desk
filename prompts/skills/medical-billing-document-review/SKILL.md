@@ -9,4 +9,4 @@ Extract the minimum patient identifier needed to distinguish records; claim or b
 
 Compare repeated source values. Report missing support, date, provider, and patient conflicts, service or code, unit, and amount differences, and unmatched records. Recalculate supplied arithmetic. Keep `not documented` separate from a confirmed conflict.
 
-Output one table: category; record identifier; each source and value; difference; human check. Do not validate medical coding, approve or deny payment, infer fraud, or give clinical or compliance advice. Do not claim HIPAA compliance. Require qualified billing, medical-administration, and clinical review as applicable.
+Output one table: category; record identifier; each source and value; difference; human check. Require qualified billing, medical-administration, and clinical review as applicable. This skill does not validate medical coding, approve or deny payment, infer fraud, give clinical or compliance advice, or claim HIPAA compliance.

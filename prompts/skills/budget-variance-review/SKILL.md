@@ -9,4 +9,4 @@ Calculate absolute and percentage variance from current source values; show form
 
 Separate measured variance and explanation. Label explanation `source stated`, `calculated`, or `not supported by supplied evidence`. Do not invent a timing, price, volume, rate, mix, seasonal, or operational driver.
 
-Output one table: measure; base and compared values; absolute and percentage variance; explanation status; evidence location. Apply only a user or source threshold. Test amount and context, not one fixed percentage only. Require qualified finance or accounting review.
+Output one table: measure; base and compared values; absolute and percentage variance; explanation status; evidence location. Apply only a user or source threshold. Test amount and context, not one fixed percentage only. Require qualified finance or accounting review. This skill does not set the variance threshold or judge financial performance.

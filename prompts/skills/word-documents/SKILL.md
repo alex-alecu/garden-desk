@@ -3,23 +3,39 @@ name: word-documents
 description: Use for DOCX files and Word deliverables. Before any legacy .doc access, load this skill; never use generic read or cat for binary DOC.
 ---
 
-# Word Documents
+## Library
 
-Load this skill before any DOC access; never use generic `read` or `cat`. DOCX uses installed `python-docx` via `python`; no `bash`/package installs. Never create/edit `.doc`; create `.docx`.
+Use the installed `python-docx` through `python` for `.docx`. Do not install packages, and do not use `bash` or a shell to read one.
 
-Legacy: one source-only `python` call; use this complete Python pattern. No terminal-commands, bash, or shell. Require zero exit, strict UTF-8, nonblank text. Tables become text; layout/embedded content is lost. On encrypted/corrupt/mislabeled/text failure, stop. No fallback. DOC edit unsupported; DOCX states layout loss.
+For legacy `.doc`, `antiword` is installed; run `antiword <path>` with `bash` to get the text.
+
+## Find The Files
+
+Search `/source` recursively for files ending in `.docx` or `.doc`, case-insensitive.
+
+## Recipe
 
 ```python
-import os, subprocess
-from pathlib import Path
-source=next(iter([*Path("/source").glob("*.doc"),*Path("/run/attachments").glob("*.doc")]))
-result=subprocess.run(["/usr/bin/antiword", "-m", "UTF-8.txt", "-w", "0", str(source)], capture_output=True, check=False, env={**os.environ, "LANG": "C", "LC_ALL": "C", "LC_CTYPE": "C"}, timeout=5)
-if result.returncode != 0: raise RuntimeError("read failed")
-text=result.stdout.decode("utf-8", errors="strict")
-if not text.strip(): raise RuntimeError("No text")
-print(text)
+from docx import Document
+
+document = Document(path)
+for paragraph in document.paragraphs:
+    print(paragraph.text)
+for table in document.tables:
+    for row in table.rows:
+        print([cell.text for cell in row.cells])
 ```
 
-Run this block exactly. Keep `source`, `result`, `text`, and both `if` statements at column zero. Do not add a path check, path fallback, wrapper, function, `try`/`except`, `text=True`, decode change, or failure output.
+To create or edit a `.docx`, load it with `Document(path)`, add or change paragraphs, table rows, or styles, then `document.save(path)`. Never create or edit a `.doc`; produce a `.docx` deliverable instead.
 
-DOCX: no delegation; scripts only in `steps/...`; requested output only in `/workspace` root. Inspect/edit text, tables, styles, sections, headers, footers; reopen/assert. Keep exact `LABEL=value` or `LABEL: value` in one paragraph/row. Preserve content/format/setup/relationships; no layout newlines. Repair by edit or short replacement; rerun path.
+## Verify
+
+Reopen every `.docx` you write with `Document(path)` and assert its paragraph or table row count matches what you intended.
+
+## Gotchas
+
+- A table's text lives in `table.rows`, not in `document.paragraphs`.
+- Tables become plain text; `.doc` layout and embedded content are lost when read through `antiword`.
+- `antiword` output is source text only; you cannot edit a `.doc` file with it.
+- On an encrypted, corrupt, or mislabeled file, stop and report it; there is no fallback reader.
+- Cite results by path and section, or by paragraph number for a `.doc` extract.
