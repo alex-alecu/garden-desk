@@ -142,13 +142,16 @@ function taskTool(): ToolSpec {
   return {
     definition: {
       name: "task",
-      description:
-        "Delegate isolated exploration, a focused trial, or one independent multi-step work unit. Only the final report returns to this context; verify child outputs before use.",
+      description: "Delegate work; keep simple edits here. Final report only; verify.",
       params: objectSchema(
         {
           description: { type: "string" },
           prompt: { type: "string" },
-          subagent_type: { type: "string", enum: ["explore", "general", "probe"] },
+          subagent_type: {
+            type: "string",
+            enum: ["explore", "general", "probe"],
+            description: "explore read-only; general edits; probe checks.",
+          },
         },
         ["description", "prompt", "subagent_type"],
       ),
