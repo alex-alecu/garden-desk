@@ -33,6 +33,7 @@ export interface AgentToolResult {
   execution?: AgentExecutionResult;
   artifactExecution?: AgentExecutionResult;
   artifactExecutions?: AgentExecutionResult[];
+  publishArtifactExecutions?: boolean;
   executionFailure?: {
     termination: AgentExecutionResult["termination"];
     exitCode: number;
@@ -41,7 +42,6 @@ export interface AgentToolResult {
   executionAttempt?: AgentExecutionAttemptError["attempt"];
   status?: "already_loaded";
 }
-
 export interface ToolExecutionResult extends AgentToolResult {
   guestExecutionsStarted?: number;
 }

@@ -169,13 +169,33 @@ function artifactEvidence(
   };
 }
 
+function artifactInvalidationEvidence(
+  execution: NonNullable<AgentToolResult["artifactExecution"]>,
+): ArtifactExecutionEvidence {
+  const invalidated = new Set([
+    ...(execution.invalidatedArtifactPaths ?? []),
+    ...(execution.recoverableArtifactPaths ?? []),
+    ...execution.artifacts.map(({ name }) => name),
+  ]);
+  return {
+    artifacts: [],
+    exitCode: 1,
+    termination: "completed",
+    invalidatedArtifactPaths: [...invalidated],
+  };
+}
+
 export function retainWorkspaceEvidence(
   state: ChatToolState,
   call: ChatToolCall,
   result: AgentToolResult,
 ): void {
   for (const execution of result.artifactExecutions ?? []) {
-    state.artifactExecutions.push(artifactEvidence(execution));
+    state.artifactExecutions.push(
+      result.publishArtifactExecutions === false
+        ? artifactInvalidationEvidence(execution)
+        : artifactEvidence(execution),
+    );
   }
   const artifactExecution = result.execution ?? result.artifactExecution;
   if (artifactExecution !== undefined)
