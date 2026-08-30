@@ -29,7 +29,7 @@ These facts are not obvious from the tool names alone:
 - XLSX, DOCX, and PDF are compressed containers. `grep` finds nothing inside them; read them with a Python program instead.
 - When tool output is too long, it is saved to a file and the result names that file's path. Read that file with `read` or `grep` instead of rerunning the tool.
 - `image` answers one specific visual question about a single PNG or JPEG.
-- Use `task` only when the user explicitly asks you to delegate or parallelize work.
+- Use `task` only when the user explicitly asks you to delegate work.
 
 ## Rules
 

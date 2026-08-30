@@ -143,7 +143,7 @@ function taskTool(): ToolSpec {
     definition: {
       name: "task",
       description:
-        "Delegate a self-contained sub-task to a child agent. Use only when the user explicitly asks for delegation or parallel work.",
+        "Delegate a self-contained sub-task to a child agent. Use only when the user explicitly asks for delegation.",
       params: objectSchema(
         {
           description: { type: "string" },
