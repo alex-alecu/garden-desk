@@ -53,7 +53,6 @@ function outputHasToken(output: string, token: string): boolean {
   const escaped = token.replaceAll(/[.*+?^${}()|[\]\\]/gu, "\\$&");
   return new RegExp(`(?:^|\\n)${escaped}(?:\\.0+)?[\\t ]*(?:$|\\n)`, "u").test(output);
 }
-
 function measuredRunMs(active: ActiveCase, snapshot: AgentRunSnapshot): number {
   return Math.max(
     Date.parse(snapshot.run.updatedAt) - Date.parse(snapshot.run.createdAt),
@@ -224,9 +223,11 @@ export function stressResultFor(
   const skills = skillEvidence(active, verification.trace);
   const executionText = executionTextEvidence(active, snapshot);
   const legacyDoc = legacyDocEvidence(active.fixture.id, snapshot, verification.trace);
+  const producedArtifacts = snapshot.artifacts.map((artifact) => artifact.name);
   const errorEvidence = resultError(
     active.fixture.forbidArtifacts,
-    snapshot.artifacts.length,
+    producedArtifacts,
+    active.fixture.deliverables,
     snapshot.run.error,
   );
   const { artifactViolation, error } = errorEvidence;
@@ -287,7 +288,7 @@ export function stressResultFor(
     ...skills,
     legacyDocMethodValid: legacyDoc.methodValid,
     legacyDocOrderValid: legacyDoc.orderValid,
-    producedArtifacts: snapshot.artifacts.map((artifact) => artifact.name),
+    producedArtifacts,
     error,
     inferenceFailures,
     qualityCandidate: quality,

@@ -38,19 +38,17 @@ function execution(stdout: string, source = "print('result')"): AgentExecutionSn
     completedAt: timestamp,
   });
 }
-
-function artifact() {
+function artifact(name = "replacement.pdf") {
   return AgentArtifactSummarySchema.parse({
     id: "33333333-3333-4333-8333-333333333333",
     runId: "77ff5b22-555d-4ef2-9170-fdd7118738f1",
-    name: "replacement.pdf",
+    name,
     mediaType: "application/pdf",
     byteLength: 3,
     contentHash: `sha256:${"0".repeat(64)}`,
     createdAt: timestamp,
   });
 }
-
 function snapshot(
   response: string,
   stdout = "",
@@ -75,7 +73,6 @@ function snapshot(
     thinking: null,
   });
 }
-
 const wordSkillActive: ActiveCase = {
   fixture: {
     id: "word-document-read",
@@ -92,11 +89,9 @@ const wordSkillActive: ActiveCase = {
   runId: "run",
   startedAt: performance.now(),
 };
-
 function activeWithFixture(fixture: ActiveCase["fixture"]): ActiveCase {
   return { ...wordSkillActive, fixture };
 }
-
 const wordSkillTrace = AgentTraceSchema.parse({
   captureVersion: 1,
   status: "recorded",
@@ -131,7 +126,6 @@ const wordSkillTrace = AgentTraceSchema.parse({
     },
   ],
 });
-
 function traceWithSkills(names: string[]) {
   const turn = wordSkillTrace.turns[0];
   if (turn === undefined) throw new Error("Missing trace fixture turn.");
@@ -186,6 +180,15 @@ describe("M3 stress result evidence", () => {
     expect(stressResultFor(active, snapshot("Done."), { verified: ["report.pdf"] }).passed).toBe(
       true,
     );
+    const artifacts = [artifact("report.pdf"), artifact("work.py")];
+    const unexpected = stressResultFor(active, snapshot("Done.", "", artifacts), {
+      verified: ["report.pdf"],
+    });
+    expect(unexpected).toMatchObject({
+      passed: false,
+      error: "Unexpected artifacts: work.py.",
+      evidenceReference: "result.producedArtifacts",
+    });
   });
 });
 

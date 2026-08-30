@@ -136,11 +136,30 @@ export function contextCompactionCount(trace: AgentTrace | undefined): number {
 
 export function resultError(
   forbidArtifacts: boolean | undefined,
-  artifactCount: number,
+  producedArtifacts: string[],
+  expectedArtifacts: Array<{ extension?: string; name?: string }> | undefined,
   runError: string | null,
 ): { artifactViolation: boolean; error: string | null } {
-  const artifactViolation = forbidArtifacts === true && artifactCount > 0;
-  return { artifactViolation, error: artifactViolation ? "Expected no artifacts." : runError };
+  const unexpected =
+    expectedArtifacts === undefined
+      ? []
+      : producedArtifacts.filter(
+          (name) =>
+            !expectedArtifacts.some(
+              (expected) =>
+                expected.name === name ||
+                (expected.extension !== undefined &&
+                  name.toLowerCase().endsWith(expected.extension.toLowerCase())),
+            ),
+        );
+  const forbidden = forbidArtifacts === true && producedArtifacts.length > 0;
+  const artifactViolation = forbidden || unexpected.length > 0;
+  const error = forbidden
+    ? "Expected no artifacts."
+    : unexpected.length > 0
+      ? `Unexpected artifacts: ${unexpected.join(", ")}.`
+      : runError;
+  return { artifactViolation, error };
 }
 
 export function inferenceFailureCount(trace: AgentTrace | undefined): number {
