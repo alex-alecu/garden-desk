@@ -26,7 +26,7 @@ Examples:
 - Package installation and runtime network access are unavailable.
 - The guest can write only to its persistent 128 MiB workspace and ephemeral `/run`; it cannot change host source files.
 - Vault Core mediates model completions, limits, cancellation, audit, and results.
-- Safe non-internal workspace files can become deliverables only with a successful final response. Internal tool, output-spill, and checkpoint paths are excluded. A failed execution invalidates stale candidates and can retain changed safe bytes for a later successful recovery execution. Deliverables are proposals, not silent host mutations; Open uses a verified temporary copy and Save As requires a native user-selected destination. Task text and format names do not create a deliverable requirement.
+- Every file the agent creates or changes under `/workspace` during a run becomes a deliverable once the run finishes with a successful final response. Deliverables are proposals, not silent host mutations; Open uses a verified temporary copy and Save As requires a native user-selected destination. Task text and format names do not create a deliverable requirement.
 - Observable code and activity are reviewable; hidden reasoning is not persisted.
 
 ## Session Model
@@ -41,7 +41,7 @@ The Word, PDF, XLSX, and review-report skills give prompt-only guest methods. Co
 
 For multi-step format work, a skill can require a guest-workspace checkpoint. The final output program must reread source facts, derive values again, compare them with the saved verified state, create each requested output, reopen it, and verify it before completion. This is a prompt method. It is not a Core format workflow.
 
-Python and Node source can be saved in the session workspace. A later path-only call runs the exact committed bytes. Only a third identical call triggers the generic duplicate-recovery stop; an already-loaded skill returns its zero-cost result without entering recovery. Ordinary syntax or runtime failures remain evidence for repair.
+Python and Node source can be saved in the session workspace, then run again from that path without resending the source. Ordinary syntax or runtime failures remain evidence for repair; the model reads the error and edits the file. A run that loops or makes no progress simply reaches the 40-turn cap and ends.
 
 ## Post-V1 Workflow Specialization
 

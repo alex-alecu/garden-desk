@@ -55,9 +55,9 @@ To run the desktop locally:
 Gemma 4 is the default model, and a few of its habits shaped the agent loop. These are the high-level fixes.
 
 - **Tool calls in Gemma's own format.** Gemma 4 writes tool arguments as `key:<|"|>value<|"|>`: bare keys, and strings between two delimiter tokens with no escaping. Generic runtimes rewrite that into JSON and force the arguments through a JSON grammar, so every quote in generated Python or Node code must be escaped in a format the model never learned; the result was corrupted scripts that the model regenerated unchanged turn after turn. The inference worker now renders tool declarations, calls, and results the way Gemma's own chat template does and reads the model's call from the generated tokens by token id, so a string keeps every byte the model wrote ([#81](https://github.com/alex-alecu/garden-desk/pull/81)).
-- **Repeated calls are stopped, not retried forever.** When the model proposes the same call a third time, Vault Core blocks it, keeps one copy of the call and its result in later prompts, samples at temperature 0.3 while the block is active, asks the person once, and ends the run as `agent_stalled_duplicate` if the model still repeats itself ([#76](https://github.com/alex-alecu/garden-desk/pull/76)).
+- **A run that loops just reaches the turn cap.** Earlier builds added duplicate-call detection, a temperature bump during recovery, and a dedicated `agent_stalled_duplicate` failure code to catch a model that repeats itself. None of it changed outcomes enough to justify the complexity, so it was removed: a run now stops at 40 model turns like any other run, with one plain failure and no special-cased detection.
 - **Reasoning stays private and bounded.** Gemma's thought channel is on with a token budget. Thoughts are shown live and are never stored in conversations, traces, or audit records.
-- **Small habits are handled where they appear.** Gemma ends a multi-line script with a newline before closing the string, can leak its delimiter token into plain prose, and skips openpyxl's `reset_dimensions()` in read-only mode. The evidence rules, the visible-answer cleanup, and the workbook skill account for each of these; nothing filters the model's code inside the no-network microVM.
+- **Small format habits are handled where they appear.** Some spreadsheet exports read as empty under openpyxl's read-only mode; the workbook skill tells the model to avoid it. Nothing filters the model's code inside the no-network microVM.
 
 ## Public website
 
@@ -71,9 +71,9 @@ The agent can also inspect a PNG or JPEG attachment, or an image in the selected
 
 The immutable guest image includes pinned offline tools for common work with JSON, CSV, SQLite, PDF, DOCX, XLSX, and images, including Pillow, pypdf, openpyxl, python-docx, and ReportLab. The model loads product-owned format and professional review skills on demand through one generic skill tool. Legal, finance, and medical-administration review skills use supplied evidence and require qualified human review. Explicitly requested files appear beneath the matching response with Open and Save As actions; scripts, intermediates, and logs stay in Technical details. Package managers are intentionally absent: the environment is reproducible and cannot download code at runtime.
 
-## Local stress results
+## Release checks
 
-On an earlier build on a 48 GB Apple-silicon Mac, the real offline stack passed all 8 small sequential and concurrent cases, plus a 100-page PDF, a 1,000,000-row workbook, and a 50-workbook folder with 10,000,000 rows. A mixed 10,000,000-row XLSX and DOCX task could save and resume progress, but did not complete reliably. These results are historical and do not qualify the current candidate. `pnpm test:m3:macos` and `pnpm test:m3:windows` run four golden folder tasks with deterministic file checks before a release.
+Before a release, `pnpm test:m3:macos` and `pnpm test:m3:windows` run the guest security probes (no network interface, read-only source, resource limits) plus four golden folder tasks — XLSX, DOCX, and PDF extraction, and a mixed-folder report — each checked against known fixture values. They print a pass count and fail the build if any task fails.
 
 ## Isolation on macOS and Windows
 
@@ -89,7 +89,7 @@ On Windows Pro and Enterprise with Hyper-V already enabled, Garden Desk uses **H
 
 ## Project status
 
-The M3 desktop agent and canonical headless gate were implemented and certified on earlier physical Apple silicon and Windows x64 builds. Those results are historical evidence. The current candidate has no qualifying physical macOS or Windows result yet for direct guest artifact recovery, saved-script repair and rerun, the canonical platform gate, the complete supported small suite, or the professional skill cases and reviews. An earlier Windows application directory contained the CUDA and Vulkan runtimes, selected them automatically, and passed real-Gemma CUDA plus HCS Plan9 guest evidence. Earlier installed-Windows UI, live-execution, debug-snapshot, and refreshed guest document observations also passed. Generated-file packaged-app evidence, dedicated-standard-user setup, macOS lower-tier context, and release-credential signing remain before the global launch gate closes. See the current [M3 status](docs/M3_STATUS.md) for exact evidence.
+M3 Offline Dev-Agent Desktop V1 is active. What it delivers today, the security boundary, and what still needs to happen before launch — packaged Open and Save As, a dedicated standard-user Windows setup, and release signing — are in the current [M3 status](docs/M3_STATUS.md).
 
 The community software is free. Signed public installers are not yet available.
 
