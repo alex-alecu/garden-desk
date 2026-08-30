@@ -139,7 +139,7 @@ describe("resident inference cancellation", () => {
 });
 
 describe("resident inference cancellation timeout", () => {
-  it("terminates a resident worker that does not acknowledge cancellation", async () => {
+  it("keeps the resident worker when it does not acknowledge cancellation", async () => {
     vi.useFakeTimers();
     const launcher = new ScriptLauncher();
     const client = new InferenceWorkerClient(launcher, "unused");
@@ -162,7 +162,13 @@ describe("resident inference cancellation timeout", () => {
     await vi.advanceTimersByTimeAsync(999);
     expect(rejected).toBe(false);
     await vi.advanceTimersByTimeAsync(1);
-    await expect(pending).rejects.toMatchObject({ code: "worker_crash" });
+    await expect(pending).rejects.toMatchObject({ code: "cancelled" });
+
+    vi.useRealTimers();
+    await expect(client.execute({ request: chat("next"), ...resident })).resolves.toMatchObject({
+      operation: "chat",
+    });
     expect(launcher.launches).toBe(1);
+    await expect(client.unload()).resolves.toBe(true);
   });
 });

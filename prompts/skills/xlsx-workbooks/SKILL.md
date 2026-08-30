@@ -3,9 +3,9 @@ name: xlsx-workbooks
 description: XLSX workbook work. Load for XLSX, Excel workbook, or spreadsheet deliverable.
 ---
 
-recursively find case-insensitive `.xlsx` in absolute `/source`; use `openpyxl`/stdlib, no `pandas`. `load_workbook(path, data_only=True)` program inspects sheets/header; never `read_only=True` (exports omit dimensions and read as empty). `len(row)` before index. Match rows/path/sheet/cells; calculate/reconcile counts/totals; print Markdown/JSON verbatim.
+recursively find case-insensitive `.xlsx` in absolute `/source`; use `openpyxl`/stdlib, no `pandas`. `load_workbook(path, data_only=True)`; never `read_only=True` (exports omit dimensions and read as empty). `len(row)` before index. Cite path/sheet/row; print Markdown/JSON verbatim.
 
-Inspect representative rows, find the real header, map columns from observed labels and values, resolve relative dates from the supplied clock, then process and reconcile the corpus.
+Find the real header below the export preamble; map columns by label. Relative dates from the clock. Settle date order from the period label, names, or a leading number over 12; never guess. Report, never skip, unparsed or unreadable input; no bare `except`. Print files/matched/parsed/mapped/grouped; stop if grouped < matched.
 
 Edit `data_only=False`; save/reopen `/workspace`; assert changed/preserved. `Workbook` filter: `output_sheet.append([source_path,sheet_name,*row_values])`; no row number; reopen/assert count/identity. Large XLSX: no spill. Normal library stderr: not failure; exit status/reopened output control success.
 

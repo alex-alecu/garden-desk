@@ -245,3 +245,35 @@ describe("resident inference worker", () => {
     await expect(client.unload()).resolves.toBe(true);
   });
 });
+
+describe("cancelled turn residency", () => {
+  it("keeps the resident model loaded when the turn is cancelled during launch", async () => {
+    const inner = new ScriptLauncher(residentWorkerScript);
+    let release = (): void => {};
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const gated: NativeWorkerLauncher = {
+      launch: async (request) => {
+        await gate;
+        return await inner.launch(request);
+      },
+    };
+    const client = new InferenceWorkerClient(gated, "unused");
+    const common = {
+      request: largeGeneration,
+      modelPath: "/approved/model.gguf",
+      memoryBudgetBytes: 1024,
+      timeoutMs: 30_000,
+    };
+    const controller = new AbortController();
+    const cancelled = client.execute({ ...common, signal: controller.signal });
+    controller.abort(new DOMException("stop", "AbortError"));
+    release();
+    await expect(cancelled).rejects.toMatchObject({ code: "cancelled" });
+
+    await expect(client.execute(common)).resolves.toMatchObject({ operation: "generate" });
+    expect(inner.launches).toBe(1);
+    await expect(client.unload()).resolves.toBe(true);
+  });
+});

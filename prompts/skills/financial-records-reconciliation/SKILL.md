@@ -1,6 +1,6 @@
 ---
 name: financial-records-reconciliation
-description: Reconcile financial records, balances, transactions. Load after document-review. Exclude: statement presentation, invoice-policy review, budget variance analysis.
+description: Reconcile or total financial records, balances, transactions. Load after document-review. Exclude: statement presentation, invoice-policy review, budget variance analysis.
 ---
 
 Use only supplied records and matching criteria. State entity, account, period, currency, unit, source type, and available record identifier.
