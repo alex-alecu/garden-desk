@@ -18,7 +18,7 @@ describe("empty conversation context", () => {
       createElement(Conversation, { ...emptyConversation, folderName: "Project files" }),
     );
 
-    expect(markup).toMatch(/What should we work on in\s*<span[^>]*>Project files\/<\/span>\?/);
+    expect(markup).toMatch(/What should we work on in\s*<span[^>]*>Project files<\/span>\?/);
     expect(markup).not.toContain("welcome-context");
   });
 

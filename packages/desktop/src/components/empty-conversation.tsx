@@ -9,7 +9,7 @@ export function EmptyConversation({ folderName, onSuggestion, ready }: EmptyConv
     <div className="welcome">
       <h1>
         What should we work on{folderName === undefined ? "" : ` in `}
-        {folderName === undefined ? "" : <span className="welcome-folder">{folderName}/</span>}?
+        {folderName === undefined ? "" : <span className="welcome-folder">{folderName}</span>}?
       </h1>
       <p>
         {ready
