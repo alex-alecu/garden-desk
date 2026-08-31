@@ -7,7 +7,7 @@ description: Use for DOCX files and Word deliverables. Before any legacy .doc ac
 
 Use the installed `python-docx` through `python` for `.docx`. Do not install packages, and do not use `bash` or a shell to read one.
 
-For legacy `.doc`, `antiword` is installed; run `antiword -m UTF-8.txt -w 0 <path>` with `bash` to get the text.
+For legacy `.doc`, `antiword` is installed; run `LC_ALL=C antiword -m UTF-8.txt -w 0 <path>` with `bash` to get the text.
 
 ## Find The Files
 
