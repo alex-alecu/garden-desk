@@ -2852,7 +2852,7 @@ textarea:focus-visible {
   background: rgb(24 52 58 / 92%);
 }
 
-/* Agent activity cluster: flat, Codex-style rows with a persistent timer header. */
+/* Agent activity cluster: flat, Codex-style rows with a timer header. */
 :root {
   --motion-fast: 120ms;
   --motion-medium: 220ms;
@@ -2865,9 +2865,6 @@ textarea:focus-visible {
 }
 
 .activity-cluster-header {
-  position: sticky;
-  top: 0;
-  z-index: 1;
   padding: 4px 0 6px;
   border-bottom: 1px solid var(--border-color);
   background: transparent;

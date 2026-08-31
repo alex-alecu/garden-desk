@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import type { ActivityRow } from "./activity-rows.js";
@@ -61,6 +62,13 @@ describe("openStateOnFinish", () => {
 });
 
 describe("ActivityCluster rendering", () => {
+  it("scrolls the timer header with the activity rows", () => {
+    const styles = readFileSync(new URL("./styles.css", import.meta.url), "utf8");
+    const headerRule = styles.match(/\.activity-cluster-header\s*\{([^}]*)\}/u)?.[1];
+
+    expect(headerRule).not.toMatch(/position:\s*sticky/u);
+  });
+
   it("stays expanded and non-toggleable while working", () => {
     const markup = renderCluster({
       rows: settledRows,
