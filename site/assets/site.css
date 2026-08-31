@@ -2891,3 +2891,18 @@ html.motion-ready [data-reveal].is-revealed {
     transform: none;
   }
 }
+
+.about-intro .section-inner {
+  display: grid;
+  gap: 12px;
+  padding-block: 24px 8px;
+}
+
+.about-intro h1 {
+  margin: 0;
+  max-width: 18ch;
+}
+
+.about-intro .section-copy {
+  max-width: 56ch;
+}
