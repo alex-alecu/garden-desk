@@ -34,6 +34,7 @@ export function chatResult(
     text,
     toolCalls,
     stopReason: toolCalls.length > 0 ? "toolCalls" : "text",
+    contextUsedTokens: 10,
     memory: memoryReport({ budgetBytes: 2, contextSizeTokens: 16_384 }),
     performance: {
       promptTokens: 10,

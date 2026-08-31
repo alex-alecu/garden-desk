@@ -68,6 +68,7 @@ function chatResponse(
     text: "",
     toolCalls: [],
     stopReason: "text",
+    contextUsedTokens: 2,
     memory: memoryReport(request, memoryBudgetBytes),
     performance: fakePerformance(),
   };

@@ -5,17 +5,13 @@ import { ChatAgentLoop } from "./chat-loop.js";
 import { execution, generated, input, model, source, tool } from "./chat-loop-test-support.js";
 
 describe("ChatAgentLoop compaction", () => {
-  it("compacts at 80 percent while retaining the current request and last two assistant turns", async () => {
+  it("compacts from used context while retaining the current request and last two assistant turns", async () => {
     const requests: Parameters<InferenceService["chat"]>[0][] = [];
+    const contextReports: Array<{ used: number; allocated: number }> = [];
+    const first = generated("", [tool("list", "call-1", { path: "/source" })], 100);
+    Object.assign(first, { contextUsedTokens: 6_554 });
     const loop = new ChatAgentLoop(
-      model(
-        [
-          generated("", [tool("list", "call-1", { path: "/source" })], 6_554),
-          generated("Older work is complete."),
-          generated("Done."),
-        ],
-        requests,
-      ),
+      model([first, generated("Older work is complete."), generated("Done.")], requests),
     );
     const history = {
       messages: [
@@ -39,10 +35,17 @@ describe("ChatAgentLoop compaction", () => {
           },
         },
         ["list"],
-        { history, task: "current user turn" },
+        {
+          history,
+          task: "current user turn",
+          onContext(used, allocated) {
+            contextReports.push({ used, allocated });
+          },
+        },
       ),
     );
 
+    expect(contextReports[0]).toEqual({ used: 6_554, allocated: 8_192 });
     expect(requests[1]?.messages[1]).toMatchObject({
       role: "user",
       text: expect.stringContaining("oldest user turn"),

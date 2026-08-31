@@ -155,11 +155,9 @@ The model should never be the only holder of important state.
 
 ## Compaction Model
 
-Garden Desk must support long-running sessions that continue for many minutes after the first live context fills.
+M3 uses one model-written anchored summary when the live context reaches its limit. It does not implement structured compaction records.
 
-Compaction should produce structured state, not a vague chat summary.
-
-Required compacted records:
+The following records are post-V1 research ideas. They are not active M3 requirements:
 
 - Session summary: user goal, decisions made, constraints, and current status.
 - Task ledger: active workflow, pending steps, completed steps, blockers, approvals, and next action.
@@ -172,13 +170,12 @@ Do not carry forward hidden chain-of-thought or model-private reasoning. Only st
 
 ## Compaction Triggers
 
-M3 uses the worker's actual reported allocation rather than fixed context-size assumptions or percentage thresholds:
+M3 uses the worker's reported allocation and used context. Used context is the total token position in the active model sequence. The performance prompt-token count measures only input tokens evaluated for the latest request, so cache reuse can make that value decrease while used context grows.
 
-- Rebuild task state before every model turn.
-- Give successful source, commands, stdout, and stderr together at most half of the remaining prompt space, capped at 8,000 estimated tokens. If they exceed that allocation-derived budget, add the compacted ledgers before the turn; keep failed repair source exact and fail closed when it cannot fit.
-- Keep up to two newest user turns in the allocation-derived recent-history budget. Use the anchored summary when verbatim older turns no longer fit; otherwise preserve them verbatim.
-- Refresh the summary after four newly uncovered messages at contexts of at least 16,384 tokens. Fit only the largest pending prefix that leaves its 2,048-token output reserve inside the actual allocation, then continue the backlog on a later refresh.
-- Retain exact exports, approvals, execution records, artifacts, and audit state outside the prompt regardless of compaction.
+- At 80 percent used context, add one no-tool summarization turn.
+- Replace the older conversation head with the anchored summary.
+- Keep the current user request and the last two assistant/tool turns verbatim.
+- Keep durable messages, executions, traces, artifacts, approvals, and audit records outside compaction.
 
 A manual compact command is not part of the active M3 desktop contract. If added later, it must use the same ledgers and must not discard citations, pending work, or approvals.
 
@@ -190,7 +187,9 @@ The queue keeps one ordered non-fatal sequence per session. Each summary attempt
 
 Golden-task results are separate from platform certification and do not make an unrun platform gate pass.
 
-## Long-Running Session Acceptance Test
+## Post-V1 Long-Running Session Research
+
+The following scenario is not an active M3 gate:
 
 Before implementation can claim reliable compaction, the product must pass this scenario on every supported memory tier:
 
@@ -202,7 +201,7 @@ Before implementation can claim reliable compaction, the product must pass this 
 6. Verify that unsupported-claim and calculation checks still run.
 7. Verify that pending approvals and warnings are not lost.
 
-Passing means the user can continue productive work after context turnover without reloading the folder or restating decisions.
+The research target is that the user can continue productive work after context turnover without reloading the folder or restating decisions.
 
 ## Document Pipeline Performance Rules
 

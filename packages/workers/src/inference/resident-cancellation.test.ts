@@ -46,6 +46,7 @@ function done(request) {
     text: "ready",
     toolCalls: [],
     stopReason: "text",
+    contextUsedTokens: 1,
     memory: {
       cpuRamBytes: 1,
       gpuMemoryBytes: 1,

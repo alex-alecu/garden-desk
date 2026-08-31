@@ -152,6 +152,7 @@ export async function chat(
       text: turn.text,
       toolCalls: turn.toolCalls,
       stopReason: turn.stopReason,
+      contextUsedTokens: chat.sequence.nextTokenIndex,
       memory: await memoryReport(runtime, chat.sequence.contextSize, {
         tokens: session.contextLimitTokens,
         reason: session.contextLimitReason,
