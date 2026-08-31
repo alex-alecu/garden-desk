@@ -95,12 +95,12 @@ export async function selectSession(
   setError(undefined);
   dispatch({ type: "session.select", sessionId });
   try {
-    const [messages, attachments, draft] = await Promise.all([
+    const [messages, attachments, draft, activity] = await Promise.all([
       api.listMessages(sessionId),
       api.listAttachments(sessionId),
       api.loadDraft(sessionId),
+      loadSessionActivity(api, sessionId),
     ]);
-    const activity = await loadSessionActivity(api, sessionId);
     const lastUserMessage = messages.filter((message) => message.role === "user").at(-1);
     dispatch({
       type: "session.loaded",
