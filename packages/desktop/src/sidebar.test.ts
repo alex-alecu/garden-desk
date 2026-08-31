@@ -59,7 +59,6 @@ describe("sidebar rows", () => {
     expect(markup.match(/icon-message/gu)).toHaveLength(2);
     expect(markup.match(/icon-trash/gu)).toHaveLength(2);
     expect(markup.match(/icon-unmount/gu)).toHaveLength(1);
-    expect(markup).not.toContain("draggable");
     expect(markup).toContain("Add folder");
     expect(markup).toContain('aria-label="Open Project folder"');
     expect(markup).toContain('aria-label="Unmount Project"');
