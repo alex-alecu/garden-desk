@@ -79,7 +79,7 @@ export class ChatAgentLoop {
       );
       this.contextTokens = result.memory.contextSizeTokens ?? this.contextTokens;
       input.onContext?.(
-        result.performance.promptTokens,
+        result.contextUsedTokens,
         this.contextTokens,
         result.memory.contextSizeTokens !== undefined,
       );
@@ -155,9 +155,9 @@ export class ChatAgentLoop {
     input: ChatAgentInput,
     state: ChatToolState,
     performance: ReturnType<typeof emptyPerformance>,
-    promptTokens: number,
+    contextUsedTokens: number,
   ): Promise<void> {
-    if (promptTokens >= this.contextTokens * COMPACTION_RATIO) {
+    if (contextUsedTokens >= this.contextTokens * COMPACTION_RATIO) {
       state.messages = await this.compact(input, state, 2, performance);
     }
   }
@@ -198,7 +198,7 @@ export class ChatAgentLoop {
       throw error;
     }
     this.record(input, generated.turnId, "accepted_tool_calls");
-    await this.recoverContext(input, state, performance, generated.result.performance.promptTokens);
+    await this.recoverContext(input, state, performance, generated.result.contextUsedTokens);
     return undefined;
   }
   async run(input: ChatAgentInput): Promise<AgentRunResult> {
