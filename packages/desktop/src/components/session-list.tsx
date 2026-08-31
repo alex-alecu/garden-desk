@@ -32,7 +32,6 @@ export function SessionList(props: SessionListProps) {
           active={session.id === props.activeSessionId}
           deleteLabel={`Delete ${session.title}`}
           disabled={props.disabled}
-          deleteDisabled={props.workingSessionIds.includes(session.id)}
           key={session.id}
           label={session.title}
           working={props.workingSessionIds.includes(session.id)}

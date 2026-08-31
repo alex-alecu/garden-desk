@@ -249,7 +249,6 @@ export function Sidebar(props: SidebarProps) {
             <SidebarItemRow
               active={session.id === props.activeSessionId}
               deleteLabel={`Delete ${session.title}`}
-              deleteDisabled={props.workingSessionIds.includes(session.id)}
               disabled={props.disabled}
               key={session.id}
               label={session.title}

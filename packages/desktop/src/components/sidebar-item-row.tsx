@@ -4,7 +4,6 @@ import { Icon } from "./icons.js";
 interface SidebarItemRowProps {
   active?: boolean;
   deleteLabel: string;
-  deleteDisabled?: boolean;
   deleteIcon?: ComponentProps<typeof Icon>["name"];
   disabled: boolean;
   nativeActionMessage?: string | undefined;
@@ -104,16 +103,18 @@ export function SidebarItemRow(props: SidebarItemRowProps) {
           <i aria-label="Working" className="sidebar-working-indicator" role="status" />
         ) : null}
       </button>
-      <button
-        aria-label={props.deleteLabel}
-        className={deleteClassName(props.deleteIcon)}
-        disabled={props.disabled || props.deleteDisabled || props.nativeActionMessage !== undefined}
-        onClick={props.onDelete}
-        title={deleteTitle(props)}
-        type="button"
-      >
-        <Icon name={props.deleteIcon ?? "trash"} />
-      </button>
+      {props.working ? null : (
+        <button
+          aria-label={props.deleteLabel}
+          className={deleteClassName(props.deleteIcon)}
+          disabled={props.disabled || props.nativeActionMessage !== undefined}
+          onClick={props.onDelete}
+          title={deleteTitle(props)}
+          type="button"
+        >
+          <Icon name={props.deleteIcon ?? "trash"} />
+        </button>
+      )}
     </div>
   );
 }
