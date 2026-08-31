@@ -94,6 +94,7 @@ describe("ChatAgentLoop failed execution context", () => {
 describe("ChatAgentLoop inference recovery", () => {
   it("compacts established history and retries once after an inference failure", async () => {
     const requests: Parameters<InferenceService["chat"]>[0][] = [];
+    const events: string[] = [];
     const replies = [
       generated("", [tool("list", "call-1", { path: "/source" })]),
       generated("Recovered context."),
@@ -117,8 +118,11 @@ describe("ChatAgentLoop inference recovery", () => {
       },
     };
 
-    const result = await loop.run(
+    await loop.run(
       input(executor, ["list"], {
+        onEvent: (type, summary) => {
+          if (type === "inference.started") events.push(summary);
+        },
         history: {
           messages: [
             { role: "user", content: "old question" },
@@ -130,7 +134,10 @@ describe("ChatAgentLoop inference recovery", () => {
       }),
     );
 
-    expect(result.response).toBe("Done after retry.");
+    expect(events.slice(-2)).toEqual([
+      "Condensing the working context.",
+      "Retrying the local model once.",
+    ]);
     expect(requests[2]?.tools).toEqual([]);
     expect(requests[3]?.messages).toEqual(
       expect.arrayContaining([

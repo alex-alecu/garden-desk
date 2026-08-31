@@ -118,13 +118,13 @@ describe("ActivityCluster rendering", () => {
 });
 
 describe("thinking activity presentation", () => {
-  it("opens a live thinking row and leaves it collapsed after the run", () => {
+  it("keeps thinking collapsed and selectable during and after the run", () => {
     const thinking = row({
       id: "p",
       detail: "First thought\nSecond thought",
       kind: "thinking",
       status: "running",
-      title: "Planning the task.",
+      title: "Thinking…",
     });
     const liveMarkup = renderCluster({
       rows: [thinking],
@@ -139,14 +139,12 @@ describe("thinking activity presentation", () => {
       finishedDurationMs: 4_000,
       forceExpandedRowId: "p",
     });
-
-    expect(liveMarkup).toContain('aria-expanded="true"');
-    expect(liveMarkup).toContain('class="activity-row-label activity-row-shimmer" disabled=""');
-    expect(liveMarkup).toContain('class="thinking-log"');
-    expect(liveMarkup).toContain('aria-label="Planning the task. details"');
-    expect(liveMarkup).toContain('tabindex="0"');
-    expect(liveMarkup).toContain("Second thought");
-    expect(finishedMarkup).toContain('aria-expanded="false" class="activity-row-label"');
+    expect(liveMarkup).toContain(
+      'aria-expanded="false" class="activity-row-label activity-row-shimmer"',
+    );
+    expect(liveMarkup).not.toContain('disabled=""');
+    expect(liveMarkup).not.toContain("Second thought");
+    expect(finishedMarkup).toContain(">Thought</button>");
     expect(finishedMarkup).not.toContain("Second thought");
   });
 });

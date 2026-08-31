@@ -62,6 +62,15 @@ describe("activityRows", () => {
   });
 });
 
+describe("planning activity", () => {
+  it("keeps its summary when no thinking arrived", () => {
+    const rows = activityRows([
+      activity({ id: "load", eventType: "inference.started", text: "Loading the model." }),
+    ]);
+    expect(rows[0]).toMatchObject({ kind: "tool", title: "Loading the model." });
+  });
+});
+
 describe("clusterEntries", () => {
   it("groups consecutive same-run activity and keeps messages outside", () => {
     const entries = clusterEntries([

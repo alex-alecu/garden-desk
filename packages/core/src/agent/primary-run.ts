@@ -1,4 +1,7 @@
 import type {
+  AgentEvent,
+  AgentEventDetail,
+  AgentEventType,
   AgentQuestion,
   AgentRunResult,
   AgentRunSummary,
@@ -38,8 +41,41 @@ interface PrimaryRunInput {
   askQuestion(questions: AgentQuestion[]): Promise<AgentQuestionOutcome>;
 }
 
+function thinkingCallbacks(input: PrimaryRunInput) {
+  let event: AgentEvent | undefined;
+  let received = false;
+  let recorded = false;
+  const complete = () => {
+    if (event === undefined || !received || recorded) return;
+    input.store.recordEventDuration(event.id, Date.now() - Date.parse(event.createdAt));
+    recorded = true;
+  };
+  return {
+    onEvent(type: AgentEventType, summary: string, detail?: Partial<AgentEventDetail>) {
+      if (type === "inference.started") {
+        complete();
+        event = input.store.appendEvent(input.run.id, type, summary, detail);
+        received = false;
+        recorded = false;
+        return;
+      }
+      input.store.appendEvent(input.run.id, type, summary, detail);
+    },
+    onThinking(value: string | null) {
+      if (value === null) complete();
+      else if (value.length > 0) received = true;
+      input.onThinking(value);
+    },
+    onResponse(value: string | null) {
+      if (value !== null && value.trim().length > 0) complete();
+      input.onResponse(value);
+    },
+  };
+}
+
 export async function runPrimaryAgent(input: PrimaryRunInput): Promise<AgentRunResult> {
   const { definitions, run, store } = input;
+  const thinking = thinkingCallbacks(input);
   const attachments = store.listAttachments(run.sessionId).map((item, index) => ({
     path: `/run/attachments/${guestAttachmentName(index, item.name)}`,
     displayName: item.name,
@@ -62,9 +98,9 @@ export async function runPrimaryAgent(input: PrimaryRunInput): Promise<AgentRunR
     attachments,
     modelId: AGENT_MODEL_ID,
     modelNeedsLoad: input.modelNeedsLoad,
-    onEvent: (type, summary, detail) => store.appendEvent(run.id, type, summary, detail),
-    onThinking: input.onThinking,
-    onResponse: input.onResponse,
+    onEvent: thinking.onEvent,
+    onThinking: thinking.onThinking,
+    onResponse: thinking.onResponse,
     onContext: input.onContext,
     askQuestion: input.askQuestion,
     signal: input.signal,

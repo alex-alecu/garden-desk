@@ -2968,6 +2968,10 @@ textarea:focus-visible {
   margin-top: 4px;
 }
 
+.activity-row[data-kind="thinking"] .activity-row-detail {
+  margin-top: 6px;
+}
+
 .activity-row-detail pre {
   max-height: 190px;
   margin: 0;
@@ -2981,6 +2985,17 @@ textarea:focus-visible {
   white-space: pre-wrap;
 }
 
+.activity-row-detail pre.thinking-log {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  color: var(--ink-soft);
+  background: transparent;
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
 .activity-row-open {
   margin-top: 6px;
   padding: 0;
@@ -2989,6 +3004,10 @@ textarea:focus-visible {
   background: transparent;
   font-size: 12px;
   cursor: pointer;
+}
+
+.activity-row[data-kind="thinking"] .activity-row-open {
+  margin-top: 8px;
 }
 
 .activity-row-shimmer {
@@ -3100,7 +3119,7 @@ textarea:focus-visible {
   background: #c9803a;
 }
 
-.app-shell[data-theme="dark"] .activity-row-detail pre {
+.app-shell[data-theme="dark"] .activity-row-detail pre:not(.thinking-log) {
   background: rgb(255 255 255 / 6%);
 }
 

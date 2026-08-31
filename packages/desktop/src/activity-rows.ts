@@ -52,11 +52,22 @@ function failedText(item: TimelineItem): boolean {
   return summary.includes("failed") || summary.includes("could not be completed");
 }
 
+function thinkingTitle(durationMs: number | undefined): string {
+  if (durationMs === undefined) return "Thinking…";
+  const seconds = Math.max(1, Math.round(durationMs / 1_000));
+  if (seconds < 60) return `Thought for ${seconds} ${seconds === 1 ? "second" : "seconds"}`;
+  const minutes = Math.floor(seconds / 60);
+  const remaining = seconds % 60;
+  const minuteText = `${minutes} ${minutes === 1 ? "minute" : "minutes"}`;
+  if (remaining === 0) return `Thought for ${minuteText}`;
+  return `Thought for ${minuteText} ${remaining} ${remaining === 1 ? "second" : "seconds"}`;
+}
+
 /**
  * Folds one run's activity timeline into ordered rows. Tool and execution events that share a
  * `toolCallId` merge into a single row whose status advances from running to done/failed; planning
- * turns become "Thinking" rows; sub-agent events become lane rows. Detail from every merged event
- * is concatenated so the inline preview shows command, output, and termination together.
+ * turns with typed thought become "Thinking" rows; sub-agent events become lane rows. Detail from
+ * every merged event is concatenated so the inline preview shows command, output, and termination.
  */
 export function activityRows(
   items: readonly TimelineItem[],
@@ -87,16 +98,20 @@ function rowKey(item: TimelineItem): string {
 }
 
 function newRow(key: string, item: TimelineItem, thinking: string | undefined): ActivityRow {
+  const hasThinking = thinking !== undefined || item.durationMs !== undefined;
   const kind = isSubagent(item)
     ? "subagent"
-    : PLANNING_EVENTS.has(item.eventType ?? "")
+    : PLANNING_EVENTS.has(item.eventType ?? "") && hasThinking
       ? "thinking"
       : "tool";
   return {
     id: key,
     kind,
-    title: item.text,
-    status: statusFor(item.eventType, failedText(item)),
+    title: kind === "thinking" ? thinkingTitle(item.durationMs) : item.text,
+    status:
+      kind === "thinking" && item.durationMs !== undefined
+        ? "done"
+        : statusFor(item.eventType, failedText(item)),
     toolName: item.toolName,
     toolCallId: item.toolCallId,
     detail: thinking ?? item.detail,

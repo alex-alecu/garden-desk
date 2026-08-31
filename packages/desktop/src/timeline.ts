@@ -66,6 +66,7 @@ export function eventItem(event: AgentEvent): TimelineItem {
     text: event.summary,
     toolName: event.toolName,
     toolCallId: event.toolCallId,
+    ...(event.durationMs === null ? {} : { durationMs: event.durationMs }),
     ...(detail === undefined ? {} : { detail }),
   };
 }

@@ -24,8 +24,8 @@ export async function generateWithInferenceRecovery<T>(options: {
   } catch (error) {
     if (!canRetryInference(error, options.recovery.inferenceRetryUsed, options.signal)) throw error;
     options.recovery.inferenceRetryUsed = true;
-    options.onRetry?.();
     await options.recover();
+    options.onRetry?.();
     return await options.generate();
   }
 }
