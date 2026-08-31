@@ -52,12 +52,12 @@ describe("sidebar rows", () => {
         /class="sidebar-item-row(?: sidebar-item-row-with-start)?(?: sidebar-item-row-with-drag)?"/gu,
       ),
     ).toHaveLength(3);
-    expect(markup.match(/class="sidebar-item-delete(?: sidebar-item-unmount)?"/gu)).toHaveLength(3);
+    expect(markup.match(/class="sidebar-item-delete(?: sidebar-item-unmount)?"/gu)).toHaveLength(2);
     expect(markup.match(/class="sidebar-item-start"/gu)).toHaveLength(1);
     expect(markup.match(/icon-folder/gu)).toHaveLength(1);
     expect(markup.match(/icon-drag/gu)).toHaveLength(1);
     expect(markup.match(/icon-message/gu)).toHaveLength(2);
-    expect(markup.match(/icon-trash/gu)).toHaveLength(2);
+    expect(markup.match(/icon-trash/gu)).toHaveLength(1);
     expect(markup.match(/icon-unmount/gu)).toHaveLength(1);
     expect(markup).toContain("Add folder");
     expect(markup).toContain('aria-label="Open Project folder"');
@@ -66,6 +66,7 @@ describe("sidebar rows", () => {
     expect(markup).not.toContain("icon-chevron");
     expect(markup).toContain('class="sidebar-item-select sidebar-item-working"');
     expect(markup).toContain('aria-label="Working"');
+    expect(markup).not.toContain('aria-label="Delete Folder chat"');
   });
 });
 
