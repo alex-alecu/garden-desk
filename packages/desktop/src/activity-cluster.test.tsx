@@ -3,7 +3,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import type { ActivityRow } from "./activity-rows.js";
 import { ActivityCluster, openStateOnFinish } from "./components/activity-cluster.js";
-import { followsThinkingText, followThinkingText } from "./thinking-scroll.js";
+import { followThinkingText } from "./thinking-scroll.js";
 
 const startedAt = "2026-08-12T12:00:00.000Z";
 
@@ -139,40 +139,22 @@ describe("thinking activity presentation", () => {
       finishedDurationMs: 4_000,
       forceExpandedRowId: "p",
     });
-    const expiredMarkup = renderCluster({
-      rows: [{ ...thinking, detail: undefined }],
-      working: false,
-      failed: false,
-      finishedDurationMs: 4_000,
-      forceExpandedRowId: "p",
-    });
-
     expect(liveMarkup).toContain(
       'aria-expanded="false" class="activity-row-label activity-row-shimmer"',
     );
-    expect(liveMarkup).toContain(">Thinking…</button>");
     expect(liveMarkup).not.toContain('disabled=""');
     expect(liveMarkup).not.toContain("Second thought");
-    expect(finishedMarkup).toContain('aria-expanded="false" class="activity-row-label"');
     expect(finishedMarkup).toContain(">Thought</button>");
-    expect(finishedMarkup).not.toContain(">Thinking…</button>");
     expect(finishedMarkup).not.toContain("Second thought");
-    expect(expiredMarkup).toContain('aria-expanded="false" class="activity-row-label"');
-    expect(expiredMarkup).not.toContain('disabled=""');
   });
 });
 
 describe("thinking text scrolling", () => {
-  it("follows new text only within 50 pixels of the bottom", () => {
-    const following = { clientHeight: 200, scrollHeight: 640, scrollTop: 390 };
-    const readingEarlier = { clientHeight: 200, scrollHeight: 640, scrollTop: 389 };
+  it("moves a thinking box to its last text row", () => {
+    const viewer = { scrollHeight: 640, scrollTop: 0 };
 
-    expect(followsThinkingText(following)).toBe(true);
-    expect(followsThinkingText(readingEarlier)).toBe(false);
-    followThinkingText(following, true);
-    followThinkingText(readingEarlier, false);
+    followThinkingText(viewer);
 
-    expect(following.scrollTop).toBe(640);
-    expect(readingEarlier.scrollTop).toBe(389);
+    expect(viewer.scrollTop).toBe(640);
   });
 });

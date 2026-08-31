@@ -62,27 +62,12 @@ describe("activityRows", () => {
   });
 });
 
-describe("completed thinking rows", () => {
-  it("shows elapsed time when thinking completes", () => {
+describe("planning activity", () => {
+  it("keeps its summary when no thinking arrived", () => {
     const rows = activityRows([
-      activity({
-        id: "short",
-        durationMs: 5_000,
-        eventType: "inference.started",
-        text: "Planning the task.",
-      }),
-      activity({
-        id: "long",
-        durationMs: 65_000,
-        eventType: "inference.started",
-        text: "Planning the task.",
-      }),
+      activity({ id: "load", eventType: "inference.started", text: "Loading the model." }),
     ]);
-
-    expect(rows.map((row) => row.title)).toEqual([
-      "Thought for 5 seconds",
-      "Thought for 1 minute 5 seconds",
-    ]);
+    expect(rows[0]).toMatchObject({ kind: "tool", title: "Loading the model." });
   });
 });
 

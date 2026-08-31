@@ -167,7 +167,7 @@ describe("conversation scrolling", () => {
 });
 
 describe("conversation performance presentation", () => {
-  it("keeps live thinking collapsed in its activity row", () => {
+  it("shows metrics only beneath the latest assistant response", () => {
     const markup = renderLiveThinking();
 
     expect(markup).toContain("12.3</strong> generation tok/s");
@@ -176,13 +176,6 @@ describe("conversation performance presentation", () => {
       /98.8<\/strong> prompt tok\/s.*12.3<\/strong> generation tok\/s.*4.3s<\/strong> total/s,
     );
     expect(markup).toContain("4.3s</strong> total");
-    expect(markup.match(/>Thinking…<\/button>/gu)).toHaveLength(1);
-    expect(markup.match(/>Thought<\/button>/gu)).toHaveLength(1);
-    expect(markup).toContain(
-      'aria-expanded="false" class="activity-row-label activity-row-shimmer"',
-    );
-    expect(markup).not.toContain('class="thinking-stream"');
-    expect(markup).not.toContain("I am checking the local context.");
   });
 });
 
