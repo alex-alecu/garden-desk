@@ -1,13 +1,14 @@
 import { createHash } from "node:crypto";
 import { mkdir, mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   cleanModelCopies,
   cleanupDevelopmentModelOutput,
   type PackageBuildTarget,
   packageBuildTarget,
+  prepareDevelopmentModelOutput,
   preparePackageBuild,
   rollbackPackageBuild,
 } from "../package-output-cleanup.js";
@@ -109,6 +110,26 @@ describe("package output retention", () => {
 });
 
 describe("development model cleanup", () => {
+  it("restores the transient development model pair before startup", async () => {
+    const release = await macTarget("release");
+    const repositoryRoot = resolve(release.desktopRoot, "../..");
+    const modelRoot = join(
+      release.desktopRoot,
+      "src-tauri",
+      "target",
+      "debug",
+      "resources",
+      "core",
+      "models",
+    );
+    await prepareDevelopmentModelOutput(release.desktopRoot, repositoryRoot);
+
+    await expect(readFile(join(modelRoot, generationModelFileName), "utf8")).resolves.toBe("model");
+    await expect(readFile(join(modelRoot, projectorModelFileName), "utf8")).resolves.toBe(
+      "projector",
+    );
+  });
+
   it("removes the transient development model pair", async () => {
     const release = await macTarget("release");
     const modelRoot = join(
