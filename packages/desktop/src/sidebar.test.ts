@@ -67,7 +67,9 @@ describe("sidebar rows", () => {
     expect(markup).toContain('class="sidebar-item-select sidebar-item-working"');
     expect(markup).toContain('aria-label="Working"');
   });
+});
 
+describe("folder ordering", () => {
   it("moves a dragged folder before or after its target", () => {
     expect(reorderedFolderIds(["a", "b", "c"], "c", "a", false)).toEqual(["c", "a", "b"]);
     expect(reorderedFolderIds(["a", "b", "c"], "a", "b", true)).toEqual(["b", "a", "c"]);

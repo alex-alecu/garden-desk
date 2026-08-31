@@ -7,7 +7,10 @@ interface EmptyConversationProps {
 export function EmptyConversation({ folderName, onSuggestion, ready }: EmptyConversationProps) {
   return (
     <div className="welcome">
-      <h1>What should we work on{folderName === undefined ? "" : ` in ${folderName}`}?</h1>
+      <h1>
+        What should we work on{folderName === undefined ? "" : ` in `}
+        {folderName === undefined ? "" : <span className="welcome-folder">{folderName}</span>}?
+      </h1>
       <p>
         {ready
           ? "Select a folder, attach files in New chat, or start with a question."

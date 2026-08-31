@@ -104,7 +104,7 @@ describe("empty conversation presentation", () => {
       }),
     );
 
-    expect(markup).toContain("What should we work on in Client files?");
+    expect(markup).toMatch(/What should we work on in\s*<span[^>]*>Client files<\/span>\?/);
     expect(markup).not.toContain("welcome-context");
     expect(markup).toContain("Review and suggest improvements");
     expect(markup).not.toContain("Build a small artifact");

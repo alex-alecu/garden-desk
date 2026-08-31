@@ -2,7 +2,6 @@ import type { SessionSummary } from "@vault/shared";
 import {
   type CSSProperties,
   type Dispatch,
-  type DragEvent,
   type KeyboardEvent,
   type PointerEvent,
   useRef,
@@ -128,6 +127,21 @@ function keyboardFolderOrder(
     : reorderedFolderIds(folderIds, folderId, move.targetId, move.after);
 }
 
+function folderDropAt(
+  event: PointerEvent<HTMLButtonElement>,
+  movedId: string,
+): { after: boolean; folderId: string } | undefined {
+  const target = document
+    .elementFromPoint(event.clientX, event.clientY)
+    ?.closest<HTMLElement>("[data-folder-id]");
+  const folderId = target?.dataset.folderId;
+  if (target === undefined || target === null || folderId === undefined || folderId === movedId) {
+    return undefined;
+  }
+  const bounds = target.getBoundingClientRect();
+  return { folderId, after: event.clientY >= bounds.top + bounds.height / 2 };
+}
+
 // biome-ignore lint/complexity/noExcessiveLinesPerFunction: pointer and keyboard reorder states share one visible folder-group boundary.
 function FolderSection(props: SidebarProps) {
   const [draggingId, setDraggingId] = useState<string>();
@@ -143,27 +157,8 @@ function FolderSection(props: SidebarProps) {
         (folder) => (
           <li
             className={`folder-group${draggingId === folder.id ? " folder-group-dragging" : ""}${drop?.folderId === folder.id ? ` folder-group-drop-${drop.after ? "after" : "before"}` : ""}`}
+            data-folder-id={folder.id}
             key={folder.id}
-            onDragOver={(event: DragEvent<HTMLElement>) => {
-              if (draggingId === undefined || draggingId === folder.id) return;
-              event.preventDefault();
-              event.dataTransfer.dropEffect = "move";
-              const bounds = event.currentTarget.getBoundingClientRect();
-              setDrop({
-                folderId: folder.id,
-                after: event.clientY >= bounds.top + bounds.height / 2,
-              });
-            }}
-            onDrop={(event: DragEvent<HTMLElement>) => {
-              event.preventDefault();
-              if (draggingId !== undefined && drop !== undefined) {
-                props.onReorderFolders(
-                  reorderedFolderIds(folderIds, draggingId, drop.folderId, drop.after),
-                );
-              }
-              setDraggingId(undefined);
-              setDrop(undefined);
-            }}
           >
             <SidebarItemRow
               deleteIcon="unmount"
@@ -184,10 +179,24 @@ function FolderSection(props: SidebarProps) {
                 event.preventDefault();
                 props.onReorderFolders(order);
               }}
-              onDragStart={(event) => {
-                event.dataTransfer.effectAllowed = "move";
-                event.dataTransfer.setData("text/plain", folder.id);
+              onDragPointerDown={() => {
                 setDraggingId(folder.id);
+                setDrop(undefined);
+              }}
+              onDragPointerMove={(event) => {
+                if (!event.currentTarget.hasPointerCapture(event.pointerId)) return;
+                event.preventDefault();
+                setDrop(folderDropAt(event, folder.id));
+              }}
+              onDragPointerUp={(event) => {
+                const target = folderDropAt(event, folder.id);
+                if (target !== undefined) {
+                  props.onReorderFolders(
+                    reorderedFolderIds(folderIds, folder.id, target.folderId, target.after),
+                  );
+                }
+                setDraggingId(undefined);
+                setDrop(undefined);
               }}
               onSelect={() => props.dispatch({ type: "folder.toggle", folderId: folder.id })}
               onStartAction={() => props.onOpenFolder(folder.id)}

@@ -109,6 +109,7 @@ body,
   width: 100%;
   height: 100%;
   margin: 0;
+  overflow: hidden;
 }
 
 button,
@@ -145,6 +146,7 @@ textarea:focus-visible {
   width: 100%;
   height: 100%;
   min-width: 0;
+  overflow: hidden;
   background: var(--reading);
   color-scheme: light;
   transition:
@@ -393,7 +395,10 @@ textarea:focus-visible {
 }
 
 .sidebar-content {
+  width: calc(100% + 12px);
+  flex: 1 1 auto;
   min-height: 0;
+  padding-right: 12px;
   overflow-y: auto;
 }
 
@@ -459,6 +464,7 @@ textarea:focus-visible {
 }
 
 .sidebar-item-row {
+  position: relative;
   display: grid;
   grid-template-columns: minmax(0, 1fr) 30px;
   width: 100%;
@@ -481,8 +487,12 @@ textarea:focus-visible {
   padding-left: 0;
 }
 
-.sidebar-item-row:hover {
+.session-list > .sidebar-item-row:hover {
   background: var(--navigation-hover);
+}
+
+.folder-group > .sidebar-item-row > .sidebar-item-select:hover {
+  background: transparent;
 }
 
 .sidebar-item-row:focus-within,
@@ -522,6 +532,7 @@ textarea:focus-visible {
   width: 24px;
   opacity: 0.48;
   cursor: grab;
+  touch-action: none;
 }
 
 .sidebar-item-drag:active {
@@ -546,9 +557,25 @@ textarea:focus-visible {
   opacity: 0;
 }
 
+.session-list > .sidebar-item-row {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.session-list > .sidebar-item-row > .sidebar-item-delete {
+  position: absolute;
+  right: 1px;
+  pointer-events: none;
+}
+
+.session-list > .sidebar-item-row:hover > .sidebar-item-select,
+.session-list > .sidebar-item-row:focus-within > .sidebar-item-select {
+  padding-right: 40px;
+}
+
 .sidebar-item-row:focus-within .sidebar-item-delete,
 .sidebar-item-row:hover .sidebar-item-delete {
   opacity: 1;
+  pointer-events: auto;
 }
 
 .sidebar-item-delete:hover {
@@ -824,6 +851,13 @@ textarea:focus-visible {
   font-size: clamp(30px, 3vw, 42px);
   font-weight: 560;
   letter-spacing: -0.035em;
+}
+
+.welcome-folder {
+  text-decoration-line: underline;
+  text-decoration-style: dotted;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 4px;
 }
 
 .welcome p {
@@ -1800,6 +1834,8 @@ textarea:focus-visible {
   max-width: 720px;
   flex: 0 1 auto;
   flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
   color: var(--ink);
   border-left: 1px solid var(--reading-border);
   background: var(--reading-raised);
@@ -1911,6 +1947,7 @@ textarea:focus-visible {
 }
 
 .technical-details-scroll {
+  flex: 1 1 auto;
   min-height: 0;
   padding: 14px;
   overflow-x: hidden;
