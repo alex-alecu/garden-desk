@@ -567,8 +567,8 @@ textarea:focus-visible {
   pointer-events: none;
 }
 
-.session-list > .sidebar-item-row:hover > .sidebar-item-select,
-.session-list > .sidebar-item-row:focus-within > .sidebar-item-select {
+.session-list > .sidebar-item-row:hover > .sidebar-item-deletable,
+.session-list > .sidebar-item-row:focus-within > .sidebar-item-deletable {
   padding-right: 40px;
 }
 
