@@ -58,7 +58,6 @@ export function App({ api, capabilities }: { api: DesktopApi; capabilities: Desk
       active = false;
     };
   }, [api]);
-  useModelRefresh(api, state.loaded, state.activeRun?.state, setModel);
   const nativeUnavailable = capabilities.nativeActions
     ? undefined
     : (capabilities.unavailableReason ?? "Unavailable in the public demo");
@@ -70,6 +69,7 @@ export function App({ api, capabilities }: { api: DesktopApi; capabilities: Desk
   )?.name;
   const running =
     submitting || state.activeRun?.state === "queued" || state.activeRun?.state === "running";
+  useModelRefresh(api, state.loaded, running || model.state === "busy", setModel);
   const sessionLoading = state.pendingSessionId !== undefined;
   const desktopReady = state.loaded && !sessionLoading;
   const tasksAllowed = secureWorkspaceAllowsTasks(secureWorkspace.status);

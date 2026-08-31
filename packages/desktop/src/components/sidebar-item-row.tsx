@@ -93,7 +93,7 @@ export function SidebarItemRow(props: SidebarItemRowProps) {
       <button
         aria-current={props.active ? "page" : undefined}
         aria-expanded={props.expanded}
-        className={`sidebar-item-select${props.working ? " sidebar-item-working" : ""}`}
+        className={`sidebar-item-select sidebar-item-${props.working ? "working" : "deletable"}`}
         disabled={props.disabled}
         onClick={props.onSelect}
         type="button"

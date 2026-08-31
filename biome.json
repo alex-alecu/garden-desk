@@ -118,6 +118,7 @@
         "packages/desktop/run-tauri.ts",
         "packages/desktop/start-dev.ts",
         "packages/desktop/src/windows-dev-elevation.ts",
+        "packages/desktop/src/activity-cluster.test.tsx",
         "packages/desktop/build-sidecar.ts",
         "packages/desktop/build-signing.ts",
         "packages/desktop/native/windows-hyper-v-setup/build.ts",

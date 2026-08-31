@@ -11,12 +11,14 @@ import { InferenceWorkerClient } from "./client.js";
 
 class ScriptLauncher implements NativeWorkerLauncher {
   launches = 0;
+  stopped = Promise.resolve();
 
   async launch(_request: NativeWorkerLaunchRequest): Promise<NativeWorkerHandle> {
     this.launches += 1;
     const child = spawn(process.execPath, ["-e", workerScript], {
       stdio: ["pipe", "pipe", "pipe"],
     });
+    this.stopped = new Promise((accept) => child.once("close", () => accept()));
     return {
       process: child,
       async dispose() {
@@ -138,37 +140,36 @@ describe("resident inference cancellation", () => {
   });
 });
 
-describe("resident inference cancellation timeout", () => {
-  it("keeps the resident worker when it does not acknowledge cancellation", async () => {
+describe("resident inference interruption timeout", () => {
+  it("restarts after an automatic timeout is not acknowledged", async () => {
     vi.useFakeTimers();
     const launcher = new ScriptLauncher();
     const client = new InferenceWorkerClient(launcher, "unused");
-    const controller = new AbortController();
     const active = startedSignal();
     const pending = client.execute({
       request: chat("ignored"),
-      signal: controller.signal,
       onThinkingDelta: active.markStarted,
       ...resident,
     });
     await active.started;
-
-    controller.abort(new DOMException("stop", "AbortError"));
+    const stopped = launcher.stopped;
 
     let rejected = false;
     void pending.catch(() => {
       rejected = true;
     });
+    await vi.advanceTimersByTimeAsync(resident.timeoutMs);
     await vi.advanceTimersByTimeAsync(999);
     expect(rejected).toBe(false);
     await vi.advanceTimersByTimeAsync(1);
-    await expect(pending).rejects.toMatchObject({ code: "cancelled" });
+    await expect(pending).rejects.toMatchObject({ code: "worker_crash" });
+    await stopped;
 
     vi.useRealTimers();
     await expect(client.execute({ request: chat("next"), ...resident })).resolves.toMatchObject({
       operation: "chat",
     });
-    expect(launcher.launches).toBe(1);
+    expect(launcher.launches).toBe(2);
     await expect(client.unload()).resolves.toBe(true);
   });
 });

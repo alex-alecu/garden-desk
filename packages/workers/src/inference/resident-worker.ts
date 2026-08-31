@@ -202,21 +202,14 @@ export class ResidentWorker {
       return;
     }
     pending.cancellationTimer = setTimeout(
-      () => this.abandon(requestId, code),
+      () => this.failUnacknowledged(requestId),
       CANCELLATION_GRACE_MS,
     );
   }
 
-  /**
-   * A worker that has not acknowledged within the grace is still inside a native evaluation and
-   * acknowledges later; a message for a request this client has forgotten is ignored. Releasing the
-   * caller keeps the resident model loaded for the next turn instead of killing it to free a slot.
-   */
-  private abandon(requestId: RequestId, code: "cancelled" | "timeout"): void {
-    const pending = this.pending.get(requestId);
-    if (pending === undefined) return;
-    const message = code === "timeout" ? "Inference timed out." : "Inference cancelled.";
-    this.finish(requestId, () => pending.reject(new InferenceWorkerError(code, message)));
+  private failUnacknowledged(requestId: RequestId): void {
+    if (!this.pending.has(requestId)) return;
+    this.fail("worker_crash", WORKER_CRASH_MESSAGE);
   }
 
   private failOne(requestId: RequestId, code: InferenceWorkerError["code"], message: string): void {

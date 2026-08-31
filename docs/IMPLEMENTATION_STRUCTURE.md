@@ -151,9 +151,9 @@ src/components/technical-details.tsx
 src/components/composer.tsx
 src/components/confirmation.tsx
 package-resources.ts       verified sidecar, model, guest, helper, and inference assets
-package-output-cleanup.ts  verified package replacement and generated model cleanup
+package-output-cleanup.ts  verified package replacement and development model output lifecycle
 clean-model-copies.ts      release-preserving manual model cleanup
-clean-development-model.ts successful dev-check model cleanup
+clean-development-model.ts manual transient development model cleanup
 native/windows-hyper-v-setup/ fixed Windows-only one-time group membership helper
 prepare-dev.ts             cached development-resource readiness before Vite starts
 runtime-packages.ts        recursive packaged node-llama-cpp dependency copy

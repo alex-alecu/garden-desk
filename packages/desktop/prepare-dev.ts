@@ -2,6 +2,7 @@ import { lstat, readdir, readFile, stat } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { buildSidecar } from "./build-sidecar.js";
+import { prepareDevelopmentModelOutput } from "./package-output-cleanup.js";
 import { developmentResourceContract } from "./src/dev-resource-contract.js";
 
 const desktopRoot = fileURLToPath(new URL(".", import.meta.url));
@@ -36,12 +37,16 @@ async function resourcesAreCurrent(): Promise<boolean> {
   }
 }
 
-if (await resourcesAreCurrent()) {
-  console.log("[Garden Desk startup] Offline resources are current; starting the frontend.");
-} else {
+const resourcesCurrent = await resourcesAreCurrent();
+if (!resourcesCurrent) {
   console.log(
     "[Garden Desk startup] Offline resources changed; rebuilding the self-contained development package.",
   );
   await buildSidecar("development");
-  console.log("[Garden Desk startup] Offline resources are ready; starting the frontend.");
 }
+await prepareDevelopmentModelOutput(desktopRoot, repositoryRoot);
+console.log(
+  resourcesCurrent
+    ? "[Garden Desk startup] Offline resources are current; starting the frontend."
+    : "[Garden Desk startup] Offline resources are ready; starting the frontend.",
+);
