@@ -23,6 +23,7 @@ function chatSuccess(execution: Parameters<InferencePort["execute"]>[0]) {
     text: "ready",
     toolCalls: [],
     stopReason: "text" as const,
+    contextUsedTokens: 1,
     memory: {
       cpuRamBytes: 1,
       gpuMemoryBytes: 1,

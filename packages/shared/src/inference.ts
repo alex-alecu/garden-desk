@@ -161,6 +161,7 @@ export const ChatGenerationResultSchema = ResponseBaseSchema.extend({
   text: z.string().max(MAX_EFFECTIVE_GENERATION_PROMPT_CHARACTERS),
   toolCalls: z.array(ChatToolCallSchema).max(MAX_CHAT_TOOLS).default([]),
   stopReason: z.enum(["toolCalls", "text", "maxTokens"]),
+  contextUsedTokens: z.number().int().nonnegative(),
   memory: InferenceMemoryReportSchema,
   performance: InferencePerformanceSchema,
 });

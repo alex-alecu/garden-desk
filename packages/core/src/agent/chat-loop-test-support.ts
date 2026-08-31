@@ -39,6 +39,7 @@ export function generated(
     text,
     toolCalls,
     stopReason: toolCalls.length === 0 ? "text" : "toolCalls",
+    contextUsedTokens: promptTokens,
     memory: memoryReport({ contextSizeTokens: 8_192 }),
     performance: performance(promptTokens),
   };
