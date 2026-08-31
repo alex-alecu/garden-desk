@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
-import { createReadStream } from "node:fs";
-import { readdir, readFile, rename, rm, stat } from "node:fs/promises";
+import { constants, createReadStream } from "node:fs";
+import { copyFile, lstat, mkdir, readdir, readFile, rename, rm, stat } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import {
   canonicalModelPath,
@@ -132,6 +132,50 @@ async function modelFiles(root: string): Promise<string[]> {
   return output;
 }
 
+function developmentModelRoot(desktopRoot: string): string {
+  return join(desktopRoot, "src-tauri", "target", "debug", "resources", "core", "models");
+}
+
+async function outputIsCurrent(source: string, destination: string): Promise<boolean> {
+  try {
+    const [sourceState, destinationState] = await Promise.all([stat(source), lstat(destination)]);
+    return (
+      destinationState.isFile() &&
+      destinationState.nlink === 1 &&
+      destinationState.size === sourceState.size &&
+      destinationState.mtimeMs >= sourceState.mtimeMs
+    );
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return false;
+    throw error;
+  }
+}
+
+export async function prepareDevelopmentModelOutput(
+  desktopRoot: string,
+  repositoryRoot: string,
+): Promise<void> {
+  const outputRoot = developmentModelRoot(desktopRoot);
+  await mkdir(outputRoot, { recursive: true });
+  await Promise.all(
+    packagedModelFiles.map(async (model) => {
+      const source = canonicalModelPath(repositoryRoot, model.fileName);
+      const destination = join(outputRoot, model.fileName);
+      if (await outputIsCurrent(source, destination)) return;
+      const staged = `${destination}.next`;
+      await rm(staged, { force: true });
+      try {
+        await copyFile(source, staged, constants.COPYFILE_EXCL | constants.COPYFILE_FICLONE);
+        await rm(destination, { force: true });
+        await rename(staged, destination);
+      } catch (error) {
+        await rm(staged, { force: true });
+        throw error;
+      }
+    }),
+  );
+}
+
 // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: all platform copy locations stay explicit.
 function knownModelPaths(target: PackageBuildTarget): Set<string> {
   const paths = new Set<string>();
@@ -242,19 +286,7 @@ export async function cleanModelCopies(target: PackageBuildTarget): Promise<void
 export async function cleanupDevelopmentModelOutput(desktopRoot: string): Promise<void> {
   await Promise.all(
     packagedModelFiles.map((model) =>
-      rm(
-        join(
-          desktopRoot,
-          "src-tauri",
-          "target",
-          "debug",
-          "resources",
-          "core",
-          "models",
-          model.fileName,
-        ),
-        { force: true },
-      ),
+      rm(join(developmentModelRoot(desktopRoot), model.fileName), { force: true }),
     ),
   );
 }

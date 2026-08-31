@@ -1,4 +1,4 @@
-import type { ErrorCode } from "@vault/shared";
+import type { ErrorCode, InferenceOperation } from "@vault/shared";
 import { ErrorCodeSchema } from "@vault/shared";
 
 export class InferenceFailure extends Error {
@@ -22,8 +22,15 @@ export function inferenceFailureCode(error: unknown): string {
   return "internal";
 }
 
-export function inferenceFailurePreservesResident(error: unknown, signal: AbortSignal): boolean {
-  if (signal.aborted && error instanceof InferenceFailure && error.code === "cancelled")
+export function inferenceFailurePreservesResident(
+  error: unknown,
+  operation: InferenceOperation,
+): boolean {
+  const code = inferenceFailureCode(error);
+  if (
+    (operation === "chat" || operation === "generate") &&
+    (code === "cancelled" || code === "timeout")
+  )
     return true;
   return (
     error instanceof Error &&

@@ -65,6 +65,7 @@ describe("sidebar rows", () => {
     expect(markup).toContain('class="sidebar-item-delete sidebar-item-unmount"');
     expect(markup).not.toContain("icon-chevron");
     expect(markup).toContain('class="sidebar-item-select sidebar-item-working"');
+    expect(markup.match(/sidebar-item-deletable/gu) ?? []).toHaveLength(2);
     expect(markup).toContain('aria-label="Working"');
     expect(markup).not.toContain('aria-label="Delete Folder chat"');
   });
