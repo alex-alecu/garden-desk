@@ -89,6 +89,47 @@ function renderRestoredActivity(): string {
     }),
   );
 }
+function thinkingActivity(id: string, createdAt: string, text: string): TimelineItem {
+  return { createdAt, eventType: "inference.started", id, kind: "activity", runId: "run", text };
+}
+const liveThinkingTimeline = [
+  { createdAt: timestamp, id: "user", kind: "user", text: "Hello" },
+  thinkingActivity("previous", "2026-07-20T12:00:00.250Z", "Reviewing previous context."),
+  thinkingActivity("planning", "2026-07-20T12:00:00.500Z", "Planning the response."),
+  {
+    createdAt: "2026-07-20T12:00:01.000Z",
+    id: "assistant",
+    kind: "assistant",
+    text: "Hi",
+    runId: "run",
+  },
+] satisfies TimelineItem[];
+
+function renderLiveThinking(): string {
+  return renderToStaticMarkup(
+    createElement(Conversation, {
+      artifacts: [],
+      ready: true,
+      timeline: liveThinkingTimeline,
+      onSuggestion: () => undefined,
+      performance: {
+        promptTokens: 200,
+        outputTokens: 50,
+        tokensPerSecond: 12.34,
+        promptTokensPerSecond: 98.76,
+        totalDurationMs: 4_250,
+      },
+      runId: "run",
+      thinking: "I am checking the local context.",
+      thinkingByStep: {
+        previous: "Earlier thought.",
+        planning: "I am checking the local context.",
+      },
+      thinkingStepId: "planning",
+      working: true,
+    }),
+  );
+}
 
 describe("empty conversation presentation", () => {
   it("includes folder context in the prompt and offers a review task", () => {
@@ -129,41 +170,7 @@ describe("conversation scrolling", () => {
 
 describe("conversation performance presentation", () => {
   it("shows live thinking and metrics only beneath the latest assistant response", () => {
-    const markup = renderToStaticMarkup(
-      createElement(Conversation, {
-        artifacts: [],
-        ready: true,
-        timeline: [
-          { createdAt: timestamp, id: "user", kind: "user", text: "Hello" },
-          {
-            createdAt: "2026-07-20T12:00:00.500Z",
-            eventType: "inference.started",
-            id: "planning",
-            kind: "activity",
-            runId: "run",
-            text: "Planning the response.",
-          },
-          {
-            createdAt: "2026-07-20T12:00:01.000Z",
-            id: "assistant",
-            kind: "assistant",
-            text: "Hi",
-            runId: "run",
-          },
-        ],
-        onSuggestion: () => undefined,
-        performance: {
-          promptTokens: 200,
-          outputTokens: 50,
-          tokensPerSecond: 12.34,
-          promptTokensPerSecond: 98.76,
-          totalDurationMs: 4_250,
-        },
-        runId: "run",
-        thinkingByStep: { planning: "I am checking the local context." },
-        working: true,
-      }),
-    );
+    const markup = renderLiveThinking();
 
     expect(markup).toContain("12.3</strong> generation tok/s");
     expect(markup).toContain("98.8</strong> prompt tok/s");
@@ -172,9 +179,12 @@ describe("conversation performance presentation", () => {
     );
     expect(markup).toContain("4.3s</strong> total");
     expect(markup).toContain("Planning the response.");
-    expect(markup).toContain('class="thinking-log"');
-    expect(markup).toContain('aria-expanded="true"');
-    expect(markup).toContain("I am checking the local context.");
+    expect(markup).toMatch(
+      /<button aria-expanded="false"[^>]*>Reviewing previous context\.<\/button>/,
+    );
+    expect(markup).toContain('class="thinking-stream"');
+    expect(markup).toContain("Thinking locally");
+    expect(markup.match(/I am checking the local context\./g)).toHaveLength(1);
   });
 });
 

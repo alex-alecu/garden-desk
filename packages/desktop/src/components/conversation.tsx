@@ -21,7 +21,9 @@ interface ConversationProps {
   selectedStepId?: string | undefined;
   performance: AgentRunPerformance | null;
   runId: string | undefined;
+  thinking?: string | null | undefined;
   thinkingByStep?: Readonly<Record<string, string>> | undefined;
+  thinkingStepId?: string | undefined;
   working?: boolean | undefined;
   activeRunState?: string | undefined;
 }
@@ -70,7 +72,9 @@ export function Conversation({
   selectedStepId,
   performance,
   runId,
+  thinking = null,
   thinkingByStep = {},
+  thinkingStepId,
   working = false,
   activeRunState,
 }: ConversationProps) {
@@ -85,6 +89,11 @@ export function Conversation({
     return <EmptyConversation folderName={folderName} onSuggestion={onSuggestion} ready={ready} />;
   }
   const lastAssistantId = timeline.findLast((item) => item.kind === "assistant")?.id;
+  const showLiveThinking = thinking !== null && thinking.length > 0;
+  const activityThinking =
+    showLiveThinking && thinkingStepId !== undefined
+      ? Object.fromEntries(Object.entries(thinkingByStep).filter(([id]) => id !== thinkingStepId))
+      : thinkingByStep;
   return (
     <section
       aria-label="Conversation"
@@ -117,8 +126,17 @@ export function Conversation({
           working={working}
           activeRunState={activeRunState}
           activeRunDurationMs={performance?.totalDurationMs}
-          thinkingByStep={thinkingByStep}
+          thinkingByStep={activityThinking}
         />
+        {showLiveThinking ? (
+          <article className="thinking-stream">
+            <header>
+              <span aria-hidden="true" className="thinking-pulse" />
+              Thinking locally
+            </header>
+            <p>{thinking}</p>
+          </article>
+        ) : null}
       </div>
     </section>
   );
