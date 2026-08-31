@@ -1,4 +1,3 @@
-import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
 import {
   AgentRunSnapshotSchema,
@@ -20,6 +19,7 @@ import type {
   SecureWorkspaceState,
   SecureWorkspaceStatus,
 } from "./api.js";
+import { invokeDesktop, withDevelopmentError } from "./development-errors.js";
 
 function record(value: unknown): Record<string, unknown> {
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
@@ -93,127 +93,190 @@ function parseSecureWorkspaceSetupResult(value: unknown): SecureWorkspaceSetupRe
 
 export const tauriDesktopApi: DesktopApi = {
   async bootstrapDesktop() {
-    return parseBootstrap(await invoke<unknown>("desktop_bootstrap"));
+    return invokeDesktop("desktop_bootstrap", parseBootstrap);
   },
   async getSecureWorkspaceStatus() {
-    return parseSecureWorkspaceStatus(await invoke("secure_workspace_status"));
+    return invokeDesktop("secure_workspace_status", parseSecureWorkspaceStatus);
   },
   async configureSecureWorkspace() {
-    return parseSecureWorkspaceSetupResult(await invoke("configure_secure_workspace"));
+    return invokeDesktop("configure_secure_workspace", parseSecureWorkspaceSetupResult);
   },
   async getModelStatus() {
-    return ModelRuntimeStatusSchema.parse(await invoke("model_status"));
+    return invokeDesktop("model_status", (value) => ModelRuntimeStatusSchema.parse(value));
   },
   async unloadModel() {
-    return record(await invoke("unload_model")).unloaded === true;
+    return invokeDesktop("unload_model", (value) => record(value).unloaded === true);
   },
   async chooseFolder() {
-    const value = await invoke<unknown | null>("choose_folder");
-    return value === null ? undefined : FolderSummarySchema.parse(value);
-  },
-  async classifyDroppedPaths(paths) {
-    return parseDroppedPaths(await invoke("classify_dropped_paths", { paths }));
-  },
-  async addFolders(paths) {
-    return FolderSummarySchema.array().parse(await invoke("add_dropped_folders", { paths }));
-  },
-  async reorderFolders(folderIds) {
-    return FolderSummarySchema.array().parse(await invoke("reorder_folders", { folderIds }));
-  },
-  async revokeFolder(folderId) {
-    return record(await invoke("revoke_folder", { folderId })).revoked === true;
-  },
-  async openFolder(folderId) {
-    await invoke("open_folder", { folderId });
-  },
-  async createSession(folderId) {
-    return SessionSummarySchema.parse(await invoke("create_session", { folderId }));
-  },
-  async deleteSession(sessionId) {
-    return record(await invoke("delete_session", { sessionId })).deleted === true;
-  },
-  async listSessions(folderId, cursor) {
-    return SessionPageSchema.parse(await invoke("list_sessions", { folderId, cursor }));
-  },
-  async listMessages(sessionId) {
-    return ConversationMessageSchema.array().parse(await invoke("list_messages", { sessionId }));
-  },
-  async appendUserMessage(sessionId, content) {
-    return ConversationMessageSchema.parse(
-      await invoke("append_user_message", { sessionId, content }),
+    return invokeDesktop("choose_folder", (value) =>
+      value === null ? undefined : FolderSummarySchema.parse(value),
     );
   },
+  async classifyDroppedPaths(paths) {
+    return invokeDesktop("classify_dropped_paths", parseDroppedPaths, { paths });
+  },
+  async addFolders(paths) {
+    return invokeDesktop(
+      "add_dropped_folders",
+      (value) => FolderSummarySchema.array().parse(value),
+      { paths },
+    );
+  },
+  async reorderFolders(folderIds) {
+    return invokeDesktop("reorder_folders", (value) => FolderSummarySchema.array().parse(value), {
+      folderIds,
+    });
+  },
+  async revokeFolder(folderId) {
+    return invokeDesktop("revoke_folder", (value) => record(value).revoked === true, {
+      folderId,
+    });
+  },
+  async openFolder(folderId) {
+    await invokeDesktop("open_folder", () => undefined, { folderId });
+  },
+  async createSession(folderId) {
+    return invokeDesktop("create_session", (value) => SessionSummarySchema.parse(value), {
+      folderId,
+    });
+  },
+  async deleteSession(sessionId) {
+    return invokeDesktop("delete_session", (value) => record(value).deleted === true, {
+      sessionId,
+    });
+  },
+  async listSessions(folderId, cursor) {
+    return invokeDesktop("list_sessions", (value) => SessionPageSchema.parse(value), {
+      folderId,
+      cursor,
+    });
+  },
+  async listMessages(sessionId) {
+    return invokeDesktop(
+      "list_messages",
+      (value) => ConversationMessageSchema.array().parse(value),
+      { sessionId },
+    );
+  },
+  async appendUserMessage(sessionId, content) {
+    return invokeDesktop("append_user_message", (value) => ConversationMessageSchema.parse(value), {
+      sessionId,
+      content,
+    });
+  },
   async chooseFiles(sessionId) {
-    return AttachmentSummarySchema.array().parse(await invoke("choose_files", { sessionId }));
+    return invokeDesktop("choose_files", (value) => AttachmentSummarySchema.array().parse(value), {
+      sessionId,
+    });
   },
   async addFiles(sessionId, paths) {
-    return AttachmentSummarySchema.array().parse(
-      await invoke("add_dropped_files", { sessionId, paths }),
+    return invokeDesktop(
+      "add_dropped_files",
+      (value) => AttachmentSummarySchema.array().parse(value),
+      { sessionId, paths },
     );
   },
   async listAttachments(sessionId) {
-    return AttachmentSummarySchema.array().parse(await invoke("list_attachments", { sessionId }));
-  },
-  async openAttachment(sessionId, attachmentId) {
-    await invoke("open_attachment", { sessionId, attachmentId });
-  },
-  async openArtifact(sessionId, artifactId) {
-    await invoke("open_artifact", { sessionId, artifactId });
-  },
-  async saveArtifact(sessionId, artifactId, name) {
-    return record(await invoke("save_artifact", { sessionId, artifactId, name })).saved === true;
-  },
-  async removeAttachment(sessionId, attachmentId) {
-    return record(await invoke("remove_attachment", { sessionId, attachmentId })).removed === true;
-  },
-  async saveDraft(sessionId, content) {
-    return SessionDraftSchema.parse(await invoke("save_draft", { sessionId, content }));
-  },
-  async loadDraft(sessionId) {
-    const value = await invoke<unknown | null>("load_draft", { sessionId });
-    return value === null ? undefined : SessionDraftSchema.parse(value);
-  },
-  async startAgent(sessionId, task) {
-    return AgentRunSummarySchema.parse(await invoke("start_agent", { sessionId, task }));
-  },
-  async getAgentRun(runId) {
-    return AgentRunSnapshotSchema.parse(await invoke("get_agent_run", { runId }));
-  },
-  async getAgentTrace(runId) {
-    return AgentTraceSchema.parse(await invoke("get_agent_trace", { runId }));
-  },
-  async listAgentRuns(sessionId) {
-    return AgentRunSummarySchema.array().parse(await invoke("list_agent_runs", { sessionId }));
-  },
-  async cancelAgent(jobId) {
-    return record(await invoke("cancel_agent", { jobId })).cancelled === true;
-  },
-  async answerQuestion(runId, questionId, answers) {
-    return (
-      record(await invoke("answer_agent_question", { runId, questionId, answers })).answered ===
-      true
+    return invokeDesktop(
+      "list_attachments",
+      (value) => AttachmentSummarySchema.array().parse(value),
+      { sessionId },
     );
   },
+  async openAttachment(sessionId, attachmentId) {
+    await invokeDesktop("open_attachment", () => undefined, { sessionId, attachmentId });
+  },
+  async openArtifact(sessionId, artifactId) {
+    await invokeDesktop("open_artifact", () => undefined, { sessionId, artifactId });
+  },
+  async saveArtifact(sessionId, artifactId, name) {
+    return invokeDesktop("save_artifact", (value) => record(value).saved === true, {
+      sessionId,
+      artifactId,
+      name,
+    });
+  },
+  async removeAttachment(sessionId, attachmentId) {
+    return invokeDesktop("remove_attachment", (value) => record(value).removed === true, {
+      sessionId,
+      attachmentId,
+    });
+  },
+  async saveDraft(sessionId, content) {
+    return invokeDesktop("save_draft", (value) => SessionDraftSchema.parse(value), {
+      sessionId,
+      content,
+    });
+  },
+  async loadDraft(sessionId) {
+    return invokeDesktop(
+      "load_draft",
+      (value) => (value === null ? undefined : SessionDraftSchema.parse(value)),
+      { sessionId },
+    );
+  },
+  async startAgent(sessionId, task) {
+    return invokeDesktop("start_agent", (value) => AgentRunSummarySchema.parse(value), {
+      sessionId,
+      task,
+    });
+  },
+  async getAgentRun(runId) {
+    return invokeDesktop("get_agent_run", (value) => AgentRunSnapshotSchema.parse(value), {
+      runId,
+    });
+  },
+  async getAgentTrace(runId) {
+    return invokeDesktop("get_agent_trace", (value) => AgentTraceSchema.parse(value), {
+      runId,
+    });
+  },
+  async listAgentRuns(sessionId) {
+    return invokeDesktop("list_agent_runs", (value) => AgentRunSummarySchema.array().parse(value), {
+      sessionId,
+    });
+  },
+  async cancelAgent(jobId) {
+    return invokeDesktop("cancel_agent", (value) => record(value).cancelled === true, { jobId });
+  },
+  async answerQuestion(runId, questionId, answers) {
+    return invokeDesktop("answer_agent_question", (value) => record(value).answered === true, {
+      runId,
+      questionId,
+      answers,
+    });
+  },
   async dismissQuestion(runId, questionId) {
-    return record(await invoke("dismiss_agent_question", { runId, questionId })).dismissed === true;
+    return invokeDesktop("dismiss_agent_question", (value) => record(value).dismissed === true, {
+      runId,
+      questionId,
+    });
   },
   async createDebugSnapshot(sessionId) {
-    const value = record(await invoke("create_debug_snapshot", { sessionId }));
-    if (typeof value.path !== "string" || value.path.length === 0) {
-      throw new Error("The desktop bridge returned an invalid debug snapshot path.");
-    }
-    return value.path;
+    return invokeDesktop(
+      "create_debug_snapshot",
+      (input) => {
+        const value = record(input);
+        if (typeof value.path !== "string" || value.path.length === 0) {
+          throw new Error("The desktop bridge returned an invalid debug snapshot path.");
+        }
+        return value.path;
+      },
+      { sessionId },
+    );
   },
   async revealDebugSnapshot(sessionId) {
-    await invoke("reveal_debug_snapshot", { sessionId });
+    await invokeDesktop("reveal_debug_snapshot", () => undefined, { sessionId });
   },
   async listenForDroppedPaths(listener) {
-    return await getCurrentWebview().onDragDropEvent(({ payload }) => {
-      if (payload.type === "leave") {
-        listener({ type: "leave" });
-        return;
-      }
-      listener(payload.type === "over" ? { type: "over" } : payload);
-    });
+    return await withDevelopmentError("listen_for_dropped_paths", async () =>
+      getCurrentWebview().onDragDropEvent(({ payload }) => {
+        if (payload.type === "leave") {
+          listener({ type: "leave" });
+          return;
+        }
+        listener(payload.type === "over" ? { type: "over" } : payload);
+      }),
+    );
   },
 };

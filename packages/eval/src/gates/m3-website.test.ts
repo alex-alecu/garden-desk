@@ -8,11 +8,13 @@ it("keeps Tauri in the production adapter and injects it at the desktop entry", 
   const app = await readFile(join(root, "packages/desktop/src/app.tsx"), "utf8");
   const entry = await readFile(join(root, "packages/desktop/src/main.tsx"), "utf8");
   const adapter = await readFile(join(root, "packages/desktop/src/tauri-api.ts"), "utf8");
+  const bridge = await readFile(join(root, "packages/desktop/src/development-errors.ts"), "utf8");
   const demo = await readFile(join(root, "site/demo/demo-api.ts"), "utf8");
   expect(app).not.toContain("@tauri-apps");
   expect(demo).not.toContain("@tauri-apps");
   expect(entry).toContain("<App api={tauriDesktopApi}");
-  expect(adapter).toContain('invoke<unknown>("desktop_bootstrap")');
+  expect(adapter).toContain('invokeDesktop("desktop_bootstrap", parseBootstrap)');
+  expect(bridge).toContain("invoke<unknown>(command, args)");
 });
 
 it("pins the self-hosted IBM Plex font assets", async () => {

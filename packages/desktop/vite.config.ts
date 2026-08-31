@@ -5,6 +5,10 @@ export default defineConfig({
   clearScreen: false,
   plugins: [react()],
   server: {
+    forwardConsole: {
+      logLevels: ["error", "warn", "info", "log", "debug"],
+      unhandledErrors: true,
+    },
     host: "127.0.0.1",
     port: 1420,
     strictPort: true,
