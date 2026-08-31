@@ -52,6 +52,17 @@ function failedText(item: TimelineItem): boolean {
   return summary.includes("failed") || summary.includes("could not be completed");
 }
 
+function thinkingTitle(durationMs: number | undefined): string {
+  if (durationMs === undefined) return "Thinking…";
+  const seconds = Math.max(1, Math.round(durationMs / 1_000));
+  if (seconds < 60) return `Thought for ${seconds} ${seconds === 1 ? "second" : "seconds"}`;
+  const minutes = Math.floor(seconds / 60);
+  const remaining = seconds % 60;
+  const minuteText = `${minutes} ${minutes === 1 ? "minute" : "minutes"}`;
+  if (remaining === 0) return `Thought for ${minuteText}`;
+  return `Thought for ${minuteText} ${remaining} ${remaining === 1 ? "second" : "seconds"}`;
+}
+
 /**
  * Folds one run's activity timeline into ordered rows. Tool and execution events that share a
  * `toolCallId` merge into a single row whose status advances from running to done/failed; planning
@@ -95,8 +106,11 @@ function newRow(key: string, item: TimelineItem, thinking: string | undefined): 
   return {
     id: key,
     kind,
-    title: item.text,
-    status: statusFor(item.eventType, failedText(item)),
+    title: kind === "thinking" ? thinkingTitle(item.durationMs) : item.text,
+    status:
+      kind === "thinking" && item.durationMs !== undefined
+        ? "done"
+        : statusFor(item.eventType, failedText(item)),
     toolName: item.toolName,
     toolCallId: item.toolCallId,
     detail: thinking ?? item.detail,

@@ -221,6 +221,12 @@ export class AgentStore {
       );
     return item;
   }
+  recordEventDuration(eventId: string, durationMs: number): void {
+    const update = this.database
+      .prepare("UPDATE agent_events SET duration_ms = ? WHERE id = ? AND duration_ms IS NULL")
+      .run(Math.max(0, Math.round(durationMs)), eventId);
+    if (update.changes !== 1) throw new Error("agent_event_not_pending");
+  }
   addArtifact(
     runId: string,
     input: Omit<AgentArtifactSummary, "id" | "runId" | "createdAt">,

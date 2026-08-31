@@ -198,7 +198,7 @@ export function App({ api, capabilities }: { api: DesktopApi; capabilities: Desk
           timeline={state.timeline}
           performance={state.activeRun?.performance ?? null}
           runId={state.activeRun?.id}
-          {...{ thinking: state.thinking, thinkingByStep, thinkingStepId }}
+          thinkingByStep={thinkingByStep}
           working={state.activeRun?.state === "queued" || state.activeRun?.state === "running"}
           activeRunState={state.activeRun?.state}
         />

@@ -13,6 +13,7 @@ export interface TimelineItem {
   kind: "user" | "assistant" | "activity";
   text: string;
   detail?: string;
+  durationMs?: number;
   runId?: string | null;
   streaming?: boolean;
   sequence?: number;

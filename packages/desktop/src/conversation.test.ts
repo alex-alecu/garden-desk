@@ -120,12 +120,10 @@ function renderLiveThinking(): string {
         totalDurationMs: 4_250,
       },
       runId: "run",
-      thinking: "I am checking the local context.",
       thinkingByStep: {
         previous: "Earlier thought.",
         planning: "I am checking the local context.",
       },
-      thinkingStepId: "planning",
       working: true,
     }),
   );
@@ -169,7 +167,7 @@ describe("conversation scrolling", () => {
 });
 
 describe("conversation performance presentation", () => {
-  it("shows live thinking and metrics only beneath the latest assistant response", () => {
+  it("keeps live thinking collapsed in its activity row", () => {
     const markup = renderLiveThinking();
 
     expect(markup).toContain("12.3</strong> generation tok/s");
@@ -178,13 +176,13 @@ describe("conversation performance presentation", () => {
       /98.8<\/strong> prompt tok\/s.*12.3<\/strong> generation tok\/s.*4.3s<\/strong> total/s,
     );
     expect(markup).toContain("4.3s</strong> total");
-    expect(markup).toContain("Planning the response.");
-    expect(markup).toMatch(
-      /<button aria-expanded="false"[^>]*>Reviewing previous context\.<\/button>/,
+    expect(markup.match(/>Thinking…<\/button>/gu)).toHaveLength(1);
+    expect(markup.match(/>Thought<\/button>/gu)).toHaveLength(1);
+    expect(markup).toContain(
+      'aria-expanded="false" class="activity-row-label activity-row-shimmer"',
     );
-    expect(markup).toContain('class="thinking-stream"');
-    expect(markup).toContain("Thinking locally");
-    expect(markup.match(/I am checking the local context\./g)).toHaveLength(1);
+    expect(markup).not.toContain('class="thinking-stream"');
+    expect(markup).not.toContain("I am checking the local context.");
   });
 });
 

@@ -1,9 +1,11 @@
 import { type RefObject, useLayoutEffect, useRef, useState } from "react";
 import type { ActivityRow } from "../activity-rows.js";
-import { followThinkingText } from "../thinking-scroll.js";
+import { followsThinkingText, followThinkingText } from "../thinking-scroll.js";
 import { Icon } from "./icons.js";
 
 type IconName = Parameters<typeof Icon>[0]["name"];
+const UNAVAILABLE_THINKING =
+  "Thinking text is kept only in memory until the app restarts, so it is not available.";
 
 function iconFor(row: ActivityRow): IconName {
   if (row.status === "failed") return "error";
@@ -49,10 +51,11 @@ export function ActivityRowView({
 }) {
   const [opened, setOpened] = useState(false);
   const detailViewer = useRef<HTMLPreElement>(null);
+  const followsThinking = useRef(true);
   const view = activityRowState(row, live, opened);
   useLayoutEffect(() => {
     if (view.liveThinking && detailViewer.current !== null)
-      followThinkingText(detailViewer.current);
+      followThinkingText(detailViewer.current, followsThinking.current);
   });
   return (
     <div className={`activity-row activity-row-${view.visualStatus}`} data-kind={row.kind}>
@@ -66,13 +69,18 @@ export function ActivityRowView({
         onClick={() => view.canToggle && setOpened((open) => !open)}
         type="button"
       >
-        {row.title}
+        {view.title}
       </button>
-      {view.expanded && view.hasDetail ? (
+      {view.expanded && view.detail !== undefined ? (
         <ActivityDetail
-          liveThinking={view.liveThinking}
+          detail={view.detail}
+          onThinkingScroll={(viewer) => {
+            followsThinking.current = followsThinkingText(viewer);
+          }}
           onOpenDetails={onOpenDetails}
           row={row}
+          thinking={row.kind === "thinking"}
+          title={view.title}
           viewer={detailViewer}
         />
       ) : null}
@@ -80,37 +88,60 @@ export function ActivityRowView({
   );
 }
 
+function rowDetail(row: ActivityRow, live: boolean): string | undefined {
+  if (row.detail !== undefined && row.detail.length > 0) return row.detail;
+  return row.kind === "thinking" && !live ? UNAVAILABLE_THINKING : undefined;
+}
+
+function rowTitle(row: ActivityRow, live: boolean): string {
+  return row.kind === "thinking" && !live && row.status === "running" ? "Thought" : row.title;
+}
+
 function activityRowState(row: ActivityRow, live: boolean, opened: boolean) {
-  const hasDetail = row.detail !== undefined && row.detail.length > 0;
+  const detail = rowDetail(row, live);
+  const hasDetail = detail !== undefined;
   const shimmering = live && row.status === "running";
   const liveThinking = live && row.kind === "thinking" && hasDetail;
   return {
-    canToggle: hasDetail && !liveThinking,
-    expanded: liveThinking || opened,
+    canToggle: hasDetail,
+    detail,
+    expanded: opened,
     hasDetail,
     liveThinking,
     shimmering,
+    title: rowTitle(row, live),
     visualStatus: shimmering ? "running" : row.status === "running" ? "done" : row.status,
   };
 }
 
+// biome-ignore-start lint/a11y/noNoninteractiveTabindex: Overflowing activity detail needs a keyboard scroll target.
 function ActivityDetail({
-  liveThinking,
+  detail,
+  onThinkingScroll,
   onOpenDetails,
   row,
+  thinking,
+  title,
   viewer,
 }: {
-  liveThinking: boolean;
+  detail: string;
+  onThinkingScroll(viewer: HTMLPreElement): void;
   onOpenDetails(row: ActivityRow): void;
   row: ActivityRow;
+  thinking: boolean;
+  title: string;
   viewer: RefObject<HTMLPreElement | null>;
 }) {
   return (
     <div className="activity-row-detail">
-      <section aria-label={`${row.title} details`}>
-        {/* biome-ignore lint/a11y/noNoninteractiveTabindex: Overflowing activity detail needs a keyboard scroll target. */}
-        <pre className={liveThinking ? "thinking-log" : undefined} ref={viewer} tabIndex={0}>
-          {row.detail}
+      <section aria-label={`${title} details`}>
+        <pre
+          tabIndex={0}
+          className={thinking ? "thinking-log" : undefined}
+          onScroll={thinking ? (event) => onThinkingScroll(event.currentTarget) : undefined}
+          ref={viewer}
+        >
+          {detail}
         </pre>
       </section>
       <button className="activity-row-open" onClick={() => onOpenDetails(row)} type="button">
@@ -119,3 +150,4 @@ function ActivityDetail({
     </div>
   );
 }
+// biome-ignore-end lint/a11y/noNoninteractiveTabindex: Overflowing activity detail needs a keyboard scroll target.
