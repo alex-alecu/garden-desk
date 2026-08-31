@@ -1,35 +1,52 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
-  <title>Garden Desk - The AI cowork that tracks nothing</title>
+  <title>Garden Desk - Your work. Your space.</title>
   <defs>
-    <radialGradient id="glow" cx="74%" cy="28%" r="70%">
-      <stop offset="0" stop-color="#9bb8c6" stop-opacity=".42"/>
-      <stop offset=".68" stop-color="#0d2538" stop-opacity="0"/>
-    </radialGradient>
-    <linearGradient id="panel" x1="0" x2="1" y1="0" y2="1">
-      <stop stop-color="#31566c"/>
-      <stop offset="1" stop-color="#0d2538"/>
+    <clipPath id="arch">
+      <path d="M726 630V372a186 186 0 0 1 372 0v258Z"/>
+    </clipPath>
+    <linearGradient id="sky" x1="0" y1="0" x2="0.2" y2="1">
+      <stop offset="0" stop-color="#b3c9ae"/>
+      <stop offset="1" stop-color="#d3dcc2"/>
+    </linearGradient>
+    <linearGradient id="threshold" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#122b1d" stop-opacity="0"/>
+      <stop offset="1" stop-color="#122b1d" stop-opacity=".62"/>
     </linearGradient>
   </defs>
-  <rect width="1200" height="630" fill="#f3f1ec"/>
-  <path d="M76 34h1048a42 42 0 0 1 42 42v478a42 42 0 0 1-42 42H34V76a42 42 0 0 1 42-42Z" fill="url(#panel)"/>
-  <path d="M76 34h1048a42 42 0 0 1 42 42v478a42 42 0 0 1-42 42H34V76a42 42 0 0 1 42-42Z" fill="url(#glow)"/>
-  <circle cx="1112" cy="78" r="104" fill="#c76f52" fill-opacity=".18"/>
-  <circle cx="930" cy="315" r="202" fill="none" stroke="#9bb8c6" stroke-opacity=".15"/>
-  <circle cx="930" cy="315" r="146" fill="none" stroke="#ffffff" stroke-opacity=".09"/>
-  <path d="M713 72h270" stroke="#c76f52" stroke-width="4" stroke-linecap="round"/>
-  <g aria-label="Garden Desk product mark">
-    <path d="M850 227v-34l157-39v73" fill="#9bb8c6"/>
-    <path d="M815 253a25 25 0 0 1 25-25h180a25 25 0 0 1 25 25v162h-45V283H860v132h-45Z" fill="#fffdf8"/>
-    <circle cx="930" cy="348" r="65" fill="none" stroke="#fffdf8" stroke-width="22"/>
-    <circle cx="930" cy="348" r="25" fill="#9bb8c6"/>
-    <path d="M930 298v-14m0 128v-14m-50-50h-14m128 0h-14" stroke="#fffdf8" stroke-width="9" stroke-linecap="round"/>
+  <rect width="1200" height="630" fill="#122b1d"/>
+  <g clip-path="url(#arch)">
+    <rect width="1200" height="630" fill="url(#sky)"/>
+    <path d="M700 630V300h420v330Z" fill="#7d6047"/>
+    <path d="M694 284h432v18H694Z" fill="#4f3b2b"/>
+    <g fill="#2c3a30">
+      <rect x="770" y="330" width="46" height="72"/>
+      <rect x="888" y="330" width="46" height="72"/>
+      <rect x="1006" y="330" width="46" height="72"/>
+    </g>
+    <path d="M700 430h420v44H700Z" fill="#7b7159"/>
+    <path d="M700 424h420v9H700Z" fill="#b8b195"/>
+    <path d="M700 474h420v156H700Z" fill="#9fa78c"/>
+    <path d="M700 474h420v22H700Z" fill="#1b3324" opacity=".3"/>
+    <rect x="820" y="520" width="184" height="10" rx="2" fill="#86603f"/>
+    <rect x="820" y="530" width="184" height="8" rx="2" fill="#6b4a30"/>
+    <rect x="834" y="538" width="9" height="56" fill="#6b4a30"/>
+    <rect x="982" y="538" width="9" height="56" fill="#3f2c1c"/>
+    <rect x="858" y="428" width="108" height="86" rx="5" fill="#1f241c"/>
+    <rect x="863" y="433" width="98" height="68" rx="2" fill="#f6f4e6"/>
+    <g fill="#3d5a45">
+      <rect x="871" y="441" width="34" height="5" rx="2"/>
+      <rect x="871" y="453" width="82" height="3" rx="1.5" opacity=".5"/>
+      <rect x="871" y="461" width="68" height="3" rx="1.5" opacity=".5"/>
+      <rect x="871" y="469" width="78" height="3" rx="1.5" opacity=".5"/>
+    </g>
+    <rect x="700" y="470" width="420" height="160" fill="url(#threshold)"/>
   </g>
-  <text x="104" y="132" fill="#9bb8c6" font-family="Avenir Next, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="22" font-weight="700" letter-spacing="4">GARDEN DESK</text>
-  <text x="104" y="225" fill="#fffdf8" font-family="Charter, Georgia, serif" font-size="60">Nobody sees</text>
-  <text x="104" y="295" fill="#fffdf8" font-family="Charter, Georgia, serif" font-size="60">your work.</text>
-  <text x="104" y="365" fill="#9bb8c6" font-family="Charter, Georgia, serif" font-size="60" font-style="italic">Not even us.</text>
-  <text x="108" y="430" fill="#c3d0d6" font-family="Avenir Next, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="23">Offline. No setup. No tracking.</text>
-  <text x="108" y="466" fill="#c3d0d6" font-family="Avenir Next, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="23">AI runs entirely on your computer.</text>
-  <rect x="104" y="507" width="224" height="48" rx="24" fill="#c76f52"/>
-  <text x="139" y="539" fill="#fffdf8" font-family="Avenir Next, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="18" font-weight="700">Try the live demo</text>
+  <path d="M726 630V372a186 186 0 0 1 372 0v258" fill="none" stroke="#b8b195" stroke-width="11"/>
+  <text x="92" y="150" fill="#c8a64b" font-family="Avenir Next, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="21" font-weight="700" letter-spacing="5">GARDEN DESK</text>
+  <text x="92" y="268" fill="#f0ede3" font-family="Charter, Georgia, serif" font-size="76">Your work.</text>
+  <text x="92" y="352" fill="#f0ede3" font-family="Charter, Georgia, serif" font-size="76">Your space.</text>
+  <text x="92" y="428" fill="#9dc4b0" font-family="Avenir Next, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="24">An AI coworker for your files.</text>
+  <text x="92" y="466" fill="#9dc4b0" font-family="Avenir Next, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="24">Entirely on your computer.</text>
+  <rect x="92" y="512" width="42" height="4" rx="2" fill="#c8a64b"/>
+  <text x="92" y="562" fill="#f0ede3" font-family="Avenir Next, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="20" font-weight="600">Free and open source. No account.</text>
 </svg>

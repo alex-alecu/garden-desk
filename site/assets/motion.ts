@@ -1,6 +1,4 @@
-import { enableCipherFields } from "./cipher";
-
-const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+export const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
 const easeOutExpo = (progress: number): number => (progress >= 1 ? 1 : 1 - 2 ** (-10 * progress));
 
 function spring(duration: number, step: (eased: number) => void): void {
@@ -52,7 +50,7 @@ function observeReveals(): void {
   for (const target of targets) observer.observe(target);
 }
 
-function trackPointer(element: HTMLElement, onMove: (x: number, y: number) => void): void {
+export function trackPointer(element: HTMLElement, onMove: (x: number, y: number) => void): void {
   const reset = () => onMove(0, 0);
   element.addEventListener("pointermove", (event) => {
     const bounds = element.getBoundingClientRect();
@@ -117,7 +115,6 @@ function start(): void {
   observeScroll();
   if (reducedMotion.matches) return;
   enableTilt();
-  enableCipherFields();
 }
 
 if (document.readyState === "loading") {

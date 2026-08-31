@@ -5,21 +5,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       name="description"
-      content="Garden Desk is an AI desktop that runs entirely on your computer. No cloud, no account, no settings, and zero tracking."
+      content="An AI coworker for your files that runs entirely on your computer. One download, nothing to configure, nothing tracked, and no way online."
     />
-    <meta name="theme-color" content="#f3f1ec" />
+    <meta name="theme-color" content="#122b1d" />
     <meta name="robots" content="index,follow" />
     <link rel="canonical" href="https://gardendesk.ai/" />
     <link rel="icon" href="./assets/favicon.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="./assets/site.css" />
     <script type="module" src="./assets/motion.ts"></script>
+    <script type="module" src="./assets/scene.ts"></script>
     <script type="module" src="./demo-embed.ts"></script>
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Garden Desk" />
-    <meta property="og:title" content="Garden Desk - The AI cowork that tracks nothing" />
+    <meta property="og:title" content="Garden Desk - Your work. Your space." />
     <meta
       property="og:description"
-      content="An AI desktop that runs 100% on your computer. No cloud. No account. No settings. No tracking."
+      content="An AI coworker for your files, entirely on your computer. Free and open source. One download, no configuration, nothing tracked."
     />
     <meta property="og:url" content="https://gardendesk.ai/" />
     <meta
@@ -36,13 +37,13 @@
         "name": "Garden Desk",
         "applicationCategory": "BusinessApplication",
         "operatingSystem": "macOS, Windows",
-        "description": "An AI desktop that runs entirely on your computer with no cloud fallback, no runtime configuration, and zero application telemetry.",
+        "description": "An AI coworker for your files that runs entirely on your computer. One download with the model included, no runtime configuration, zero application telemetry, and no network access for the agent.",
         "url": "https://gardendesk.ai/",
         "codeRepository": "https://github.com/alex-alecu/garden-desk",
         "license": "https://www.apache.org/licenses/LICENSE-2.0"
       }
     </script>
-    <title>Garden Desk - The AI cowork that tracks nothing</title>
+    <title>Garden Desk - Your work. Your space.</title>
   </head>
   <body class="home">
     <a class="skip-link" href="#main">Skip to content</a>
@@ -59,8 +60,10 @@
       <nav aria-label="Main navigation" class="site-nav">
         <a href="./about/">About</a>
         <a href="./about/#requirements">Requirements</a>
-        <a href="./privacy/">Privacy</a>
         <a href="./downloads/">Downloads</a>
+        <a class="nav-source" href="https://github.com/alex-alecu/garden-desk">
+          <svg class="button-icon" aria-hidden="true" viewBox="0 0 24 24" fill="currentColor"><path d="M12 .7a11.5 11.5 0 0 0-3.64 22.4c.58.11.79-.25.79-.56v-2.02c-3.2.7-3.88-1.36-3.88-1.36-.52-1.34-1.28-1.7-1.28-1.7-1.05-.72.08-.71.08-.71 1.16.08 1.77 1.2 1.77 1.2 1.03 1.77 2.7 1.26 3.36.96.1-.75.4-1.26.73-1.55-2.56-.29-5.25-1.28-5.25-5.69 0-1.26.45-2.29 1.2-3.09-.12-.29-.52-1.46.11-3.04 0 0 .98-.31 3.16 1.18A11 11 0 0 1 12 6.91c.98 0 1.94.13 2.85.38 2.18-1.49 3.16-1.18 3.16-1.18.63 1.58.23 2.75.11 3.04.75.8 1.2 1.83 1.2 3.09 0 4.42-2.69 5.4-5.26 5.69.41.36.78 1.06.78 2.14v2.47c0 .31.21.67.79.56A11.5 11.5 0 0 0 12 .7Z" /></svg><span>GitHub</span><span aria-hidden="true" class="nav-source-arrow">&#8599;</span>
+        </a>
         <a class="nav-button" href="./demo/">
           <svg class="button-icon" aria-hidden="true" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>
           <span>See it in action</span>
@@ -68,63 +71,277 @@
       </nav>
     </header>
     <main id="main">
-      <section class="hero" data-cipher>
-        <div class="hero-copy">
-          <p class="eyebrow" data-reveal>Offline · No setup · No tracking</p>
-          <h1 data-reveal data-reveal-delay="80">
-            Nobody sees your work.
-            <span class="hero-accent">Not even us.</span>
-          </h1>
-          <p class="hero-lede" data-reveal data-reveal-delay="160">
-            AI that runs <strong>on your computer</strong>. Not “mostly.” All of it. No account. No
-            settings. No tracking. And the code is public — you don’t have to believe us.
-          </p>
-          <div class="hero-actions" data-reveal data-reveal-delay="240">
-            <a class="button button-primary" href="#demo">
+      <section class="garden">
+        <div class="garden-copy">
+          <h1>Your work.<br />Your space.</h1>
+          <p class="garden-lede">An AI coworker for your files. Entirely on your computer.</p>
+          <div class="garden-actions">
+            <a class="button button-primary" href="./demo/">
               <svg class="button-icon" aria-hidden="true" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>
-              <span>See Garden Desk in action</span>
+              <span>See it work</span>
             </a>
-            <a class="button button-secondary" href="https://github.com/alex-alecu/garden-desk"
-              ><svg class="button-icon" aria-hidden="true" viewBox="0 0 24 24" fill="currentColor"><path d="M12 .7a11.5 11.5 0 0 0-3.64 22.4c.58.11.79-.25.79-.56v-2.02c-3.2.7-3.88-1.36-3.88-1.36-.52-1.34-1.28-1.7-1.28-1.7-1.05-.72.08-.71.08-.71 1.16.08 1.77 1.2 1.77 1.2 1.03 1.77 2.7 1.26 3.36.96.1-.75.4-1.26.73-1.55-2.56-.29-5.25-1.28-5.25-5.69 0-1.26.45-2.29 1.2-3.09-.12-.29-.52-1.46.11-3.04 0 0 .98-.31 3.16 1.18A11 11 0 0 1 12 6.91c.98 0 1.94.13 2.85.38 2.18-1.49 3.16-1.18 3.16-1.18.63 1.58.23 2.75.11 3.04.75.8 1.2 1.83 1.2 3.09 0 4.42-2.69 5.4-5.26 5.69.41.36.78 1.06.78 2.14v2.47c0 .31.21.67.79.56A11.5 11.5 0 0 0 12 .7Z" /></svg><span>Read the code</span></a
+          </div>
+          <p class="open-source">
+            <svg class="button-icon" aria-hidden="true" viewBox="0 0 24 24" fill="currentColor"><path d="M12 .7a11.5 11.5 0 0 0-3.64 22.4c.58.11.79-.25.79-.56v-2.02c-3.2.7-3.88-1.36-3.88-1.36-.52-1.34-1.28-1.7-1.28-1.7-1.05-.72.08-.71.08-.71 1.16.08 1.77 1.2 1.77 1.2 1.03 1.77 2.7 1.26 3.36.96.1-.75.4-1.26.73-1.55-2.56-.29-5.25-1.28-5.25-5.69 0-1.26.45-2.29 1.2-3.09-.12-.29-.52-1.46.11-3.04 0 0 .98-.31 3.16 1.18A11 11 0 0 1 12 6.91c.98 0 1.94.13 2.85.38 2.18-1.49 3.16-1.18 3.16-1.18.63 1.58.23 2.75.11 3.04.75.8 1.2 1.83 1.2 3.09 0 4.42-2.69 5.4-5.26 5.69.41.36.78 1.06.78 2.14v2.47c0 .31.21.67.79.56A11.5 11.5 0 0 0 12 .7Z" /></svg>
+            <span
+              >Free and <strong>open source</strong> under Apache 2.0.
+              <a href="https://github.com/alex-alecu/garden-desk">Read every line &#8599;</a></span
             >
-          </div>
-          <p class="availability" data-reveal data-reveal-delay="300">
-            Free. Open source. Installers coming soon — the demo runs now, on synthetic data.
           </p>
+          <p class="availability">No account, ever. Installers coming soon.</p>
         </div>
-        <div class="hero-art" data-parallax="18">
-          <div class="hero-card" data-tilt>
-            <span class="hero-card-glow" aria-hidden="true"></span>
-            <img src="./assets/product-icon.png" alt="Garden Desk" />
-            <ul class="principle-cloud" aria-label="Privacy, local operation, and intelligence by design">
-              <li class="principle-chip principle-private">
-                <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                  <path d="M12 3 5 6v5c0 4.6 2.8 8.4 7 10 4.2-1.6 7-5.4 7-10V6z" />
-                  <path d="m9 12 2 2 4-4" />
-                </svg>
-                <strong>Private</strong>
-              </li>
-              <li class="principle-chip principle-local">
-                <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                  <rect x="3" y="5" width="18" height="13" rx="2" />
-                  <path d="M8 21h8M12 18v3" />
-                </svg>
-                <strong>Local</strong>
-              </li>
-              <li class="principle-chip principle-intelligent">
-                <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                  <path d="m12 3 1.5 4.5L18 9l-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5z" />
-                  <path d="m18.5 15 .7 2.3 2.3.7-2.3.7-.7 2.3-.7-2.3-2.3-.7 2.3-.7z" />
-                </svg>
-                <strong>Capable</strong>
-              </li>
-            </ul>
-          </div>
-          <aside class="private-note">
-            <strong>Zero means zero</strong>
-            No analytics. No crash reports. No “anonymous” usage pings. Nothing to opt out of.
-          </aside>
-        </div>
+      <svg
+        class="garden-scene"
+        data-scene
+        viewBox="0 0 1600 700"
+        preserveAspectRatio="xMidYMid meet"
+        role="img"
+        aria-label="A view through an arched garden doorway onto a walled courtyard, where a desk holds a lit monitor"
+      >
+        <defs>
+          <clipPath id="arch">
+            <path d="M772 700V330a308 308 0 0 1 616 0v370Z" />
+          </clipPath>
+          <linearGradient id="sky-wash" x1="0" y1="0" x2="0.2" y2="1">
+            <stop offset="0" stop-color="var(--sky-high)" />
+            <stop offset="1" stop-color="var(--sky-low)" />
+          </linearGradient>
+          <linearGradient id="pane" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="var(--window-sheen)" />
+            <stop offset="0.42" stop-color="var(--window-sheen)" />
+            <stop offset="0.44" stop-color="var(--window)" />
+            <stop offset="1" stop-color="var(--window)" />
+          </linearGradient>
+          <radialGradient id="screen-glow" cx="0.5" cy="0.5" r="0.5">
+            <stop offset="0" stop-color="var(--glow)" stop-opacity="0.55" />
+            <stop offset="1" stop-color="var(--glow)" stop-opacity="0" />
+          </radialGradient>
+          <linearGradient id="threshold" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="var(--shade)" stop-opacity="0" />
+            <stop offset="0.55" stop-color="var(--shade)" stop-opacity="0.14" />
+            <stop offset="1" stop-color="var(--shade)" stop-opacity="0.62" />
+          </linearGradient>
+          <radialGradient id="desk-shadow" cx="0.5" cy="0.5" r="0.5">
+            <stop offset="0" stop-color="var(--cast-shadow)" stop-opacity="0.42" />
+            <stop offset="1" stop-color="var(--cast-shadow)" stop-opacity="0" />
+          </radialGradient>
+          <path id="leaf" d="M0 0c13-15 37-15 50 0-13 15-37 15-50 0Z" />
+          <g id="sprig">
+            <use href="#leaf" transform="rotate(-34) scale(.9)" />
+            <use href="#leaf" transform="translate(20 18) rotate(22) scale(.72)" />
+            <use href="#leaf" transform="translate(44 -8) rotate(-6) scale(.62)" />
+          </g>
+        </defs>
+
+        <g data-layer="courtyard" clip-path="url(#arch)">
+          <rect width="1600" height="700" fill="url(#sky-wash)" />
+
+          <g data-layer="house">
+            <path d="M700 700V214h760v486Z" fill="var(--brick)" />
+            <g opacity=".3" fill="var(--brick-dark)">
+              <rect x="700" y="252" width="760" height="3" />
+              <rect x="700" y="300" width="760" height="3" />
+              <rect x="700" y="348" width="760" height="3" />
+              <rect x="700" y="396" width="760" height="3" />
+            </g>
+            <path d="M690 186h780v20H690Z" fill="var(--brick-dark)" />
+            <path d="M690 206h780v10H690Z" fill="var(--brick-light)" />
+            <path d="M700 216h760v9H700Z" fill="var(--brick-dark)" opacity=".45" />
+            <g data-windows>
+              <g>
+                <rect x="838" y="256" width="70" height="108" fill="var(--brick-dark)" />
+                <rect x="845" y="262" width="63" height="102" fill="url(#pane)" />
+                <rect x="875" y="262" width="3" height="102" fill="var(--brick-dark)" opacity=".7" />
+                <rect x="830" y="364" width="86" height="9" fill="var(--wall-cap)" />
+              </g>
+              <g>
+                <rect x="1008" y="256" width="70" height="108" fill="var(--brick-dark)" />
+                <rect x="1015" y="262" width="63" height="102" fill="url(#pane)" />
+                <rect x="1045" y="262" width="3" height="102" fill="var(--brick-dark)" opacity=".7" />
+                <rect x="1000" y="364" width="86" height="9" fill="var(--wall-cap)" />
+              </g>
+              <g>
+                <rect x="1178" y="256" width="70" height="108" fill="var(--brick-dark)" />
+                <rect x="1185" y="262" width="63" height="102" fill="url(#pane)" />
+                <rect x="1215" y="262" width="3" height="102" fill="var(--brick-dark)" opacity=".7" />
+                <rect x="1170" y="364" width="86" height="9" fill="var(--wall-cap)" />
+              </g>
+            </g>
+            <rect x="1316" y="216" width="13" height="188" fill="var(--brick-dark)" opacity=".8" />
+            <rect x="1310" y="240" width="25" height="9" fill="var(--brick-dark)" opacity=".8" />
+          </g>
+
+          <g data-layer="wall">
+            <path d="M700 404h760v72H700Z" fill="var(--wall)" />
+            <path d="M700 396h760v12H700Z" fill="var(--wall-cap)" />
+            <path d="M700 466h760v10H700Z" fill="var(--brick-dark)" opacity=".28" />
+            <g stroke="var(--ivy-dark)" stroke-width="4" fill="none" opacity=".9">
+              <path d="M760 476c6-40-16-56-6-92" />
+              <path d="M1400 476c-8-44 14-62 4-98" />
+            </g>
+            <g fill="var(--ivy-dark)">
+              <use href="#sprig" transform="translate(716 380) scale(1.25) rotate(-12)" />
+              <use href="#sprig" transform="translate(736 424) scale(1.1) rotate(16)" />
+              <use href="#sprig" transform="translate(1352 374) scale(1.3) rotate(10)" />
+              <use href="#sprig" transform="translate(1382 420) scale(1.15) rotate(-14)" />
+            </g>
+            <g fill="var(--ivy)">
+              <use href="#sprig" transform="translate(744 400) scale(1) rotate(24)" />
+              <use href="#sprig" transform="translate(1370 398) scale(1.05) rotate(-20)" />
+            </g>
+          </g>
+
+          <g data-layer="ground">
+            <path d="M700 476h760v224H700Z" fill="var(--stone)" />
+            <g fill="var(--stone-dark)" opacity=".4">
+              <rect x="700" y="534" width="760" height="4" />
+              <rect x="700" y="606" width="760" height="4" />
+              <rect x="700" y="686" width="760" height="4" />
+            </g>
+            <path d="M700 476h760v34H700Z" fill="var(--cast-shadow)" opacity=".3" />
+            <g fill="var(--sun)" opacity=".2">
+              <ellipse cx="1300" cy="566" rx="118" ry="32" />
+              <ellipse cx="1378" cy="646" rx="86" ry="24" />
+            </g>
+          </g>
+
+          <g data-layer="border">
+            <g fill="var(--foliage-dark)">
+              <use href="#sprig" transform="translate(700 486) scale(1.9) rotate(-14)" />
+              <use href="#sprig" transform="translate(1340 492) scale(1.8) rotate(12)" />
+            </g>
+            <g fill="var(--foliage)">
+              <use href="#sprig" transform="translate(716 520) scale(1.6) rotate(16)" />
+              <use href="#sprig" transform="translate(1380 524) scale(1.7) rotate(-10)" />
+            </g>
+            <g fill="var(--bloom)">
+              <circle cx="742" cy="478" r="7" />
+              <circle cx="1372" cy="482" r="7" />
+              <circle cx="1420" cy="520" r="6" />
+            </g>
+          </g>
+
+          <g data-layer="desk">
+            <ellipse cx="1080" cy="664" rx="250" ry="52" fill="url(#desk-shadow)" />
+            <circle cx="1080" cy="452" r="180" fill="url(#screen-glow)" data-glow />
+            <rect x="898" y="536" width="364" height="17" rx="3" fill="var(--walnut-light)" />
+            <rect x="898" y="553" width="364" height="13" rx="2" fill="var(--walnut)" />
+            <rect x="898" y="566" width="364" height="4" fill="var(--walnut-dark)" opacity=".6" />
+            <rect x="922" y="570" width="16" height="98" fill="var(--walnut)" />
+            <rect x="1224" y="570" width="16" height="98" fill="var(--walnut-dark)" />
+            <rect x="930" y="616" width="302" height="9" fill="var(--walnut-dark)" />
+            <rect x="1018" y="530" width="22" height="12" fill="var(--bezel)" />
+            <rect x="988" y="522" width="82" height="9" rx="4" fill="var(--bezel)" />
+            <rect x="962" y="386" width="196" height="138" rx="7" fill="var(--bezel)" />
+            <rect x="970" y="394" width="180" height="116" rx="2" fill="var(--screen)" data-screen />
+            <g fill="var(--screen-ink)">
+              <rect x="984" y="408" width="62" height="8" rx="4" />
+              <rect x="984" y="428" width="152" height="5" rx="2" opacity=".5" />
+              <rect x="984" y="441" width="128" height="5" rx="2" opacity=".5" />
+              <rect x="984" y="454" width="146" height="5" rx="2" opacity=".5" />
+              <rect x="984" y="476" width="88" height="5" rx="2" opacity=".38" />
+              <rect x="984" y="489" width="112" height="5" rx="2" opacity=".38" />
+            </g>
+            <rect x="1064" y="526" width="126" height="10" rx="4" fill="var(--wall-cap)" />
+            <path d="M1198 508h32v18a16 16 0 0 1-32 0Z" fill="var(--bone)" />
+            <path d="M1230 512h9a8 8 0 0 1 0 16h-9" fill="none" stroke="var(--bone)" stroke-width="4" />
+            <g data-steam opacity=".45" stroke="var(--bone)" stroke-width="3" stroke-linecap="round" fill="none">
+              <path d="M1206 496c-9-13 7-19-2-32" />
+              <path d="M1222 494c-8-11 6-17-2-27" opacity=".6" />
+            </g>
+          </g>
+
+          <g data-layer="branch">
+            <path
+              d="M1388 60c-70 26-118 62-150 112"
+              fill="none"
+              stroke="var(--trunk)"
+              stroke-width="7"
+              stroke-linecap="round"
+            />
+            <path
+              d="M1330 92c-22 16-30 40-30 62"
+              fill="none"
+              stroke="var(--trunk)"
+              stroke-width="4"
+              stroke-linecap="round"
+            />
+            <g fill="var(--foliage-dark)">
+              <use href="#sprig" transform="translate(1300 92) scale(1.35) rotate(28)" />
+              <use href="#sprig" transform="translate(1246 140) scale(1.2) rotate(-16)" />
+              <use href="#sprig" transform="translate(1288 166) scale(1.1) rotate(44)" />
+            </g>
+          </g>
+          <rect x="700" y="470" width="760" height="230" fill="url(#threshold)" />
+        </g>
+
+        <g data-layer="frame">
+          <path
+            d="M0 0h1600v700H0Z M772 700V330a308 308 0 0 1 616 0v370Z"
+            fill="var(--shade)"
+            fill-rule="evenodd"
+          />
+          <path
+            d="M772 700V330a308 308 0 0 1 616 0v370"
+            fill="none"
+            stroke="var(--wall-cap)"
+            stroke-width="16"
+          />
+          <path
+            d="M764 700V330a316 316 0 0 1 632 0v370"
+            fill="none"
+            stroke="var(--shade-light)"
+            stroke-width="6"
+            opacity=".7"
+          />
+        </g>
+
+        <g data-layer="foreground">
+          <g fill="var(--shade-light)">
+            <use href="#sprig" transform="translate(1404 96) scale(2.2) rotate(26)" />
+            <use href="#sprig" transform="translate(1478 206) scale(1.9) rotate(-14)" />
+          </g>
+          <g fill="var(--shade)">
+            <use href="#sprig" transform="translate(-40 560) scale(3.4) rotate(-12)" />
+            <use href="#sprig" transform="translate(130 640) scale(2.8) rotate(14)" />
+            <use href="#sprig" transform="translate(1340 640) scale(3) rotate(8)" />
+          </g>
+        </g>
+      </svg>
+      </section>
+
+      <section class="claims" aria-labelledby="claims-title">
+        <h2 class="visually-hidden" id="claims-title">What makes Garden Desk different</h2>
+        <ul class="claim-list">
+          <li class="claim">
+            <h3>One download</h3>
+            <p>
+              The app, the model, and everything it runs on arrive together. Nothing to assemble,
+              no keys, no service to sign up for.
+            </p>
+          </li>
+          <li class="claim">
+            <h3>Nothing to configure</h3>
+            <p>
+              No model to choose, no settings to tune. Open it, point it at a folder, and ask for
+              what you want.
+            </p>
+          </li>
+          <li class="claim">
+            <h3>Nothing tracked</h3>
+            <p>
+              No analytics, no crash reports, not even a count of which features you use. There is
+              nothing to opt out of.
+            </p>
+          </li>
+          <li class="claim">
+            <h3>No way online</h3>
+            <p>
+              The agent works in a sealed workspace on your computer with no network connection at
+              all. Your files stay put because there is no route out.
+            </p>
+          </li>
+        </ul>
       </section>
 
       <section class="format-strip" aria-labelledby="format-strip-title">
@@ -213,9 +430,9 @@
 
       <section class="section final-cta">
         <div class="section-inner" data-reveal data-cipher>
-          <p class="eyebrow">No tracking. No cloud. No configuration.</p>
-          <h2>Try the one AI that cannot talk about you.</h2>
-          <p>The demo is open right now. Signed installers land when certification is done.</p>
+          <p class="eyebrow">Nothing tracked. Nothing to configure.</p>
+          <h2>Open the demo. Judge for yourself.</h2>
+          <p>It runs in your browser on invented data. No model, no upload, nothing saved.</p>
           <div class="section-actions">
             <a class="button button-primary" href="./demo/">
               <svg class="button-icon" aria-hidden="true" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>
@@ -232,11 +449,17 @@
     <footer class="site-footer">
       <span>Garden Desk project · Local-first software in active development</span>
       <nav aria-label="Legal and project links" class="footer-links">
+        <a href="./about/">About</a>
+        <a href="./about/#requirements">Requirements</a>
         <a href="./privacy/">Privacy</a>
         <a href="./terms/">Terms</a>
         <a href="./security/">Security</a>
         <a href="https://github.com/alex-alecu/garden-desk">GitHub</a>
       </nav>
+      <button class="appearance-toggle" type="button" data-appearance-toggle aria-pressed="false">
+        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4.5" /><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5M17.5 17.5 19 19M19 5l-1.5 1.5M6.5 17.5 5 19" /></svg>
+        <span data-appearance-label>Day</span>
+      </button>
     </footer>
   </body>
 </html>

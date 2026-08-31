@@ -124,10 +124,16 @@ requireText(home, "Open the demo to interact.", "home mobile demo gate");
 requireText(home, "SoftwareApplication", "home");
 requireText(home, "social-card.png", "home");
 requireText(home, 'href="./about/"', "home about link");
-requireText(home, 'class="principle-cloud"', "home principle animation");
+requireText(home, "data-scene", "home garden scene");
+requireText(home, "data-appearance-toggle", "home day and night control");
+requireText(home, "github.com/alex-alecu/garden-desk", "home source link");
+requireText(home, "open source", "home open-source claim");
+requireText(home, "One download", "home differentiation");
+requireText(home, "Nothing to configure", "home differentiation");
+requireText(home, "Nothing tracked", "home differentiation");
+requireText(home, "No way online", "home differentiation");
 requireText(home, 'class="format-strip"', "home static format strip");
 requireText(home, "data-reveal", "home scroll motion");
-requireText(home, "data-cipher", "home cipher background animation");
 
 const about = await text("about/index.html");
 requireText(about, "Zero application telemetry", "about differentiation");
