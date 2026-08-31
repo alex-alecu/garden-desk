@@ -179,11 +179,10 @@ export class ResidentWorker {
   private cancel(requestId: RequestId, code: "cancelled" | "timeout"): void {
     const pending = this.pending.get(requestId);
     if (pending === undefined || pending.cancelling) return;
-    const supportsRequestCancellation =
-      code === "cancelled" &&
-      (pending.execution.request.operation === "chat" ||
-        pending.execution.request.operation === "generate");
-    if (this.pending.size === 1 && !supportsRequestCancellation) {
+    const supportsRequestInterruption =
+      pending.execution.request.operation === "chat" ||
+      pending.execution.request.operation === "generate";
+    if (this.pending.size === 1 && !supportsRequestInterruption) {
       this.failOne(
         requestId,
         code,

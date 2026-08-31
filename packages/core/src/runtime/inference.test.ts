@@ -166,27 +166,29 @@ describe("M2 model staging cancellation", () => {
 });
 
 describe("M2 inference failure audit", () => {
-  it.each(["cancelled", "timeout", "malformed_worker_message", "worker_crash"] as const)(
-    "audits typed %s worker failures",
-    async (code) => {
-      const events: AuditEventInput[] = [];
-      let unloads = 0;
-      const port: InferencePort = {
-        async unload() {
-          unloads += 1;
-          return true;
-        },
-        async execute() {
-          throw Object.assign(new Error(code), { code });
-        },
-      };
-      const inference = await supervisor(port, events);
-      await expect(inference.generate(generationInput)).rejects.toMatchObject({ code });
-      expectFailureAudit(events, code);
-      expect(unloads).toBe(1);
-      await expect(inference.modelStatus()).resolves.toMatchObject({ state: "unloaded" });
-    },
-  );
+  it.each([
+    ["cancelled", 0, "ready"],
+    ["timeout", 0, "ready"],
+    ["malformed_worker_message", 1, "unloaded"],
+    ["worker_crash", 1, "unloaded"],
+  ] as const)("audits typed %s worker failures", async (code, expectedUnloads, expectedState) => {
+    const events: AuditEventInput[] = [];
+    let unloads = 0;
+    const port: InferencePort = {
+      async unload() {
+        unloads += 1;
+        return true;
+      },
+      async execute() {
+        throw Object.assign(new Error(code), { code });
+      },
+    };
+    const inference = await supervisor(port, events);
+    await expect(inference.generate(generationInput)).rejects.toMatchObject({ code });
+    expectFailureAudit(events, code);
+    expect(unloads).toBe(expectedUnloads);
+    await expect(inference.modelStatus()).resolves.toMatchObject({ state: expectedState });
+  });
 });
 
 describe("M2 inference shutdown", () => {

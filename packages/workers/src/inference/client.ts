@@ -68,8 +68,6 @@ export class InferenceWorkerClient {
     }
     const worker = await this.worker(execution);
     if (execution.signal?.aborted) {
-      // Cancelling a turn leaves the resident model loaded for the next turn in this or another
-      // session; only a missing terminal result unloads it.
       throw abortedExecution(execution.signal);
     }
     try {

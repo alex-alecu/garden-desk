@@ -195,7 +195,7 @@ export class InferenceSupervisor extends ImageInferenceController implements Inf
       if (
         resourcesPrepared &&
         request.operation !== "probe" &&
-        !inferenceFailurePreservesResident(error, execution.signal)
+        !inferenceFailurePreservesResident(error, request.operation)
       ) {
         await this.releaseResident();
       }
