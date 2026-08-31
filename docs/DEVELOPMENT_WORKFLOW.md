@@ -71,6 +71,8 @@ A pull request is ready for review when it links the active milestone and issue,
 
 Use the real Gemma worker and no-network guest when diagnosing agent-loop behavior; a fake inference test or desktop-only reproduction is not sufficient evidence. Raw development inference diagnostics are private and must not enter reports, product records, debug snapshots, user-interface data, or Git.
 
+During `pnpm desktop:dev`, the terminal shows WebView console output, unhandled WebView errors, and Vault Core process output. This development-only stream is not stored and must not include prompts, messages, tool payloads, hidden reasoning, or file contents.
+
 - Run `pnpm test:m3:macos` on physical Apple silicon for the canonical headless M3 gate. It verifies the pinned Gemma 4 model, real multi-step Python tasks, artifacts, guest isolation, timeout, and output limits without the desktop UI; guest Node.js coverage is the direct-source probe only.
 - For a task-specific daemon reproduction, create an ignored script under `packages/eval/.generated/`. Use `createVaultCore` with `packages/eval/.generated/models`, the generated macOS helper, and `packages/workers/images`; start the real current-user server with `startDaemon`; then call it through `packages/cli/src/client.ts` using `folders.add`, `sessions.create`, `agent.start`, and repeated `agent.get` requests until the run is terminal.
 - Put the ephemeral workspace directly under `/tmp` so the macOS Unix-socket path stays within its length limit. If the restricted shell returns `listen EPERM` or denies Virtualization.framework, rerun the same command outside the restricted shell; that sandbox denial is not a product failure.

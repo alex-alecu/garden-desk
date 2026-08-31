@@ -6,7 +6,7 @@ use std::sync::{Mutex, atomic::AtomicU64, atomic::Ordering};
 use std::time::{Duration, Instant};
 use tauri::{AppHandle, Manager, RunEvent};
 use tauri_plugin_shell::ShellExt;
-use tauri_plugin_shell::process::CommandChild;
+use tauri_plugin_shell::process::{CommandChild, CommandEvent};
 
 mod artifact_commands;
 mod attachment_commands;
@@ -26,6 +26,27 @@ pub(crate) struct CoreBridge {
     next_id: AtomicU64,
     _package_locks: package_integrity::PackageLocks,
 }
+
+#[cfg(debug_assertions)]
+fn forward_core_event(event: CommandEvent) {
+    match event {
+        CommandEvent::Stdout(bytes) => {
+            print!("[core stdout] {}", String::from_utf8_lossy(&bytes));
+        }
+        CommandEvent::Stderr(bytes) => {
+            eprint!("[core stderr] {}", String::from_utf8_lossy(&bytes));
+        }
+        CommandEvent::Error(error) => eprintln!("[core error] {error}"),
+        CommandEvent::Terminated(status) => eprintln!(
+            "[core terminated] code={:?} signal={:?}",
+            status.code, status.signal
+        ),
+        _ => {}
+    }
+}
+
+#[cfg(not(debug_assertions))]
+fn forward_core_event(_event: CommandEvent) {}
 
 impl CoreBridge {
     fn start(app: &AppHandle) -> Result<Self, String> {
@@ -70,7 +91,11 @@ impl CoreBridge {
         #[cfg(target_os = "macos")]
         let command = command.env("NODE_OPTIONS", "--jitless");
         let (mut events, child) = command.spawn().map_err(|error| error.to_string())?;
-        tauri::async_runtime::spawn(async move { while events.recv().await.is_some() {} });
+        tauri::async_runtime::spawn(async move {
+            while let Some(event) = events.recv().await {
+                forward_core_event(event);
+            }
+        });
         let endpoint = wait_for_ready_file(&ready_file)?;
         Ok(Self {
             child: Mutex::new(Some(child)),
@@ -81,6 +106,15 @@ impl CoreBridge {
     }
 
     pub(crate) fn call(&self, method: &str, params: Value) -> Result<Value, String> {
+        let result = self.call_inner(method, params);
+        #[cfg(debug_assertions)]
+        if let Err(error) = &result {
+            eprintln!("[core rpc] {method} failed: {error}");
+        }
+        result
+    }
+
+    fn call_inner(&self, method: &str, params: Value) -> Result<Value, String> {
         let request = json!({
             "jsonrpc": "2.0",
             "id": self.next_id.fetch_add(1, Ordering::Relaxed),
