@@ -2560,6 +2560,17 @@ body {
   --glow: #f8ecbc;
   --cast-shadow: #1b3324;
   --bone: #f0ede3;
+  --canopy: #2d6742;
+  --canopy-dark: #1c4229;
+  --stone-lit: #c0c5ad;
+  --terracotta: #a5603f;
+  --terracotta-lit: #bd7450;
+  --door: #3f5344;
+  --brass-mark: #c8a64b;
+  --bird: #4a5f4e;
+  --book-a: #6b7f5e;
+  --book-b: #a5603f;
+  --book-c: #c8a64b;
 }
 
 .garden {
@@ -2601,6 +2612,16 @@ body[data-appearance="night"] {
   --screen-ink: #2c4636;
   --glow: #ffe9a4;
   --cast-shadow: #040b06;
+  --canopy: #10281a;
+  --canopy-dark: #081409;
+  --stone-lit: #333a2f;
+  --terracotta: #402519;
+  --terracotta-lit: #4f2f20;
+  --door: #1a241c;
+  --bird: #1a2a1e;
+  --book-a: #2c3626;
+  --book-b: #402519;
+  --book-c: #6d5b2c;
 }
 
 .garden-scene {
@@ -2779,62 +2800,6 @@ body[data-appearance="night"] {
   }
 }
 
-.garden-scene [data-layer] {
-  transition: transform 380ms cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.garden-scene [data-steam] {
-  transform-origin: 1214px 496px;
-  animation: steam-rise 5.5s ease-in-out infinite;
-}
-
-.garden-scene [data-glow] {
-  animation: glow-breathe 7s ease-in-out infinite;
-}
-
-.garden-scene [data-layer="branch"],
-.garden-scene [data-layer="border"] {
-  transform-origin: 50% 0;
-  animation: leaf-sway 11s ease-in-out infinite;
-}
-
-.garden-scene [data-layer="foreground"] {
-  transform-origin: 50% 100%;
-  animation: leaf-sway 14s ease-in-out infinite reverse;
-}
-
-@keyframes steam-rise {
-  0%,
-  100% {
-    opacity: 0.18;
-    transform: translateY(3px) scaleY(0.92);
-  }
-  50% {
-    opacity: 0.5;
-    transform: translateY(-5px) scaleY(1.06);
-  }
-}
-
-@keyframes glow-breathe {
-  0%,
-  100% {
-    opacity: 0.82;
-  }
-  50% {
-    opacity: 1;
-  }
-}
-
-@keyframes leaf-sway {
-  0%,
-  100% {
-    transform: rotate(-0.5deg);
-  }
-  50% {
-    transform: rotate(0.5deg);
-  }
-}
-
 .appearance-toggle {
   justify-self: start;
   width: fit-content;
@@ -2864,6 +2829,12 @@ body[data-appearance="night"] {
 @media (prefers-reduced-motion: reduce) {
   .garden-scene [data-layer],
   .garden-scene [data-steam],
+  .garden-scene .branch-drift {
+    transform-box: fill-box;
+    transform-origin: 0 20%;
+    animation: branch-drift 13s ease-in-out infinite;
+  }
+
   .garden-scene [data-glow] {
     transition: none;
     animation: none;
@@ -2895,5 +2866,208 @@ body[data-appearance="night"] {
     display: block;
     width: 100%;
     height: min(46svh, 330px);
+  }
+}
+
+/* Scene motion. Every element carries its own duration and delay so the
+   garden rustles unevenly rather than pulsing in lockstep. */
+.garden-scene [data-layer] {
+  transition: transform 380ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.garden-scene .sway {
+  transform-box: fill-box;
+  transform-origin: 0 50%;
+  animation: sway var(--dur, 7s) ease-in-out var(--del, 0s) infinite;
+}
+
+.garden-scene [data-steam] path {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: steam var(--dur, 4.5s) ease-out var(--del, 0s) infinite;
+}
+
+.garden-scene .branch-drift {
+  transform-box: fill-box;
+  transform-origin: 0 20%;
+  animation: branch-drift 13s ease-in-out infinite;
+}
+
+.garden-scene [data-glow] {
+  animation: glow 7s ease-in-out infinite;
+}
+
+.garden-scene [data-beam] {
+  transform-box: fill-box;
+  transform-origin: 50% 0;
+  animation: beam 19s ease-in-out infinite;
+}
+
+.garden-scene [data-dapple] ellipse {
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+  animation: dapple var(--dur, 13s) ease-in-out var(--del, 0s) infinite;
+}
+
+.garden-scene [data-fall] {
+  transform-box: fill-box;
+  animation: fall var(--dur, 16s) linear var(--del, 0s) infinite;
+}
+
+.garden-scene [data-mote] circle {
+  transform-box: fill-box;
+  animation: mote var(--dur, 12s) ease-in-out var(--del, 0s) infinite;
+}
+
+.garden-scene [data-bird] {
+  transform-box: fill-box;
+  animation: fly var(--dur, 26s) linear infinite;
+}
+
+.garden-scene [data-caret] {
+  animation: caret 1.15s steps(1) infinite;
+}
+
+@keyframes sway {
+  0%,
+  100% {
+    transform: rotate(calc(var(--amp, 10deg) * -1));
+  }
+  50% {
+    transform: rotate(var(--amp, 10deg));
+  }
+}
+
+@keyframes branch-drift {
+  0%,
+  100% {
+    transform: rotate(-1.1deg) translateY(-3px);
+  }
+  50% {
+    transform: rotate(1.1deg) translateY(3px);
+  }
+}
+
+@keyframes steam {
+  0% {
+    opacity: 0;
+    transform: translateY(6px) scaleY(0.7);
+  }
+  25% {
+    opacity: 0.55;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-26px) scaleY(1.25);
+  }
+}
+
+@keyframes glow {
+  0%,
+  100% {
+    opacity: 0.78;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes beam {
+  0%,
+  100% {
+    opacity: 0.5;
+    transform: skewX(0deg);
+  }
+  50% {
+    opacity: 0.85;
+    transform: skewX(1.6deg);
+  }
+}
+
+@keyframes dapple {
+  0%,
+  100% {
+    opacity: 0.12;
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    opacity: 0.28;
+    transform: translate(14px, -5px) scale(1.07);
+  }
+}
+
+@keyframes fall {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0) rotate(0deg);
+  }
+  8% {
+    opacity: 0.9;
+  }
+  88% {
+    opacity: 0.9;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--dx, -80px), 660px) rotate(520deg);
+  }
+}
+
+@keyframes mote {
+  0%,
+  100% {
+    opacity: 0;
+    transform: translate(0, 0);
+  }
+  30%,
+  70% {
+    opacity: 0.5;
+  }
+  100% {
+    transform: translate(26px, -70px);
+  }
+}
+
+@keyframes fly {
+  0% {
+    opacity: 0;
+    transform: translate(-90px, 26px);
+  }
+  10%,
+  85% {
+    opacity: 0.75;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(720px, -46px);
+  }
+}
+
+@keyframes caret {
+  50% {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .garden-scene [data-layer],
+  .garden-scene .sway,
+  .garden-scene .branch-drift,
+  .garden-scene [data-steam] path,
+  .garden-scene [data-glow],
+  .garden-scene [data-beam],
+  .garden-scene [data-dapple] ellipse,
+  .garden-scene [data-fall],
+  .garden-scene [data-mote] circle,
+  .garden-scene [data-bird],
+  .garden-scene [data-caret] {
+    transition: none;
+    animation: none;
+  }
+
+  .garden-scene [data-fall],
+  .garden-scene [data-mote] circle,
+  .garden-scene [data-bird] {
+    display: none;
   }
 }
