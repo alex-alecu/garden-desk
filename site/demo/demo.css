@@ -20,8 +20,8 @@ body {
   gap: 8px;
   padding: 8px 16px;
   color: #dcebe7;
-  background: radial-gradient(circle at 15% 0%, rgb(118 183 170 / 24%), transparent 16rem), #071f25;
-  border-bottom: 1px solid rgb(118 183 170 / 22%);
+  background: radial-gradient(circle at 15% 0%, rgb(121 180 147 / 24%), transparent 16rem), #082416;
+  border-bottom: 1px solid rgb(121 180 147 / 22%);
   font-size: 13px;
   font-weight: 650;
   letter-spacing: 0.005em;
@@ -37,8 +37,8 @@ body {
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: #e07750;
-  box-shadow: 0 0 0 0 rgb(224 119 80 / 35%);
+  background: #d2b45e;
+  box-shadow: 0 0 0 0 rgb(210 180 94 / 35%);
   animation: demo-status-pulse 2.4s ease-out infinite;
   content: "";
 }
@@ -47,7 +47,7 @@ body {
   padding: 6px 10px;
   border: 1px solid rgb(255 255 255 / 13%);
   border-radius: 999px;
-  color: #fffaf0;
+  color: #fcfaf3;
   text-decoration: none;
   transition:
     border-color 180ms ease,
@@ -62,12 +62,12 @@ body {
 
 .demo-frame a:hover {
   transform: translateX(-2px);
-  border-color: rgb(118 183 170 / 50%);
+  border-color: rgb(121 180 147 / 50%);
   background: rgb(255 255 255 / 7%);
 }
 
 .demo-frame a:focus-visible {
-  outline: 3px solid #e07750;
+  outline: 3px solid #d2b45e;
   outline-offset: 2px;
 }
 
@@ -82,12 +82,12 @@ body {
 
 @keyframes demo-status-pulse {
   0% {
-    box-shadow: 0 0 0 0 rgb(224 119 80 / 35%);
+    box-shadow: 0 0 0 0 rgb(210 180 94 / 35%);
   }
 
   70%,
   100% {
-    box-shadow: 0 0 0 8px rgb(224 119 80 / 0%);
+    box-shadow: 0 0 0 8px rgb(210 180 94 / 0%);
   }
 }
 
