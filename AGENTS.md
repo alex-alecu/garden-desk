@@ -2,6 +2,19 @@
 
 This file is the control document for agents working in this repository. It is authoritative, followed by accepted ADRs, [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md), and [docs/DEVELOPMENT_WORKFLOW.md](docs/DEVELOPMENT_WORKFLOW.md).
 
+## Top Priority: Minimum Work
+
+This rule applies to Codex and all other agents. It controls all later repository documents, skills, and general completion rules. Only an explicit owner request can increase the work or verification scope.
+
+- Make the smallest correct change for the requested outcome. Keep required security, privacy, authority, and active product contracts complete.
+- Do not add adjacent refactors, speculative abstractions, defensive branches, options, fallbacks, compatibility layers, documentation, or cleanup.
+- Default to zero new tests. A bug gets one reproducing test. A new boundary or business rule gets at most one focused test.
+- Run only the smallest check that proves the changed behavior. Do not run the full unit suite, repository gate, milestone gate, real model, or physical microVM only for more confidence.
+- A general skill, completion checklist, review request, commit, push, or pull request does not increase the scope. If a later instruction conflicts with this rule, use the smaller change and smaller verification set.
+- Ask the owner before you add scope, tests, or verification beyond this rule.
+
+A real run is any command or script that loads a real model or starts a physical microVM. This includes a focused real-model reproduction, `pnpm test:m3:macos`, `pnpm test:m3:windows`, `pnpm test:gate --milestone 3`, and wrappers that start them. First use source inspection, existing evidence, and focused deterministic tests. If a real run is still necessary, state the unresolved question, why cheaper evidence cannot answer it, the exact command or workload, and the number of planned invocations. Then ask the owner. A direct owner request for that workload is approval. Approval covers only the named commands and invocation count. A retry needs new approval.
+
 ## Current Phase
 
 M0, M1, and M2 are complete. M3 Offline Dev-Agent Desktop V1 is active, including the owner-approved prompt-only professional review skill set. Current status lives in [docs/M3_STATUS.md](docs/M3_STATUS.md). Do not start post-V1 work (document intelligence and later) without a new explicit owner request. Preserve the completed M1 and M2 contracts, security primitives, transports, native helpers, guest images, and evidence.
@@ -10,7 +23,7 @@ M0, M1, and M2 are complete. M3 Offline Dev-Agent Desktop V1 is active, includin
 
 Tests exist for architecture boundaries, business logic, and bugs. Not for the model. Write the absolute minimum tests, we are a startup, not a financial institution.
 
-- Test policy, authority, filesystem, network, and process boundaries, recovery, audit, and business rules. Never test model behavior, prompt wording, or inference quality. The model is not tested; `pnpm test:m3:macos` and `pnpm test:m3:windows` run a few golden folder tasks with deterministic file checks before a release.
+- Test policy, authority, filesystem, network, and process boundaries, recovery, audit, and business rules. Never test model behavior, prompt wording, or inference quality. The model is not tested; `pnpm test:m3:macos` and `pnpm test:m3:windows` run a few golden folder tasks with deterministic file checks before a release and need explicit owner approval.
 - Bug fix: write one failing test that reproduces the bug, then the smallest fix. That test is the only test the fix adds.
 - Feature, refactor, docs, tooling: implement first. Default is zero new tests. Add at most one focused test per new boundary or business rule. Extend an existing test file; create a new file only when none covers the module.
 - Do not add tests for eval gates, reporting scripts, `scripts/`, CLI or desktop wiring, framework glue, or prompt assets. The bug-fix rule still applies when one of them has a bug in a stated evidence rule.

@@ -84,7 +84,7 @@ Downloaded development models, generated guest images, signed helpers, build out
 
 ## Continuous Verification
 
-`pnpm verify` remains the fast repository gate. `pnpm test:gate --milestone 3` is the V1 acceptance entrypoint and must fail rather than silently skip any required physical-platform, model, microVM, desktop, or packaging evidence.
+`pnpm verify` remains the CI and release repository gate. Run it locally only for a native helper, build script, or packaged runtime change. `pnpm test:gate --milestone 3` is the V1 acceptance entrypoint and must fail rather than silently skip any required physical-platform, model, microVM, desktop, or packaging evidence. Start it only after explicit owner approval under the Top Priority rule in `AGENTS.md`.
 
 Unit tests may use deterministic inference and guest fakes. Acceptance must use the real daemon, packaged sidecar, real host-native inference, real guest image, real microVM launchers, and real Tauri applications on macOS and Windows.
 
@@ -164,7 +164,7 @@ AI assistants, models, coding agents, and tools are never commit authors or co-a
 
 ## Change And Commit Policy
 
-- Keep commits small and leave `pnpm verify` green.
+- Keep commits small. CI must keep `pnpm verify` green; local use follows the verification table in [DEVELOPMENT_WORKFLOW.md](DEVELOPMENT_WORKFLOW.md#4-verify).
 - Beginning with M1, implementation reaches `main` only through a pull request.
 - Keep generated binaries, models, guest images, reports, packages, coverage, and dependency directories out of Git.
 - Record exact pass, fail, and not-run evidence before closing a gate.
