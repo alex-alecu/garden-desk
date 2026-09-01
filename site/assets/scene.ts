@@ -24,33 +24,6 @@ function enableSceneParallax(scene: SVGSVGElement): void {
   });
 }
 
-function preferredAppearance(): "day" | "night" {
-  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "night" : "day";
-}
-
-function describeControl(control: HTMLButtonElement, appearance: "day" | "night"): void {
-  const night = appearance === "night";
-  control.setAttribute("aria-pressed", String(night));
-  control.setAttribute(
-    "aria-label",
-    night ? "Switch the garden to day" : "Switch the garden to night",
-  );
-  const label = control.querySelector<HTMLElement>("[data-appearance-label]");
-  if (label !== null) label.textContent = night ? "Night" : "Day";
-}
-
-function enableAppearance(): void {
-  const control = document.querySelector<HTMLButtonElement>("[data-appearance-toggle]");
-  const apply = (appearance: "day" | "night") => {
-    document.body.dataset.appearance = appearance;
-    if (control !== null) describeControl(control, appearance);
-  };
-  apply(preferredAppearance());
-  control?.addEventListener("click", () => {
-    apply(document.body.dataset.appearance === "night" ? "day" : "night");
-  });
-}
-
 function frameScene(scene: SVGSVGElement): void {
   const wide = window.matchMedia("(min-width: 901px)");
   const apply = () => {
@@ -62,7 +35,6 @@ function frameScene(scene: SVGSVGElement): void {
 
 function start(): void {
   const scene = document.querySelector<SVGSVGElement>("[data-scene]");
-  enableAppearance();
   if (scene === null) return;
   frameScene(scene);
   enableSceneParallax(scene);

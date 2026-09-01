@@ -122,7 +122,6 @@ requireText(home, "Open the demo to interact.", "home mobile demo gate");
 requireText(home, "SoftwareApplication", "home");
 requireText(home, "social-card.png", "home");
 requireText(home, "data-scene", "home garden scene");
-requireText(home, "data-appearance-toggle", "home day and night control");
 requireText(home, "github.com/alex-alecu/garden-desk", "home source link");
 requireText(home, "open source", "home open-source claim");
 requireText(home, "One download", "home differentiation");

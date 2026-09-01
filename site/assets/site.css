@@ -2487,46 +2487,6 @@ body {
   background: var(--shade);
 }
 
-body[data-appearance="night"] {
-  --sky-high: #0a1712;
-  --sky-low: #14261c;
-  --sun: #24351f;
-  --brick: #2b241b;
-  --brick-light: #3b3226;
-  --brick-dark: #191410;
-  --window: #d8b25c;
-  --window-sheen: #f0d089;
-  --wall: #241f18;
-  --wall-cap: #35301f;
-  --stone: #2b3128;
-  --stone-dark: #1d231c;
-  --ivy: #16351f;
-  --ivy-dark: #0c2113;
-  --foliage: #14301e;
-  --foliage-dark: #0a1c11;
-  --bloom: #5c5334;
-  --shade: #050f0a;
-  --shade-light: #10251a;
-  --trunk: #1c150e;
-  --walnut: #3a2a1c;
-  --walnut-light: #4c3826;
-  --walnut-dark: #241a10;
-  --screen: #e2efe0;
-  --screen-ink: #2c4636;
-  --glow: #ffe9a4;
-  --cast-shadow: #040b06;
-  --canopy: #10281a;
-  --canopy-dark: #081409;
-  --stone-lit: #333a2f;
-  --terracotta: #402519;
-  --terracotta-lit: #4f2f20;
-  --door: #1a241c;
-  --bird: #1a2a1e;
-  --book-a: #2c3626;
-  --book-b: #402519;
-  --book-c: #6d5b2c;
-}
-
 .garden-scene {
   position: absolute;
   inset: 0;
@@ -2701,32 +2661,6 @@ body[data-appearance="night"] {
     width: min(1180px, 100% - 44px);
     gap: 34px;
   }
-}
-
-.appearance-toggle {
-  justify-self: start;
-  width: fit-content;
-  display: inline-flex;
-  gap: 8px;
-  align-items: center;
-  padding: 7px 15px;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  background: transparent;
-  color: inherit;
-  font: inherit;
-  font-size: 0.86rem;
-  cursor: pointer;
-}
-
-.appearance-toggle:hover {
-  border-color: var(--leaf);
-  color: var(--leaf-soft);
-}
-
-.appearance-toggle svg {
-  width: 15px;
-  height: 15px;
 }
 
 @media (prefers-reduced-motion: reduce) {
