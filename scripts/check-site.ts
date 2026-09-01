@@ -10,7 +10,6 @@ const localAssetPattern = /(?:href|src)=["']([^"']+\.(?:css|js|png|svg|woff2))["
 const routeFiles = [
   "index.html",
   "demo/index.html",
-  "downloads/index.html",
   "privacy/index.html",
   "terms/index.html",
   "security/index.html",
@@ -122,25 +121,27 @@ requireText(home, "data-embedded-demo", "home mobile demo gate");
 requireText(home, "Open the demo to interact.", "home mobile demo gate");
 requireText(home, "SoftwareApplication", "home");
 requireText(home, "social-card.png", "home");
-requireText(home, "Zero application telemetry", "home differentiation");
-requireText(home, "tracks absolutely nothing", "home differentiation");
-requireText(home, "No runtime configuration", "home differentiation");
-requireText(home, "No cloud fallback", "home differentiation");
-requireText(home, 'class="principle-cloud"', "home principle animation");
+requireText(home, "data-scene", "home garden scene");
+requireText(home, "github.com/alex-alecu/garden-desk", "home source link");
+requireText(home, "open source", "home open-source claim");
+requireText(home, "One download", "home differentiation");
+requireText(home, "Nothing to configure", "home differentiation");
+requireText(home, "Nothing tracked", "home differentiation");
+requireText(home, "No way online", "home differentiation");
 requireText(home, 'class="format-strip"', "home static format strip");
 requireText(home, "data-reveal", "home scroll motion");
-requireText(home, "data-cipher", "home cipher background animation");
 requireText(home, "Gemma 4 12B QAT", "home model");
 requireText(home, "16 GB unified memory", "home macOS requirement");
 requireText(home, "12 GB GPU VRAM", "home Windows requirement");
-
-const downloads = await text("downloads/index.html");
-if ((downloads.match(/Coming soon/gu) ?? []).length < 2) {
-  failures.push("downloads: both platforms must be unavailable");
+requireText(home, "Open it. Point it. Ask it.", "home how it works");
+requireText(home, 'id="how-it-works"', "home how-it-works anchor");
+requireText(home, 'id="requirements"', "home requirements anchor");
+if ((home.match(/Coming soon/gu) ?? []).length < 2) {
+  failures.push("home: both platforms must be unavailable");
 }
 
 const sitemap = await text("sitemap.xml");
-for (const route of ["/", "/demo/", "/downloads/", "/privacy/", "/terms/", "/security/"]) {
+for (const route of ["/", "/demo/", "/privacy/", "/terms/", "/security/"]) {
   requireText(sitemap, new URL(route, publishedRoot).href, "sitemap");
 }
 

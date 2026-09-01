@@ -5,21 +5,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       name="description"
-      content="Garden Desk is an AI desktop that runs entirely on your computer. No cloud, no account, no settings, and zero tracking."
+      content="An AI coworker for your files that runs entirely on your computer. One download, nothing to configure, nothing tracked, and no way online."
     />
-    <meta name="theme-color" content="#f3f1ec" />
+    <meta name="theme-color" content="#122b1d" />
     <meta name="robots" content="index,follow" />
     <link rel="canonical" href="https://gardendesk.ai/" />
     <link rel="icon" href="./assets/favicon.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="./assets/site.css" />
     <script type="module" src="./assets/motion.ts"></script>
+    <script type="module" src="./assets/scene.ts"></script>
     <script type="module" src="./demo-embed.ts"></script>
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Garden Desk" />
-    <meta property="og:title" content="Garden Desk - The AI cowork that tracks nothing" />
+    <meta property="og:title" content="Garden Desk - Your work. Your space." />
     <meta
       property="og:description"
-      content="An AI desktop that runs 100% on your computer. No cloud. No account. No settings. No tracking."
+      content="An AI coworker for your files, entirely on your computer. Free and open source. One download, no configuration, nothing tracked."
     />
     <meta property="og:url" content="https://gardendesk.ai/" />
     <meta
@@ -36,31 +37,28 @@
         "name": "Garden Desk",
         "applicationCategory": "BusinessApplication",
         "operatingSystem": "macOS, Windows",
-        "description": "An AI desktop that runs entirely on your computer with no cloud fallback, no runtime configuration, and zero application telemetry.",
+        "description": "An AI coworker for your files that runs entirely on your computer. One download with the model included, no runtime configuration, zero application telemetry, and no network access for the agent.",
         "url": "https://gardendesk.ai/",
         "codeRepository": "https://github.com/alex-alecu/garden-desk",
         "license": "https://www.apache.org/licenses/LICENSE-2.0"
       }
     </script>
-    <title>Garden Desk - The AI cowork that tracks nothing</title>
+    <title>Garden Desk - Your work. Your space.</title>
   </head>
   <body class="home">
     <a class="skip-link" href="#main">Skip to content</a>
-    <div class="aurora" aria-hidden="true">
-      <span class="aurora-blob aurora-one"></span>
-      <span class="aurora-blob aurora-two"></span>
-      <span class="aurora-blob aurora-three"></span>
-    </div>
+    <div class="leaf-field" data-leaf-field aria-hidden="true"></div>
     <header class="site-header" data-header>
       <a class="wordmark" href="./">
         <img src="./assets/favicon.svg" alt="" />
         Garden Desk
       </a>
       <nav aria-label="Main navigation" class="site-nav">
-        <a href="#difference">Why it's different</a>
-        <a href="#privacy">Privacy</a>
+        <a href="#how-it-works">How it works</a>
         <a href="#requirements">Requirements</a>
-        <a href="./downloads/">Downloads</a>
+        <a class="nav-source" href="https://github.com/alex-alecu/garden-desk">
+          <svg class="button-icon" aria-hidden="true" viewBox="0 0 24 24" fill="currentColor"><path d="M12 .7a11.5 11.5 0 0 0-3.64 22.4c.58.11.79-.25.79-.56v-2.02c-3.2.7-3.88-1.36-3.88-1.36-.52-1.34-1.28-1.7-1.28-1.7-1.05-.72.08-.71.08-.71 1.16.08 1.77 1.2 1.77 1.2 1.03 1.77 2.7 1.26 3.36.96.1-.75.4-1.26.73-1.55-2.56-.29-5.25-1.28-5.25-5.69 0-1.26.45-2.29 1.2-3.09-.12-.29-.52-1.46.11-3.04 0 0 .98-.31 3.16 1.18A11 11 0 0 1 12 6.91c.98 0 1.94.13 2.85.38 2.18-1.49 3.16-1.18 3.16-1.18.63 1.58.23 2.75.11 3.04.75.8 1.2 1.83 1.2 3.09 0 4.42-2.69 5.4-5.26 5.69.41.36.78 1.06.78 2.14v2.47c0 .31.21.67.79.56A11.5 11.5 0 0 0 12 .7Z" /></svg><span>GitHub</span><span aria-hidden="true" class="nav-source-arrow">&#8599;</span>
+        </a>
         <a class="nav-button" href="./demo/">
           <svg class="button-icon" aria-hidden="true" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>
           <span>See it in action</span>
@@ -68,62 +66,445 @@
       </nav>
     </header>
     <main id="main">
-      <section class="hero" data-cipher>
-        <div class="hero-copy">
-          <p class="eyebrow" data-reveal>Offline · No setup · No tracking</p>
-          <h1 data-reveal data-reveal-delay="80">
-            Nobody sees your work.
-            <span class="hero-accent">Not even us.</span>
-          </h1>
-          <p class="hero-lede" data-reveal data-reveal-delay="160">
-            AI that runs <strong>on your computer</strong>. Not “mostly.” All of it. No account. No
-            settings. No tracking. And the code is public — you don’t have to believe us.
-          </p>
-          <div class="hero-actions" data-reveal data-reveal-delay="240">
-            <a class="button button-primary" href="#demo">
+      <section class="garden">
+        <div class="garden-copy">
+          <h1>Your work.<br />Your space.</h1>
+          <p class="garden-lede">An AI coworker for your files. Entirely on your computer.</p>
+          <div class="garden-actions">
+            <a class="button button-primary" href="./demo/">
               <svg class="button-icon" aria-hidden="true" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>
-              <span>See Garden Desk in action</span>
+              <span>See it work</span>
             </a>
-            <a class="button button-secondary" href="https://github.com/alex-alecu/garden-desk"
-              ><svg class="button-icon" aria-hidden="true" viewBox="0 0 24 24" fill="currentColor"><path d="M12 .7a11.5 11.5 0 0 0-3.64 22.4c.58.11.79-.25.79-.56v-2.02c-3.2.7-3.88-1.36-3.88-1.36-.52-1.34-1.28-1.7-1.28-1.7-1.05-.72.08-.71.08-.71 1.16.08 1.77 1.2 1.77 1.2 1.03 1.77 2.7 1.26 3.36.96.1-.75.4-1.26.73-1.55-2.56-.29-5.25-1.28-5.25-5.69 0-1.26.45-2.29 1.2-3.09-.12-.29-.52-1.46.11-3.04 0 0 .98-.31 3.16 1.18A11 11 0 0 1 12 6.91c.98 0 1.94.13 2.85.38 2.18-1.49 3.16-1.18 3.16-1.18.63 1.58.23 2.75.11 3.04.75.8 1.2 1.83 1.2 3.09 0 4.42-2.69 5.4-5.26 5.69.41.36.78 1.06.78 2.14v2.47c0 .31.21.67.79.56A11.5 11.5 0 0 0 12 .7Z" /></svg><span>Read the code</span></a
+          </div>
+          <p class="open-source">
+            <svg class="button-icon" aria-hidden="true" viewBox="0 0 24 24" fill="currentColor"><path d="M12 .7a11.5 11.5 0 0 0-3.64 22.4c.58.11.79-.25.79-.56v-2.02c-3.2.7-3.88-1.36-3.88-1.36-.52-1.34-1.28-1.7-1.28-1.7-1.05-.72.08-.71.08-.71 1.16.08 1.77 1.2 1.77 1.2 1.03 1.77 2.7 1.26 3.36.96.1-.75.4-1.26.73-1.55-2.56-.29-5.25-1.28-5.25-5.69 0-1.26.45-2.29 1.2-3.09-.12-.29-.52-1.46.11-3.04 0 0 .98-.31 3.16 1.18A11 11 0 0 1 12 6.91c.98 0 1.94.13 2.85.38 2.18-1.49 3.16-1.18 3.16-1.18.63 1.58.23 2.75.11 3.04.75.8 1.2 1.83 1.2 3.09 0 4.42-2.69 5.4-5.26 5.69.41.36.78 1.06.78 2.14v2.47c0 .31.21.67.79.56A11.5 11.5 0 0 0 12 .7Z" /></svg>
+            <span
+              >Free and <strong>open source</strong> under Apache 2.0.
+              <a href="https://github.com/alex-alecu/garden-desk">Read every line &#8599;</a></span
             >
-          </div>
-          <p class="availability" data-reveal data-reveal-delay="300">
-            Free. Open source. Installers coming soon — the demo runs now, on synthetic data.
           </p>
+          <p class="availability">No account, ever. Installers coming soon.</p>
         </div>
-        <div class="hero-art" data-parallax="18">
-          <div class="hero-card" data-tilt>
-            <span class="hero-card-glow" aria-hidden="true"></span>
-            <img src="./assets/product-icon.png" alt="Garden Desk" />
-            <ul class="principle-cloud" aria-label="Privacy, local operation, and intelligence by design">
-              <li class="principle-chip principle-private">
-                <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                  <path d="M12 3 5 6v5c0 4.6 2.8 8.4 7 10 4.2-1.6 7-5.4 7-10V6z" />
-                  <path d="m9 12 2 2 4-4" />
-                </svg>
-                <strong>Private</strong>
-              </li>
-              <li class="principle-chip principle-local">
-                <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                  <rect x="3" y="5" width="18" height="13" rx="2" />
-                  <path d="M8 21h8M12 18v3" />
-                </svg>
-                <strong>Local</strong>
-              </li>
-              <li class="principle-chip principle-intelligent">
-                <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                  <path d="m12 3 1.5 4.5L18 9l-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5z" />
-                  <path d="m18.5 15 .7 2.3 2.3.7-2.3.7-.7 2.3-.7-2.3-2.3-.7 2.3-.7z" />
-                </svg>
-                <strong>Capable</strong>
-              </li>
-            </ul>
+      <svg
+        class="garden-scene"
+        data-scene
+        viewBox="0 0 1600 700"
+        preserveAspectRatio="xMidYMid meet"
+        role="img"
+        aria-label="A view through an arched garden doorway onto a walled courtyard, where a desk holds a lit monitor beneath an overhanging tree"
+      >
+        <defs>
+          <clipPath id="arch">
+            <path d="M772 700V330a308 308 0 0 1 616 0v370Z" />
+          </clipPath>
+          <linearGradient id="sky-wash" x1="0" y1="0" x2="0.2" y2="1">
+            <stop offset="0" stop-color="var(--sky-high)" />
+            <stop offset="1" stop-color="var(--sky-low)" />
+          </linearGradient>
+          <linearGradient id="pane" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="var(--window-sheen)" />
+            <stop offset="0.42" stop-color="var(--window-sheen)" />
+            <stop offset="0.44" stop-color="var(--window)" />
+            <stop offset="1" stop-color="var(--window)" />
+          </linearGradient>
+          <linearGradient id="sunbeam" x1="0" y1="0" x2="0.4" y2="1">
+            <stop offset="0" stop-color="var(--sun)" stop-opacity="0.5" />
+            <stop offset="1" stop-color="var(--sun)" stop-opacity="0" />
+          </linearGradient>
+          <radialGradient id="screen-glow" cx="0.5" cy="0.5" r="0.5">
+            <stop offset="0" stop-color="var(--glow)" stop-opacity="0.55" />
+            <stop offset="1" stop-color="var(--glow)" stop-opacity="0" />
+          </radialGradient>
+          <radialGradient id="desk-shadow" cx="0.5" cy="0.5" r="0.5">
+            <stop offset="0" stop-color="var(--cast-shadow)" stop-opacity="0.42" />
+            <stop offset="1" stop-color="var(--cast-shadow)" stop-opacity="0" />
+          </radialGradient>
+          <linearGradient id="threshold" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="var(--shade)" stop-opacity="0" />
+            <stop offset="0.55" stop-color="var(--shade)" stop-opacity="0.14" />
+            <stop offset="1" stop-color="var(--shade)" stop-opacity="0.62" />
+          </linearGradient>
+          <path id="leaf" d="M0 0c13-15 37-15 50 0-13 15-37 15-50 0Z" />
+          <g id="sprig">
+            <use href="#leaf" transform="rotate(-34) scale(.9)" />
+            <use href="#leaf" transform="translate(20 18) rotate(22) scale(.72)" />
+            <use href="#leaf" transform="translate(44 -8) rotate(-6) scale(.62)" />
+          </g>
+          <g id="frond">
+            <use href="#leaf" transform="rotate(-52) scale(.95)" />
+            <use href="#leaf" transform="translate(14 22) rotate(-12) scale(.85)" />
+            <use href="#leaf" transform="translate(38 34) rotate(26) scale(.72)" />
+            <use href="#leaf" transform="translate(52 4) rotate(-30) scale(.66)" />
+            <use href="#leaf" transform="translate(74 20) rotate(8) scale(.58)" />
+          </g>
+          <g id="grass" stroke-linecap="round" fill="none" stroke-width="5">
+            <path d="M0 0c-4-26 2-42 12-56" />
+            <path d="M10 0c0-30 8-46 22-62" />
+            <path d="M20 0c6-24 18-38 32-46" />
+          </g>
+          <g id="bird" fill="none" stroke-width="3" stroke-linecap="round">
+            <path d="M0 0q7-7 14 0" />
+            <path d="M14 0q7-7 14 0" />
+          </g>
+        </defs>
+
+        <g data-layer="courtyard" clip-path="url(#arch)">
+          <rect width="1600" height="700" fill="url(#sky-wash)" />
+
+          <g data-layer="sky-life" stroke="var(--bird)">
+            <g data-bird style="--dur: 26s">
+              <use href="#bird" transform="translate(760 96) scale(1)" />
+              <use href="#bird" transform="translate(824 128) scale(.72)" />
+            </g>
+          </g>
+
+          <g data-layer="house">
+            <path d="M700 700V214h760v486Z" fill="var(--brick)" />
+            <g opacity=".3" fill="var(--brick-dark)">
+              <rect x="700" y="252" width="760" height="3" />
+              <rect x="700" y="300" width="760" height="3" />
+              <rect x="700" y="348" width="760" height="3" />
+              <rect x="700" y="396" width="760" height="3" />
+            </g>
+            <path d="M690 186h780v20H690Z" fill="var(--brick-dark)" />
+            <path d="M690 206h780v10H690Z" fill="var(--brick-light)" />
+            <path d="M700 216h760v9H700Z" fill="var(--brick-dark)" opacity=".45" />
+            <g data-windows>
+              <g>
+                <rect x="838" y="256" width="70" height="108" fill="var(--brick-dark)" />
+                <rect x="845" y="262" width="63" height="102" fill="url(#pane)" />
+                <rect x="875" y="262" width="3" height="102" fill="var(--brick-dark)" opacity=".7" />
+                <rect x="830" y="364" width="86" height="9" fill="var(--wall-cap)" />
+              </g>
+              <g>
+                <rect x="1008" y="256" width="70" height="108" fill="var(--brick-dark)" />
+                <rect x="1015" y="262" width="63" height="102" fill="url(#pane)" />
+                <rect x="1045" y="262" width="3" height="102" fill="var(--brick-dark)" opacity=".7" />
+                <rect x="1000" y="364" width="86" height="9" fill="var(--wall-cap)" />
+              </g>
+              <g>
+                <rect x="1178" y="256" width="70" height="108" fill="var(--brick-dark)" />
+                <rect x="1185" y="262" width="63" height="102" fill="url(#pane)" />
+                <rect x="1215" y="262" width="3" height="102" fill="var(--brick-dark)" opacity=".7" />
+                <rect x="1170" y="364" width="86" height="9" fill="var(--wall-cap)" />
+              </g>
+              <g>
+                <rect x="1348" y="256" width="70" height="108" fill="var(--brick-dark)" />
+                <rect x="1355" y="262" width="63" height="102" fill="url(#pane)" />
+                <rect x="1385" y="262" width="3" height="102" fill="var(--brick-dark)" opacity=".7" />
+                <rect x="1340" y="364" width="86" height="9" fill="var(--wall-cap)" />
+              </g>
+            </g>
+            <g>
+              <rect x="738" y="286" width="62" height="118" rx="4" fill="var(--brick-dark)" />
+              <rect x="745" y="293" width="48" height="111" rx="3" fill="var(--door)" />
+              <circle cx="784" cy="350" r="4" fill="var(--brass-mark)" />
+            </g>
+            <rect x="1442" y="216" width="13" height="188" fill="var(--brick-dark)" opacity=".8" />
+            <rect x="1436" y="240" width="25" height="9" fill="var(--brick-dark)" opacity=".8" />
+            <g stroke="var(--ivy-dark)" stroke-width="5" fill="none" opacity=".95">
+              <path d="M1300 404c14-70-10-104 6-150s-4-40-4-40" />
+            </g>
+            <g fill="var(--ivy-dark)">
+              <g transform="translate(1276 232) scale(1)"><g class="sway" style="--dur: 6.2s; --del: 0.2s"><use href="#sprig" /></g></g>
+              <g transform="translate(1300 290) scale(.9)"><g class="sway" style="--dur: 7.4s; --del: 1.1s"><use href="#sprig" /></g></g>
+              <g transform="translate(1272 344) scale(1.05)"><g class="sway" style="--dur: 5.8s; --del: 0.6s"><use href="#sprig" /></g></g>
+            </g>
+          </g>
+
+          <g data-layer="wall">
+            <path d="M700 404h760v72H700Z" fill="var(--wall)" />
+            <path d="M700 396h760v12H700Z" fill="var(--wall-cap)" />
+            <path d="M700 466h760v10H700Z" fill="var(--brick-dark)" opacity=".28" />
+            <g stroke="var(--ivy-dark)" stroke-width="4" fill="none" opacity=".9">
+              <path d="M760 476c6-40-16-56-6-92" />
+              <path d="M1400 476c-8-44 14-62 4-98" />
+            </g>
+            <g fill="var(--ivy-dark)">
+              <g transform="translate(716 380) scale(1.25)"><g class="sway" style="--dur: 6.6s; --del: 0.4s"><use href="#sprig" /></g></g>
+              <g transform="translate(736 424) scale(1.1)"><g class="sway" style="--dur: 7.8s; --del: 1.6s"><use href="#sprig" /></g></g>
+              <g transform="translate(1352 374) scale(1.3)"><g class="sway" style="--dur: 6.1s; --del: 0.9s"><use href="#sprig" /></g></g>
+              <g transform="translate(1382 420) scale(1.15)"><g class="sway" style="--dur: 8.2s; --del: 2.1s"><use href="#sprig" /></g></g>
+            </g>
+            <g fill="var(--ivy)">
+              <g transform="translate(744 400) scale(1)"><g class="sway" style="--dur: 5.4s; --del: 1.3s"><use href="#sprig" /></g></g>
+              <g transform="translate(1370 398) scale(1.05)"><g class="sway" style="--dur: 6.9s; --del: 0.2s"><use href="#sprig" /></g></g>
+            </g>
+            <g fill="var(--bloom)">
+              <circle cx="1338" cy="392" r="7" />
+              <circle cx="1408" cy="410" r="6" />
+              <circle cx="726" cy="398" r="6" />
+            </g>
+          </g>
+
+          <g data-layer="ground">
+            <path d="M700 476h760v224H700Z" fill="var(--stone)" />
+            <g fill="var(--stone-dark)" opacity=".4">
+              <rect x="700" y="534" width="760" height="4" />
+              <rect x="700" y="606" width="760" height="4" />
+              <rect x="700" y="686" width="760" height="4" />
+            </g>
+            <path d="M700 476h760v34H700Z" fill="var(--cast-shadow)" opacity=".3" />
+            <g fill="var(--stone-lit)" opacity=".55">
+              <ellipse cx="880" cy="640" rx="46" ry="15" />
+              <ellipse cx="800" cy="690" rx="52" ry="17" />
+              <ellipse cx="960" cy="596" rx="38" ry="12" />
+            </g>
+            <g data-dapple fill="var(--sun)">
+              <ellipse cx="1300" cy="566" rx="118" ry="32" style="--dur: 13s" />
+              <ellipse cx="1378" cy="646" rx="86" ry="24" style="--dur: 17s; --del: 2s" />
+              <ellipse cx="1180" cy="612" rx="64" ry="20" style="--dur: 11s; --del: 4s" />
+            </g>
+          </g>
+
+          <g data-layer="border">
+            <g stroke="var(--foliage)" fill="none">
+              <g transform="translate(742 540)"><g class="sway" style="--dur: 5.2s; --del: 0.3s; --amp: 15deg"><use href="#grass" /></g></g>
+              <g transform="translate(796 528) scale(.9)"><g class="sway" style="--dur: 6.4s; --del: 1.2s; --amp: 15deg"><use href="#grass" /></g></g>
+              <g transform="translate(1408 552) scale(1.1)"><g class="sway" style="--dur: 5.8s; --del: 0.8s; --amp: 15deg"><use href="#grass" /></g></g>
+            </g>
+            <g fill="var(--foliage-dark)">
+              <g transform="translate(700 486) scale(1.9)"><g class="sway" style="--dur: 7.1s"><use href="#sprig" /></g></g>
+              <g transform="translate(1340 492) scale(1.8)"><g class="sway" style="--dur: 6.3s; --del: 1.5s"><use href="#sprig" /></g></g>
+            </g>
+            <g fill="var(--foliage)">
+              <g transform="translate(716 520) scale(1.6)"><g class="sway" style="--dur: 5.6s; --del: 0.7s"><use href="#sprig" /></g></g>
+              <g transform="translate(1380 524) scale(1.7)"><g class="sway" style="--dur: 6.8s; --del: 2.3s"><use href="#sprig" /></g></g>
+            </g>
+            <g fill="var(--bloom)">
+              <circle cx="742" cy="478" r="7" />
+              <circle cx="1372" cy="482" r="7" />
+              <circle cx="1420" cy="520" r="6" />
+              <circle cx="768" cy="516" r="6" />
+            </g>
+            <g data-layer="pot">
+              <path d="M1296 700v-54h74v54Z" fill="var(--terracotta)" />
+              <path d="M1290 638h86v16h-86Z" fill="var(--terracotta-lit)" />
+              <g fill="var(--foliage)">
+                <g transform="translate(1288 618) scale(1.5)"><g class="sway" style="--dur: 4.8s; --del: 0.5s"><use href="#sprig" /></g></g>
+                <g transform="translate(1330 600) scale(1.3)"><g class="sway" style="--dur: 6.2s; --del: 1.8s"><use href="#sprig" /></g></g>
+              </g>
+            </g>
+          </g>
+
+          <g data-layer="desk">
+            <ellipse cx="1080" cy="664" rx="250" ry="52" fill="url(#desk-shadow)" />
+            <circle cx="1080" cy="452" r="180" fill="url(#screen-glow)" data-glow />
+            <g data-layer="chair">
+              <rect x="1024" y="592" width="112" height="13" rx="4" fill="var(--walnut)" />
+              <rect x="1030" y="605" width="10" height="66" fill="var(--walnut-dark)" />
+              <rect x="1120" y="605" width="10" height="66" fill="var(--walnut-dark)" />
+              <rect x="1118" y="512" width="11" height="86" rx="4" fill="var(--walnut-dark)" />
+              <rect x="1076" y="516" width="56" height="10" rx="4" fill="var(--walnut)" />
+            </g>
+            <rect x="898" y="536" width="364" height="17" rx="3" fill="var(--walnut-light)" />
+            <rect x="898" y="553" width="364" height="13" rx="2" fill="var(--walnut)" />
+            <rect x="898" y="566" width="364" height="4" fill="var(--walnut-dark)" opacity=".6" />
+            <rect x="922" y="570" width="16" height="98" fill="var(--walnut)" />
+            <rect x="1224" y="570" width="16" height="98" fill="var(--walnut-dark)" />
+            <rect x="930" y="616" width="302" height="9" fill="var(--walnut-dark)" />
+            <g>
+              <rect x="912" y="514" width="62" height="8" rx="2" fill="var(--book-a)" />
+              <rect x="916" y="506" width="54" height="8" rx="2" fill="var(--book-b)" />
+              <rect x="920" y="498" width="46" height="8" rx="2" fill="var(--book-c)" />
+            </g>
+            <rect x="1018" y="530" width="22" height="12" fill="var(--bezel)" />
+            <rect x="988" y="522" width="82" height="9" rx="4" fill="var(--bezel)" />
+            <rect x="962" y="386" width="196" height="138" rx="7" fill="var(--bezel)" />
+            <rect x="970" y="394" width="180" height="116" rx="2" fill="var(--screen)" data-screen />
+            <g fill="var(--screen-ink)">
+              <rect x="984" y="408" width="62" height="8" rx="4" />
+              <rect x="984" y="428" width="152" height="5" rx="2" opacity=".5" />
+              <rect x="984" y="441" width="128" height="5" rx="2" opacity=".5" />
+              <rect x="984" y="454" width="146" height="5" rx="2" opacity=".5" />
+              <rect x="984" y="476" width="88" height="5" rx="2" opacity=".38" />
+              <rect x="984" y="489" width="112" height="5" rx="2" opacity=".38" />
+              <rect data-caret x="1102" y="489" width="3" height="5" rx="1.5" />
+            </g>
+            <rect x="1064" y="526" width="126" height="10" rx="4" fill="var(--wall-cap)" />
+            <ellipse cx="1214" cy="532" rx="13" ry="9" fill="var(--wall-cap)" />
+            <path d="M1198 508h32v18a16 16 0 0 1-32 0Z" fill="var(--bone)" />
+            <path d="M1230 512h9a8 8 0 0 1 0 16h-9" fill="none" stroke="var(--bone)" stroke-width="4" />
+            <g data-steam stroke="var(--bone)" stroke-width="3" stroke-linecap="round" fill="none">
+              <path d="M1206 498c-10-14 8-21-2-35" style="--dur: 4.2s" />
+              <path d="M1222 496c-9-12 7-19-2-30" style="--dur: 5.1s; --del: 1.2s" />
+              <path d="M1214 492c-8-11 6-16-2-26" style="--dur: 4.6s; --del: 2.4s" />
+            </g>
+          </g>
+
+          <path d="M1250 22 1460 22 1180 700 900 700Z" fill="url(#sunbeam)" data-beam />
+
+          <g data-layer="drift">
+            <g data-fall fill="var(--foliage)" style="--dur: 15s; --dx: -110px">
+              <use href="#leaf" transform="translate(1180 40) scale(.5)" />
+            </g>
+            <g data-fall fill="var(--ivy)" style="--dur: 19s; --del: 5s; --dx: 90px">
+              <use href="#leaf" transform="translate(960 20) scale(.42)" />
+            </g>
+            <g data-fall fill="var(--foliage-dark)" style="--dur: 22s; --del: 11s; --dx: -60px">
+              <use href="#leaf" transform="translate(1300 30) scale(.55)" />
+            </g>
+            <g data-mote fill="var(--sun)">
+              <circle cx="1220" cy="420" r="4" style="--dur: 12s" />
+              <circle cx="1150" cy="500" r="3" style="--dur: 15s; --del: 3s" />
+              <circle cx="1290" cy="470" r="3.4" style="--dur: 10s; --del: 6s" />
+              <circle cx="1100" cy="560" r="2.6" style="--dur: 17s; --del: 1.5s" />
+            </g>
+          </g>
+
+          <rect x="700" y="470" width="760" height="230" fill="url(#threshold)" />
+        </g>
+
+        <g data-layer="frame">
+          <path
+            d="M0 0h1600v700H0Z M772 700V330a308 308 0 0 1 616 0v370Z"
+            fill="var(--shade)"
+            fill-rule="evenodd"
+          />
+          <path
+            d="M772 700V330a308 308 0 0 1 616 0v370"
+            fill="none"
+            stroke="var(--wall-cap)"
+            stroke-width="16"
+          />
+          <path
+            d="M764 700V330a316 316 0 0 1 632 0v370"
+            fill="none"
+            stroke="var(--shade-light)"
+            stroke-width="6"
+            opacity=".7"
+          />
+        </g>
+
+        <g data-layer="tree">
+          <g class="branch-drift">
+          <path
+            d="M-40 6C140 30 300 26 470 78c118 36 214 34 330 6"
+            fill="none"
+            stroke="var(--trunk)"
+            stroke-width="30"
+            stroke-linecap="round"
+          />
+          <path
+            d="M150 26c40 30 54 66 52 104"
+            fill="none"
+            stroke="var(--trunk)"
+            stroke-width="13"
+            stroke-linecap="round"
+          />
+          <path
+            d="M430 70c30 34 40 72 36 112"
+            fill="none"
+            stroke="var(--trunk)"
+            stroke-width="11"
+            stroke-linecap="round"
+          />
+          <path
+            d="M660 82c22 40 24 84 14 126"
+            fill="none"
+            stroke="var(--trunk)"
+            stroke-width="9"
+            stroke-linecap="round"
+          />
+          <g fill="var(--canopy-dark)">
+            <g transform="translate(-60 -34) scale(2.4)"><g class="sway" style="--dur: 8.4s; --amp: 4deg"><use href="#frond" /></g></g>
+            <g transform="translate(130 -20) scale(2.1)"><g class="sway" style="--dur: 9.6s; --del: 1.4s; --amp: 5deg"><use href="#frond" /></g></g>
+            <g transform="translate(320 -30) scale(2)"><g class="sway" style="--dur: 7.8s; --del: 2.6s; --amp: 5deg"><use href="#frond" /></g></g>
+            <g transform="translate(520 6) scale(1.9)"><g class="sway" style="--dur: 10.2s; --del: 0.8s; --amp: 5deg"><use href="#frond" /></g></g>
+            <g transform="translate(700 -14) scale(1.8)"><g class="sway" style="--dur: 8.8s; --del: 3.1s; --amp: 5deg"><use href="#frond" /></g></g>
+          </g>
+          <g fill="var(--canopy)">
+            <g transform="translate(46 30) scale(1.9)"><g class="sway" style="--dur: 7.2s; --del: 1.9s; --amp: 5deg"><use href="#frond" /></g></g>
+            <g transform="translate(240 22) scale(1.7)"><g class="sway" style="--dur: 9.1s; --del: 0.5s; --amp: 5deg"><use href="#frond" /></g></g>
+            <g transform="translate(430 40) scale(1.6)"><g class="sway" style="--dur: 8.1s; --del: 2.2s; --amp: 5deg"><use href="#frond" /></g></g>
+            <g transform="translate(620 44) scale(1.7)"><g class="sway" style="--dur: 10.6s; --del: 1.1s; --amp: 5deg"><use href="#frond" /></g></g>
+            <g transform="translate(176 108) scale(1.4)"><g class="sway" style="--dur: 6.9s; --del: 2.8s"><use href="#sprig" /></g></g>
+            <g transform="translate(452 152) scale(1.5)"><g class="sway" style="--dur: 9.4s; --del: 0.3s"><use href="#sprig" /></g></g>
+            <g transform="translate(648 176) scale(1.6)"><g class="sway" style="--dur: 7.6s; --del: 1.6s; --amp: 5deg"><use href="#frond" /></g></g>
+          </g>
+          </g>
+        </g>
+
+        <g data-layer="foreground">
+          <g stroke="var(--trunk)" stroke-width="7" fill="none" stroke-linecap="round">
+            <path d="M1080 26c56 22 108 30 168 22" />
+          </g>
+          <g fill="var(--shade-light)">
+            <g transform="translate(1092 20) scale(1.7)"><g class="sway" style="--dur: 6.8s; --del: 0.4s"><use href="#sprig" /></g></g>
+            <g transform="translate(1180 44) scale(1.9)"><g class="sway" style="--dur: 8.2s; --del: 1.7s; --amp: 5deg"><use href="#frond" /></g></g>
+            <g transform="translate(1290 30) scale(1.6)"><g class="sway" style="--dur: 7.4s; --del: 2.9s"><use href="#sprig" /></g></g>
+            <g transform="translate(1404 96) scale(2.2)"><g class="sway" style="--dur: 9.2s; --del: 0.9s"><use href="#sprig" /></g></g>
+            <g transform="translate(1478 206) scale(1.9)"><g class="sway" style="--dur: 7.9s; --del: 2.4s"><use href="#sprig" /></g></g>
+          </g>
+          <g fill="var(--shade)">
+            <g transform="translate(-40 560) scale(3.4)"><g class="sway" style="--dur: 9.8s; --del: 0.6s; --amp: 5deg"><use href="#frond" /></g></g>
+            <g transform="translate(130 640) scale(2.8)"><g class="sway" style="--dur: 8.6s; --del: 2.1s"><use href="#sprig" /></g></g>
+            <g transform="translate(1340 640) scale(3)"><g class="sway" style="--dur: 10.4s; --del: 1.3s; --amp: 5deg"><use href="#frond" /></g></g>
+          </g>
+        </g>
+      </svg>
+      </section>
+
+      <section class="claims" aria-labelledby="claims-title">
+        <h2 class="visually-hidden" id="claims-title">What makes Garden Desk different</h2>
+        <ul class="claim-list">
+          <li class="claim">
+            <h3>One download</h3>
+            <p>
+              The app, the model, and everything it runs on arrive together. Nothing to assemble,
+              no keys, no service to sign up for.
+            </p>
+          </li>
+          <li class="claim">
+            <h3>Nothing to configure</h3>
+            <p>
+              No model to choose, no settings to tune. Open it, point it at a folder, and ask for
+              what you want.
+            </p>
+          </li>
+          <li class="claim">
+            <h3>Nothing tracked</h3>
+            <p>
+              No analytics, no crash reports, not even a count of which features you use. There is
+              nothing to opt out of.
+            </p>
+          </li>
+          <li class="claim">
+            <h3>No way online</h3>
+            <p>
+              The agent works in a sealed workspace on your computer with no network connection at
+              all. Your files stay put because there is no route out.
+            </p>
+          </li>
+        </ul>
+      </section>
+
+      <section class="section process-section" id="how-it-works">
+        <div class="section-inner">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow" data-reveal>No setup ritual</p>
+              <h2 data-reveal data-reveal-delay="70">Open it. Point it. Ask it.</h2>
+            </div>
+            <p data-reveal data-reveal-delay="140">That’s the whole onboarding. There is no step four.</p>
           </div>
-          <aside class="private-note">
-            <strong>Zero means zero</strong>
-            No analytics. No crash reports. No “anonymous” usage pings. Nothing to opt out of.
-          </aside>
+          <div class="step-grid">
+            <article class="step-card" data-reveal>
+              <span>1</span>
+              <h3>Open Garden Desk</h3>
+              <p>No account. No key. The model is already there.</p>
+            </article>
+            <article class="step-card" data-reveal data-reveal-delay="90">
+              <span>2</span>
+              <h3>Point at your work</h3>
+              <p>Pick a folder or attach files. Your source stays read-only.</p>
+            </article>
+            <article class="step-card" data-reveal data-reveal-delay="180">
+              <span>3</span>
+              <h3>Ask, then check the receipts</h3>
+              <p>Describe the outcome. Inspect the answer, the files, every step.</p>
+            </article>
+          </div>
         </div>
       </section>
 
@@ -168,279 +549,6 @@
         </ul>
       </section>
 
-      <section class="section dark benefit-section">
-        <div class="section-inner">
-          <div class="section-heading">
-            <div>
-              <p class="eyebrow" data-reveal>Three promises, zero asterisks</p>
-              <h2 data-reveal data-reveal-delay="70">We didn’t add a privacy setting.</h2>
-            </div>
-            <p data-reveal data-reveal-delay="140">
-              We removed the thing it would protect you from. Nothing sent, nothing leaked. Nothing
-              to configure, nothing to misconfigure.
-            </p>
-          </div>
-          <div class="benefit-grid">
-            <article class="benefit-card" data-reveal data-tilt>
-              <span>01</span>
-              <h3>Zero application telemetry</h3>
-              <p>No analytics. No crash reports. No metrics. Not “off by default” — <strong>absent</strong>.</p>
-            </article>
-            <article class="benefit-card" data-reveal data-reveal-delay="90" data-tilt>
-              <span>02</span>
-              <h3>No cloud fallback</h3>
-              <p>
-                The model runs on your hardware. Hard task? It still runs on your hardware. There is
-                no “then it uploads your file” step.
-              </p>
-            </article>
-            <article class="benefit-card" data-reveal data-reveal-delay="180" data-tilt>
-              <span>03</span>
-              <h3>No runtime configuration</h3>
-              <p>
-                No providers, endpoints, model files, or sliders. It reads your hardware and
-                decides. You point at a folder and ask.
-              </p>
-            </article>
-          </div>
-        </div>
-      </section>
-
-      <section class="section difference-section" id="difference">
-        <div class="section-inner">
-          <div class="section-heading">
-            <div>
-              <p class="eyebrow" data-reveal>Straight comparison</p>
-              <h2 data-reveal data-reveal-delay="70">Private <em>and</em> finished.</h2>
-            </div>
-            <p data-reveal data-reveal-delay="140">
-              Cloud is easy — you give up custody. Local keeps custody — you get a control panel.
-              Read the third column.
-            </p>
-          </div>
-          <table class="comparison-board" data-reveal>
-            <caption>Common AI product tradeoffs compared with Garden Desk</caption>
-            <thead>
-              <tr class="comparison-row comparison-header">
-                <th scope="col">What matters</th>
-                <th scope="col">Common AI products</th>
-                <th scope="col">Garden Desk</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr class="comparison-row">
-                <th scope="row">Data collection</th>
-                <td class="comparison-common">
-                <small>Common AI products</small>
-                Feature analytics, crash reporting, or usage metrics may be enabled.
-                </td>
-                <td class="comparison-vault">
-                <small>Garden Desk</small>
-                No application telemetry — ever.
-                </td>
-              </tr>
-              <tr class="comparison-row">
-                <th scope="row">Where work runs</th>
-                <td class="comparison-common">
-                <small>Common AI products</small>
-                Cloud or hybrid workflows often depend on remote services.
-                </td>
-                <td class="comparison-vault">
-                <small>Garden Desk</small>
-                Fully local and offline, with no silent cloud fallback.
-                </td>
-              </tr>
-              <tr class="comparison-row">
-                <th scope="row">Setup</th>
-                <td class="comparison-common">
-                <small>Common AI products</small>
-                Choose providers, model files, servers, endpoints, and memory settings.
-                </td>
-                <td class="comparison-vault">
-                <small>Garden Desk</small>
-                No runtime configuration. Hardware-aware defaults are automatic.
-                </td>
-              </tr>
-              <tr class="comparison-row">
-                <th scope="row">Who it is for</th>
-                <td class="comparison-common">
-                <small>Common AI products</small>
-                Interfaces are often organized around models and developer controls.
-                </td>
-                <td class="comparison-vault">
-                <small>Garden Desk</small>
-                An outcome-first workspace for ordinary, sensitive work.
-                </td>
-              </tr>
-              <tr class="comparison-row">
-                <th scope="row">If the company disappears</th>
-                <td class="comparison-common">
-                <small>Common AI products</small>
-                Access usually ends with the subscription or the hosted service.
-                </td>
-                <td class="comparison-vault">
-                <small>Garden Desk</small>
-                It keeps working. It never needed us to be online.
-                </td>
-              </tr>
-            </tbody>
-          </table>
-          <p class="comparison-note">
-            Other local products also promise zero telemetry. What is different here is combining
-            that with offline execution, bounded tools, and no model administration at all.
-          </p>
-        </div>
-      </section>
-
-      <section class="section example-section">
-        <div class="section-inner">
-          <div class="section-heading">
-            <div>
-              <p class="eyebrow" data-reveal>Everyday examples</p>
-              <h2 data-reveal data-reveal-delay="70">Sensitive tasks deserve a private workspace.</h2>
-            </div>
-            <p data-reveal data-reveal-delay="140">
-              These are illustrative uses, not professional advice or automated decisions. Every
-              generated result requires human review.
-            </p>
-          </div>
-          <div class="example-grid">
-            <article class="example-card" data-reveal>
-              <small>Financial records</small>
-              <h3>Find entries that deserve a second look</h3>
-              <p>Review invented transaction data and prepare a clear checklist for a person to verify.</p>
-            </article>
-            <article class="example-card" data-reveal data-reveal-delay="60">
-              <small>Agreements</small>
-              <h3>Pull out dates and obligations</h3>
-              <p>Summarize renewal and termination language without presenting legal advice.</p>
-            </article>
-            <article class="example-card" data-reveal data-reveal-delay="120">
-              <small>Health administration</small>
-              <h3>Organize administrative records</h3>
-              <p>Summarize appointments and form status without diagnosis or clinical recommendations.</p>
-            </article>
-            <article class="example-card" data-reveal data-reveal-delay="180">
-              <small>CV preparation</small>
-              <h3>Standardize experience and skills</h3>
-              <p>Format stated experience without ranking people or making hiring recommendations.</p>
-            </article>
-          </div>
-        </div>
-      </section>
-
-      <section class="section process-section" id="how-it-works">
-        <div class="section-inner">
-          <div class="section-heading">
-            <div>
-              <p class="eyebrow" data-reveal>No setup ritual</p>
-              <h2 data-reveal data-reveal-delay="70">Open it. Point it. Ask it.</h2>
-            </div>
-            <p data-reveal data-reveal-delay="140">That’s the whole onboarding. There is no step four.</p>
-          </div>
-          <div class="step-grid">
-            <article class="step-card" data-reveal>
-              <span>1</span>
-              <h3>Open Garden Desk</h3>
-              <p>No account. No key. The model is already there.</p>
-            </article>
-            <article class="step-card" data-reveal data-reveal-delay="90">
-              <span>2</span>
-              <h3>Point at your work</h3>
-              <p>Pick a folder or attach files. Your source stays read-only.</p>
-            </article>
-            <article class="step-card" data-reveal data-reveal-delay="180">
-              <span>3</span>
-              <h3>Ask, then check the receipts</h3>
-              <p>Describe the outcome. Inspect the answer, the files, every step.</p>
-            </article>
-          </div>
-        </div>
-      </section>
-
-      <section class="section model-section">
-        <div class="section-inner model-panel" data-reveal>
-          <div class="model-copy">
-            <p class="eyebrow">Open model. Managed for you.</p>
-            <h2>A serious model, already installed.</h2>
-            <p>
-              V1 ships Gemma 4 12B QAT — an Apache-2.0 open model from Google — with a pinned local
-              runtime. No wizard, no endpoint, no second server.
-            </p>
-            <p>
-              It’s the default, not a lock-in. We’ll keep shipping the best open model that passes
-              the same privacy, quality, and hardware gates.
-            </p>
-          </div>
-          <dl class="model-facts">
-            <div><dt>V1 default</dt><dd>Gemma 4 12B QAT</dd></div>
-            <div><dt>License</dt><dd>Apache 2.0</dd></div>
-            <div><dt>Operation</dt><dd>Completely offline</dd></div>
-            <div><dt>Setup</dt><dd>No configuration</dd></div>
-          </dl>
-        </div>
-      </section>
-
-      <section class="section dark privacy-section" id="privacy">
-        <div class="section-inner privacy-grid">
-          <div class="privacy-copy-block">
-            <p class="eyebrow" data-reveal>Privacy without an opt-out</p>
-            <h2 data-reveal data-reveal-delay="70">We cannot track what we never collect.</h2>
-            <p class="section-copy" data-reveal data-reveal-delay="140">
-              Garden Desk tracks absolutely nothing. No pipeline to disable — none exists. The
-              desktop works offline, and generated tools run in a sealed environment with no
-              network interface.
-            </p>
-            <div class="privacy-actions" data-reveal data-reveal-delay="200">
-              <a class="privacy-link" href="./security/">
-                Security overview <span aria-hidden="true">&#8599;</span>
-              </a>
-              <a class="privacy-link" href="./privacy/">
-                Privacy notice <span aria-hidden="true">&#8599;</span>
-              </a>
-            </div>
-          </div>
-          <div class="privacy-list">
-            <article data-reveal>
-              <span class="privacy-icon" aria-hidden="true">
-                <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
-                  <path d="M3 12h3l2-5 4 10 2-5h7" />
-                  <path d="M4 4l16 16" />
-                </svg>
-              </span>
-              <div>
-                <h3>No feature tracking</h3>
-                <p>We do not count which buttons, workflows, file types, or features you use.</p>
-              </div>
-            </article>
-            <article data-reveal data-reveal-delay="90">
-              <span class="privacy-icon" aria-hidden="true">
-                <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
-                  <path d="m12 3 8 4.5v9L12 21l-8-4.5v-9L12 3Z" />
-                  <path d="m4.5 7.8 7.5 4.2 7.5-4.2M12 12v9" />
-                </svg>
-              </span>
-              <div>
-                <h3>No crash or background reporting</h3>
-                <p>The application sends no automatic crash reports, diagnostics, or usage metrics.</p>
-              </div>
-            </article>
-            <article data-reveal data-reveal-delay="180">
-              <span class="privacy-icon" aria-hidden="true">
-                <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
-                  <path d="M6 3h9l3 3v15H6z" />
-                  <path d="M14 3v4h4M9 15l2 2 4-5" />
-                </svg>
-              </span>
-              <div>
-                <h3>Local audit records stay local</h3>
-                <p>Records are not transmitted unless the owner explicitly exports them.</p>
-              </div>
-            </article>
-          </div>
-        </div>
-      </section>
-
       <section class="section demo-section" id="demo">
         <div class="section-inner">
           <div class="section-heading">
@@ -482,11 +590,34 @@
         </div>
       </section>
 
+      <section class="section model-section">
+        <div class="section-inner model-panel" data-reveal>
+          <div class="model-copy">
+            <p class="eyebrow">Open model. Managed for you.</p>
+            <h2>A serious model, already installed.</h2>
+            <p>
+              V1 ships Gemma 4 12B QAT — an Apache-2.0 open model from Google — with a pinned local
+              runtime. No wizard, no endpoint, no second server.
+            </p>
+            <p>
+              It’s the default, not a lock-in. We’ll keep shipping the best open model that passes
+              the same privacy, quality, and hardware gates.
+            </p>
+          </div>
+          <dl class="model-facts">
+            <div><dt>V1 default</dt><dd>Gemma 4 12B QAT</dd></div>
+            <div><dt>License</dt><dd>Apache 2.0</dd></div>
+            <div><dt>Operation</dt><dd>Completely offline</dd></div>
+            <div><dt>Setup</dt><dd>No configuration</dd></div>
+          </dl>
+        </div>
+      </section>
+
       <section class="section requirements-section" id="requirements">
         <div class="section-inner">
           <div class="section-heading">
             <div>
-              <p class="eyebrow" data-reveal>The honest requirements</p>
+              <p class="eyebrow" data-reveal>Requirements and availability</p>
               <h2 data-reveal data-reveal-delay="70">Real privacy costs real silicon.</h2>
             </div>
             <p data-reveal data-reveal-delay="140">
@@ -505,6 +636,7 @@
                 <small>macOS</small>
                 <h3>Apple silicon Mac</h3>
                 <p><strong>16 GB unified memory</strong> or more</p>
+                <span class="status-pill">Coming soon</span>
               </div>
             </article>
             <article class="requirement-card" data-reveal data-reveal-delay="90" data-tilt>
@@ -519,6 +651,7 @@
                 <small>Windows</small>
                 <h3>PC with NVIDIA graphics</h3>
                 <p><strong>12 GB GPU VRAM</strong> or more</p>
+                <span class="status-pill">Coming soon</span>
               </div>
             </article>
           </div>
@@ -552,23 +685,24 @@
             <div><strong>License</strong><span>Apache License 2.0</span></div>
             <div><strong>Development</strong><span>Public repository and issue tracker</span></div>
             <div><strong>Security</strong><span>Private reporting policy for vulnerabilities</span></div>
+            <div><strong>If we disappear</strong><span>It keeps working. It never needed us online.</span></div>
           </div>
         </div>
       </section>
 
       <section class="section final-cta">
-        <div class="section-inner" data-reveal data-cipher>
-          <p class="eyebrow">No tracking. No cloud. No configuration.</p>
-          <h2>Try the one AI that cannot talk about you.</h2>
-          <p>The demo is open right now. Signed installers land when certification is done.</p>
+        <div class="section-inner" data-reveal>
+          <p class="eyebrow">Nothing tracked. Nothing to configure.</p>
+          <h2>Open the demo. Judge for yourself.</h2>
+          <p>It runs in your browser on invented data. No model, no upload, nothing saved.</p>
           <div class="section-actions">
             <a class="button button-primary" href="./demo/">
               <svg class="button-icon" aria-hidden="true" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>
               <span>See Garden Desk in action</span>
             </a>
-            <a class="button button-secondary" href="./downloads/">
-              <svg class="button-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0 5-5m-5 5-5-5M4 20h16" /></svg>
-              <span>Check download availability</span>
+            <a class="button button-secondary" href="#requirements">
+              <svg class="button-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="12" rx="2" /><path d="M8 20h8M12 16v4" /></svg>
+              <span>Check requirements</span>
             </a>
           </div>
         </div>
@@ -577,6 +711,8 @@
     <footer class="site-footer">
       <span>Garden Desk project · Local-first software in active development</span>
       <nav aria-label="Legal and project links" class="footer-links">
+        <a href="#how-it-works">How it works</a>
+        <a href="#requirements">Requirements</a>
         <a href="./privacy/">Privacy</a>
         <a href="./terms/">Terms</a>
         <a href="./security/">Security</a>

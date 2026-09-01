@@ -61,7 +61,7 @@ Gemma 4 is the default model, and a few of its habits shaped the agent loop. The
 
 ## Public website
 
-Explore the [public website and interactive demo](https://alex-alecu.github.io/garden-desk/) or run it locally with `pnpm site:dev`.
+Explore the [public website and interactive demo](https://gardendesk.ai/) or run it locally with `pnpm site:dev`.
 
 ## More capable than file ingestion
 
