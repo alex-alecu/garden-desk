@@ -2047,21 +2047,6 @@ body {
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .garden-scene [data-layer],
-  .garden-scene [data-steam],
-  .garden-scene .branch-drift {
-    transform-box: fill-box;
-    transform-origin: 0 20%;
-    animation: branch-drift 13s ease-in-out infinite;
-  }
-
-  .garden-scene [data-glow] {
-    transition: none;
-    animation: none;
-  }
-}
-
 @media (max-width: 900px) {
   .garden {
     display: block;
