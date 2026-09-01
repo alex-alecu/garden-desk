@@ -54,9 +54,8 @@
         Garden Desk
       </a>
       <nav aria-label="Main navigation" class="site-nav">
-        <a href="./about/">About</a>
-        <a href="./about/#requirements">Requirements</a>
-        <a href="./downloads/">Downloads</a>
+        <a href="#how-it-works">How it works</a>
+        <a href="#requirements">Requirements</a>
         <a class="nav-source" href="https://github.com/alex-alecu/garden-desk">
           <svg class="button-icon" aria-hidden="true" viewBox="0 0 24 24" fill="currentColor"><path d="M12 .7a11.5 11.5 0 0 0-3.64 22.4c.58.11.79-.25.79-.56v-2.02c-3.2.7-3.88-1.36-3.88-1.36-.52-1.34-1.28-1.7-1.28-1.7-1.05-.72.08-.71.08-.71 1.16.08 1.77 1.2 1.77 1.2 1.03 1.77 2.7 1.26 3.36.96.1-.75.4-1.26.73-1.55-2.56-.29-5.25-1.28-5.25-5.69 0-1.26.45-2.29 1.2-3.09-.12-.29-.52-1.46.11-3.04 0 0 .98-.31 3.16 1.18A11 11 0 0 1 12 6.91c.98 0 1.94.13 2.85.38 2.18-1.49 3.16-1.18 3.16-1.18.63 1.58.23 2.75.11 3.04.75.8 1.2 1.83 1.2 3.09 0 4.42-2.69 5.4-5.26 5.69.41.36.78 1.06.78 2.14v2.47c0 .31.21.67.79.56A11.5 11.5 0 0 0 12 .7Z" /></svg><span>GitHub</span><span aria-hidden="true" class="nav-source-arrow">&#8599;</span>
         </a>
@@ -480,6 +479,35 @@
         </ul>
       </section>
 
+      <section class="section process-section" id="how-it-works">
+        <div class="section-inner">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow" data-reveal>No setup ritual</p>
+              <h2 data-reveal data-reveal-delay="70">Open it. Point it. Ask it.</h2>
+            </div>
+            <p data-reveal data-reveal-delay="140">That’s the whole onboarding. There is no step four.</p>
+          </div>
+          <div class="step-grid">
+            <article class="step-card" data-reveal>
+              <span>1</span>
+              <h3>Open Garden Desk</h3>
+              <p>No account. No key. The model is already there.</p>
+            </article>
+            <article class="step-card" data-reveal data-reveal-delay="90">
+              <span>2</span>
+              <h3>Point at your work</h3>
+              <p>Pick a folder or attach files. Your source stays read-only.</p>
+            </article>
+            <article class="step-card" data-reveal data-reveal-delay="180">
+              <span>3</span>
+              <h3>Ask, then check the receipts</h3>
+              <p>Describe the outcome. Inspect the answer, the files, every step.</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
       <section class="format-strip" aria-labelledby="format-strip-title">
         <p id="format-strip-title">Familiar files, handled locally</p>
         <ul class="format-list" aria-label="Common supported file formats">
@@ -520,7 +548,6 @@
           </li>
         </ul>
       </section>
-
 
       <section class="section demo-section" id="demo">
         <div class="section-inner">
@@ -563,6 +590,105 @@
         </div>
       </section>
 
+      <section class="section model-section">
+        <div class="section-inner model-panel" data-reveal>
+          <div class="model-copy">
+            <p class="eyebrow">Open model. Managed for you.</p>
+            <h2>A serious model, already installed.</h2>
+            <p>
+              V1 ships Gemma 4 12B QAT — an Apache-2.0 open model from Google — with a pinned local
+              runtime. No wizard, no endpoint, no second server.
+            </p>
+            <p>
+              It’s the default, not a lock-in. We’ll keep shipping the best open model that passes
+              the same privacy, quality, and hardware gates.
+            </p>
+          </div>
+          <dl class="model-facts">
+            <div><dt>V1 default</dt><dd>Gemma 4 12B QAT</dd></div>
+            <div><dt>License</dt><dd>Apache 2.0</dd></div>
+            <div><dt>Operation</dt><dd>Completely offline</dd></div>
+            <div><dt>Setup</dt><dd>No configuration</dd></div>
+          </dl>
+        </div>
+      </section>
+
+      <section class="section requirements-section" id="requirements">
+        <div class="section-inner">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow" data-reveal>Requirements and availability</p>
+              <h2 data-reveal data-reveal-delay="70">Real privacy costs real silicon.</h2>
+            </div>
+            <p data-reveal data-reveal-delay="140">
+              No datacenter. Your computer does the work. V1 targets:
+            </p>
+          </div>
+          <div class="requirements-grid">
+            <article class="requirement-card" data-reveal data-tilt>
+              <span class="requirement-icon" aria-hidden="true">
+                <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <rect x="4" y="4" width="16" height="12" rx="2" />
+                  <path d="M2 20h20M9 16v4M15 16v4" />
+                </svg>
+              </span>
+              <div>
+                <small>macOS</small>
+                <h3>Apple silicon Mac</h3>
+                <p><strong>16 GB unified memory</strong> or more</p>
+                <span class="status-pill">Coming soon</span>
+              </div>
+            </article>
+            <article class="requirement-card" data-reveal data-reveal-delay="90" data-tilt>
+              <span class="requirement-icon" aria-hidden="true">
+                <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <rect x="3" y="5" width="18" height="14" rx="2" />
+                  <circle cx="9" cy="12" r="3" />
+                  <path d="M15 9h3M15 12h3M15 15h3" />
+                </svg>
+              </span>
+              <div>
+                <small>Windows</small>
+                <h3>PC with NVIDIA graphics</h3>
+                <p><strong>12 GB GPU VRAM</strong> or more</p>
+                <span class="status-pill">Coming soon</span>
+              </div>
+            </article>
+          </div>
+          <p class="requirements-note">
+            Downloads stay closed until signed installers and the certified configuration list are
+            ready. We’d rather be late than hand you an unsigned build.
+          </p>
+        </div>
+      </section>
+
+      <section class="section source-section">
+        <div class="section-inner open-source-panel" data-reveal>
+          <div>
+            <p class="eyebrow">Risk reversal</p>
+            <h2>Do not trust us. Read the code.</h2>
+            <p>
+              Every claim on this page is about software you can open. Apache 2.0, fully public. Go
+              find the telemetry. There is none.
+            </p>
+            <div class="section-actions">
+              <a class="button button-primary" href="https://github.com/alex-alecu/garden-desk">
+                <svg class="button-icon" aria-hidden="true" viewBox="0 0 24 24" fill="currentColor"><path d="M12 .7a11.5 11.5 0 0 0-3.64 22.4c.58.11.79-.25.79-.56v-2.02c-3.2.7-3.88-1.36-3.88-1.36-.52-1.34-1.28-1.7-1.28-1.7-1.05-.72.08-.71.08-.71 1.16.08 1.77 1.2 1.77 1.2 1.03 1.77 2.7 1.26 3.36.96.1-.75.4-1.26.73-1.55-2.56-.29-5.25-1.28-5.25-5.69 0-1.26.45-2.29 1.2-3.09-.12-.29-.52-1.46.11-3.04 0 0 .98-.31 3.16 1.18A11 11 0 0 1 12 6.91c.98 0 1.94.13 2.85.38 2.18-1.49 3.16-1.18 3.16-1.18.63 1.58.23 2.75.11 3.04.75.8 1.2 1.83 1.2 3.09 0 4.42-2.69 5.4-5.26 5.69.41.36.78 1.06.78 2.14v2.47c0 .31.21.67.79.56A11.5 11.5 0 0 0 12 .7Z" /></svg>
+                <span>Browse on GitHub</span>
+              </a>
+              <a class="button button-secondary" href="https://github.com/alex-alecu/garden-desk/blob/main/LICENSE"
+                ><svg class="button-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 3h8l4 4v14H6zM14 3v5h5M9 13h6M9 17h6" /></svg><span>Read the license</span></a
+              >
+            </div>
+          </div>
+          <div class="open-source-meta">
+            <div><strong>License</strong><span>Apache License 2.0</span></div>
+            <div><strong>Development</strong><span>Public repository and issue tracker</span></div>
+            <div><strong>Security</strong><span>Private reporting policy for vulnerabilities</span></div>
+            <div><strong>If we disappear</strong><span>It keeps working. It never needed us online.</span></div>
+          </div>
+        </div>
+      </section>
 
       <section class="section final-cta">
         <div class="section-inner" data-reveal data-cipher>
@@ -574,9 +700,9 @@
               <svg class="button-icon" aria-hidden="true" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>
               <span>See Garden Desk in action</span>
             </a>
-            <a class="button button-secondary" href="./downloads/">
-              <svg class="button-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0 5-5m-5 5-5-5M4 20h16" /></svg>
-              <span>Check download availability</span>
+            <a class="button button-secondary" href="#requirements">
+              <svg class="button-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="12" rx="2" /><path d="M8 20h8M12 16v4" /></svg>
+              <span>Check requirements</span>
             </a>
           </div>
         </div>
@@ -585,8 +711,8 @@
     <footer class="site-footer">
       <span>Garden Desk project · Local-first software in active development</span>
       <nav aria-label="Legal and project links" class="footer-links">
-        <a href="./about/">About</a>
-        <a href="./about/#requirements">Requirements</a>
+        <a href="#how-it-works">How it works</a>
+        <a href="#requirements">Requirements</a>
         <a href="./privacy/">Privacy</a>
         <a href="./terms/">Terms</a>
         <a href="./security/">Security</a>

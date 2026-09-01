@@ -9,9 +9,7 @@ const deploymentAssetPattern = /-[A-Za-z0-9_-]{8}\.(?:css|js|png|svg|woff2)$/u;
 const localAssetPattern = /(?:href|src)=["']([^"']+\.(?:css|js|png|svg|woff2))["']/giu;
 const routeFiles = [
   "index.html",
-  "about/index.html",
   "demo/index.html",
-  "downloads/index.html",
   "privacy/index.html",
   "terms/index.html",
   "security/index.html",
@@ -123,7 +121,6 @@ requireText(home, "data-embedded-demo", "home mobile demo gate");
 requireText(home, "Open the demo to interact.", "home mobile demo gate");
 requireText(home, "SoftwareApplication", "home");
 requireText(home, "social-card.png", "home");
-requireText(home, 'href="./about/"', "home about link");
 requireText(home, "data-scene", "home garden scene");
 requireText(home, "data-appearance-toggle", "home day and night control");
 requireText(home, "github.com/alex-alecu/garden-desk", "home source link");
@@ -134,31 +131,18 @@ requireText(home, "Nothing tracked", "home differentiation");
 requireText(home, "No way online", "home differentiation");
 requireText(home, 'class="format-strip"', "home static format strip");
 requireText(home, "data-reveal", "home scroll motion");
-
-const about = await text("about/index.html");
-requireText(about, "Zero application telemetry", "about differentiation");
-requireText(about, "tracks absolutely nothing", "about differentiation");
-requireText(about, "No runtime configuration", "about differentiation");
-requireText(about, "No cloud fallback", "about differentiation");
-requireText(about, "Gemma 4 12B QAT", "about model");
-requireText(about, "16 GB unified memory", "about macOS requirement");
-requireText(about, "12 GB GPU VRAM", "about Windows requirement");
-
-const downloads = await text("downloads/index.html");
-if ((downloads.match(/Coming soon/gu) ?? []).length < 2) {
-  failures.push("downloads: both platforms must be unavailable");
+requireText(home, "Gemma 4 12B QAT", "home model");
+requireText(home, "16 GB unified memory", "home macOS requirement");
+requireText(home, "12 GB GPU VRAM", "home Windows requirement");
+requireText(home, "Open it. Point it. Ask it.", "home how it works");
+requireText(home, 'id="how-it-works"', "home how-it-works anchor");
+requireText(home, 'id="requirements"', "home requirements anchor");
+if ((home.match(/Coming soon/gu) ?? []).length < 2) {
+  failures.push("home: both platforms must be unavailable");
 }
 
 const sitemap = await text("sitemap.xml");
-for (const route of [
-  "/",
-  "/about/",
-  "/demo/",
-  "/downloads/",
-  "/privacy/",
-  "/terms/",
-  "/security/",
-]) {
+for (const route of ["/", "/demo/", "/privacy/", "/terms/", "/security/"]) {
   requireText(sitemap, new URL(route, publishedRoot).href, "sitemap");
 }
 
