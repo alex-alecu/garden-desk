@@ -6,7 +6,6 @@ const parallaxDepth: Record<string, number> = {
   ground: 11,
   border: 14,
   desk: 16,
-  branch: 26,
   foreground: 34,
 };
 
