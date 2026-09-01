@@ -43,7 +43,7 @@ Use the smallest row that matches the change:
 | Change | Local verification |
 | --- | --- |
 | Documentation or instructions only | Inspect the diff, validate links and command names, and run `git diff --check`. Run no product tests. |
-| Focused source change | Run `pnpm lint`, `pnpm typecheck`, and the one focused test required by the Test Rule, if any. |
+| Focused source change | Run `pnpm lint`, `pnpm typecheck`, and the one focused test required by the Test Rule, if any. For a platform boundary, use `pnpm test:platform:gate`. For an M2 native boundary, use `pnpm test:native:m2`. |
 | Native helper, build script, or packaged runtime | Run `pnpm verify`. Do not duplicate commands that it includes. |
 | Full `pnpm test` suite | Leave it to CI unless the owner explicitly requests a local run. |
 | Real model, physical microVM, golden task, or milestone gate | Use only as a last resort and only with explicit owner approval under the Top Priority rule in `AGENTS.md`. |
