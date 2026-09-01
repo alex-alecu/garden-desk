@@ -1,4 +1,4 @@
-import type { ChatToolCall } from "@vault/shared";
+import type { ChatToolCall } from "@gardendesk/shared";
 
 const MAX_OBJECT_LENGTH = 80;
 

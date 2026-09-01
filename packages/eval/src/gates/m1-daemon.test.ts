@@ -3,7 +3,7 @@ import { lstat, mkdir, mkdtemp, realpath, rm, symlink, writeFile } from "node:fs
 import { createConnection, createServer } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { createVaultCore, daemonEndpoint, startDaemon } from "@vault/core";
+import { createGardenDeskCore, daemonEndpoint, startDaemon } from "@gardendesk/core";
 import {
   FolderSummarySchema,
   PROTOCOL_VERSION,
@@ -11,7 +11,7 @@ import {
   RpcResponseSchema,
   SessionPageSchema,
   SessionSummarySchema,
-} from "@vault/shared";
+} from "@gardendesk/shared";
 import { afterEach, describe, expect, it } from "vitest";
 
 const temporaryRoots: string[] = [];
@@ -24,7 +24,7 @@ async function createTestCore(workspaceDir: string) {
     join(modelStoreDir, "installed-models.json"),
     JSON.stringify({ schemaVersion: 1, models: [] }),
   );
-  return createVaultCore({ workspaceDir, modelStoreDir, profile: "local12" });
+  return createGardenDeskCore({ workspaceDir, modelStoreDir, profile: "local12" });
 }
 
 interface WindowsPipeSecurityReport {
@@ -34,7 +34,7 @@ interface WindowsPipeSecurityReport {
   sddl: string;
 }
 
-async function temporaryRoot(prefix = "vault-m1-daemon-"): Promise<string> {
+async function temporaryRoot(prefix = "garden-desk-m1-"): Promise<string> {
   const root = await mkdtemp(join(tmpdir(), prefix));
   temporaryRoots.push(root);
   return root;
@@ -96,7 +96,7 @@ function rpcResult(response: RpcResponse): unknown {
 function windowsPipeSecurity(endpoint: string): WindowsPipeSecurityReport {
   const helper = join(
     process.cwd(),
-    "packages/core/native/windows-pipe-guard/.generated/vault-pipe-guard.exe",
+    "packages/core/native/windows-pipe-guard/.generated/garden-desk-pipe-guard.exe",
   );
   const result = spawnSync(helper, ["probe", endpoint], { encoding: "utf8" });
   if (result.status !== 0) throw new Error(result.stderr || "Windows pipe security probe failed.");
@@ -115,7 +115,7 @@ async function waitForRpc(endpoint: string): Promise<void> {
   throw new Error("Daemon did not become responsive.");
 }
 
-async function restartDaemon(core: Awaited<ReturnType<typeof createVaultCore>>, root: string) {
+async function restartDaemon(core: Awaited<ReturnType<typeof createGardenDeskCore>>, root: string) {
   let lastError: unknown;
   for (let attempt = 0; attempt < 100; attempt += 1) {
     try {
@@ -190,7 +190,7 @@ describe("M1 daemon and local transport", () => {
     const core = await createTestCore(root);
     const first = await startDaemon(core, root);
     if (process.platform === "win32") {
-      expect(first.endpoint).toMatch(/^\\\\\.\\pipe\\vault-cored-/u);
+      expect(first.endpoint).toMatch(/^\\\\\.\\pipe\\garden-desk-cored-/u);
       const security = windowsPipeSecurity(first.endpoint);
       expect(security.currentUserOnly).toBe(true);
       expect(security.currentUserSid).toMatch(/^S-1-/u);
@@ -199,7 +199,7 @@ describe("M1 daemon and local transport", () => {
     } else {
       const state = await lstat(first.endpoint);
       expect(state.mode & 0o777).toBe(0o600);
-      const directory = await lstat(join(root, ".vault"));
+      const directory = await lstat(join(root, ".garden-desk"));
       expect(directory.mode & 0o777).toBe(0o700);
     }
     expect("result" in (await rpc(first.endpoint))).toBe(true);
@@ -261,8 +261,8 @@ describe("M1 daemon recovery", () => {
 });
 describe("M3 conversation daemon methods", () => {
   it("returns safe summaries, deletes sessions, and types invalid-folder failures", async () => {
-    const root = await temporaryRoot("vault-m3-daemon-");
-    const selected = await temporaryRoot("vault-m3-selected-");
+    const root = await temporaryRoot("garden-desk-m3-");
+    const selected = await temporaryRoot("garden-desk-m3-selected-");
     const core = await createTestCore(root);
     const daemon = await startDaemon(core, root);
     const missing = await rpcMethod(daemon.endpoint, {

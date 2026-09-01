@@ -1,4 +1,4 @@
-import type { AgentArtifactSummary } from "@vault/shared";
+import type { AgentArtifactSummary } from "@gardendesk/shared";
 import { useState } from "react";
 import type { ArtifactSaveResult } from "../artifact-actions.js";
 

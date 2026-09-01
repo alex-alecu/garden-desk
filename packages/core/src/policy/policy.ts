@@ -1,4 +1,4 @@
-import type { PolicyDecision } from "@vault/shared";
+import type { PolicyDecision } from "@gardendesk/shared";
 
 export function workspacePathDecision(withinScope: boolean): PolicyDecision {
   return withinScope

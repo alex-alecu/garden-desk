@@ -6,8 +6,8 @@ import type {
   AgentTrace,
   AttachmentSummary,
   SessionDraft,
-} from "@vault/shared";
-import type { CodeAgentLauncher } from "@vault/workers";
+} from "@gardendesk/shared";
+import type { CodeAgentLauncher } from "@gardendesk/workers";
 import type { AuditLog } from "../audit/log.js";
 import type { ConversationStore } from "../conversations/store.js";
 import type { JobStore } from "../jobs/jobs.js";

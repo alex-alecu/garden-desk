@@ -1,4 +1,4 @@
-import { AgentArtifactSummarySchema, AgentExecutionSnapshotSchema } from "@vault/shared";
+import { AgentArtifactSummarySchema, AgentExecutionSnapshotSchema } from "@gardendesk/shared";
 import { describe, expect, it } from "vitest";
 import { sessionTranscript, transcriptHasContent } from "./session-transcript.js";
 import type { TimelineItem } from "./state.js";

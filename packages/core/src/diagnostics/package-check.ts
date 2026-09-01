@@ -4,7 +4,7 @@ import { isAbsolute, join } from "node:path";
 import { createDebugFixture, IDS } from "./session-fixture.js";
 
 async function main(executable: string | undefined): Promise<void> {
-  if (executable === undefined) throw new Error("Missing standalone Vault Core executable.");
+  if (executable === undefined) throw new Error("Missing standalone Garden Desk Core executable.");
   const fixture = await createDebugFixture();
   let snapshot: string | undefined;
   try {
@@ -29,7 +29,7 @@ async function main(executable: string | undefined): Promise<void> {
       snapshot.includes("\n") ||
       snapshot.includes("\r")
     ) {
-      throw new Error("The standalone Vault Core diagnostic mode failed its package check.");
+      throw new Error("The standalone Garden Desk Core diagnostic mode failed its package check.");
     }
     const session = await lstat(join(snapshot, "session.json"));
     if (!session.isFile()) throw new Error("The standalone debug snapshot is incomplete.");

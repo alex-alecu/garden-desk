@@ -22,7 +22,7 @@ afterEach(async () => {
 
 describe("persistent agent workspace manifests", () => {
   it("atomically commits and rehydrates content-addressed files and empty directories", async () => {
-    const root = await mkdtemp(join(tmpdir(), "vault-workspace-store-"));
+    const root = await mkdtemp(join(tmpdir(), "garden-desk-workspace-store-"));
     roots.push(root);
     const store = await AgentWorkspaceStore.create(root);
     const sessionId = randomUUID();
@@ -52,7 +52,7 @@ describe("persistent agent workspace manifests", () => {
   });
 
   it("rejects traversing paths and mismatched content", async () => {
-    const root = await mkdtemp(join(tmpdir(), "vault-workspace-store-invalid-"));
+    const root = await mkdtemp(join(tmpdir(), "garden-desk-workspace-store-invalid-"));
     roots.push(root);
     const store = await AgentWorkspaceStore.create(root);
     await expect(
@@ -78,7 +78,7 @@ describe("persistent agent workspace manifests", () => {
 
 describe("committed workspace file reads", () => {
   it("returns verified bytes for one regular file", async () => {
-    const root = await mkdtemp(join(tmpdir(), "vault-workspace-read-"));
+    const root = await mkdtemp(join(tmpdir(), "garden-desk-workspace-read-"));
     roots.push(root);
     const store = await AgentWorkspaceStore.create(root);
     const sessionId = randomUUID();
@@ -94,7 +94,7 @@ describe("committed workspace file reads", () => {
   });
 
   it("finishes an accepted read before a concurrent delete", async () => {
-    const root = await mkdtemp(join(tmpdir(), "vault-workspace-read-delete-"));
+    const root = await mkdtemp(join(tmpdir(), "garden-desk-workspace-read-delete-"));
     roots.push(root);
     const store = await AgentWorkspaceStore.create(root);
     const sessionId = randomUUID();
@@ -112,7 +112,7 @@ describe("committed workspace file reads", () => {
 
 describe("agent workspace deltas", () => {
   it("applies changed, added, and removed paths before committing a new manifest", async () => {
-    const root = await mkdtemp(join(tmpdir(), "vault-workspace-store-delta-"));
+    const root = await mkdtemp(join(tmpdir(), "garden-desk-workspace-store-delta-"));
     roots.push(root);
     const store = await AgentWorkspaceStore.create(root);
     const sessionId = randomUUID();
@@ -139,7 +139,7 @@ describe("agent workspace deltas", () => {
   });
 
   it("preserves concurrent commits from different agent sessions", async () => {
-    const root = await mkdtemp(join(tmpdir(), "vault-workspace-store-concurrent-"));
+    const root = await mkdtemp(join(tmpdir(), "garden-desk-workspace-store-concurrent-"));
     roots.push(root);
     const store = await AgentWorkspaceStore.create(root);
     const bytes = Buffer.alloc(4 * 1024 * 1024, "shared");
@@ -164,7 +164,7 @@ describe("agent workspace deltas", () => {
 
 describe("agent workspace blob integrity", () => {
   it("rejects a same-length corrupted content-addressed blob", async () => {
-    const root = await mkdtemp(join(tmpdir(), "vault-workspace-store-corrupt-"));
+    const root = await mkdtemp(join(tmpdir(), "garden-desk-workspace-store-corrupt-"));
     roots.push(root);
     const store = await AgentWorkspaceStore.create(root);
     const sessionId = randomUUID();
@@ -178,7 +178,7 @@ describe("agent workspace blob integrity", () => {
   });
 
   it("rejects a content-addressed blob replaced by an escaping link", async () => {
-    const root = await mkdtemp(join(tmpdir(), "vault-workspace-store-link-"));
+    const root = await mkdtemp(join(tmpdir(), "garden-desk-workspace-store-link-"));
     roots.push(root);
     const store = await AgentWorkspaceStore.create(root);
     const sessionId = randomUUID();

@@ -6,7 +6,7 @@ import type {
   AgentRunResult,
   AgentRunSummary,
   ConversationMessage,
-} from "@vault/shared";
+} from "@gardendesk/shared";
 import type { JobStore } from "../jobs/jobs.js";
 import type { InferenceService } from "../runtime/inference.js";
 import type { DatabasePort } from "../workspace/database.js";

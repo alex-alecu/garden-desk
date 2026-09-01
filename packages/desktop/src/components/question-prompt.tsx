@@ -1,4 +1,4 @@
-import type { AgentQuestionRequest } from "@vault/shared";
+import type { AgentQuestionRequest } from "@gardendesk/shared";
 import { handleQuestionKey } from "../question-keyboard.js";
 import { type DisplayOption, useQuestionPrompt } from "../use-question-prompt.js";
 import { Icon } from "./icons.js";

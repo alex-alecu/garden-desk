@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { AgentExecutionIdSchema } from "@vault/shared";
+import { AgentExecutionIdSchema } from "@gardendesk/shared";
 import { describe, expect, it } from "vitest";
 import { encodeFrame } from "../ipc.js";
 import { AgentHelperTransport } from "./agent-transport.js";

@@ -10,7 +10,7 @@ import {
   type ContentHash,
   type JobId,
   type RequestId,
-} from "@vault/shared";
+} from "@gardendesk/shared";
 import type { ChatInput, GenerationInput } from "../runtime/inference.js";
 import type { ArtifactStore } from "../workspace/artifacts.js";
 import type { DatabasePort } from "../workspace/database.js";

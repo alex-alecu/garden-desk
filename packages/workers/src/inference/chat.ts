@@ -1,4 +1,4 @@
-import type { ChatGenerationRequest, ChatMessage, ChatToolCall } from "@vault/shared";
+import type { ChatGenerationRequest, ChatMessage, ChatToolCall } from "@gardendesk/shared";
 import type {
   ChatHistoryItem,
   ChatModelFunctions,

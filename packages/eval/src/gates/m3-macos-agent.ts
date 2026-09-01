@@ -1,8 +1,8 @@
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { createVaultCore } from "@vault/core";
-import { MacOsMicroVmLauncher } from "@vault/workers";
+import { createGardenDeskCore } from "@gardendesk/core";
+import { MacOsMicroVmLauncher } from "@gardendesk/workers";
 import { prepareAgentModelStore } from "./agent-model-store.js";
 import { developmentInferenceWorkerEntryPath } from "./development-inference-path.js";
 import { runGoldenTasks } from "./m3-golden-tasks.js";
@@ -11,7 +11,7 @@ import { runGuestEvidence } from "./m3-guest.js";
 const repositoryRoot = process.cwd();
 const helper = join(
   repositoryRoot,
-  "packages/workers/native/macos-vz-helper/.generated/vault-vz-helper",
+  "packages/workers/native/macos-vz-helper/.generated/garden-desk-vz-helper",
 );
 const images = join(repositoryRoot, "packages/workers/images");
 const modelRoot = join(repositoryRoot, "packages/eval/.generated/models");
@@ -24,11 +24,11 @@ if (process.platform !== "darwin" || process.arch !== "arm64") {
   throw new Error("The M3 macOS gate requires Apple silicon.");
 }
 
-const root = await mkdtemp(join(tmpdir(), "vault-m3-agent-gate-"));
+const root = await mkdtemp(join(tmpdir(), "garden-desk-m3-agent-gate-"));
 try {
   await prepareAgentModelStore(modelRoot);
   await runGuestEvidence(root, (workspace) => new MacOsMicroVmLauncher(helper, images, workspace));
-  const core = await createVaultCore({
+  const core = await createGardenDeskCore({
     workspaceDir: join(root, "agent-workspace"),
     modelStoreDir: modelRoot,
     profile: "auto",

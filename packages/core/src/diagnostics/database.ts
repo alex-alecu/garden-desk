@@ -10,7 +10,7 @@ import {
   type SessionDraft,
   SessionIdSchema,
   type SessionSummary,
-} from "@vault/shared";
+} from "@gardendesk/shared";
 import { DebugSessionError, debugStateInvalid } from "./errors.js";
 import { safeDatabasePath } from "./files.js";
 import {

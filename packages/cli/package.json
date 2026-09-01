@@ -1,15 +1,15 @@
 {
-  "name": "@vault/cli",
+  "name": "@gardendesk/cli",
   "version": "0.0.0",
   "private": true,
   "type": "module",
   "bin": {
-    "vault": "./src/main.ts"
+    "garden-desk": "./src/main.ts"
   },
   "exports": {
     "./client": "./src/client.ts"
   },
   "dependencies": {
-    "@vault/shared": "workspace:*"
+    "@gardendesk/shared": "workspace:*"
   }
 }

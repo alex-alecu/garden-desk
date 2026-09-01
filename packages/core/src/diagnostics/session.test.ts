@@ -32,7 +32,7 @@ async function assertPrivateTree(path: string): Promise<void> {
 async function assertWindowsPrivateTree(path: string): Promise<void> {
   const script = `
 $ErrorActionPreference = 'Stop'
-$root = [Environment]::GetEnvironmentVariable('VAULT_TEST_SNAPSHOT_PATH', 'Process')
+$root = [Environment]::GetEnvironmentVariable('GARDEN_DESK_TEST_SNAPSHOT_PATH', 'Process')
 $sid = [Security.Principal.WindowsIdentity]::GetCurrent().User.Value
 $items = @((Get-Item -LiteralPath $root -Force)) + @(Get-ChildItem -LiteralPath $root -Recurse -Force)
 foreach ($item in $items) {
@@ -48,14 +48,14 @@ $rootAcl = [IO.Directory]::GetAccessControl($root)
 if (-not $rootAcl.AreAccessRulesProtected) { throw 'snapshot root inherits access rules' }
 `;
   await run("powershell.exe", ["-NoLogo", "-NoProfile", "-NonInteractive", "-Command", script], {
-    env: { ...process.env, VAULT_TEST_SNAPSHOT_PATH: path },
+    env: { ...process.env, GARDEN_DESK_TEST_SNAPSHOT_PATH: path },
     windowsHide: true,
   });
 }
 
 async function debugDirectories(): Promise<Set<string>> {
   return new Set(
-    (await readdir(tmpdir())).filter((name) => name.startsWith("vault-session-debug-")),
+    (await readdir(tmpdir())).filter((name) => name.startsWith("garden-desk-session-debug-")),
   );
 }
 
@@ -186,7 +186,9 @@ it("prints a fresh temporary path from the Core diagnostic mode", async () => {
 
   expect(first.stderr).toBe("");
   expect(paths[0]).not.toBe(paths[1]);
-  expect(paths.every((path) => path.startsWith(join(tmpdir(), "vault-session-debug-")))).toBe(true);
+  expect(paths.every((path) => path.startsWith(join(tmpdir(), "garden-desk-session-debug-")))).toBe(
+    true,
+  );
   expect(await lstat(join(paths[0] ?? "", "session.json"))).toBeDefined();
 });
 

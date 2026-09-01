@@ -4,8 +4,8 @@ import {
   type AgentExecutionResult,
   type AgentVmDiagnosticCode,
   type WorkerLimits,
-} from "@vault/shared";
-import type { CodeAgentLauncher } from "@vault/workers";
+} from "@gardendesk/shared";
+import type { CodeAgentLauncher } from "@gardendesk/workers";
 import { M3ProductCheckFailure, requireM3ProductCheck } from "./m3-gate-support.js";
 
 const limits: WorkerLimits = {

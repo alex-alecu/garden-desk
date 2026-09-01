@@ -8,7 +8,7 @@ import {
   MicroVmProbeReportSchema,
   type WorkerLimits,
   WorkerLimitsSchema,
-} from "@vault/shared";
+} from "@gardendesk/shared";
 import { stagePackedAgentInputs } from "./agent-staging.js";
 import { AgentHelperTransport } from "./agent-transport.js";
 import { emitDiagnostic } from "./diagnostics.js";
@@ -169,7 +169,7 @@ export class MacOsMicroVmLauncher implements MicroVmLauncher, CodeAgentLauncher 
   constructor(
     private readonly helperPath: string,
     private readonly imageRoot: string = join(process.cwd(), "packages/workers/images"),
-    private readonly workspaceRoot: string = join(process.cwd(), ".vault/agent-workspaces"),
+    private readonly workspaceRoot: string = join(process.cwd(), ".garden-desk/agent-workspaces"),
   ) {}
 
   private store(): Promise<AgentWorkspaceStore> {
@@ -185,7 +185,7 @@ export class MacOsMicroVmLauncher implements MicroVmLauncher, CodeAgentLauncher 
     WorkerLimitsSchema.parse(request.limits);
     const signal = launchSignal(request.signal, request.limits.wallTimeMs + VM_BOOT_GRACE_MS);
     signal.throwIfAborted();
-    const temporaryRoot = await mkdtemp(join(tmpdir(), `vault-worker-${request.jobId}-`));
+    const temporaryRoot = await mkdtemp(join(tmpdir(), `garden-desk-worker-${request.jobId}-`));
     try {
       const inputs = await stageInputs(request.readonlyInputs, temporaryRoot, request, signal);
       const scratch = join(temporaryRoot, "scratch.img");
@@ -227,7 +227,7 @@ export class MacOsMicroVmLauncher implements MicroVmLauncher, CodeAgentLauncher 
     WorkerLimitsSchema.parse(request.limits);
     const signal = launchSignal(request.signal, VM_BOOT_GRACE_MS + request.limits.wallTimeMs);
     signal.throwIfAborted();
-    const temporaryRoot = await mkdtemp(join(tmpdir(), `vault-agent-${request.sessionId}-`));
+    const temporaryRoot = await mkdtemp(join(tmpdir(), `garden-desk-agent-${request.sessionId}-`));
     try {
       return await this.startAgentSession(request, temporaryRoot, signal);
     } catch (error) {

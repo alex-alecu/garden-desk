@@ -1,4 +1,4 @@
-import type { AgentExecutionSnapshot } from "@vault/shared";
+import type { AgentExecutionSnapshot } from "@gardendesk/shared";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { selectAdjacentTab } from "./tab-keyboard.js";
 

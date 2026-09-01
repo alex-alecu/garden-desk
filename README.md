@@ -23,7 +23,7 @@ Conversations, files, generated work, audit records, and diagnostic traces stay 
 - **Model runtime:** [`node-llama-cpp` 3.19.0](https://node-llama-cpp.withcat.ai/) for chat and pinned `llama.cpp` b9842 for on-demand image inspection, using the same GGUF model on macOS and Windows. The model stack is Apache 2.0 licensed; the runtimes are MIT licensed.
 - **Desktop and control plane:** a [Tauri v2](https://tauri.app/) and React interface over a TypeScript and Node.js core that owns permissions, sessions, model requests, limits, audit, and recovery.
 
-The model does not run as a server on an exposed port. It runs in a separate, supervised process and communicates with Vault Core through fixed, typed stdin and stdout. This preserves local GPU acceleration while denying the model network access, credentials, a host shell, unrestricted files, or approval authority. It also lets the operating system reclaim the complete model runtime when the worker stops.
+The model does not run as a server on an exposed port. It runs in a separate, supervised process and communicates with Garden Desk Core through fixed, typed stdin and stdout. This preserves local GPU acceleration while denying the model network access, credentials, a host shell, unrestricted files, or approval authority. It also lets the operating system reclaim the complete model runtime when the worker stops.
 
 To run the desktop locally:
 
@@ -77,7 +77,7 @@ Before a release, `pnpm test:m3:macos` and `pnpm test:m3:windows` run the guest 
 
 ## Isolation on macOS and Windows
 
-Every conversation uses a session-scoped microVM with no virtual network device, DNS, route, bridge, NAT, or proxy. It receives the selected folder as a live read-only mount, immutable attachments, a bounded private workspace, and one typed host/guest channel. The model can propose work; Vault Core decides what is valid and the microVM performs it without unrestricted host access or any network access.
+Every conversation uses a session-scoped microVM with no virtual network device, DNS, route, bridge, NAT, or proxy. It receives the selected folder as a live read-only mount, immutable attachments, a bounded private workspace, and one typed host/guest channel. The model can propose work; Garden Desk Core decides what is valid and the microVM performs it without unrestricted host access or any network access.
 
 ### macOS
 
@@ -85,7 +85,7 @@ On Apple silicon, Garden Desk uses Apple's **Virtualization.framework**. It prov
 
 ### Windows
 
-On Windows Pro and Enterprise with Hyper-V already enabled, Garden Desk uses **HCS and Hyper-V** utility VMs. These are the platform-native isolation and lifecycle primitives. A read-only **Plan9** share exposes the selected folder, and a fixed **Hyper-V socket** carries typed messages without adding a network adapter or general network path. A signed Windows-only helper elevates once to add the requesting user to Hyper-V Administrators; the application and Vault Core then run as that standard user without recurring UAC. This standing group membership gives every process under that Windows account Hyper-V management authority. Garden Desk does not enable or download Windows features.
+On Windows Pro and Enterprise with Hyper-V already enabled, Garden Desk uses **HCS and Hyper-V** utility VMs. These are the platform-native isolation and lifecycle primitives. A read-only **Plan9** share exposes the selected folder, and a fixed **Hyper-V socket** carries typed messages without adding a network adapter or general network path. A signed Windows-only helper elevates once to add the requesting user to Hyper-V Administrators; the application and Garden Desk Core then run as that standard user without recurring UAC. This standing group membership gives every process under that Windows account Hyper-V management authority. Garden Desk does not enable or download Windows features.
 
 ## Project status
 

@@ -1,4 +1,4 @@
-import type { InferencePerformance } from "@vault/shared";
+import type { InferencePerformance } from "@gardendesk/shared";
 
 export function emptyPerformance(): InferencePerformance {
   return {

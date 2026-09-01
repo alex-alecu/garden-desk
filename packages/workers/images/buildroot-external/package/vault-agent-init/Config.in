@@ -1,5 +1,0 @@
-config BR2_PACKAGE_VAULT_AGENT_INIT
-	bool "vault-agent-init"
-	depends on BR2_PACKAGE_PYTHON3
-	help
-	  Single-purpose M3 typed code-agent entrypoint.

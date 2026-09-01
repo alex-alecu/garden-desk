@@ -15,7 +15,7 @@ use cli::{Command, RunArguments, VisionArguments};
 use std::error::Error;
 
 #[cfg(windows)]
-const PROFILE_NAME: &str = "VaultDesk.M2.Inference";
+const PROFILE_NAME: &str = "GardenDesk.M2.Inference";
 
 #[cfg(windows)]
 #[cfg(windows)]
@@ -34,7 +34,7 @@ fn run_worker(arguments: RunArguments) -> Result<i32, Box<dyn Error>> {
         container.grant_file_read(path)?;
     }
     let mut child_arguments = vec![
-        "--conditions=vault-runtime".to_owned(),
+        "--conditions=gardendesk-runtime".to_owned(),
         "--preserve-symlinks".to_owned(),
         "--preserve-symlinks-main".to_owned(),
         worker_entry.to_string_lossy().into_owned(),

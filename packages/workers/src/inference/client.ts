@@ -1,4 +1,4 @@
-import type { InferenceWorkerResponse } from "@vault/shared";
+import type { InferenceWorkerResponse } from "@gardendesk/shared";
 import {
   type NativeWorkerHandle,
   NativeWorkerLaunchError,
@@ -42,7 +42,7 @@ function launchFailure(error: unknown): Error {
 async function recordLaunchFailure(execution: InferenceExecution, error: unknown): Promise<void> {
   try {
     if (
-      globalThis.__VAULT_DEVELOPMENT_BUILD__ === true &&
+      globalThis.__GARDEN_DESK_DEVELOPMENT_BUILD__ === true &&
       execution.request.operation !== "probe"
     ) {
       await waitForDevelopmentHostRecord(

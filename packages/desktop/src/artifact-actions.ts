@@ -1,4 +1,4 @@
-import type { AgentArtifactSummary } from "@vault/shared";
+import type { AgentArtifactSummary } from "@gardendesk/shared";
 import type { DesktopApi } from "./api.js";
 
 type SetError = (message: string | undefined) => void;

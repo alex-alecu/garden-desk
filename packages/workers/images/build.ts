@@ -89,8 +89,8 @@ function build(
   const variables = ["BR2_EXTERNAL=/external", "O=/workspace/output", "BR2_DL_DIR=/downloads"];
   const config =
     agentBuild && selected === "x86_64"
-      ? "vault_agent_x86_64_defconfig"
-      : (manifest.builder.config ?? `vault_probe_${selected}_defconfig`);
+      ? "garden_desk_agent_x86_64_defconfig"
+      : (manifest.builder.config ?? `garden_desk_probe_${selected}_defconfig`);
   run("docker", [...base, "make", "-C", source, ...variables, config]);
   run("docker", [...base, "make", "-s", "-C", source, ...variables]);
 }
@@ -156,9 +156,9 @@ async function install(selected: GuestArchitecture, source: string): Promise<voi
   }
 }
 
-const archiveValue = process.env.VAULT_BUILDROOT_ARCHIVE;
+const archiveValue = process.env.GARDEN_DESK_BUILDROOT_ARCHIVE;
 if (archiveValue === undefined)
-  throw new Error("Set VAULT_BUILDROOT_ARCHIVE to the pinned Buildroot archive.");
+  throw new Error("Set GARDEN_DESK_BUILDROOT_ARCHIVE to the pinned Buildroot archive.");
 const archive = resolve(archiveValue);
 if ((await sha256(archive)) !== manifest.builder.sourceSha256)
   throw new Error("Buildroot source SHA-256 mismatch.");

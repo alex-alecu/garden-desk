@@ -1,4 +1,4 @@
-import type { AgentExecutionResult, ChatGenerationResult } from "@vault/shared";
+import type { AgentExecutionResult, ChatGenerationResult } from "@gardendesk/shared";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { ChatInput } from "../runtime/inference.js";
 import type { DatabasePort } from "../workspace/database.js";

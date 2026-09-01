@@ -1,5 +1,5 @@
 {
-  "name": "@vault/core",
+  "name": "@gardendesk/core",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -10,10 +10,10 @@
     }
   },
   "bin": {
-    "vault-cored": "./src/daemon/main.ts"
+    "garden-desk-cored": "./src/daemon/main.ts"
   },
   "dependencies": {
-    "@vault/shared": "workspace:*",
-    "@vault/workers": "workspace:*"
+    "@gardendesk/shared": "workspace:*",
+    "@gardendesk/workers": "workspace:*"
   }
 }

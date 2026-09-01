@@ -1,4 +1,4 @@
-import type { AgentQuestion } from "@vault/shared";
+import type { AgentQuestion } from "@gardendesk/shared";
 import { describe, expect, it, vi } from "vitest";
 import { askRunQuestion, createPendingQuestion, settleRunQuestion } from "./agent-questions.js";
 import type { ActiveRun } from "./service-active.js";

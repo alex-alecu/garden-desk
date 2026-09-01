@@ -1,4 +1,4 @@
-import type { ErrorCode, InferenceWorkerResponse } from "@vault/shared";
+import type { ErrorCode, InferenceWorkerResponse } from "@gardendesk/shared";
 
 type InferenceFailure = Extract<InferenceWorkerResponse, { status: "error" }>["error"];
 

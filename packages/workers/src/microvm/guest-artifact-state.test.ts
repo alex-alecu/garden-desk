@@ -1,12 +1,12 @@
 // biome-ignore lint/style/noRestrictedImports: this verification test runs the real guest Python module.
 import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
-import { isUserArtifactWorkspacePath } from "@vault/shared";
+import { isUserArtifactWorkspacePath } from "@gardendesk/shared";
 import { describe, expect, it } from "vitest";
 
 const agentPath = fileURLToPath(
   new URL(
-    "../../images/buildroot-external/package/vault-agent-init/src/vault-agent.py",
+    "../../images/buildroot-external/package/garden-desk-agent-init/src/garden-desk-agent.py",
     import.meta.url,
   ),
 );
@@ -22,7 +22,7 @@ if sys.platform == "win32":
     import types
     sys.modules["resource"] = types.ModuleType("resource")
 
-spec = importlib.util.spec_from_file_location("vault_agent", sys.argv[1])
+spec = importlib.util.spec_from_file_location("garden_desk_agent", sys.argv[1])
 module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(module)
 previous = {"keep.txt": "keep", "report.xlsx": "old", "removed.txt": "removed"}
@@ -63,12 +63,12 @@ if sys.platform == "win32":
     import types
     sys.modules["resource"] = types.ModuleType("resource")
 
-spec = importlib.util.spec_from_file_location("vault_agent", sys.argv[1])
+spec = importlib.util.spec_from_file_location("garden_desk_agent", sys.argv[1])
 module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(module)
 content = base64.b64encode(b"x").decode("ascii")
 workspace = [
-    {"kind": "file", "path": ".vault-tools/internal.py", "contentHash": "internal", "bytesBase64": content},
+    {"kind": "file", "path": ".garden-desk-tools/internal.py", "contentHash": "internal", "bytesBase64": content},
     *[
         {"kind": "file", "path": f"result-{index:02}.txt", "contentHash": str(index), "bytesBase64": content}
         for index in range(17)
@@ -101,7 +101,7 @@ if sys.platform == "win32":
     import types
     sys.modules["resource"] = types.ModuleType("resource")
 
-spec = importlib.util.spec_from_file_location("vault_agent", sys.argv[1])
+spec = importlib.util.spec_from_file_location("garden_desk_agent", sys.argv[1])
 module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(module)
 content = base64.b64encode(b"same bytes").decode("ascii")
@@ -128,7 +128,7 @@ if sys.platform == "win32":
     import types
     sys.modules["resource"] = types.ModuleType("resource")
 
-spec = importlib.util.spec_from_file_location("vault_agent", sys.argv[1])
+spec = importlib.util.spec_from_file_location("garden_desk_agent", sys.argv[1])
 module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(module)
 print(json.dumps([module.is_artifact_candidate(path) for path in json.loads(sys.argv[2])]))
@@ -146,8 +146,8 @@ describe("guest artifact baseline", () => {
       "report.txt",
       "steps",
       "steps/repair.py",
-      ".vault-tools/run.py",
-      ".vault-output/result.txt",
+      ".garden-desk-tools/run.py",
+      ".garden-desk-output/result.txt",
       "checkpoint.json",
       "nested/Checkpoints.JSON",
       "reports/checkpoint.json.tmp",

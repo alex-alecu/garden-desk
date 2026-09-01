@@ -5,10 +5,10 @@ import { join } from "node:path";
 import {
   ArtifactStore,
   AuditLog,
-  createVaultCore,
+  createGardenDeskCore,
   ScopedFileSystem,
   WorkspaceScope,
-} from "@vault/core";
+} from "@gardendesk/core";
 import Database from "better-sqlite3";
 import { afterEach, describe, expect, it } from "vitest";
 
@@ -21,11 +21,11 @@ async function createTestCore(workspaceDir: string) {
     join(modelStoreDir, "installed-models.json"),
     JSON.stringify({ schemaVersion: 1, models: [] }),
   );
-  return createVaultCore({ workspaceDir, modelStoreDir, profile: "local12" });
+  return createGardenDeskCore({ workspaceDir, modelStoreDir, profile: "local12" });
 }
 
 async function temporaryRoot(): Promise<string> {
-  const root = await mkdtemp(join(tmpdir(), "vault-m1-workspace-"));
+  const root = await mkdtemp(join(tmpdir(), "garden-desk-m1-workspace-"));
   temporaryRoots.push(root);
   return root;
 }
@@ -77,7 +77,10 @@ describe("M1 artifact security and identity", () => {
     expect((await artifacts.read(hash)).toString()).toBe("authoritative");
     await expect(artifacts.read("sha256:../../outside" as never)).rejects.toThrow();
     const digest = hash.slice("sha256:".length);
-    await writeFile(join(root, ".vault", "artifacts", digest.slice(0, 2), digest), "tampered");
+    await writeFile(
+      join(root, ".garden-desk", "artifacts", digest.slice(0, 2), digest),
+      "tampered",
+    );
     await expect(artifacts.read(hash)).rejects.toThrow("artifact_hash_mismatch");
     await expect(artifacts.put(Buffer.from("authoritative"))).rejects.toThrow(
       "artifact_hash_mismatch",
@@ -99,7 +102,11 @@ describe("M1 internal workspace path security", () => {
     const outside = join(parent, "outside");
     await mkdir(root);
     await mkdir(outside);
-    await symlink(outside, join(root, ".vault"), process.platform === "win32" ? "junction" : "dir");
+    await symlink(
+      outside,
+      join(root, ".garden-desk"),
+      process.platform === "win32" ? "junction" : "dir",
+    );
     await expect(createTestCore(root)).rejects.toThrow("workspace_directory_unsafe");
     await expect(ArtifactStore.create(await WorkspaceScope.create(root))).rejects.toThrow(
       "path_out_of_scope",
@@ -111,7 +118,7 @@ describe("M1 durable job cancellation", () => {
   it("reports cancellation only when a cancellable job transitions", async () => {
     const root = await temporaryRoot();
     const core = await createTestCore(root);
-    const database = new Database(join(root, ".vault", "catalog.sqlite"));
+    const database = new Database(join(root, ".garden-desk", "catalog.sqlite"));
     const now = new Date().toISOString();
     const jobId = "00000000-0000-4000-8000-000000000001";
     database
@@ -128,7 +135,7 @@ describe("M1 authoritative state recovery", () => {
     const root = await temporaryRoot();
     const core = await createTestCore(root);
     await core.close();
-    const databasePath = join(root, ".vault", "catalog.sqlite");
+    const databasePath = join(root, ".garden-desk", "catalog.sqlite");
     const script = [
       'import Database from "better-sqlite3";',
       "const db = new Database(process.argv[1]);",
@@ -149,7 +156,7 @@ describe("M1 audit integrity", () => {
     const root = await temporaryRoot();
     const core = await createTestCore(root);
     await core.close();
-    const database = new Database(join(root, ".vault", "catalog.sqlite"));
+    const database = new Database(join(root, ".garden-desk", "catalog.sqlite"));
     const audit = new AuditLog(database);
     const event = audit.append({
       type: "document.observed",
@@ -174,7 +181,7 @@ describe("M1 audit integrity", () => {
     const root = await temporaryRoot();
     const core = await createTestCore(root);
     await core.close();
-    const database = new Database(join(root, ".vault", "catalog.sqlite"));
+    const database = new Database(join(root, ".garden-desk", "catalog.sqlite"));
     const audit = new AuditLog(database);
     expect(audit.verify()).toBe(true);
     database.exec("DROP TRIGGER audit_events_no_delete");
@@ -194,7 +201,7 @@ describe("M1 workspace migration", () => {
     const root = await temporaryRoot();
     const first = await createTestCore(root);
     await first.close();
-    const database = new Database(join(root, ".vault", "catalog.sqlite"));
+    const database = new Database(join(root, ".garden-desk", "catalog.sqlite"));
     database.exec(
       "DROP TABLE agent_session_summaries; DROP TABLE agent_inference_turns; DROP TABLE agent_executions; DROP TABLE agent_artifacts; DROP TABLE agent_events; DROP TABLE agent_runs; DROP TABLE session_attachments; DROP TABLE session_drafts; DROP TABLE conversation_messages; DROP TABLE sessions; DROP TABLE folder_grants; DROP TRIGGER audit_head_no_delete; DROP TABLE audit_head; PRAGMA user_version = 1",
     );
@@ -207,7 +214,7 @@ describe("M1 workspace migration", () => {
 
   it("creates a consistent backup before applying a numbered migration", async () => {
     const root = await temporaryRoot();
-    const internalRoot = join(root, ".vault");
+    const internalRoot = join(root, ".garden-desk");
     await mkdir(internalRoot);
     const databasePath = join(internalRoot, "catalog.sqlite");
     const legacy = new Database(databasePath);
@@ -233,7 +240,7 @@ describe("M3 conversation audit atomicity", () => {
   it("rolls back a session when the audit chain cannot be extended", async () => {
     const root = await temporaryRoot();
     const core = await createTestCore(root);
-    const database = new Database(join(root, ".vault", "catalog.sqlite"));
+    const database = new Database(join(root, ".garden-desk", "catalog.sqlite"));
     const row = database
       .prepare("SELECT event_json FROM audit_events WHERE sequence = 0")
       .get() as { event_json: string };

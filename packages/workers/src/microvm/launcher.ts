@@ -4,7 +4,7 @@ import type {
   AgentVmDiagnosticCode,
   MicroVmProbeReport,
   WorkerLimits,
-} from "@vault/shared";
+} from "@gardendesk/shared";
 
 export interface MicroVmLaunchRequest {
   jobId: string;

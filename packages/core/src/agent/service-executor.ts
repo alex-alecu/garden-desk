@@ -1,10 +1,10 @@
 import { randomUUID } from "node:crypto";
-import type { AgentExecutionResult } from "@vault/shared";
+import type { AgentExecutionResult } from "@gardendesk/shared";
 import type {
   AgentExecutionUpdate,
   AgentSessionExecution,
   ResolvedAgentSessionExecution,
-} from "@vault/workers";
+} from "@gardendesk/workers";
 import {
   AgentExecutionAttemptError,
   type AgentExecutionStarted,

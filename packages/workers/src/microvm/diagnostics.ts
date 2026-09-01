@@ -1,4 +1,4 @@
-import type { AgentVmDiagnosticCode } from "@vault/shared";
+import type { AgentVmDiagnosticCode } from "@gardendesk/shared";
 import type { AgentExecutionObserver } from "./launcher.js";
 
 export async function emitDiagnostic(

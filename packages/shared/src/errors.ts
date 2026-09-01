@@ -16,11 +16,11 @@ export const ErrorCodeSchema = z.enum([
   "internal",
 ]);
 
-export const VaultErrorSchema = z.object({
+export const GardenDeskErrorSchema = z.object({
   code: ErrorCodeSchema,
   message: z.string().min(1),
   details: z.record(z.string(), z.unknown()).optional(),
 });
 
 export type ErrorCode = z.infer<typeof ErrorCodeSchema>;
-export type VaultError = z.infer<typeof VaultErrorSchema>;
+export type GardenDeskError = z.infer<typeof GardenDeskErrorSchema>;

@@ -12,7 +12,7 @@ M0 needs a pinned TypeScript workspace, schema validation, tests, native depende
 
 | Boundary | Decision | Reason and containment |
 |---|---|---|
-| Schema validation | Adopt Zod behind `@vault/shared` schemas | Small typed boundary; no network or native component. |
+| Schema validation | Adopt Zod behind `@gardendesk/shared` schemas | Small typed boundary; no network or native component. |
 | Native persistence and inference smoke | Adopt better-sqlite3 and node-llama-cpp for M0 validation | These are already selected architectural defaults. M0 proves loadability only; product adapters arrive in later milestones. Both may execute install scripts and are the only runtime dependencies allowed to do so. |
 | Test and source tooling | Adopt TypeScript, tsx, Vitest, and Biome | Development-only, pinned, and directly exercised by `pnpm verify`. |
 | Tauri smoke shell | Adopt Tauri v2 with the shell plugin | Test-only shell with a single fixed command and capability file; no product UI or product policy. Tauri documents sidecar configuration and scoped capabilities. |

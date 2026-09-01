@@ -1,4 +1,4 @@
-import { type AgentQuestion, AgentQuestionSchema } from "@vault/shared";
+import { type AgentQuestion, AgentQuestionSchema } from "@gardendesk/shared";
 import { object, objectSchema, type ToolSpec } from "./generic-tool-support.js";
 
 function parsedQuestions(value: unknown): AgentQuestion[] {

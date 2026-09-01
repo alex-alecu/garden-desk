@@ -1,4 +1,4 @@
-import { type WorkerFrame, WorkerRequestSchema } from "@vault/shared";
+import { type WorkerFrame, WorkerRequestSchema } from "@gardendesk/shared";
 
 export function respondToProbe(frame: unknown): WorkerFrame {
   const request = WorkerRequestSchema.parse(frame);

@@ -1,5 +1,5 @@
 {
-  "name": "@vault/shared",
+  "name": "@gardendesk/shared",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -9,7 +9,7 @@
   "exports": {
     ".": {
       "types": "./src/index.ts",
-      "vault-runtime": "./dist/index.js",
+      "gardendesk-runtime": "./dist/index.js",
       "default": "./src/index.ts"
     }
   },

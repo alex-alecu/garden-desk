@@ -2,7 +2,7 @@ import {
   type AgentArtifactSummary,
   type AgentExecutionResult,
   isUserArtifactWorkspacePath,
-} from "@vault/shared";
+} from "@gardendesk/shared";
 import type { ArtifactStore } from "../workspace/artifacts.js";
 import { attachmentMediaType } from "./records.js";
 

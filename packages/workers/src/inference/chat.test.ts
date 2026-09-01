@@ -1,4 +1,4 @@
-import { type ChatGenerationRequest, JobIdSchema } from "@vault/shared";
+import { type ChatGenerationRequest, JobIdSchema } from "@gardendesk/shared";
 import { describe, expect, it } from "vitest";
 import { chatFunctions, toChatHistory } from "./chat.js";
 

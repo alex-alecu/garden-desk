@@ -33,7 +33,7 @@ describe("M0 bundle dependency choices", () => {
 
   it("verifies detached Ed25519 signatures with Node crypto", () => {
     const keys = generateKeyPairSync("ed25519");
-    const payload = Buffer.from("vault-bundle-manifest");
+    const payload = Buffer.from("garden-desk-bundle-manifest");
     const signature = sign(null, payload, keys.privateKey);
     expect(verify(null, payload, keys.publicKey, signature)).toBe(true);
     expect(verify(null, Buffer.from("altered"), keys.publicKey, signature)).toBe(false);

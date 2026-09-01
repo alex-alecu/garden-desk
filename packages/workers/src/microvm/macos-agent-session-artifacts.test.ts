@@ -3,7 +3,7 @@ import { createHash, randomUUID } from "node:crypto";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { AgentExecutionIdSchema, AgentGuestResultSchema } from "@vault/shared";
+import { AgentExecutionIdSchema, AgentGuestResultSchema } from "@gardendesk/shared";
 import { describe, expect, it, vi } from "vitest";
 import type { AgentHelperTransport } from "./agent-transport.js";
 import { FramedAgentSession } from "./macos-agent-session.js";
@@ -262,7 +262,7 @@ describe("agent artifact candidate invalidation", () => {
 
 describe("failed execution persistence", () => {
   it("commits terminal workspace bytes", async () => {
-    const root = await mkdtemp(join(tmpdir(), "vault-failed-workspace-"));
+    const root = await mkdtemp(join(tmpdir(), "garden-desk-failed-workspace-"));
     try {
       const executionId = AgentExecutionIdSchema.parse(randomUUID());
       const bytes = Buffer.from("durable failed output");

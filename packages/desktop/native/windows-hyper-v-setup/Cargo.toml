@@ -1,5 +1,5 @@
 [package]
-name = "vault-hyper-v-setup"
+name = "garden-desk-hyper-v-setup"
 version = "0.0.0"
 edition = "2024"
 publish = false

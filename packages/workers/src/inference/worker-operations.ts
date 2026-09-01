@@ -5,7 +5,7 @@ import type {
   InferenceWorkerResponse,
   RequestId,
   StructuredGenerationRequest,
-} from "@vault/shared";
+} from "@gardendesk/shared";
 import type { LlamaChatResponseChunk, Token } from "node-llama-cpp";
 import { generateChatTurn } from "./chat.js";
 import { memoryReport } from "./memory-report.js";

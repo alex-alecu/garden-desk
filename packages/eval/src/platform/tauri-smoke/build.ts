@@ -41,13 +41,13 @@ function stripWindowsSignature(executable: string): void {
   if (programFiles === undefined) throw new Error("Missing 64-bit Windows SDK location.");
   const powerShell = windowsPowerShell();
   const script =
-    '$s=Get-ChildItem "$env:VAULT_WINDOWS_KITS\\*\\x64\\signtool.exe" | Sort-Object FullName -Descending | Select-Object -First 1;if($null -eq $s){exit 1};& $s.FullName remove /s $env:VAULT_SIGN_PATH;exit $LASTEXITCODE';
+    '$s=Get-ChildItem "$env:GARDEN_DESK_WINDOWS_KITS\\*\\x64\\signtool.exe" | Sort-Object FullName -Descending | Select-Object -First 1;if($null -eq $s){exit 1};& $s.FullName remove /s $env:GARDEN_DESK_SIGN_PATH;exit $LASTEXITCODE';
   run(powerShell.executable, ["-NoProfile", "-NonInteractive", "-Command", script], {
     env: {
       ...process.env,
       PSModulePath: powerShell.modulePath,
-      VAULT_SIGN_PATH: executable,
-      VAULT_WINDOWS_KITS: join(programFiles, "Windows Kits", "10", "bin"),
+      GARDEN_DESK_SIGN_PATH: executable,
+      GARDEN_DESK_WINDOWS_KITS: join(programFiles, "Windows Kits", "10", "bin"),
     },
   });
 }
@@ -146,12 +146,12 @@ function signMac(executable: string): string {
 function signWindows(executable: string): string {
   const powerShell = windowsPowerShell();
   const script =
-    "$p=$env:VAULT_SIGN_PATH;$c=$null;try{$c=New-SelfSignedCertificate -Subject 'CN=Garden Desk M0 Smoke' -Type CodeSigningCert -CertStoreLocation Cert:\\CurrentUser\\My;Set-AuthenticodeSignature -FilePath $p -Certificate $c | Out-Null;$s=Get-AuthenticodeSignature -FilePath $p;$intact=$null -ne $s.SignerCertificate -and $s.Status -ne 'HashMismatch' -and $s.Status -ne 'NotSigned'}finally{if($null -ne $c){Remove-Item ('Cert:\\CurrentUser\\My\\'+$c.Thumbprint)}};if(-not $intact){exit 1}";
+    "$p=$env:GARDEN_DESK_SIGN_PATH;$c=$null;try{$c=New-SelfSignedCertificate -Subject 'CN=Garden Desk M0 Smoke' -Type CodeSigningCert -CertStoreLocation Cert:\\CurrentUser\\My;Set-AuthenticodeSignature -FilePath $p -Certificate $c | Out-Null;$s=Get-AuthenticodeSignature -FilePath $p;$intact=$null -ne $s.SignerCertificate -and $s.Status -ne 'HashMismatch' -and $s.Status -ne 'NotSigned'}finally{if($null -ne $c){Remove-Item ('Cert:\\CurrentUser\\My\\'+$c.Thumbprint)}};if(-not $intact){exit 1}";
   run(powerShell.executable, ["-NoProfile", "-NonInteractive", "-Command", script], {
     env: {
       ...process.env,
       PSModulePath: powerShell.modulePath,
-      VAULT_SIGN_PATH: executable,
+      GARDEN_DESK_SIGN_PATH: executable,
     },
   });
   return "windows-ephemeral-self-signed";
@@ -165,7 +165,11 @@ function signExecutable(executable: string): string {
 
 async function installForTauri(executable: string): Promise<string> {
   const extension = process.platform === "win32" ? ".exe" : "";
-  const destination = join(tauriRoot, "binaries", `vault-m0-sidecar-${targetTriple()}${extension}`);
+  const destination = join(
+    tauriRoot,
+    "binaries",
+    `garden-desk-m0-sidecar-${targetTriple()}${extension}`,
+  );
   await mkdir(join(tauriRoot, "binaries"), { recursive: true });
   await copyFile(executable, destination);
   await chmod(destination, 0o755);

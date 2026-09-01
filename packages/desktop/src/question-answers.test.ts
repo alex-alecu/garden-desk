@@ -1,4 +1,4 @@
-import type { AgentQuestion } from "@vault/shared";
+import type { AgentQuestion } from "@gardendesk/shared";
 import { describe, expect, it } from "vitest";
 import {
   applyCustom,

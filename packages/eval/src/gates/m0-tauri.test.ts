@@ -14,7 +14,7 @@ describe("M0 Tauri capability surface", () => {
   it("exposes one fixed no-argument sidecar command", async () => {
     const source = await readFile(join(smokeRoot, "src-tauri/src/main.rs"), "utf8");
     expect(source).toContain("async fn launch_test_sidecar(app: AppHandle)");
-    expect(source).toContain('.sidecar("vault-m0-sidecar")');
+    expect(source).toContain('.sidecar("garden-desk-m0-sidecar")');
     expect(source).not.toMatch(/Command::new|\.args\(|https?:\/\//u);
   });
 

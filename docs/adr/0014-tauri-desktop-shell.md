@@ -16,9 +16,9 @@ Tauri v2 supports a React/TypeScript web frontend, Rust commands, capability-sco
 
 Garden Desk Community Desktop will use Tauri v2 with a React and TypeScript frontend.
 
-The Tauri Rust host is a thin desktop adapter. It owns only window lifecycle, native dialogs, capability-scoped operating-system integration, secure startup and supervision of the packaged Vault Core sidecar, and connection bootstrap. It must not duplicate sessions, workflows, policy, retrieval, verification, approvals, audit, model routing, or workspace persistence.
+The Tauri Rust host is a thin desktop adapter. It owns only window lifecycle, native dialogs, capability-scoped operating-system integration, secure startup and supervision of the packaged Garden Desk Core sidecar, and connection bootstrap. It must not duplicate sessions, workflows, policy, retrieval, verification, approvals, audit, model routing, or workspace persistence.
 
-Vault Core remains a separate Node.js/TypeScript daemon and the source of product behavior. Tauri starts the exact packaged sidecar through a narrow allowlist and connects to the existing versioned local protocol:
+Garden Desk Core remains a separate Node.js/TypeScript daemon and the source of product behavior. Tauri starts the exact packaged sidecar through a narrow allowlist and connects to the existing versioned local protocol:
 
 - Unix domain socket on macOS.
 - Named pipe on Windows.
@@ -26,9 +26,9 @@ Vault Core remains a separate Node.js/TypeScript daemon and the source of produc
 - Current-user endpoint permissions.
 - Request and job IDs, idempotency, cancellation, bounded streaming, backpressure, reconnect, version negotiation, and structured errors.
 
-The webview receives no generic shell, process, environment, network, or unrestricted filesystem capability. React calls a minimal typed Tauri command surface. The Rust layer validates command shape and delegates product requests to Vault Core; it does not accept arbitrary executable names, arguments, paths, URLs, or local endpoints from the frontend.
+The webview receives no generic shell, process, environment, network, or unrestricted filesystem capability. React calls a minimal typed Tauri command surface. The Rust layer validates command shape and delegates product requests to Garden Desk Core; it does not accept arbitrary executable names, arguments, paths, URLs, or local endpoints from the frontend.
 
-Tauri sidecar packaging is a distribution mechanism, not a trust boundary. Vault Core, native inference workers, microVM launchers, guest images, models, and document assets remain independently hashed, signed, supervised, and constrained by their own boundaries.
+Tauri sidecar packaging is a distribution mechanism, not a trust boundary. Garden Desk Core, native inference workers, microVM launchers, guest images, models, and document assets remain independently hashed, signed, supervised, and constrained by their own boundaries.
 
 ## User Interface Contract
 
@@ -51,7 +51,7 @@ Positive:
 
 - Keeps the webview separated from Node.js and product authority.
 - Uses the operating-system webview rather than packaging a separate Chromium runtime.
-- Preserves the independently testable Vault Core daemon and CLI.
+- Preserves the independently testable Garden Desk Core daemon and CLI.
 - Makes native capabilities explicit and narrow.
 - Supports packaged sidecars and platform installers through the selected shell.
 
@@ -60,12 +60,12 @@ Negative:
 - Introduces a small Rust surface and Rust toolchain in addition to the TypeScript/Node product backend.
 - Requires WebView2 and WKWebView behavior to be tested independently.
 - Sidecar packaging, signing, startup, upgrade, and crash recovery differ by platform.
-- Tauri capability configuration is not sufficient by itself to secure Vault Core or workers.
+- Tauri capability configuration is not sufficient by itself to secure Garden Desk Core or workers.
 
 ## Required Validation
 
 - Pin Tauri v2 and review its licenses, supply chain, capability model, and updater position during M0.
-- Package and launch a minimal signed Vault Core sidecar on supported Windows and macOS targets.
+- Package and launch a minimal signed Garden Desk Core sidecar on supported Windows and macOS targets.
 - Prove that the webview cannot invoke arbitrary shell commands, processes, paths, URLs, or endpoints.
 - Test sidecar identity, hash verification, single-instance behavior, endpoint permissions, reconnect, incompatible protocol, crash, forced termination, upgrade, and uninstall.
 - Test keyboard navigation, screen-reader labels, focus restoration, window resizing, and 200 percent scaling for the required layout.

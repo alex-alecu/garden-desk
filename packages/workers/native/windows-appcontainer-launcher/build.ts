@@ -25,14 +25,14 @@ function sign(executable: string): void {
   const windowsRoot = process.env.WINDIR ?? "C:\\Windows";
   const powerShellRoot = join(windowsRoot, "System32", "WindowsPowerShell", "v1.0");
   const script =
-    "$p=$env:VAULT_SIGN_PATH;$c=$null;try{$c=New-SelfSignedCertificate -Subject 'CN=Garden Desk M2 AppContainer Launcher' -Type CodeSigningCert -CertStoreLocation Cert:\\CurrentUser\\My;Set-AuthenticodeSignature -FilePath $p -Certificate $c | Out-Null;$s=Get-AuthenticodeSignature -FilePath $p;$ok=$null -ne $s.SignerCertificate -and $s.Status -ne 'HashMismatch' -and $s.Status -ne 'NotSigned'}finally{if($null -ne $c){Remove-Item ('Cert:\\CurrentUser\\My\\'+$c.Thumbprint)}};if(-not $ok){exit 1}";
+    "$p=$env:GARDEN_DESK_SIGN_PATH;$c=$null;try{$c=New-SelfSignedCertificate -Subject 'CN=Garden Desk M2 AppContainer Launcher' -Type CodeSigningCert -CertStoreLocation Cert:\\CurrentUser\\My;Set-AuthenticodeSignature -FilePath $p -Certificate $c | Out-Null;$s=Get-AuthenticodeSignature -FilePath $p;$ok=$null -ne $s.SignerCertificate -and $s.Status -ne 'HashMismatch' -and $s.Status -ne 'NotSigned'}finally{if($null -ne $c){Remove-Item ('Cert:\\CurrentUser\\My\\'+$c.Thumbprint)}};if(-not $ok){exit 1}";
   run(
     join(powerShellRoot, "powershell.exe"),
     ["-NoProfile", "-NonInteractive", "-Command", script],
     {
       ...process.env,
       PSModulePath: join(powerShellRoot, "Modules"),
-      VAULT_SIGN_PATH: executable,
+      GARDEN_DESK_SIGN_PATH: executable,
     },
   );
 }
@@ -63,11 +63,11 @@ function dependencyFingerprint(root: string): string {
 
 function deployRuntime(root: string): void {
   const runtime = join(root, "packages/workers/.generated/windows-runtime");
-  const marker = join(runtime, ".vault-dependencies");
+  const marker = join(runtime, ".garden-desk-dependencies");
   const fingerprint = dependencyFingerprint(root);
   const dependencyReady =
     existsSync(join(runtime, "node_modules/node-llama-cpp")) &&
-    existsSync(join(runtime, "node_modules/@vault/shared"));
+    existsSync(join(runtime, "node_modules/@gardendesk/shared"));
   if (!dependencyReady || !existsSync(marker) || readFileSync(marker, "utf8") !== fingerprint) {
     const pnpmCli = process.env.npm_execpath;
     if (pnpmCli === undefined) throw new Error("pnpm must invoke the Windows runtime build.");
@@ -81,7 +81,7 @@ function deployRuntime(root: string): void {
         [
           pnpmCli,
           "--filter",
-          "@vault/workers",
+          "@gardendesk/workers",
           "deploy",
           "packages/workers/.generated/windows-runtime",
           "--prod",
@@ -110,8 +110,8 @@ if (process.platform === "win32") {
     ...process.env,
     CARGO_TARGET_DIR: target,
   });
-  const executable = join(generated, "vault-appcontainer-launcher.exe");
-  copyFileSync(join(target, "release", "vault-appcontainer-launcher.exe"), executable);
+  const executable = join(generated, "garden-desk-appcontainer-launcher.exe");
+  copyFileSync(join(target, "release", "garden-desk-appcontainer-launcher.exe"), executable);
   sign(executable);
 } else {
   console.log("Windows AppContainer launcher build is not required on this platform stage.");

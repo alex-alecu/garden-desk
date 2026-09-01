@@ -1,4 +1,4 @@
-import type { ChatMessage } from "@vault/shared";
+import type { ChatMessage } from "@gardendesk/shared";
 
 function localIsoTimestamp(now: Date, timeZone: string): string {
   const parts = Object.fromEntries(

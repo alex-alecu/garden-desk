@@ -1,4 +1,4 @@
-import type { AgentExecutionResult } from "@vault/shared";
+import type { AgentExecutionResult } from "@gardendesk/shared";
 import { describe, expect, it } from "vitest";
 import { artifactCandidateNames } from "./artifact-results.js";
 import { retainWorkspaceEvidence } from "./chat-tool-evidence.js";

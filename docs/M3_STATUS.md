@@ -16,7 +16,7 @@ M3 Offline Dev-Agent Desktop V1 is active. The desktop runs one general-purpose 
 ## Security Boundary
 
 - The guest VM has zero network devices, an immutable root image, a live read-only mount of the selected folder at `/source`, and a writable, persistent 128 MiB `/workspace`.
-- Vault Core owns every host filesystem, process, and audit decision; the webview and the model never receive host authority.
+- Garden Desk Core owns every host filesystem, process, and audit decision; the webview and the model never receive host authority.
 - Crash recovery marks any run left `queued` or `running` after a Core restart as failed. Session summaries and context compaction keep long conversations coherent without extending the live prompt indefinitely.
 
 ## What Remains Open

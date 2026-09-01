@@ -1,4 +1,4 @@
-import { decodeFrame, encodeFrame, FrameDecoder } from "@vault/workers";
+import { decodeFrame, encodeFrame, FrameDecoder } from "@gardendesk/workers";
 import { describe, expect, it } from "vitest";
 
 const probeResult = {

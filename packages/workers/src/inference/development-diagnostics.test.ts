@@ -32,7 +32,7 @@ describe("development inference diagnostic records", () => {
     const development = await bundledDiagnostics(true, directory);
     const [failure = "", llama = ""] = development.records();
 
-    expect(failure).toContain("[vault-inference] operation=chat failed");
+    expect(failure).toContain("[garden-desk-inference] operation=chat failed");
     expect(failure).toContain("name=TypeError");
     expect(failure).toContain("message=private operation failure");
     expect(failure).toContain("stack=stack=");

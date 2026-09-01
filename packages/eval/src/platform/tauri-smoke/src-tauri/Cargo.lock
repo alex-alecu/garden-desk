@@ -3730,7 +3730,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "vault-m0-tauri-smoke"
+name = "garden-desk-m0-tauri-smoke"
 version = "0.0.0"
 dependencies = [
  "tauri",

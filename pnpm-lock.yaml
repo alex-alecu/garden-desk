@@ -5,7 +5,7 @@ settings:
   excludeLinksFromLockfile: false
 
 patchedDependencies:
-  node-llama-cpp@3.19.0: af28185a92593da9c27057b03fd9aee2eba6a26f7c2bc3cc551c2bf2ff689df6
+  node-llama-cpp@3.19.0: fee29649fbdf647f22d468e198e68b7e7d0b12d457c3db382fbf16f44db2f811
 
 importers:
 
@@ -32,27 +32,27 @@ importers:
 
   packages/cli:
     dependencies:
-      '@vault/shared':
+      '@gardendesk/shared':
         specifier: workspace:*
         version: link:../shared
 
   packages/core:
     dependencies:
-      '@vault/shared':
+      '@gardendesk/shared':
         specifier: workspace:*
         version: link:../shared
-      '@vault/workers':
+      '@gardendesk/workers':
         specifier: workspace:*
         version: link:../workers
 
   packages/desktop:
     dependencies:
+      '@gardendesk/shared':
+        specifier: workspace:*
+        version: link:../shared
       '@tauri-apps/api':
         specifier: 2.11.1
         version: 2.11.1
-      '@vault/shared':
-        specifier: workspace:*
-        version: link:../shared
       react:
         specifier: 19.2.7
         version: 19.2.7
@@ -87,16 +87,16 @@ importers:
 
   packages/eval:
     dependencies:
-      '@vault/cli':
+      '@gardendesk/cli':
         specifier: workspace:*
         version: link:../cli
-      '@vault/core':
+      '@gardendesk/core':
         specifier: workspace:*
         version: link:../core
-      '@vault/shared':
+      '@gardendesk/shared':
         specifier: workspace:*
         version: link:../shared
-      '@vault/workers':
+      '@gardendesk/workers':
         specifier: workspace:*
         version: link:../workers
       better-sqlite3:
@@ -104,7 +104,7 @@ importers:
         version: 12.11.1
       node-llama-cpp:
         specifier: 3.19.0
-        version: 3.19.0(patch_hash=af28185a92593da9c27057b03fd9aee2eba6a26f7c2bc3cc551c2bf2ff689df6)(typescript@7.0.2)
+        version: 3.19.0(patch_hash=fee29649fbdf647f22d468e198e68b7e7d0b12d457c3db382fbf16f44db2f811)(typescript@7.0.2)
       tar-stream:
         specifier: 3.2.0
         version: 3.2.0
@@ -133,12 +133,12 @@ importers:
 
   packages/workers:
     dependencies:
-      '@vault/shared':
+      '@gardendesk/shared':
         specifier: workspace:*
         version: link:../shared
       node-llama-cpp:
         specifier: 3.19.0
-        version: 3.19.0(patch_hash=af28185a92593da9c27057b03fd9aee2eba6a26f7c2bc3cc551c2bf2ff689df6)(typescript@7.0.2)
+        version: 3.19.0(patch_hash=fee29649fbdf647f22d468e198e68b7e7d0b12d457c3db382fbf16f44db2f811)(typescript@7.0.2)
 
 packages:
 
@@ -3451,7 +3451,7 @@ snapshots:
 
   node-api-headers@1.9.0: {}
 
-  node-llama-cpp@3.19.0(patch_hash=af28185a92593da9c27057b03fd9aee2eba6a26f7c2bc3cc551c2bf2ff689df6)(typescript@7.0.2):
+  node-llama-cpp@3.19.0(patch_hash=fee29649fbdf647f22d468e198e68b7e7d0b12d457c3db382fbf16f44db2f811)(typescript@7.0.2):
     dependencies:
       '@huggingface/jinja': 0.5.9
       async-retry: 1.3.3

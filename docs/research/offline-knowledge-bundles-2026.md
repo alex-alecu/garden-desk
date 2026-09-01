@@ -70,7 +70,7 @@ Limits:
 - Fixity is not authenticity.
 - Human-oriented `bag-info.txt` is not enough for domain applicability or policy.
 - Remote payload fetching is inappropriate for a guaranteed-offline bundle.
-- Strict conformance may duplicate a richer Vault manifest; M0 should test whether conformance reduces implementation and interoperability cost.
+- Strict conformance may duplicate a richer Garden Desk manifest; M0 should test whether conformance reduces implementation and interoperability cost.
 
 ### SPDX 3.0.1 Dataset Profile
 
@@ -180,7 +180,7 @@ It may remain an import/export format for individual tabular resources inside a 
 | Model fine-tune or baked weights | Compact runtime use | Facts become uncitable and stale; no jurisdiction, time, rights, or source-level correction path |
 | RO-Crate alone | Rich metadata and profiles | Missing complete fixity, trust roles, and secure updates |
 | BagIt alone | Mature completeness and checksum rules | Missing publisher identity, domain semantics, update policy, and retrieval contract |
-| Layered Vault Knowledge Bundle | Separates evidence, metadata, trust, and accelerators | Requires a constrained profile and M0 validation, but each responsibility remains replaceable |
+| Layered Garden Desk Knowledge Bundle | Separates evidence, metadata, trust, and accelerators | Requires a constrained profile and M0 validation, but each responsibility remains replaceable |
 
 ## Retrieval Findings
 

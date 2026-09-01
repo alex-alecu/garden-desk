@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
-import type { AuditEventInput } from "@vault/shared";
-import { JobIdSchema, RequestIdSchema } from "@vault/shared";
+import type { AuditEventInput } from "@gardendesk/shared";
+import { JobIdSchema, RequestIdSchema } from "@gardendesk/shared";
 import type { ImageInferencePort, ImageInspectionInput } from "./inference.js";
 import { recordInferenceAudit } from "./inference-audit.js";
 import {

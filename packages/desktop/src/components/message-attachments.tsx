@@ -1,4 +1,4 @@
-import type { AttachmentSummary } from "@vault/shared";
+import type { AttachmentSummary } from "@gardendesk/shared";
 import type { TimelineItem } from "../state.js";
 import { AttachmentChip } from "./attachment-chip.js";
 

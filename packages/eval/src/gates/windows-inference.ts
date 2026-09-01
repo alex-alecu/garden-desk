@@ -31,7 +31,7 @@ export async function windowsInferencePaths(): Promise<WindowsInferencePaths> {
       ]);
       return {
         workerEntryPath: join(root, "worker.mjs"),
-        inferenceHelperPath: join(root, "vault-appcontainer-launcher.exe"),
+        inferenceHelperPath: join(root, "garden-desk-appcontainer-launcher.exe"),
         inferenceRuntimePath: join(root, "node.exe"),
         visionRuntimePath: join(root, "vision", "llama-mtmd-cli.exe"),
       };

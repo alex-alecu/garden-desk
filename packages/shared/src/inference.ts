@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { VaultErrorSchema } from "./errors.js";
+import { GardenDeskErrorSchema } from "./errors.js";
 import { JobIdSchema, RequestIdSchema } from "./ids.js";
 
 export const InferenceProfileSchema = z.enum(["auto", "local12", "local16"]);
@@ -188,7 +188,7 @@ export const InferenceWorkerFailureSchema = z.object({
   protocolVersion: z.literal(2),
   requestId: RequestIdSchema,
   status: z.literal("error"),
-  error: VaultErrorSchema,
+  error: GardenDeskErrorSchema,
 });
 
 export const InferenceWorkerThinkingEventSchema = z.object({

@@ -1,4 +1,4 @@
-import { AgentRunResultSchema } from "@vault/shared";
+import { AgentRunResultSchema } from "@gardendesk/shared";
 import { describe, expect, it } from "vitest";
 import type { InferenceService } from "../runtime/inference.js";
 import { ChatAgentLoop } from "./chat-loop.js";
@@ -113,7 +113,7 @@ describe("ChatAgentLoop malformed Python", () => {
     const requests: Parameters<InferenceService["chat"]>[0][] = [];
     const program = "if True print('broken')";
     const syntaxError =
-      "  File \".vault-tools/test.py\", line 1\n    if True print('broken')\n            ^^^^^\nSyntaxError: invalid syntax";
+      "  File \".garden-desk-tools/test.py\", line 1\n    if True print('broken')\n            ^^^^^\nSyntaxError: invalid syntax";
     const loop = new ChatAgentLoop(
       model(
         [

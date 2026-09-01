@@ -3,7 +3,7 @@
   "builder": {
     "name": "buildroot",
     "version": "2026.05",
-    "config": "vault_agent_aarch64_defconfig",
+    "config": "garden_desk_agent_aarch64_defconfig",
     "sourceUrl": "https://buildroot.org/downloads/buildroot-2026.05.tar.xz",
     "sourceSha256": "9d2f3af10fcac763a61ff6e41894a033f9ecf9267ba13dd0912eedcd3be2b22a",
     "sourceDateEpoch": 1780876800,
@@ -164,13 +164,13 @@
       "kernelFile": "Image",
       "kernelSha256": "211d283fafe9e094e614629ef21f8616cdce24c5e4b43b936c4c73a3e447e7bd",
       "initramfsFile": "rootfs.cpio",
-      "initramfsSha256": "5345360145d93640813fb19944d07d67b169a600e67e56a004fc7dcb5d996206"
+      "initramfsSha256": "5cff76f163a7f98f91b9446c1afb7fa2d97d581ff4b7fc1fafce64c0f1899703"
     },
     "x86_64": {
       "kernelFile": "bzImage",
       "kernelSha256": "9fabee42a89b8128aa9f16dee4d43289c113f8b2aea398cabc904b6911a41dea",
       "initramfsFile": "rootfs.cpio",
-      "initramfsSha256": "1bdfe9d32cc2a57585909c3a49eeb8381f9104d1f36727d3684115d14abd7049"
+      "initramfsSha256": "8b7cf436d933f5698147e50e12d3e866516e1a71fa11e14da3e6bd84dca2488a"
     }
   }
 }

@@ -1,5 +1,5 @@
-import type { AgentExecutionResult } from "@vault/shared";
-import type { AgentSessionExecution, CodeAgentSession } from "@vault/workers";
+import type { AgentExecutionResult } from "@gardendesk/shared";
+import type { AgentSessionExecution, CodeAgentSession } from "@gardendesk/workers";
 import { describe, expect, it } from "vitest";
 import { requirePathOnlyScript } from "./m3-guest.js";
 

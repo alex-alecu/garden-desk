@@ -1,4 +1,4 @@
-import { AgentExecutionSnapshotSchema, AgentTraceSchema } from "@vault/shared";
+import { AgentExecutionSnapshotSchema, AgentTraceSchema } from "@gardendesk/shared";
 import { describe, expect, it } from "vitest";
 import type { TimelineItem } from "./state.js";
 import { activeThinkingStepId, agentSteps, selectedStep } from "./steps.js";

@@ -40,7 +40,7 @@ export async function runGuestProgram(
   files: Record<string, Uint8Array | string>,
   script: (guestRoot: string) => Promise<string>,
 ): Promise<{ code: number; stderr: string; stdout: string }> {
-  const root = await mkdtemp(join(tmpdir(), "vault-guest-program-"));
+  const root = await mkdtemp(join(tmpdir(), "garden-desk-guest-program-"));
   try {
     for (const [name, bytes] of Object.entries(files)) await writeFile(join(root, name), bytes);
     const path = join(root, "program.py");

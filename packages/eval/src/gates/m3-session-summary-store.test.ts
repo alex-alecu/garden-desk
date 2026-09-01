@@ -1,7 +1,7 @@
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { createVaultCore } from "@vault/core";
+import { createGardenDeskCore } from "@gardendesk/core";
 import Database from "better-sqlite3";
 import { afterEach, describe, expect, it } from "vitest";
 
@@ -14,7 +14,7 @@ async function openCore(root: string) {
     join(models, "installed-models.json"),
     JSON.stringify({ schemaVersion: 1, models: [] }),
   );
-  return createVaultCore({ workspaceDir: root, modelStoreDir: models, profile: "local12" });
+  return createGardenDeskCore({ workspaceDir: root, modelStoreDir: models, profile: "local12" });
 }
 
 afterEach(async () => {
@@ -23,7 +23,7 @@ afterEach(async () => {
 
 describe("M3 anchored session summary catalog", () => {
   it("migrates to the anchored-summary schema version", async () => {
-    const root = await mkdtemp(join(tmpdir(), "vault-summary-"));
+    const root = await mkdtemp(join(tmpdir(), "garden-desk-summary-"));
     roots.push(root);
     const core = await openCore(root);
     expect((await core.status()).catalogSchemaVersion).toBe(13);
@@ -31,13 +31,13 @@ describe("M3 anchored session summary catalog", () => {
   });
 
   it("keeps one replaceable anchor per session and removes it with the session", async () => {
-    const root = await mkdtemp(join(tmpdir(), "vault-summary-"));
+    const root = await mkdtemp(join(tmpdir(), "garden-desk-summary-"));
     roots.push(root);
     const core = await openCore(root);
     const session = await core.createSession(null);
     await core.close();
 
-    const database = new Database(join(root, ".vault", "catalog.sqlite"));
+    const database = new Database(join(root, ".garden-desk", "catalog.sqlite"));
     const now = new Date().toISOString();
     const runId = "33333333-3333-4333-8333-333333333333";
     const jobId = "22222222-2222-4222-8222-222222222222";

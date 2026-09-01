@@ -5,7 +5,7 @@ import {
   AgentQuestionIdSchema,
   type AgentQuestionRequest,
   AgentQuestionRequestSchema,
-} from "@vault/shared";
+} from "@gardendesk/shared";
 import type { AgentQuestionOutcome } from "./generic-tool-support.js";
 import type { ActiveRun } from "./service-active.js";
 import type { AgentStore } from "./store.js";

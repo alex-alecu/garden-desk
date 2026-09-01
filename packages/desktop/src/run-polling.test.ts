@@ -1,4 +1,4 @@
-import { AgentRunSnapshotSchema } from "@vault/shared";
+import { AgentRunSnapshotSchema } from "@gardendesk/shared";
 import { describe, expect, it, vi } from "vitest";
 import { retryLocalRequest, waitForAgentRun } from "./run-polling.js";
 

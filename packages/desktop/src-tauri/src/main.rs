@@ -85,7 +85,7 @@ impl CoreBridge {
         core_arguments::add_platform_arguments(&mut arguments, &core_resources)?;
         let command = app
             .shell()
-            .sidecar("vault-core")
+            .sidecar("garden-desk-core")
             .map_err(|error| error.to_string())?
             .args(arguments);
         #[cfg(target_os = "macos")]
@@ -129,13 +129,13 @@ impl CoreBridge {
             return Err(error
                 .get("message")
                 .and_then(Value::as_str)
-                .unwrap_or("Vault Core rejected the request.")
+                .unwrap_or("Garden Desk Core rejected the request.")
                 .to_owned());
         }
         envelope
             .get("result")
             .cloned()
-            .ok_or_else(|| "Vault Core returned no result.".to_owned())
+            .ok_or_else(|| "Garden Desk Core returned no result.".to_owned())
     }
 
     fn stop(&self) {
@@ -169,7 +169,7 @@ fn wait_for_ready_file(path: &Path) -> Result<String, String> {
             Ok(_) | Err(_) if Instant::now() < deadline => {
                 std::thread::sleep(Duration::from_millis(25));
             }
-            Ok(_) | Err(_) => return Err("Vault Core did not become ready.".to_owned()),
+            Ok(_) | Err(_) => return Err("Garden Desk Core did not become ready.".to_owned()),
         }
     }
 }
@@ -223,7 +223,7 @@ fn exchange(endpoint: &str, request: &str) -> Result<Vec<u8>, String> {
         .read_to_end(&mut response)
         .map_err(|error| error.to_string())?;
     if response.len() as u64 > MAX_RESPONSE_BYTES {
-        return Err("Vault Core response exceeded its limit.".to_owned());
+        return Err("Garden Desk Core response exceeded its limit.".to_owned());
     }
     Ok(response)
 }

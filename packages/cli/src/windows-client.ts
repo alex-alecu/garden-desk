@@ -7,7 +7,7 @@ const REQUEST_TIMEOUT_MS = 10_000;
 function helperPath(): string {
   return join(
     process.cwd(),
-    "packages/core/native/windows-pipe-guard/.generated/vault-pipe-guard.exe",
+    "packages/core/native/windows-pipe-guard/.generated/garden-desk-pipe-guard.exe",
   );
 }
 

@@ -1,4 +1,4 @@
-import type { ConversationMessage } from "@vault/shared";
+import type { ConversationMessage } from "@gardendesk/shared";
 import type { DesktopState, TimelineItem } from "./state.js";
 
 export function appendMessage(state: DesktopState, message: ConversationMessage): DesktopState {

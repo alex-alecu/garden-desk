@@ -56,8 +56,8 @@ async function sha256(path: string): Promise<string> {
 function buildDefines(mode: DesktopBuildMode): Record<string, string> {
   const developmentBuild = mode === "development";
   return {
-    "globalThis.__VAULT_DEVELOPMENT_BUILD__": String(developmentBuild),
-    "globalThis.__VAULT_DEVELOPMENT_DIAGNOSTIC_ROOT__": JSON.stringify(
+    "globalThis.__GARDEN_DESK_DEVELOPMENT_BUILD__": String(developmentBuild),
+    "globalThis.__GARDEN_DESK_DEVELOPMENT_DIAGNOSTIC_ROOT__": JSON.stringify(
       developmentBuild
         ? join(repositoryRoot, "packages", "eval", ".generated", "inference-diagnostics")
         : "",
@@ -66,14 +66,14 @@ function buildDefines(mode: DesktopBuildMode): Record<string, string> {
 }
 
 async function buildBundle(mode: DesktopBuildMode): Promise<string> {
-  const output = join(generatedRoot, "vault-core.cjs");
+  const output = join(generatedRoot, "garden-desk-core.cjs");
   await build({
     absWorkingDir: repositoryRoot,
     entryPoints: [join(repositoryRoot, "packages/core/src/daemon/main.ts")],
     outfile: output,
     bundle: true,
-    conditions: ["vault-runtime"],
-    define: { "import.meta.url": '"file:///vault-core.cjs"', ...buildDefines(mode) },
+    conditions: ["gardendesk-runtime"],
+    define: { "import.meta.url": '"file:///garden-desk-core.cjs"', ...buildDefines(mode) },
     format: "cjs",
     platform: "node",
     target: "node24",
@@ -86,10 +86,10 @@ async function prepareSea(bundle: string): Promise<string> {
   if (process.version !== "v24.18.0") {
     throw new Error(`Expected Node v24.18.0, received ${process.version}.`);
   }
-  const blob = join(generatedRoot, "vault-core.blob");
+  const blob = join(generatedRoot, "garden-desk-core.blob");
   const executable = join(
     generatedRoot,
-    process.platform === "win32" ? "vault-core.exe" : "vault-core",
+    process.platform === "win32" ? "garden-desk-core.exe" : "garden-desk-core",
   );
   const config = join(generatedRoot, "sea-config.json");
   await writeFile(config, seaConfiguration(bundle, blob));
@@ -127,7 +127,7 @@ export async function buildSidecar(mode: DesktopBuildMode, check = false): Promi
   await chmod(executable, 0o755);
   const signingMode = signExecutable(executable);
   const extension = process.platform === "win32" ? ".exe" : "";
-  const installed = join(binariesRoot, `vault-core-${targetTriple()}${extension}`);
+  const installed = join(binariesRoot, `garden-desk-core-${targetTriple()}${extension}`);
   await copyFile(executable, installed);
   await chmod(installed, 0o755);
   if (check) run(process.execPath, debugSidecarCheckArguments(repositoryRoot, installed));

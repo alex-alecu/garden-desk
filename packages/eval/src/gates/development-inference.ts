@@ -53,8 +53,8 @@ export async function prepareDevelopmentInferenceWorker(onBuild?: () => void): P
         absWorkingDir: repositoryRoot,
         bundle: true,
         define: {
-          "globalThis.__VAULT_DEVELOPMENT_BUILD__": "true",
-          "globalThis.__VAULT_DEVELOPMENT_DIAGNOSTIC_ROOT__": '""',
+          "globalThis.__GARDEN_DESK_DEVELOPMENT_BUILD__": "true",
+          "globalThis.__GARDEN_DESK_DEVELOPMENT_DIAGNOSTIC_ROOT__": '""',
         },
         entryPoints: [entryPoint],
         external: ["node-llama-cpp"],
@@ -123,8 +123,8 @@ export async function buildDevelopmentHeadlessEntry(entry: URL): Promise<string>
     absWorkingDir: repositoryRoot,
     bundle: true,
     define: {
-      "globalThis.__VAULT_DEVELOPMENT_BUILD__": "true",
-      "globalThis.__VAULT_DEVELOPMENT_DIAGNOSTIC_ROOT__": JSON.stringify(diagnosticRoot),
+      "globalThis.__GARDEN_DESK_DEVELOPMENT_BUILD__": "true",
+      "globalThis.__GARDEN_DESK_DEVELOPMENT_DIAGNOSTIC_ROOT__": JSON.stringify(diagnosticRoot),
     },
     entryPoints: [fileURLToPath(entry)],
     external: ["better-sqlite3", "node-llama-cpp", "tar-stream"],

@@ -3,13 +3,13 @@ import { realpathSync } from "node:fs";
 import { chmod, lstat, mkdir, unlink } from "node:fs/promises";
 import { createConnection, createServer, type Server, type Socket } from "node:net";
 import { join, resolve } from "node:path";
-import type { VaultCore } from "../facade.js";
+import type { GardenDeskCore } from "../facade.js";
 import { dispatchRpc } from "./methods.js";
 import { startWindowsPipeGuard } from "./windows-guard.js";
 
 const MAX_REQUEST_BYTES = 1024 * 1024;
 
-export interface VaultDaemon {
+export interface GardenDeskDaemon {
   endpoint: string;
   close(): Promise<void>;
 }
@@ -22,9 +22,9 @@ export function daemonEndpoint(workspaceDir: string): string {
   const workspaceRoot = realpathSync.native(resolve(workspaceDir));
   if (process.platform === "win32") {
     const name = createHash("sha256").update(workspaceRoot).digest("hex").slice(0, 32);
-    return `\\\\.\\pipe\\vault-cored-${name}`;
+    return `\\\\.\\pipe\\garden-desk-cored-${name}`;
   }
-  return join(workspaceRoot, ".vault", "vault-cored.sock");
+  return join(workspaceRoot, ".garden-desk", "core.sock");
 }
 
 function endpointIsLive(endpoint: string): Promise<boolean> {
@@ -70,7 +70,7 @@ async function secureEndpointDirectory(path: string): Promise<void> {
   await chmod(path, 0o700);
 }
 
-async function respond(core: VaultCore, request: Buffer): Promise<Buffer> {
+async function respond(core: GardenDeskCore, request: Buffer): Promise<Buffer> {
   if (request.byteLength > MAX_REQUEST_BYTES) return Buffer.alloc(0);
   const newline = request.indexOf("\n");
   if (newline === -1) return Buffer.alloc(0);
@@ -84,7 +84,7 @@ async function respond(core: VaultCore, request: Buffer): Promise<Buffer> {
   return Buffer.from(`${JSON.stringify(response)}\n`);
 }
 
-function serveSocket(core: VaultCore, socket: Socket): void {
+function serveSocket(core: GardenDeskCore, socket: Socket): void {
   let pending = "";
   socket.setEncoding("utf8");
   socket.on("data", (chunk) => {
@@ -121,10 +121,10 @@ function closeServer(server: Server): Promise<void> {
 }
 
 export async function startDaemon(
-  core: VaultCore,
+  core: GardenDeskCore,
   workspaceDir: string,
   options: DaemonOptions = {},
-): Promise<VaultDaemon> {
+): Promise<GardenDeskDaemon> {
   const endpoint = daemonEndpoint(workspaceDir);
   if (process.platform === "win32") {
     const guard = await startWindowsPipeGuard(
@@ -135,7 +135,7 @@ export async function startDaemon(
     );
     return { endpoint, close: () => guard.close() };
   }
-  await secureEndpointDirectory(join(resolve(workspaceDir), ".vault"));
+  await secureEndpointDirectory(join(resolve(workspaceDir), ".garden-desk"));
   await removeStaleSocket(endpoint);
   const server = createServer((socket) => serveSocket(core, socket));
   await listen(server, endpoint);

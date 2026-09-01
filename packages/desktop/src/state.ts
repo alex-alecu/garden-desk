@@ -10,7 +10,7 @@ import type {
   FolderSummary,
   SessionPage,
   SessionSummary,
-} from "@vault/shared";
+} from "@gardendesk/shared";
 import { applyAgentSnapshot } from "./agent-state.js";
 import type { DesktopBootstrap } from "./api.js";
 import { appendMessage } from "./message-state.js";

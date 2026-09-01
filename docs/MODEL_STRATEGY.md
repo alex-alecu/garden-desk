@@ -153,7 +153,7 @@ Open validation item: node-llama-cpp supports generic draft-model speculative de
 
 Use runtime adapters:
 
-- node-llama-cpp in a supervised inference worker is the first hardware-aware desktop path on Windows and macOS. It loads the pinned official Gemma 4 QAT GGUFs, enforces JSON-schema outputs, supports function calling and embeddings, and covers Metal, CUDA, and Vulkan while keeping runtime-specific types outside Vault Core.
+- node-llama-cpp in a supervised inference worker is the first hardware-aware desktop path on Windows and macOS. It loads the pinned official Gemma 4 QAT GGUFs, enforces JSON-schema outputs, supports function calling and embeddings, and covers Metal, CUDA, and Vulkan while keeping runtime-specific types outside Garden Desk Core.
 - Ollama-compatible serving only when model packaging and context behavior are explicit, telemetry is absent or provably disabled, and no telemetry network path exists. Ollama's MLX backend currently has the most mature Gemma 4 MTP support on Apple Silicon.
 - MLX-family serving is a later Apple Silicon optimization candidate and must pass the same packaged workflow, citation, verification, compaction, and offline suite before certification.
 - Google LiteRT-LM as an emerging Google-first alternative to track: it ships an OpenAI-compatible local server and a JS/WASM API, added Gemma 4 12B support, and is Google's own optimized MTP test surface. MediaPipe LLM Inference is maintenance-only; do not build on it.

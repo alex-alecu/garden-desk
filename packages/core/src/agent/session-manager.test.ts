@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import type { CodeAgentLauncher } from "@vault/workers";
+import type { CodeAgentLauncher } from "@gardendesk/workers";
 import { describe, expect, it } from "vitest";
 import type { AgentInputResolver } from "./inputs.js";
 import { AgentSessionManager } from "./session-manager.js";

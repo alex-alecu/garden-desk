@@ -5,7 +5,7 @@ import {
   AgentExecutionSnapshotSchema,
   type AgentVmDiagnostic,
   AgentVmDiagnosticSchema,
-} from "@vault/shared";
+} from "@gardendesk/shared";
 import type { DatabasePort } from "../workspace/database.js";
 import { isSuccessfulExecution } from "./execution-success.js";
 import { type ExecutionRow, executionFromRow } from "./records.js";

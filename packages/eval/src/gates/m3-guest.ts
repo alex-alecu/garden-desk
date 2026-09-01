@@ -1,7 +1,7 @@
 import { mkdir, open, truncate, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import type { WorkerLimits } from "@vault/shared";
-import type { CodeAgentLauncher, CodeAgentSession, MicroVmAgentRequest } from "@vault/workers";
+import type { WorkerLimits } from "@gardendesk/shared";
+import type { CodeAgentLauncher, CodeAgentSession, MicroVmAgentRequest } from "@gardendesk/workers";
 import { requireM3ProductCheck } from "./m3-gate-support.js";
 import { directSourceProbes, prepareDirectSourceFiles } from "./m3-guest-direct-source.js";
 import { requireGuestSuccess } from "./m3-guest-execution.js";
@@ -49,7 +49,7 @@ async function prepareSource(root: string): Promise<string> {
 const PYTHON_PROBE = [
   "import json, os, pathlib, shutil, socket",
   "import PIL, pypdf, openpyxl, docx, reportlab, charset_normalizer",
-  "root = pathlib.Path(os.environ['VAULT_SOURCE_DIR'])",
+  "root = pathlib.Path(os.environ['GARDEN_DESK_SOURCE_DIR'])",
   "source = root / 'input.txt'",
   "write_blocked = False",
   "try:",
@@ -58,24 +58,24 @@ const PYTHON_PROBE = [
   "    write_blocked = True",
   "root_write_blocked = False",
   "try:",
-  "    pathlib.Path('/etc/vault-write-probe').write_text('changed')",
+  "    pathlib.Path('/etc/garden-desk-write-probe').write_text('changed')",
   "except OSError:",
   "    root_write_blocked = True",
   "tmp_write_blocked = False",
   "try:",
-  "    pathlib.Path('/tmp/vault-write-probe').write_text('changed')",
+  "    pathlib.Path('/tmp/garden-desk-write-probe').write_text('changed')",
   "except OSError:",
   "    tmp_write_blocked = True",
   "outside_writes_blocked = True",
   "for directory in ['/var/tmp', '/dev/shm', '/run', '/home', '/dev']:",
   "    try:",
-  "        probe = pathlib.Path(directory) / 'vault-write-probe'",
+  "        probe = pathlib.Path(directory) / 'garden-desk-write-probe'",
   "        probe.write_text('changed')",
   "        probe.unlink(missing_ok=True)",
   "        outside_writes_blocked = False",
   "    except OSError:",
   "        pass",
-  "runtime = pathlib.Path('/run/user/vault-write-probe')",
+  "runtime = pathlib.Path('/run/user/garden-desk-write-probe')",
   "runtime.write_text('ephemeral')",
   "runtime_writable = runtime.read_text() == 'ephemeral'",
   "runtime.unlink()",
@@ -94,7 +94,7 @@ const PYTHON_PROBE = [
   "except OSError:",
   "    ipv6_blocked = True",
   "try:",
-  "    socket.getaddrinfo('vault-network-probe.invalid', 443)",
+  "    socket.getaddrinfo('garden-desk-network-probe.invalid', 443)",
   "except OSError:",
   "    dns_blocked = True",
   "try:",
@@ -109,7 +109,7 @@ const PYTHON_PROBE = [
   "    socket.socketpair()",
   "except OSError:",
   "    socketpair_blocked = True",
-  "artifact = pathlib.Path(os.environ['VAULT_WORKSPACE_DIR']) / 'python-result.json'",
+  "artifact = pathlib.Path(os.environ['GARDEN_DESK_WORKSPACE_DIR']) / 'python-result.json'",
   "result = {'input': source.read_text(), 'writeBlocked': write_blocked, 'rootWriteBlocked': root_write_blocked, 'tmpWriteBlocked': tmp_write_blocked, 'outsideWritesBlocked': outside_writes_blocked, 'runtimeWritable': runtime_writable, 'networkBlocked': network_blocked, 'ipv6Blocked': ipv6_blocked, 'dnsBlocked': dns_blocked, 'vsockBlocked': vsock_blocked, 'unixBlocked': unix_blocked, 'socketpairBlocked': socketpair_blocked, 'packageManagersAbsent': all(shutil.which(name) is None for name in ['pip', 'npm', 'corepack', 'apk', 'apt', 'dnf', 'yum']), 'shellAvailable': shutil.which('sh') is not None, 'credentialsAbsent': all(key not in os.environ for key in ['AWS_ACCESS_KEY_ID', 'GITHUB_TOKEN', 'SSH_AUTH_SOCK']), 'hostPathsAbsent': not pathlib.Path('/Users').exists(), 'nestedFiles': len(list((root / 'nested' / 'deep').glob('file-*.txt'))), 'sparseBytes': (root / 'nested' / 'deep' / 'large.sparse').stat().st_size, 'versions': [PIL.__version__, pypdf.__version__, openpyxl.__version__, docx.__version__, reportlab.Version, charset_normalizer.__version__]}",
   "artifact.write_text(json.dumps(result))",
   "print(json.dumps(result))",

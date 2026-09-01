@@ -8,7 +8,7 @@ vi.mock("node:os", async (importOriginal) => ({
   totalmem: () => 8 * 1024 * 1024 * 1024,
 }));
 
-import { createVaultCore } from "../compose.js";
+import { createGardenDeskCore } from "../compose.js";
 
 const roots: string[] = [];
 
@@ -18,9 +18,9 @@ afterEach(async () => {
 
 describe.skipIf(process.platform !== "darwin")("8 GB Mac composition", () => {
   it("returns an unsupported model before opening a model store or worker", async () => {
-    const workspaceDir = await mkdtemp(join(tmpdir(), "vault-unsupported-hardware-"));
+    const workspaceDir = await mkdtemp(join(tmpdir(), "garden-desk-unsupported-hardware-"));
     roots.push(workspaceDir);
-    const core = await createVaultCore({
+    const core = await createGardenDeskCore({
       workspaceDir,
       modelStoreDir: join(workspaceDir, "missing-model-store"),
       profile: "auto",

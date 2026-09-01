@@ -13,7 +13,7 @@ import { AgentStore } from "./store.js";
 const roots: string[] = [];
 
 async function fixture() {
-  const root = await mkdtemp(join(tmpdir(), "vault-agent-store-"));
+  const root = await mkdtemp(join(tmpdir(), "garden-desk-agent-store-"));
   roots.push(root);
   const scope = await WorkspaceScope.create(root);
   const catalog = openWorkspaceCatalog(scope.root);

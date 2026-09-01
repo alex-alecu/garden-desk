@@ -71,7 +71,7 @@ fn environment(scratch: &Path, profile: &Path, gpu: GpuEnvironment) -> Vec<u16> 
         "NODE_NO_WARNINGS=1".to_owned(),
         "NODE_LLAMA_CPP_SKIP_DOWNLOAD=true".to_owned(),
         "LLAMA_ARG_OFFLINE=1".to_owned(),
-        "VAULT_APPCONTAINER_LOCKED=1".to_owned(),
+        "GARDEN_DESK_APPCONTAINER_LOCKED=1".to_owned(),
     ];
     if let Some(device_index) = gpu.device_index {
         match gpu.backend {

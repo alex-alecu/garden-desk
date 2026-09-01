@@ -1,4 +1,4 @@
-import { AgentQuestionRequestSchema } from "@vault/shared";
+import { AgentQuestionRequestSchema } from "@gardendesk/shared";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { QuestionPrompt } from "./question-prompt.js";

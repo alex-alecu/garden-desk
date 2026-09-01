@@ -50,13 +50,13 @@ Every remove or unmount action requires confirmation. Unmounting a folder remove
 
 ## New Chat
 
-New chat prepares a blank composer with no folder grant; pressing it repeatedly does not persist placeholder conversations. The session is created when the user submits its first message or selects attachments. Users can attach one or more files through a native file dialog or by dropping them anywhere in the application window. Folders dropped anywhere in the window become scoped workspaces, then the last added workspace opens with a new blank conversation. During a native drag, a full-window animated affordance identifies whether release will attach files, add folder workspaces, or do both. Vault Core validates, copies, and verifies explicit files into session-owned read-only inputs before the agent can access them.
+New chat prepares a blank composer with no folder grant; pressing it repeatedly does not persist placeholder conversations. The session is created when the user submits its first message or selects attachments. Users can attach one or more files through a native file dialog or by dropping them anywhere in the application window. Folders dropped anywhere in the window become scoped workspaces, then the last added workspace opens with a new blank conversation. During a native drag, a full-window animated affordance identifies whether release will attach files, add folder workspaces, or do both. Garden Desk Core validates, copies, and verifies explicit files into session-owned read-only inputs before the agent can access them.
 
 New chat must never silently inherit the previously selected folder. Attachments are clickable, removable chips before sending; after submission they move beneath the durable user message and remain clickable immutable input records. Opening an attachment materializes a verified owner-only temporary copy and delegates to the operating system. Removing a pending attachment requires confirmation and never changes the original host file.
 
 ## Folder Sessions
 
-Adding a folder uses a native Tauri dialog or a sidebar drop and creates a scoped Vault Core grant. Folder groups can be reordered by drag handle or keyboard, and that order is persisted by Core. The webview receives opaque folder identifiers and display names, not unrestricted filesystem handles.
+Adding a folder uses a native Tauri dialog or a sidebar drop and creates a scoped Garden Desk Core grant. Folder groups can be reordered by drag handle or keyboard, and that order is persisted by Core. The webview receives opaque folder identifiers and display names, not unrestricted filesystem handles.
 
 Starting a session under that folder gives its agent microVM a live read-only mount of the selected folder at `/source`. The hierarchy is preserved and host changes become visible immediately. The agent cannot write, rename, delete, or create files in the host folder.
 
@@ -109,12 +109,12 @@ Runtime, quantization, context-window, endpoint, and model-file vocabulary stays
 ## Security Rules
 
 - The webview has no generic shell, process, environment, network, local-endpoint, or unrestricted filesystem capability.
-- Tauri commands are narrow, typed, capability-scoped, and delegated to Vault Core where product policy applies.
-- Opening a granted folder passes only its opaque identifier; Vault Core resolves and revalidates the active grant before the Rust host asks the operating system to open it.
+- Tauri commands are narrow, typed, capability-scoped, and delegated to Garden Desk Core where product policy applies.
+- Opening a granted folder passes only its opaque identifier; Garden Desk Core resolves and revalidates the active grant before the Rust host asks the operating system to open it.
 - Native dialogs return selections to the Rust host, which passes them through the typed grant or attachment command; arbitrary path strings from the webview are rejected.
 - The model and guest never receive a writable host folder.
 - Agent code and commands execute only in the session-scoped no-network microVM with fixed interpreters, libraries, and installed BusyBox tools.
-- UI state never substitutes for Vault Core grants, policy, audit, resource limits, cancellation, or result validation.
+- UI state never substitutes for Garden Desk Core grants, policy, audit, resource limits, cancellation, or result validation.
 
 ## Accessibility And Platform Behavior
 

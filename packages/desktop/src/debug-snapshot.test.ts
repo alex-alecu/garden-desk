@@ -5,7 +5,7 @@ describe("debug snapshot state", () => {
   it("clears stale paths while creating and after failures", () => {
     const ready = debugSnapshotReducer(initialDebugSnapshotState, {
       type: "create.succeeded",
-      path: "/tmp/vault-session-debug-ready",
+      path: "/tmp/garden-desk-session-debug-ready",
     });
     expect(debugSnapshotReducer(ready, { type: "create.start" })).toEqual({
       creating: true,
@@ -19,7 +19,7 @@ describe("debug snapshot state", () => {
   it("retains the created path across reveal failures and resets for another session", () => {
     const ready = debugSnapshotReducer(initialDebugSnapshotState, {
       type: "create.succeeded",
-      path: "/tmp/vault-session-debug-ready",
+      path: "/tmp/garden-desk-session-debug-ready",
     });
     const failure = debugSnapshotReducer(ready, { type: "reveal.failed" });
     expect(failure.path).toBe(ready.path);

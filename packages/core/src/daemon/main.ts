@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { rename, unlink, writeFile } from "node:fs/promises";
-import { createVaultCore, type VaultCoreOptions } from "../compose.js";
+import { createGardenDeskCore, type GardenDeskCoreOptions } from "../compose.js";
 import { runDebugSessionMode } from "../diagnostics/process.js";
 import { initializeEmptyModelStore } from "../runtime/models.js";
 import { monitorParent, openWithWorkspaceRetry } from "./lifecycle.js";
@@ -11,7 +11,7 @@ function argument(args: string[], name: string, required = true): string | undef
   const value = index === -1 ? undefined : args[index + 1];
   if (required && value === undefined) {
     throw new Error(
-      "Usage: vault-cored --workspace <directory> --model-store <directory> --profile <auto|local12|local16>",
+      "Usage: garden-desk-cored --workspace <directory> --model-store <directory> --profile <auto|local12|local16>",
     );
   }
   return value;
@@ -72,8 +72,8 @@ function launchOptions(args: string[]): LaunchOptions {
   };
 }
 
-function coreOptions(options: LaunchOptions): VaultCoreOptions {
-  const configured: VaultCoreOptions = {
+function coreOptions(options: LaunchOptions): GardenDeskCoreOptions {
+  const configured: GardenDeskCoreOptions = {
     workspaceDir: options.workspaceDir,
     modelStoreDir: options.modelStoreDir,
     profile: options.profile,
@@ -99,7 +99,7 @@ function coreOptions(options: LaunchOptions): VaultCoreOptions {
 
 function openCore(options: LaunchOptions) {
   return openWithWorkspaceRetry(
-    () => createVaultCore(coreOptions(options)),
+    () => createGardenDeskCore(coreOptions(options)),
     options.parentPid === undefined ? 0 : 2_000,
   );
 }
@@ -139,7 +139,7 @@ async function startServer(args: string[]): Promise<void> {
     });
     await rename(temporary, options.readyFile);
   }
-  console.error(`Vault Core listening at ${daemon.endpoint}`);
+  console.error(`Garden Desk Core listening at ${daemon.endpoint}`);
   process.once("SIGINT", () => void shutdown().then(() => process.exit(0)));
   process.once("SIGTERM", () => void shutdown().then(() => process.exit(0)));
 }
@@ -151,7 +151,7 @@ if (args[0] === "debug-session") {
   });
 } else {
   void startServer(args).catch((error: unknown) => {
-    console.error(error instanceof Error ? error.message : "Vault Core failed to start.");
+    console.error(error instanceof Error ? error.message : "Garden Desk Core failed to start.");
     process.exitCode = 1;
   });
 }

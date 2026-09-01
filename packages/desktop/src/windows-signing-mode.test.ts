@@ -9,18 +9,18 @@ describe("Windows signing mode", () => {
   it("requires and normalizes the production certificate thumbprint", () => {
     expect(
       windowsSigningConfiguration({
-        VAULT_WINDOWS_SIGNING_MODE: "production",
-        VAULT_WINDOWS_SIGNING_CERTIFICATE_THUMBPRINT:
+        GARDEN_DESK_WINDOWS_SIGNING_MODE: "production",
+        GARDEN_DESK_WINDOWS_SIGNING_CERTIFICATE_THUMBPRINT:
           "aa11 aa11 aa11 aa11 aa11 aa11 aa11 aa11 aa11 aa11",
-        VAULT_WINDOWS_SIGNING_TIMESTAMP_URL: "https://timestamp.example.test",
+        GARDEN_DESK_WINDOWS_SIGNING_TIMESTAMP_URL: "https://timestamp.example.test",
       }),
     ).toEqual({
       mode: "production",
       certificateThumbprint: "AA11AA11AA11AA11AA11AA11AA11AA11AA11AA11",
       timestampUrl: "https://timestamp.example.test",
     });
-    expect(() => windowsSigningConfiguration({ VAULT_WINDOWS_SIGNING_MODE: "production" })).toThrow(
-      "certificate thumbprint",
-    );
+    expect(() =>
+      windowsSigningConfiguration({ GARDEN_DESK_WINDOWS_SIGNING_MODE: "production" }),
+    ).toThrow("certificate thumbprint");
   });
 });

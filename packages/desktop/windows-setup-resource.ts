@@ -14,11 +14,11 @@ export async function installWindowsSetupHelper(options: {
   options.build();
   const destinationRoot = join(options.resourcesRoot, "windows");
   await mkdir(destinationRoot, { recursive: true });
-  const helper = join(destinationRoot, "vault-hyper-v-setup.exe");
+  const helper = join(destinationRoot, "garden-desk-hyper-v-setup.exe");
   await copyFile(
     join(
       options.repositoryRoot,
-      "packages/desktop/native/windows-hyper-v-setup/.generated/vault-hyper-v-setup.exe",
+      "packages/desktop/native/windows-hyper-v-setup/.generated/garden-desk-hyper-v-setup.exe",
     ),
     helper,
   );

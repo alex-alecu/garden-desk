@@ -8,11 +8,11 @@ The macOS aarch64 and Windows x86_64 agent configurations enable the same Buildr
 
 The build runs in Buildroot's release-pinned CI image locked by registry digest, sets a fixed source date epoch, disables IP and wireless kernel features, and emits architecture-specific kernel and initramfs artifacts. The first build may fetch Buildroot-verified inputs; the independent second build has Docker networking disabled and must be byte-identical. Transient build trees use disposable Linux-native Docker volumes. Artifacts are ignored and are not committed.
 
-Run `VAULT_BUILDROOT_ARCHIVE=/absolute/path/buildroot-2026.05.tar.xz pnpm guest:build`. The archive must match the manifest hash; use `-- --arch x86_64` for the Windows build.
+Run `GARDEN_DESK_BUILDROOT_ARCHIVE=/absolute/path/buildroot-2026.05.tar.xz pnpm guest:build`. The archive must match the manifest hash; use `-- --arch x86_64` for the Windows build.
 
-Run `VAULT_BUILDROOT_ARCHIVE=/absolute/path/buildroot-2026.05.tar.xz pnpm guest:build:agent` for the macOS M3 agent image. The command performs two independent builds, disables Docker networking for the second build, requires byte-identical outputs, and installs generated artifacts only under the ignored `.generated/agent/` tree.
+Run `GARDEN_DESK_BUILDROOT_ARCHIVE=/absolute/path/buildroot-2026.05.tar.xz pnpm guest:build:agent` for the macOS M3 agent image. The command performs two independent builds, disables Docker networking for the second build, requires byte-identical outputs, and installs generated artifacts only under the ignored `.generated/agent/` tree.
 
-Run `VAULT_BUILDROOT_ARCHIVE=/absolute/path/buildroot-2026.05.tar.xz pnpm guest:build:agent:windows` for the Windows x86_64 M3 agent image. It applies the same independent online and offline build check and keeps the generated image ignored.
+Run `GARDEN_DESK_BUILDROOT_ARCHIVE=/absolute/path/buildroot-2026.05.tar.xz pnpm guest:build:agent:windows` for the Windows x86_64 M3 agent image. It applies the same independent online and offline build check and keeps the generated image ignored.
 
 Buildroot was selected over a general distribution image because it emits a smaller immutable root filesystem with an explicit package set. The GPL build system is not shipped, but the repository must retain its license/source-offer obligations for the GPL kernel and BusyBox contents when guest images are distributed.
 
