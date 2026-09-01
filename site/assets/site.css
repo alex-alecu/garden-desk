@@ -1750,15 +1750,7 @@ html.motion-ready [data-reveal].is-revealed {
   }
 
   .demo-wrap iframe {
-    position: absolute;
-    top: 0;
-    left: 50%;
-    width: 1120px;
-    height: 742px;
-    transform: translateX(-50%);
-    filter: saturate(0.65);
-    opacity: 0.24;
-    pointer-events: none;
+    display: none;
   }
 
   .demo-mobile-gate {

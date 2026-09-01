@@ -115,10 +115,13 @@ for (const path of htmlFiles) {
 }
 
 const home = await text("index.html");
-requireText(home, 'src="./demo/"', "home");
+requireText(home, 'data-src="./demo/"', "home desktop demo source");
 requireText(home, 'href="./demo/"', "home");
 requireText(home, "data-embedded-demo", "home mobile demo gate");
 requireText(home, "Open the demo to interact.", "home mobile demo gate");
+if (/<iframe[^>]+data-embedded-demo[^>]+\ssrc=/u.test(home)) {
+  failures.push("home mobile demo gate: iframe loads before the desktop check");
+}
 requireText(home, "SoftwareApplication", "home");
 requireText(home, "social-card.png", "home");
 requireText(home, "data-scene", "home garden scene");
@@ -181,6 +184,15 @@ if (!/IntersectionObserver/u.test(assetText)) {
 }
 if (!/toggleAttribute\([`'"]inert[`'"]/u.test(assetText)) {
   failures.push("home mobile demo gate: missing inert iframe controller");
+}
+if (!/removeAttribute\([`'"]src[`'"]/u.test(assetText)) {
+  failures.push("home mobile demo gate: missing iframe unload");
+}
+if (!/setAttribute\([`'"]src[`'"]/u.test(assetText)) {
+  failures.push("home desktop demo: missing iframe load");
+}
+if (!/max-width:\s*1119px/u.test(assetText)) {
+  failures.push("home mobile demo gate: missing narrow viewport rule");
 }
 if (!/hover:\s*none\)?\s*and\s*\(pointer:\s*coarse/u.test(assetText)) {
   failures.push("home mobile demo gate: missing touch-first device rule");
