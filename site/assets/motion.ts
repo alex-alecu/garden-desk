@@ -76,14 +76,52 @@ function enableTilt(): void {
   }
 }
 
-function paintScroll(header: HTMLElement | null, layers: HTMLElement[]): void {
-  const offset = window.scrollY;
-  const height = document.documentElement.scrollHeight - window.innerHeight;
+const HEADER_PINNED_ABOVE = 140;
+const HEADER_HIDE_AFTER = 12;
+const HEADER_REVEAL_AFTER = 50;
+
+/**
+ * Hide the bar on the way down and bring it back once the reader clearly means
+ * to go up. Distance is accumulated per direction so trackpad jitter and
+ * momentum wobble never flip it.
+ */
+function headerReveal(header: HTMLElement): (offset: number) => void {
+  let last = window.scrollY;
+  let up = 0;
+  let down = 0;
+  return (offset: number) => {
+    const delta = offset - last;
+    last = offset;
+    if (delta > 0) {
+      down += delta;
+      up = 0;
+    } else if (delta < 0) {
+      up -= delta;
+      down = 0;
+    }
+    if (offset <= HEADER_PINNED_ABOVE) {
+      header.classList.remove("is-hidden");
+      return;
+    }
+    if (down > HEADER_HIDE_AFTER) header.classList.add("is-hidden");
+    else if (up > HEADER_REVEAL_AFTER) header.classList.remove("is-hidden");
+  };
+}
+
+function paintScroll(
+  header: HTMLElement | null,
+  layers: HTMLElement[],
+  reveal: ((offset: number) => void) | undefined,
+): void {
+  const limit = document.documentElement.scrollHeight - window.innerHeight;
+  // Rubber-band scrolling reports offsets outside the document on both ends.
+  const offset = Math.min(Math.max(window.scrollY, 0), Math.max(limit, 0));
   document.documentElement.style.setProperty(
     "--scroll-progress",
-    `${height > 0 ? Math.min(offset / height, 1) : 0}`,
+    `${limit > 0 ? offset / limit : 0}`,
   );
   header?.classList.toggle("is-condensed", offset > 24);
+  reveal?.(offset);
   for (const layer of layers) {
     const bounds = layer.getBoundingClientRect();
     const centered = (bounds.top + bounds.height / 2 - window.innerHeight / 2) / window.innerHeight;
@@ -94,6 +132,7 @@ function paintScroll(header: HTMLElement | null, layers: HTMLElement[]): void {
 
 function observeScroll(): void {
   const header = document.querySelector<HTMLElement>("[data-header]");
+  const reveal = header === null ? undefined : headerReveal(header);
   const layers = reducedMotion.matches
     ? []
     : [...document.querySelectorAll<HTMLElement>("[data-parallax]")];
@@ -103,11 +142,18 @@ function observeScroll(): void {
     queued = true;
     requestAnimationFrame(() => {
       queued = false;
-      paintScroll(header, layers);
+      paintScroll(header, layers, reveal);
     });
   };
   window.addEventListener("scroll", schedule, { passive: true });
   window.addEventListener("resize", schedule, { passive: true });
+  // A page opened in a background tab schedules a frame that never runs, which
+  // would leave the loop queued and the header stuck once the tab is opened.
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) return;
+    queued = false;
+    schedule();
+  });
   schedule();
 }
 
