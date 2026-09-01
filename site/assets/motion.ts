@@ -1,3 +1,5 @@
+import "./leaf-field";
+
 export const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
 const easeOutExpo = (progress: number): number => (progress >= 1 ? 1 : 1 - 2 ** (-10 * progress));
 
