@@ -10,6 +10,7 @@ const localAssetPattern = /(?:href|src)=["']([^"']+\.(?:css|js|png|svg|woff2))["
 const routeFiles = [
   "index.html",
   "demo/index.html",
+  "downloads/index.html",
   "privacy/index.html",
   "terms/index.html",
   "security/index.html",
@@ -141,7 +142,7 @@ if ((home.match(/Coming soon/gu) ?? []).length < 2) {
 }
 
 const sitemap = await text("sitemap.xml");
-for (const route of ["/", "/demo/", "/privacy/", "/terms/", "/security/"]) {
+for (const route of ["/", "/demo/", "/downloads/", "/privacy/", "/terms/", "/security/"]) {
   requireText(sitemap, new URL(route, publishedRoot).href, "sitemap");
 }
 
@@ -158,6 +159,13 @@ requireText(assetText, "max(790px,100svh - 96px)", "home demo viewport height");
 requireText(assetText, "min-width:1120px", "demo minimum width");
 requireText(assetText, "min-height:700px", "demo minimum height");
 requireText(assetText, "prefers-reduced-motion", "home reduced-motion fallback");
+if (
+  /@media\s*\(prefers-reduced-motion:\s*reduce\)\s*\{[^}]*\[data-steam\][^}]*animation:[^}]*branch-drift/u.test(
+    assetText,
+  )
+) {
+  failures.push("home reduced motion: steam group still animates");
+}
 if (!/IntersectionObserver/u.test(assetText)) {
   failures.push("home motion: missing scroll reveal observer");
 }
