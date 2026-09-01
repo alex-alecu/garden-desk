@@ -108,11 +108,7 @@ function headerReveal(header: HTMLElement): (offset: number) => void {
   };
 }
 
-function paintScroll(
-  header: HTMLElement | null,
-  layers: HTMLElement[],
-  reveal: ((offset: number) => void) | undefined,
-): void {
+function paintScroll(layers: HTMLElement[], reveal: ((offset: number) => void) | undefined): void {
   const limit = document.documentElement.scrollHeight - window.innerHeight;
   // Rubber-band scrolling reports offsets outside the document on both ends.
   const offset = Math.min(Math.max(window.scrollY, 0), Math.max(limit, 0));
@@ -120,7 +116,6 @@ function paintScroll(
     "--scroll-progress",
     `${limit > 0 ? offset / limit : 0}`,
   );
-  header?.classList.toggle("is-condensed", offset > 24);
   reveal?.(offset);
   for (const layer of layers) {
     const bounds = layer.getBoundingClientRect();
@@ -142,7 +137,7 @@ function observeScroll(): void {
     queued = true;
     requestAnimationFrame(() => {
       queued = false;
-      paintScroll(header, layers, reveal);
+      paintScroll(layers, reveal);
     });
   };
   window.addEventListener("scroll", schedule, { passive: true });
