@@ -6,7 +6,7 @@ import {
   ConversationMessageSchema,
   FolderSummarySchema,
   SessionSummarySchema,
-} from "@vault/shared";
+} from "@gardendesk/shared";
 import { prompts, responses } from "./demo-content.js";
 
 const createdAt = "2026-07-21T09:00:00.000Z";

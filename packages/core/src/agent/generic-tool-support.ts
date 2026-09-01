@@ -5,8 +5,8 @@ import {
   type AgentRunResult,
   AgentWorkspacePathSchema,
   type ChatToolDefinition,
-} from "@vault/shared";
-import type { AgentSessionExecution } from "@vault/workers";
+} from "@gardendesk/shared";
+import type { AgentSessionExecution } from "@gardendesk/workers";
 import {
   AgentExecutionAttemptError,
   type AgentExecutor,
@@ -135,7 +135,8 @@ export async function runExecution(
 
 export function scriptPath(language: "python" | "node", value?: string): string {
   return AgentWorkspacePathSchema.parse(
-    value ?? `.vault-tools/${language}-${randomUUID()}.${language === "python" ? "py" : "js"}`,
+    value ??
+      `.garden-desk-tools/${language}-${randomUUID()}.${language === "python" ? "py" : "js"}`,
   );
 }
 
@@ -197,7 +198,7 @@ function inspectionTool(options: {
         context,
         {
           language: "python",
-          path: `.vault-tools/${options.name}-${randomUUID()}.py`,
+          path: `.garden-desk-tools/${options.name}-${randomUUID()}.py`,
           source: inspectionSource(options.name, params),
         },
         false,

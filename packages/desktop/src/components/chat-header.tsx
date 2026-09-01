@@ -1,4 +1,4 @@
-import type { ModelRuntimeStatus } from "@vault/shared";
+import type { ModelRuntimeStatus } from "@gardendesk/shared";
 import { type AppearancePreference, nextAppearance } from "../appearance.js";
 import { Icon } from "./icons.js";
 

@@ -1,4 +1,4 @@
-import type { AgentExecutionResult, ChatGenerationResult } from "@vault/shared";
+import type { AgentExecutionResult, ChatGenerationResult } from "@gardendesk/shared";
 import type { InferenceService } from "../runtime/inference.js";
 import type { AgentExecutor } from "./agent-executor.js";
 import type { ChatAgentInput } from "./chat-loop.js";
@@ -48,7 +48,7 @@ export function generated(
 export function execution(source: string, stderr = "", exitCode = 0): AgentExecutionResult {
   return {
     language: "python",
-    path: ".vault-tools/test.py",
+    path: ".garden-desk-tools/test.py",
     source,
     command: null,
     exitCode,

@@ -1,4 +1,4 @@
-import type { AgentExecutionResult } from "@vault/shared";
+import type { AgentExecutionResult } from "@gardendesk/shared";
 import { describe, expect, it, vi } from "vitest";
 import type { AgentExecutor } from "./agent-executor.js";
 import { boundedToolOutput } from "./tool-output.js";
@@ -6,7 +6,7 @@ import { boundedToolOutput } from "./tool-output.js";
 function completed(source: string): AgentExecutionResult {
   return {
     language: "python",
-    path: ".vault-output/write.py",
+    path: ".garden-desk-output/write.py",
     source,
     command: null,
     exitCode: 0,
@@ -53,8 +53,10 @@ describe("bounded tool output", () => {
     const result = await boundedToolOutput(executor(writes), output);
 
     expect(writes).toHaveLength(1);
-    expect(writes[0]).toContain("/workspace/.vault-output/");
-    expect(result).toContain("[Output truncated. Full output saved to /workspace/.vault-output/");
+    expect(writes[0]).toContain("/workspace/.garden-desk-output/");
+    expect(result).toContain(
+      "[Output truncated. Full output saved to /workspace/.garden-desk-output/",
+    );
     expect(result).toContain("Use grep or read with offset/limit.");
     expect(result).toContain("line 0");
     expect(result).toContain("line 2000");

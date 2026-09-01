@@ -1,4 +1,4 @@
-import type { AgentQuestion } from "@vault/shared";
+import type { AgentQuestion } from "@gardendesk/shared";
 
 /**
  * Selection state for one multi-question request. `selected` holds the chosen option labels per

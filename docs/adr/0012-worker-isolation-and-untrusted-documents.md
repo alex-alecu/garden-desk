@@ -10,7 +10,7 @@ Accepted as security direction
 
 Garden Desk treats model output as untrusted, but document parsers, OCR models, inference runtimes, tool implementations, and document contents are also attack and failure surfaces. The earlier plan described supervised workers and network policy without defining a security boundary that remains effective after a worker is compromised.
 
-A package or process boundary is not a sufficient hostile-code boundary. Command matching, URL matching, destination allowlists inside a worker, and application-level requests to avoid networking are policy conveniences, not proof of network isolation. Malformed documents, decompression bombs, parser exploits, runaway generation, prompt injection inside source text, or worker compromise must not gain Vault Core permissions, reach a network, or corrupt authoritative workspace state.
+A package or process boundary is not a sufficient hostile-code boundary. Command matching, URL matching, destination allowlists inside a worker, and application-level requests to avoid networking are policy conveniences, not proof of network isolation. Malformed documents, decompression bombs, parser exploits, runaway generation, prompt injection inside source text, or worker compromise must not gain Garden Desk Core permissions, reach a network, or corrupt authoritative workspace state.
 
 ## Decision
 
@@ -20,9 +20,9 @@ The microVM exposes only a narrow host/guest socket for versioned typed IPC. Tha
 
 macOS uses one read-only VirtioFS share. Windows certification requires an HCS Plan9 share with both host `ReadOnly` and guest read-only mount enforcement over Hyper-V sockets, without a virtual NIC or copy fallback. This scoped Plan9 transport is not a network broker. Windows is not certified until physical evidence proves the boundary.
 
-Both desktop hosts and Vault Core run as the current user. macOS requires no administrator setup. Windows HCS accepts administrators or Hyper-V Administrators, so the Windows package includes one narrowly scoped signed helper that may elevate after an explicit disclosure, derive the requesting account from the non-elevated parent process token, and add only that account to Hyper-V Administrators. Hyper-V must already be enabled. The helper cannot enable features, accept another SID, or launch arbitrary work. After a new Windows sign-in, the standard-user desktop owns HCS lifecycle and the fixed Hyper-V socket admits Hyper-V Administrators. This standing group membership grants all processes under that account Hyper-V management authority and is part of the disclosed Windows security boundary.
+Both desktop hosts and Garden Desk Core run as the current user. macOS requires no administrator setup. Windows HCS accepts administrators or Hyper-V Administrators, so the Windows package includes one narrowly scoped signed helper that may elevate after an explicit disclosure, derive the requesting account from the non-elevated parent process token, and add only that account to Hyper-V Administrators. Hyper-V must already be enabled. The helper cannot enable features, accept another SID, or launch arbitrary work. After a new Windows sign-in, the standard-user desktop owns HCS lifecycle and the fixed Hyper-V socket admits Hyper-V Administrators. This standing group membership grants all processes under that account Hyper-V management authority and is part of the disclosed Windows security boundary.
 
-The offline dev agent defined by [ADR 0018](0018-offline-dev-agent-first.md) is an executable-tool guest role under this boundary. Every session starts from the immutable image with pinned offline interpreters and libraries; dependency installation is forbidden. Vault Core calls the separately confined host-native inference worker, then sends only validated execution requests to the guest. The guest receives no model-server socket, Vault Core API, external-connection broker, approval authority, or export authority.
+The offline dev agent defined by [ADR 0018](0018-offline-dev-agent-first.md) is an executable-tool guest role under this boundary. Every session starts from the immutable image with pinned offline interpreters and libraries; dependency installation is forbidden. Garden Desk Core calls the separately confined host-native inference worker, then sends only validated execution requests to the guest. The guest receives no model-server socket, Garden Desk Core API, external-connection broker, approval authority, or export authority.
 
 Agent protocol v3 streams only execution stdout, stderr, and typed lifecycle diagnostics with execution identity and monotonic sequence validation. Core caps and durably records those streams before exposing them through polling. Native helper stderr, temporary host paths, credentials, model reasoning, and arbitrary platform logger output never enter the execution record.
 
@@ -34,24 +34,24 @@ The first platform backends to validate are research-derived until M0 proves the
 
 Process-only sandboxes, Windows AppContainer, and Linux namespace/seccomp/Landlock combinations may be evaluated as compatibility fallbacks. They must be labeled as weaker than the certified microVM boundary and cannot silently satisfy a microVM acceptance gate.
 
-Hardware-accelerated inference is a separate trust class. The pinned node-llama-cpp inference worker may remain a host-native supervised process so Metal, CUDA, HIP, or Vulkan acceleration remains available. It receives no arbitrary workspace paths, shell, tool implementation, credentials, or approval authority, and outbound networking is denied by an operating-system capability boundary rather than command matching. Model output crosses typed IPC into Vault Core, which alone can propose policy-controlled tool use. OCR or layout acceleration may use the same exception only when measured product requirements make microVM execution impractical; each exception must be documented and pass the native-worker isolation gates.
+Hardware-accelerated inference is a separate trust class. The pinned node-llama-cpp inference worker may remain a host-native supervised process so Metal, CUDA, HIP, or Vulkan acceleration remains available. It receives no arbitrary workspace paths, shell, tool implementation, credentials, or approval authority, and outbound networking is denied by an operating-system capability boundary rather than command matching. Model output crosses typed IPC into Garden Desk Core, which alone can propose policy-controlled tool use. OCR or layout acceleration may use the same exception only when measured product requirements make microVM execution impractical; each exception must be documented and pass the native-worker isolation gates.
 
 Workers follow a capability-scoped job protocol:
 
-- Vault Core inventories and authorizes inputs before dispatch.
+- Garden Desk Core inventories and authorizes inputs before dispatch.
 - Workers receive explicit attachment bytes or one Core-validated canonical selected-folder share rather than arbitrary model-chosen paths.
 - Workers cannot approve actions, mutate workspace policy, write exports, or access the general workspace filesystem.
 - MicroVM workers have no virtual network device; native accelerator workers have networking denied by an operating-system sandbox or capability boundary.
 - Each job has limits for wall time, CPU, memory, temporary storage, input expansion, output size, and concurrency.
 - Code jobs additionally limit process count, generated artifact count, stdout/stderr size, and total instruction/tool iterations.
 - Cancellation is cooperative first and process termination is the fallback.
-- Worker output is schema-validated and size-checked before Vault Core commits it.
+- Worker output is schema-validated and size-checked before Garden Desk Core commits it.
 - Worker crashes and malformed messages become typed job failures with durable resume points.
 - Temporary transport files live in scoped directories and are cleaned after success, cancellation, crash, and startup recovery. Session workspace content survives only through validated manifests.
 
 Source documents and retrieved chunks are always data. Text inside them cannot redefine system policy, grant permissions, request approval, or become a tool call. Prompts and tool-loop adapters preserve an explicit separation between trusted workflow instructions and untrusted evidence.
 
-Authorized external integrations run in a dedicated Vault Core network broker outside the microVM. The broker accepts only typed, policy-approved operations, owns credentials, records destinations and results, and never exposes a general socket, HTTP proxy, DNS proxy, or arbitrary fetch primitive to a model or worker. Updates and model acquisition use a separate user-initiated updater and are not worker capabilities.
+Authorized external integrations run in a dedicated Garden Desk Core network broker outside the microVM. The broker accepts only typed, policy-approved operations, owns credentials, records destinations and results, and never exposes a general socket, HTTP proxy, DNS proxy, or arbitrary fetch primitive to a model or worker. Updates and model acquisition use a separate user-initiated updater and are not worker capabilities.
 
 ## Consequences
 

@@ -16,15 +16,15 @@ No single reviewed standard covers semantic description, complete fixity, publis
 
 ### Logical format
 
-The authoritative form is an immutable directory tree. It contains a versioned Vault manifest, constrained RO-Crate 1.3 JSON-LD metadata, resource-level SPDX 3.0.1 rights records where applicable, original sources, normalized evidence-bearing derivatives, public evaluations, and optional compatibility-keyed accelerators.
+The authoritative form is an immutable directory tree. It contains a versioned Garden Desk manifest, constrained RO-Crate 1.3 JSON-LD metadata, resource-level SPDX 3.0.1 rights records where applicable, original sources, normalized evidence-bearing derivatives, public evaluations, and optional compatibility-keyed accelerators.
 
-The Vault manifest is the one complete inventory consumed by future bundle code. It uses SHA-512 for every payload and follows BagIt completeness and fixity rules, but the product does not claim strict BagIt conformance or duplicate the inventory into BagIt tag manifests.
+The Garden Desk manifest is the one complete inventory consumed by future bundle code. It uses SHA-512 for every payload and follows BagIt completeness and fixity rules, but the product does not claim strict BagIt conformance or duplicate the inventory into BagIt tag manifests.
 
 ### Transport
 
 The v1 `.vdkb` transport is an uncompressed deterministic POSIX tar stream. Entries are lexically ordered, use UTF-8 forward-slash relative paths, fixed modes, uid and gid zero, empty owner names, and an epoch modification time. Only directories and regular files are valid. Links, devices, sparse entries, absolute paths, traversal, ambiguous separators, case-colliding paths, and duplicate normalized paths are rejected.
 
-A future bundle importer may use `tar-stream` 3.2.0 only as a streaming tar decoder inside the no-network guest. The guest produces a bounded typed inventory; it never writes directly into the installed store. Vault Core verifies the inventory and commits immutable objects atomically.
+A future bundle importer may use `tar-stream` 3.2.0 only as a streaming tar decoder inside the no-network guest. The guest produces a bounded typed inventory; it never writes directly into the installed store. Garden Desk Core verifies the inventory and commits immutable objects atomically.
 
 Compression is deliberately absent in v1. Node 24's Zstandard API is experimental, and adding a second native codec would enlarge the parser and supply-chain surface. A later ADR may add compression after deterministic construction, decompression limits, and cross-platform behavior are proven.
 
@@ -46,13 +46,13 @@ A bundle may carry evidence, metadata, rights records, inert human-readable desc
 - `tuf-js` 6.0.0: adopt behind a Core adapter for TUF metadata verification. It is MIT-licensed, maintained by The Update Framework organization, and supports the role model required by the offline channel.
 - Node `crypto`: adopt for detached Ed25519 verification. It adds no package, telemetry, network, or credential surface.
 - RO-Crate and SPDX libraries: defer. A library is added only if representative bundles prove it removes maintained code.
-- Strict BagIt tooling: defer. The single Vault inventory adopts the necessary completeness and SHA-512 invariants without duplicate manifests.
+- Strict BagIt tooling: defer. The single Garden Desk inventory adopts the necessary completeness and SHA-512 invariants without duplicate manifests.
 - Sigstore client: defer. TUF plus detached signatures satisfies the first activation boundary; optional provenance does not justify another trust stack yet.
 
 ## Consequences
 
 - Future bundle reading stays simple and transport-independent.
-- Future archive parsing stays outside Vault Core and behind no-network isolation.
+- Future archive parsing stays outside Garden Desk Core and behind no-network isolation.
 - Uncompressed transport uses more removable-media space but has a smaller deterministic and security surface.
 - `tuf-js` and `tar-stream` remain development-only validation dependencies; they become production dependencies only when a future bundle milestone introduces their adapters.
 - Content truth, professional authority, rights, and applicability remain separate review decisions from cryptographic authenticity.

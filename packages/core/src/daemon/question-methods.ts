@@ -3,8 +3,8 @@ import {
   AgentQuestionIdSchema,
   AgentRunIdSchema,
   type RpcRequest,
-} from "@vault/shared";
-import type { VaultCore } from "../facade.js";
+} from "@gardendesk/shared";
+import type { GardenDeskCore } from "../facade.js";
 
 const AnswerListSchema = AgentQuestionAnswerSchema.array().max(3);
 
@@ -13,7 +13,7 @@ export type QuestionMethodResult =
   | { ok: false; reason: "invalid_request" | "not_found" };
 
 export async function dispatchQuestionMethod(
-  core: VaultCore,
+  core: GardenDeskCore,
   request: RpcRequest,
 ): Promise<QuestionMethodResult> {
   const runId = AgentRunIdSchema.safeParse(request.params.runId);

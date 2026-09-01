@@ -1,8 +1,0 @@
-config BR2_PACKAGE_VAULT_PYTHON_LIBRARIES
-	bool "vault-python-libraries"
-	depends on BR2_PACKAGE_PYTHON3
-	select BR2_PACKAGE_PYTHON_DEFUSEDXML
-	select BR2_PACKAGE_PYTHON_LXML
-	select BR2_PACKAGE_PYTHON_TYPING_EXTENSIONS
-	help
-	  Fixed pure-Python PDF, DOCX, and XLSX libraries for the M3 guest.

@@ -1,4 +1,4 @@
-import type { ChatToolDefinition } from "@vault/shared";
+import type { ChatToolDefinition } from "@gardendesk/shared";
 import { type CodeParams, codeParams } from "./code-execution-path.js";
 import { guestFileTools } from "./generic-file-tools.js";
 import {

@@ -1,4 +1,4 @@
-import type { ConversationMessage } from "@vault/shared";
+import type { ConversationMessage } from "@gardendesk/shared";
 import { applyAgentSnapshot } from "./agent-state.js";
 import type { DesktopAction, DesktopState } from "./state.js";
 import { emptyConversation } from "./state-initial.js";

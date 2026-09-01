@@ -1,8 +1,8 @@
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir, totalmem } from "node:os";
 import { basename, join } from "node:path";
-import { createVaultCore } from "@vault/core";
-import type { EmbeddingResult, InferenceProfile } from "@vault/shared";
+import { createGardenDeskCore } from "@gardendesk/core";
+import type { EmbeddingResult, InferenceProfile } from "@gardendesk/shared";
 import { readCanonicalModelManifest, verifyModelFile } from "../models.js";
 
 const modelRoot = join(process.cwd(), "packages/eval/.generated/models");
@@ -35,9 +35,9 @@ async function prepareModelStore(): Promise<void> {
 }
 
 async function generate(profile: InferenceProfile, modelId: string) {
-  const workspaceDir = await mkdtemp(join(tmpdir(), `vault-m2-${profile}-`));
+  const workspaceDir = await mkdtemp(join(tmpdir(), `garden-desk-m2-${profile}-`));
   try {
-    const core = await createVaultCore({ workspaceDir, modelStoreDir: modelRoot, profile });
+    const core = await createGardenDeskCore({ workspaceDir, modelStoreDir: modelRoot, profile });
     try {
       return await core.generate({
         modelId,
@@ -61,10 +61,10 @@ async function generate(profile: InferenceProfile, modelId: string) {
 
 await prepareModelStore();
 console.log("M2 macOS: running Qwen3 embedding canary.");
-const workspaceDir = await mkdtemp(join(tmpdir(), "vault-m2-embedding-"));
+const workspaceDir = await mkdtemp(join(tmpdir(), "garden-desk-m2-embedding-"));
 let embedding: EmbeddingResult;
 try {
-  const core = await createVaultCore({
+  const core = await createGardenDeskCore({
     workspaceDir,
     modelStoreDir: modelRoot,
     profile: "local12",

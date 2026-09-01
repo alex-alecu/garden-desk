@@ -14,7 +14,7 @@
       }
     ]
   },
-  "plannedContents": ["linux-kernel", "busybox", "vault-probe-init"],
+  "plannedContents": ["linux-kernel", "busybox", "garden-desk-probe-init"],
   "requiredKernelFeatures": [
     "CONFIG_VIRTIO",
     "CONFIG_VIRTIO_PCI",

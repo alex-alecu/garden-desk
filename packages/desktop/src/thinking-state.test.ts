@@ -1,4 +1,4 @@
-import { AgentRunSnapshotSchema, SessionSummarySchema } from "@vault/shared";
+import { AgentRunSnapshotSchema, SessionSummarySchema } from "@gardendesk/shared";
 import { describe, expect, it } from "vitest";
 import { desktopReducer, initialDesktopState } from "./state.js";
 

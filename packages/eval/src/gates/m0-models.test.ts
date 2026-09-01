@@ -1,4 +1,4 @@
-import { ModelManifestSchema } from "@vault/shared";
+import { ModelManifestSchema } from "@gardendesk/shared";
 import { describe, expect, it } from "vitest";
 import { readCanonicalModelManifest, verifyModelBytes } from "../models.js";
 

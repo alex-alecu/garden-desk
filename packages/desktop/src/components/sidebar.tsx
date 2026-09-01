@@ -1,4 +1,4 @@
-import type { SessionSummary } from "@vault/shared";
+import type { SessionSummary } from "@gardendesk/shared";
 import {
   type CSSProperties,
   type Dispatch,

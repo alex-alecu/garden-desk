@@ -1,4 +1,4 @@
-import type { AttachmentSummary } from "@vault/shared";
+import type { AttachmentSummary } from "@gardendesk/shared";
 import { type FormEvent, type KeyboardEvent, useEffect, useLayoutEffect, useRef } from "react";
 import { AttachmentChip } from "./attachment-chip.js";
 import { Icon } from "./icons.js";

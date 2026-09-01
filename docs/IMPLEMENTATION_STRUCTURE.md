@@ -16,14 +16,14 @@ The Minimum Implementation Rule and Test Rule in [AGENTS.md](../AGENTS.md) apply
 ## Dependency Direction
 
 ```text
-desktop webview -> typed Tauri commands -> Vault Core daemon
-Vault Core -> shared contracts + injected ports
+desktop webview -> typed Tauri commands -> Garden Desk Core daemon
+Garden Desk Core -> shared contracts + injected ports
 worker clients -> shared contracts
 native helpers -> OS capability only
 guest entrypoint -> shared wire format generated or mirrored from the versioned schema
 ```
 
-`@vault/shared` depends only on Zod. `@vault/core` never imports private worker files. Production adapter binding occurs in `core/compose.ts`. The desktop never imports Core or worker implementation code.
+`@gardendesk/shared` depends only on Zod. `@gardendesk/core` never imports private worker files. Production adapter binding occurs in `core/compose.ts`. The desktop never imports Core or worker implementation code.
 
 ## Existing Repository
 
@@ -179,7 +179,7 @@ The Windows-only Hyper-V setup helper owns exactly one elevated operation: deriv
 Retain only the existing daemon health client:
 
 ```text
-vault status --workspace <directory> [--json]
+garden-desk status --workspace <directory> [--json]
 ```
 
 The CLI does not create session snapshots. The private Core diagnostic adapter is available to the installed desktop only through the exact packaged sidecar; the webview supplies a session ID and cannot supply a catalog or reveal path.
@@ -213,7 +213,7 @@ The existing workspace catalog remains the one authoritative database. M3 adds n
 - Versioned inference turns linked to runs, with prompt, schema, and pre-parse structured-result content hashes; worker request metadata; decision outcomes; and execution links. Catalog migration v8 leaves historical runs explicitly unrecorded.
 - One anchored session summary per session, replaced in place as later runs merge the largest allocation-fitting prefix of new turns into it and removed with its session. Catalog migration v12 adds it. Summary work starts only from a measured chat allocation of at least 16,384 tokens. It uses a per-session ordered non-fatal queue, fresh request identities and traces, and one retry only for an approved worker failure. Core cancels pending summary work at shutdown. This cross-run summary queue is separate from live chat compaction, which keeps only its model-written summary in the conversation without creating another catalog record.
 - Generated-file metadata and immutable bytes are accepted only at successful finalization. Every file created or changed under `/workspace` during the run is an artifact candidate; there is no internal-versus-deliverable classification.
-- Session-scoped content-addressed workspace manifests stored under the private `.vault` state root.
+- Session-scoped content-addressed workspace manifests stored under the private `.garden-desk` state root.
 
 The newest-five sidebar query is ordered by last activity plus stable ID. Expansion uses an opaque stable cursor. Removing a grant does not delete session history or host files.
 

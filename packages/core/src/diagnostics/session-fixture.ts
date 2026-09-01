@@ -198,8 +198,8 @@ async function insertTrace(database: DatabaseSync, internalRoot: string): Promis
 }
 
 export async function createDebugFixture(): Promise<DebugFixture> {
-  const root = await mkdtemp(join(tmpdir(), "vault-debug-fixture-"));
-  const internalRoot = join(root, "state", ".vault");
+  const root = await mkdtemp(join(tmpdir(), "garden-desk-debug-fixture-"));
+  const internalRoot = join(root, "state", ".garden-desk");
   await mkdir(internalRoot, { recursive: true, mode: 0o700 });
   await chmod(internalRoot, 0o700);
   const databasePath = join(internalRoot, "catalog.sqlite");

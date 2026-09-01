@@ -1,6 +1,6 @@
 ---
 name: review-sonnet
-description: Sonnet reviewer for /vault-code-review; summarizes a pull request, reviews it through the performance or clean-code lens, or validates one finding.
+description: Sonnet reviewer for /garden-desk-code-review; summarizes a pull request, reviews it through the performance or clean-code lens, or validates one finding.
 model: claude-sonnet-5
 effort: high
 tools: Bash, Read, Grep, Glob

@@ -10,7 +10,7 @@ import type {
   SessionPage,
   SessionSummary,
   WorkspaceStatus,
-} from "@vault/shared";
+} from "@gardendesk/shared";
 import type {
   ChatInput,
   EmbeddingInput,
@@ -19,7 +19,7 @@ import type {
   InferenceService,
 } from "./runtime/inference.js";
 
-export interface VaultCorePorts extends InferenceService {
+export interface GardenDeskCorePorts extends InferenceService {
   status(): Promise<WorkspaceStatus>;
   addFolder(rootPath: string): Promise<FolderSummary>;
   listFolders(): Promise<FolderSummary[]>;
@@ -60,9 +60,9 @@ export interface VaultCorePorts extends InferenceService {
   close(): Promise<void>;
 }
 
-export interface VaultCore extends VaultCorePorts {}
+export interface GardenDeskCore extends GardenDeskCorePorts {}
 
-function artifactPorts(ports: VaultCorePorts) {
+function artifactPorts(ports: GardenDeskCorePorts) {
   return {
     materializeArtifact: (sessionId: string, artifactId: string) =>
       ports.materializeArtifact(sessionId, artifactId),
@@ -73,7 +73,7 @@ function artifactPorts(ports: VaultCorePorts) {
   };
 }
 
-function inferencePorts(ports: VaultCorePorts) {
+function inferencePorts(ports: GardenDeskCorePorts) {
   return {
     generate: (
       input: GenerationInput,
@@ -95,7 +95,7 @@ function inferencePorts(ports: VaultCorePorts) {
   };
 }
 
-export function createFacade(ports: VaultCorePorts): VaultCore {
+export function createFacade(ports: GardenDeskCorePorts): GardenDeskCore {
   return {
     status: () => ports.status(),
     addFolder: (rootPath) => ports.addFolder(rootPath),

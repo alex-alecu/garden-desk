@@ -11,7 +11,7 @@ The shortest path to V1 is a generic offline desktop agent, not a format-specifi
 - Goal: ship a functional macOS and Windows desktop application with a generic local coding agent inspired by the interaction model of OpenCode and the desktop structure of the Codex app.
 - Active milestone: M3 — Offline Dev-Agent Desktop V1.
 - Allowed scope: Tauri/React desktop, native folder and file selection, grouped persistent sessions, local daemon APIs, host-native text and image model mediation, a session-scoped code-agent microVM, fixed offline runtimes and tools, typed execution results, audit, cancellation, packaging, platform evidence, and the owner-approved 14-skill prompt-only professional review set. The review skills use the generic skill tool and prompt-only format methods; they may not add domain routing, domain policy, domain parsing, format routing, or skill-body selection to Core.
-- Product boundaries: the webview has no direct filesystem, process, shell, environment, or network authority. Vault Core owns grants, sessions, policy, audit, inference mediation, workspace manifests, worker limits, and lifecycle. The guest receives only the live read-only folder, immutable attachments, and its bounded writable workspace.
+- Product boundaries: the webview has no direct filesystem, process, shell, environment, or network authority. Garden Desk Core owns grants, sessions, policy, audit, inference mediation, workspace manifests, worker limits, and lifecycle. The guest receives only the live read-only folder, immutable attachments, and its bounded writable workspace.
 - Risks: guest-image size and reproducibility, Windows/macOS packaging differences, multi-step agent-loop correctness, local-model latency, recovery, and accidental host authority.
 - Acceptance evidence: a packaged app on physical macOS and Windows; folder and attachment flows; direct and delegated image inspection; grouped session and workspace restoration; real multi-step Python, Node.js, and shell tasks; structural network denial; host-write and package-install denial; cancellation/restart recovery; and signed sidecar and guest-image verification. The professional review skill set ships as prompt-only skills; its outputs get a blind qualified-reviewer check (legal, finance, medical administration) on each platform before release, with no automated model-evidence gate.
 - Dependencies affected: reviewed and pinned React/Tauri frontend packages plus a reviewed guest-library manifest. OpenCode is a design reference, not a required dependency.
@@ -21,8 +21,8 @@ The shortest path to V1 is a generic offline desktop agent, not a format-specifi
 
 Three layers remain mandatory:
 
-1. **Tauri desktop** — React and TypeScript in the operating-system webview plus the minimum Rust needed for window lifecycle, native dialogs, exact Vault Core sidecar supervision, and connection bootstrap.
-2. **Vault Core** — the separate Node.js/TypeScript authority for folder and attachment grants, sessions, jobs, policy, audit, model scheduling, inference mediation, worker supervision, and typed daemon methods.
+1. **Tauri desktop** — React and TypeScript in the operating-system webview plus the minimum Rust needed for window lifecycle, native dialogs, exact Garden Desk Core sidecar supervision, and connection bootstrap.
+2. **Garden Desk Core** — the separate Node.js/TypeScript authority for folder and attachment grants, sessions, jobs, policy, audit, model scheduling, inference mediation, worker supervision, and typed daemon methods.
 3. **Workers** — a narrowly sandboxed host-native inference process and a reusable session-scoped no-network microVM for agent-authored code and installed guest commands.
 
 The desktop communicates only through narrow typed Tauri commands and the current-user-only local daemon protocol. TCP is not enabled. Every M3 backend capability is exercised through both the programmatic facade and daemon protocol before the desktop consumes it.
@@ -39,7 +39,7 @@ The main pane is conversation-first. Its header shows the approved model name, o
 
 ## Agent Execution Contract
 
-Vault Core owns the agent loop; the model never receives execution authority.
+Garden Desk Core owns the agent loop; the model never receives execution authority.
 
 - **Prompt**: `prompts/agents/primary.md` defines the system prompt, the fixed tool set, and a 40-turn cap.
 - **Tools**: `bash`, `python`, `node`, `read`, `glob`, `grep`, `list`, `write`, `edit`, `image`, `skill`, `task`, and `question`. `read`, `glob`, `grep`, and `list` inspect the guest; `write` and `edit` change files only under `/workspace`; `bash`, `python`, and `node` run inside the guest. `task` starts a child agent in the same session and VM, used only when the user explicitly asks for delegation or parallel work. Specialized instructions load on demand through `skill`.
@@ -48,7 +48,7 @@ Vault Core owns the agent loop; the model never receives execution authority.
 
 Core mediates model completions through the host-native inference worker in Gemma 4's own native tool-call format; the guest has no inference channel. Idle VMs sit in a least-recently-used pool bounded by total RAM after the inference cap and host reserve; different conversations may run concurrently up to that capacity, with model turns queued through one resident inference worker.
 
-The guest has no package manager authority, credentials, user home, host shell, general Vault Core endpoint, generic model server, approval authority, export authority, or network broker. Host source folders are never writable. Opening a deliverable uses a verified owner-only temporary copy; Save As uses a native dialog and an atomic Core write without returning the selected destination path to the webview.
+The guest has no package manager authority, credentials, user home, host shell, general Garden Desk Core endpoint, generic model server, approval authority, export authority, or network broker. Host source folders are never writable. Opening a deliverable uses a verified owner-only temporary copy; Save As uses a native dialog and an atomic Core write without returning the selected destination path to the webview.
 
 ## Guest Image
 
@@ -64,7 +64,7 @@ The exact library names, versions, licenses, notices, hashes, and purpose live i
 
 ## State And Recovery
 
-Vault Core persists authoritative state in the schema-versioned workspace catalog, the immutable content-addressed artifact store, and per-session content-addressed guest-workspace manifests.
+Garden Desk Core persists authoritative state in the schema-versioned workspace catalog, the immutable content-addressed artifact store, and per-session content-addressed guest-workspace manifests.
 
 - **Crash recovery**: a daemon or guest crash leaves the last committed conversation readable. On restart, Core marks any run left `queued` or `running` as failed, and the guest workspace rehydrates from its last committed manifest.
 - **Compaction**: worker-reported used context at 80 percent of the allocated context triggers a no-tool summarization turn. Used context is the total token position in the active model sequence, not the newly evaluated prompt tokens reported for performance. Compaction replaces the older conversation head with a model-written summary while the current user request and the last two assistant/tool turns stay verbatim. Durable messages, executions, traces, and audit records are never touched by compaction.
@@ -76,7 +76,7 @@ Agent and skill instructions are authored under root `prompts/`; see [IMPLEMENTA
 
 The first V1 package is self-contained and performs zero downloads on first launch. It includes only approved prompt assets, runtime assets, one generation model, its image projector, the pinned llama.cpp image runtime, the guest image, and required native helpers whose hashes appear in the package manifest. One Windows x64 package carries the pinned CUDA 13.1 binding and cuBLAS redistributables together with Vulkan. The official llama.cpp archive supplies its Microsoft OpenMP runtime, and the package adds only the three Visual C++ DLLs that its imports require from one hash-pinned official Microsoft package. TypeScript probes both packaged backends and selects one mapped adapter. The user does not need a separate package for a GPU brand. The self-contained model exceeds NSIS's package limit, so the M3 Windows artifact is a signed copy-installed application directory with the same copy, restart, replacement, and removal lifecycle as the macOS application bundle; public release installers remain a separate credentialed distribution step.
 
-The desktop and Vault Core run without administrator privileges on Windows and macOS. Hyper-V must already be enabled on Windows Pro or Enterprise. When the current Windows token lacks HCS authority, the desktop explains the standing permission and may launch one fixed, signed, hash-verified helper through UAC. That helper derives the requesting SID from the non-elevated parent process and adds only that account to Hyper-V Administrators. Until a new Windows sign-in activates the membership, the desktop is browse-only and rejects new tasks at the Tauri boundary. The Windows package and development resources contain the helper; the macOS bundle does not, and macOS has no administrator setup. Hyper-V Administrators grants every process under the configured Windows account Hyper-V management authority.
+The desktop and Garden Desk Core run without administrator privileges on Windows and macOS. Hyper-V must already be enabled on Windows Pro or Enterprise. When the current Windows token lacks HCS authority, the desktop explains the standing permission and may launch one fixed, signed, hash-verified helper through UAC. That helper derives the requesting SID from the non-elevated parent process and adds only that account to Hyper-V Administrators. Until a new Windows sign-in activates the membership, the desktop is browse-only and rejects new tasks at the Tauri boundary. The Windows package and development resources contain the helper; the macOS bundle does not, and macOS has no administrator setup. Hyper-V Administrators grants every process under the configured Windows account Hyper-V management authority.
 
 Before the packaged host launches sensitive children, it verifies the sidecar and the signed-application-anchored resource manifest, verifies fixed native helpers and every prompt asset against that manifest, and retains non-writable read locks until shutdown so a user-writable copy cannot swap children or instructions after verification. The setup helper receives the same verification and lock before elevation. The webview retains the same fixed capability set and cannot invoke arbitrary process or setup operations. The desktop selects the inference envelope automatically. Macs use the existing 10/12/16 GiB tiers. On Windows, the worker selects one usable dedicated GPU first and uses its complete isolated memory if it has at least 8 GiB. If no dedicated GPU is usable, it selects one integrated GPU. Installed RAM sets an integrated maximum of 8 GiB at exactly 16 GiB, 12 GiB above 16 GiB through 24 GiB, and 16 GiB above 24 GiB. The isolated runtime capacity selects the highest fixed tier that fits. Less than 16 GiB installed RAM or less than 8 GiB isolated capacity is unsupported. Brand and speed do not decide support. The worker fits the largest context inside the budget. Shared memory has a 64K cap through 32 GiB installed RAM and 128K above it. Dedicated memory has a 64K cap through 24 GiB and 128K above it. It reports the actual allocation, memory kind, backend, and one selected device. Stop and generation timeouts do not unload a healthy model. Manual unload, a model or operation change, image inspection, or Core shutdown terminates the complete worker process.
 
@@ -113,7 +113,7 @@ Scope:
 - Add daemon methods and a typed desktop client for every M3 capability, including streaming or bounded event polling, cancellation, and reconnect.
 - Build the product Tauri v2 and React desktop shell on macOS and Windows.
 - Add native folder/file dialogs without exposing arbitrary paths to the webview.
-- Implement the Vault Core-owned agent loop with bounded turns, typed inference mediation, cancellation, audit, and deterministic fake coverage.
+- Implement the Garden Desk Core-owned agent loop with bounded turns, typed inference mediation, cancellation, audit, and deterministic fake coverage.
 - Keep the generic `read` tool as strict streamed UTF-8 plain-text inspection. Invalid UTF-8 and NUL bytes fail. Clamp safe optional integers to their configured bounds, and reject wrong types, non-finite numbers, and unsafe integers. Limit every model-facing tool-result preview to 50 KiB after JSON encoding; spill a complete oversized result under `/workspace` and name its path in the tool result. Add generic `write` and `edit` tools scoped to `/workspace`, with `edit` requiring an exact, unique match unless the model asks to replace every match.
 - Treat every file created or changed under `/workspace` during a run as an artifact delivered to the user; do not parse task text or add a suffix or format allowlist.
 - Run session-summary work only from a measured chat allocation of at least 16,384 tokens. Use one ordered non-fatal queue per session, new identity and trace per attempt, one approved-failure retry, and shutdown cancellation. Do not use profile or model-status fallback values.
@@ -121,7 +121,7 @@ Scope:
 - Extend the agent guest protocol to version 3 for hello/capabilities, workspace hydration, repeated execution, ordered bounded stdout/stderr frames, typed lifecycle diagnostics, cancellation, workspace deltas, structured results, and graceful shutdown while preserving the M1 probe protocol.
 - Integrate the completed Windows native inference boundary into the agent product and verify the real V1 model on both platforms.
 - On Windows, expose the selected source through host-read-only Plan9 plus a guest read-only mount, and remove the VM-specific recursive read grant when HCS teardown completes.
-- Package the exact Vault Core sidecar, native helpers, model assets, and guest image with zero-download first launch.
+- Package the exact Garden Desk Core sidecar, native helpers, model assets, and guest image with zero-download first launch.
 
 Gate:
 

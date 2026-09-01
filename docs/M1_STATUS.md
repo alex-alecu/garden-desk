@@ -8,7 +8,7 @@ M1 is complete across macOS and Windows. M2 was not authorized at M1 closure, wa
 
 - Goal: implement the smallest cross-platform workspace, security, daemon, CLI health, worker-protocol, and certified no-network microVM foundations.
 - Authority: M1 was activated by the repository owner's explicit 2026-07-17 request and closed on 2026-07-18 after the final Windows daemon endpoint gate passed.
-- Product boundaries: Vault Core alone owns authoritative workspace mutation; local RPC authenticates current-user-only endpoints and has no TCP mode; workers receive bounded already-authorized staged inputs and bounded scratch under one cancellation deadline; certified guests have no virtual NIC and accept only the fixed typed socket protocol.
+- Product boundaries: Garden Desk Core alone owns authoritative workspace mutation; local RPC authenticates current-user-only endpoints and has no TCP mode; workers receive bounded already-authorized staged inputs and bounded scratch under one cancellation deadline; certified guests have no virtual NIC and accept only the fixed typed socket protocol.
 - Dependencies at M1 closure: `better-sqlite3` was the only consumed package addition. M3 later moved product Core persistence to the Node 24 built-in `node:sqlite`; `better-sqlite3` remains only in historical M1 evaluation coverage. The Swift and Rust helpers use system frameworks or APIs and pinned standard-library toolchains. The Windows pipe guard adds no third-party crate.
 - Excluded: M2 inference, parsers, product UI, external networking, model acquisition, production packaging, and later-milestone behavior.
 
@@ -24,7 +24,7 @@ M1 is complete across macOS and Windows. M2 was not authorized at M1 closure, wa
 ## Shared Evidence
 
 - Workspace gates cover traversal, symlink or junction escape, captured-file replacement, single-writer refusal, stable identity, immutable atomic artifact writes, killed SQLite transaction rollback, audit redaction, hash-chain tamper detection, anchored-tail truncation detection, and version-one audit-head migration.
-- Daemon gates cover canonical workspace endpoint identity, start, health, `vault status --json`, exact single-document stdout, protocol incompatibility, same-user endpoint access, spoof rejection, restart, abrupt kill, stale-lock recovery, helper teardown with its parent, and catalog reopening.
+- Daemon gates cover canonical workspace endpoint identity, start, health, `garden-desk status --json`, exact single-document stdout, protocol incompatibility, same-user endpoint access, spoof rejection, restart, abrupt kill, stale-lock recovery, helper teardown with its parent, and catalog reopening.
 - Worker gates reject non-schema forwarding frames, bound frame sizes and staged input count/bytes, remove partial over-limit copies, and apply cancellation and wall time to staging as well as native execution.
 - `pnpm verify` covers source limits, Biome, TypeScript, unit and native suites, Rust formatting and Clippy, signed test-sidecar construction, all native helper builds, and platform-appropriate skips.
 

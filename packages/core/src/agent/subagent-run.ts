@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import type { AgentRunResult } from "@vault/shared";
+import type { AgentRunResult } from "@gardendesk/shared";
 import type { JobStore } from "../jobs/jobs.js";
 import type { InferenceService } from "../runtime/inference.js";
 import type { DatabasePort } from "../workspace/database.js";

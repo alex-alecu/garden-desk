@@ -1,5 +1,5 @@
 import { basename, join } from "node:path";
-import { AgentInferenceTurnSchema, type AgentTrace, AgentTraceSchema } from "@vault/shared";
+import { AgentInferenceTurnSchema, type AgentTrace, AgentTraceSchema } from "@gardendesk/shared";
 import {
   type DebugCatalogRecords,
   type DebugRunRecords,

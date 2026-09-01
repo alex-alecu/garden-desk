@@ -210,7 +210,7 @@ export async function writePackageCompliance(
         dataLicense: "CC0-1.0",
         SPDXID: "SPDXRef-DOCUMENT",
         name: `Garden-Desk-M3-${platform.name}`,
-        documentNamespace: `https://vaultdesk.local/spdx/v1/m3-${platform.slug}`,
+        documentNamespace: `https://gardendesk.ai/spdx/v1/m3-${platform.slug}`,
         creationInfo: { created: "2026-07-20T00:00:00Z", creators: ["Organization: Garden Desk"] },
         packages: packages.map(spdxPackage),
         relationships: packages.map((_, index) => ({

@@ -13,7 +13,7 @@ import {
 } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { type DatabasePort, VaultDatabase } from "./database.js";
+import { type DatabasePort, GardenDeskDatabase } from "./database.js";
 
 const LATEST_SCHEMA_VERSION = 13;
 
@@ -131,7 +131,7 @@ export function openWorkspaceCatalog(
   workspaceRoot: string,
   options: WorkspaceCatalogOptions = {},
 ): WorkspaceCatalog {
-  const internalRoot = join(workspaceRoot, ".vault");
+  const internalRoot = join(workspaceRoot, ".garden-desk");
   secureInternalRoot(internalRoot);
   const databasePath = join(internalRoot, "catalog.sqlite");
   for (const suffix of ["", "-journal", "-shm", "-wal"]) {
@@ -141,9 +141,9 @@ export function openWorkspaceCatalog(
   const lockPath = join(internalRoot, "writer.lock");
   const lockDescriptor = acquireWriterLock(lockPath);
   const catalogExisted = existsSync(databasePath) && lstatSync(databasePath).size > 0;
-  let database: VaultDatabase | undefined;
+  let database: GardenDeskDatabase | undefined;
   try {
-    database = new VaultDatabase(databasePath);
+    database = new GardenDeskDatabase(databasePath);
     database.pragma("foreign_keys = ON");
     database.pragma("journal_mode = WAL");
     database.pragma("synchronous = FULL");

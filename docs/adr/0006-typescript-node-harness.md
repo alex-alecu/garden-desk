@@ -10,13 +10,13 @@ The user has specified that the future harness code should be TypeScript under N
 
 ## Decision
 
-When implementation begins, Vault Core and the local orchestration harness should be TypeScript running on Node.js.
+When implementation begins, Garden Desk Core and the local orchestration harness should be TypeScript running on Node.js.
 
 The harness should own orchestration, local API, sessions, jobs, tools, policy, approvals, audit, runtime adapters, and document-pipeline coordination.
 
 Model runtimes, OCR engines, and platform-specific services should sit behind adapters rather than being embedded directly into the harness.
 
-[ADR 0014](0014-tauri-desktop-shell.md) adds one narrow exception: the Tauri v2 desktop host contains the minimum Rust required for native window/dialog integration, capability enforcement, Vault Core sidecar supervision, and connection bootstrap. Product workflows and policy remain in the TypeScript/Node backend.
+[ADR 0014](0014-tauri-desktop-shell.md) adds one narrow exception: the Tauri v2 desktop host contains the minimum Rust required for native window/dialog integration, capability enforcement, Garden Desk Core sidecar supervision, and connection bootstrap. Product workflows and policy remain in the TypeScript/Node backend.
 
 ## Consequences
 

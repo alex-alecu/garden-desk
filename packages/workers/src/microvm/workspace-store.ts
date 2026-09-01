@@ -6,7 +6,7 @@ import {
   type AgentWorkspaceDelta,
   type AgentWorkspaceEntry,
   AgentWorkspacePathSchema,
-} from "@vault/shared";
+} from "@gardendesk/shared";
 
 const MAX_WORKSPACE_BYTES = 128 * 1024 * 1024;
 const MANIFEST_VERSION = 1;

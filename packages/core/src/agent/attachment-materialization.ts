@@ -20,7 +20,7 @@ export async function materializeAttachment(
   if (row === undefined) throw new Error("attachment_not_found");
   const item = attachmentFromRow(row);
   if (basename(item.name) !== item.name) throw new Error("attachment_name_invalid");
-  const directory = await mkdtemp(join(tmpdir(), "vault-attachment-"));
+  const directory = await mkdtemp(join(tmpdir(), "garden-desk-attachment-"));
   await chmod(directory, 0o700);
   const path = join(directory, item.name);
   try {

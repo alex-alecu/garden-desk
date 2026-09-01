@@ -3,7 +3,7 @@ import type {
   GpuMemoryKind,
   ModelRuntimeStatus,
   StructuredGenerationResult,
-} from "@vault/shared";
+} from "@gardendesk/shared";
 
 export const DEFAULT_MODEL_ID = "gemma-4-12b-it-qat-q4_0";
 

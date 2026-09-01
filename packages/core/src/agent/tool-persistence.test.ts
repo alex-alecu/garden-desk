@@ -5,13 +5,13 @@ import { randomUUID } from "node:crypto";
 import { mkdir, mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { InferenceWorkerRequestSchema } from "@vault/shared";
+import { InferenceWorkerRequestSchema } from "@gardendesk/shared";
 import {
   InferenceWorkerClient,
   type NativeWorkerHandle,
   type NativeWorkerLauncher,
   type NativeWorkerLaunchRequest,
-} from "@vault/workers";
+} from "@gardendesk/workers";
 import { afterEach, describe, expect, it } from "vitest";
 import { ConversationStore } from "../conversations/store.js";
 import { JobStore } from "../jobs/jobs.js";
@@ -30,7 +30,7 @@ afterEach(async () => {
 });
 
 async function fixture() {
-  const root = await mkdtemp(join(tmpdir(), "vault-tool-persistence-"));
+  const root = await mkdtemp(join(tmpdir(), "garden-desk-tool-persistence-"));
   roots.push(root);
   const scope = await WorkspaceScope.create(root);
   const catalog = openWorkspaceCatalog(scope.root);
@@ -153,18 +153,18 @@ class CrashLauncher implements NativeWorkerLauncher {
 
 function enableDevelopmentDiagnostics(root: string): () => void {
   const globals = globalThis as typeof globalThis & {
-    __VAULT_DEVELOPMENT_BUILD__?: boolean;
-    __VAULT_DEVELOPMENT_DIAGNOSTIC_ROOT__?: string;
+    __GARDEN_DESK_DEVELOPMENT_BUILD__?: boolean;
+    __GARDEN_DESK_DEVELOPMENT_DIAGNOSTIC_ROOT__?: string;
   };
-  const build = globals.__VAULT_DEVELOPMENT_BUILD__;
-  const diagnosticRoot = globals.__VAULT_DEVELOPMENT_DIAGNOSTIC_ROOT__;
-  globals.__VAULT_DEVELOPMENT_BUILD__ = true;
-  globals.__VAULT_DEVELOPMENT_DIAGNOSTIC_ROOT__ = root;
+  const build = globals.__GARDEN_DESK_DEVELOPMENT_BUILD__;
+  const diagnosticRoot = globals.__GARDEN_DESK_DEVELOPMENT_DIAGNOSTIC_ROOT__;
+  globals.__GARDEN_DESK_DEVELOPMENT_BUILD__ = true;
+  globals.__GARDEN_DESK_DEVELOPMENT_DIAGNOSTIC_ROOT__ = root;
   return () => {
-    if (build === undefined) delete globals.__VAULT_DEVELOPMENT_BUILD__;
-    else globals.__VAULT_DEVELOPMENT_BUILD__ = build;
-    if (diagnosticRoot === undefined) delete globals.__VAULT_DEVELOPMENT_DIAGNOSTIC_ROOT__;
-    else globals.__VAULT_DEVELOPMENT_DIAGNOSTIC_ROOT__ = diagnosticRoot;
+    if (build === undefined) delete globals.__GARDEN_DESK_DEVELOPMENT_BUILD__;
+    else globals.__GARDEN_DESK_DEVELOPMENT_BUILD__ = build;
+    if (diagnosticRoot === undefined) delete globals.__GARDEN_DESK_DEVELOPMENT_DIAGNOSTIC_ROOT__;
+    else globals.__GARDEN_DESK_DEVELOPMENT_DIAGNOSTIC_ROOT__ = diagnosticRoot;
   };
 }
 
@@ -251,7 +251,7 @@ async function crashChild(
 
 describe("sub-agent worker stderr containment", () => {
   it("keeps private worker stderr only in the development sink after a crash", async () => {
-    const root = await mkdtemp(join(tmpdir(), "vault-subagent-stderr-"));
+    const root = await mkdtemp(join(tmpdir(), "garden-desk-subagent-stderr-"));
     roots.push(root);
     const diagnosticRoot = join(root, "inference-diagnostics");
     const restoreDiagnostics = enableDevelopmentDiagnostics(diagnosticRoot);

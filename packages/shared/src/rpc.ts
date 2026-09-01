@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { VaultErrorSchema } from "./errors.js";
+import { GardenDeskErrorSchema } from "./errors.js";
 import { RequestIdSchema } from "./ids.js";
 
 export const PROTOCOL_VERSION = 1 as const;
@@ -25,7 +25,7 @@ export const RpcSuccessSchema = z.object({
 export const RpcFailureSchema = z.object({
   jsonrpc: z.literal("2.0"),
   id: RequestIdSchema.nullable(),
-  error: VaultErrorSchema,
+  error: GardenDeskErrorSchema,
   protocolVersion: z.literal(PROTOCOL_VERSION),
 });
 

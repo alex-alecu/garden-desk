@@ -9,7 +9,7 @@ This document summarizes the runtime research baseline. Runtime support changes 
 | Runtime | Gemma 4 | QAT | MTP / speculative decoding | TypeScript/Node story |
 |---|---|---|---|---|
 | llama.cpp | Yes, day one | Yes, official Q4_0 GGUFs | Most mature: Gemma 4 MTP merged 2026-06-07, plus EAGLE-3, DFlash, and n-gram modes | Via node-llama-cpp |
-| node-llama-cpp | Yes (v3.19+) | Yes, loads QAT GGUFs | Generic speculative decoding since v3.8; explicit Gemma 4 MTP drafter support unverified | Best-in-class: native Node integration, full typings, JSON-schema-enforced output, function calling, embeddings, Metal/CUDA/Vulkan; runs behind the separate Vault Core sidecar |
+| node-llama-cpp | Yes (v3.19+) | Yes, loads QAT GGUFs | Generic speculative decoding since v3.8; explicit Gemma 4 MTP drafter support unverified | Best-in-class: native Node integration, full typings, JSON-schema-enforced output, function calling, embeddings, Metal/CUDA/Vulkan; runs behind the separate Garden Desk Core sidecar |
 | Ollama | Yes, day one | Yes | MTP on the MLX backend (Apple Silicon) | HTTP API, out-of-process |
 | LM Studio | Yes | Yes | Runtime supports MTP but drafter selection is buggy as of July 2026 | SDK and HTTP API |
 | MLX | Yes, day one | Yes | MTP via mlx-lm and Ollama-MLX | Python-first, no first-class TS |

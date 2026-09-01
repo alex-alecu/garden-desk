@@ -3,7 +3,7 @@ import type {
   AgentEventType,
   AgentQuestion,
   AgentRunResult,
-} from "@vault/shared";
+} from "@gardendesk/shared";
 import type { AgentExecutor } from "./agent-executor.js";
 import type { ChatToolState } from "./chat-tool-turn.js";
 import type {

@@ -116,7 +116,7 @@ export class MacOsNativeWorkerLauncher implements NativeWorkerLauncher {
     if (process.platform !== "darwin" || process.arch !== "arm64") {
       throw new NativeWorkerLaunchError("unsupported", "unsupported_native_worker_platform");
     }
-    const temporaryAlias = await mkdtemp(join(tmpdir(), "vault-inference-"));
+    const temporaryAlias = await mkdtemp(join(tmpdir(), "garden-desk-inference-"));
     const temporaryRoot = await realpath(temporaryAlias);
     const profile = sandboxProfile(
       request,
@@ -128,7 +128,7 @@ export class MacOsNativeWorkerLauncher implements NativeWorkerLauncher {
       "-p",
       profile,
       this.runtimeExecutable,
-      "--conditions=vault-runtime",
+      "--conditions=gardendesk-runtime",
       request.workerEntryPath,
       "--memory-budget",
       String(request.memoryBudgetBytes),

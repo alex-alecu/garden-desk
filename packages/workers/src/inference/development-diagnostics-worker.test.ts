@@ -18,11 +18,11 @@ describe("development inference worker stderr ready record", () => {
     const directory = await temporaryDirectory();
     const worker = join(directory, "development-worker.mjs");
     const developmentWorker = await bundledWorker(true, worker);
-    expect(developmentWorker).toContain("[vault-inference] worker-stderr-ready");
+    expect(developmentWorker).toContain("[garden-desk-inference] worker-stderr-ready");
 
     await expect(startedWorker(worker)).resolves.toMatchObject({
       code: 0,
-      stderr: expect.stringContaining("[vault-inference] worker-stderr-ready\n"),
+      stderr: expect.stringContaining("[garden-desk-inference] worker-stderr-ready\n"),
     });
     await expect(startedWorker(worker, true)).resolves.toMatchObject({ code: 0 });
   });
@@ -59,7 +59,7 @@ describe("development inference diagnostic containment", () => {
     expect(worker).not.toContain("waitForDevelopmentHostRecord");
     expect(worker).not.toContain("writeDevelopmentLlamaLog");
     expect(worker).not.toContain("writeDevelopmentOperationFailure");
-    expect(worker).not.toContain("[vault-inference] worker-stderr-ready");
+    expect(worker).not.toContain("[garden-desk-inference] worker-stderr-ready");
     expect(worker).not.toContain("[node-llama-cpp]");
     expect(core).not.toContain("inference-diagnostics");
     expect(core).not.toContain("inference-host.log");
@@ -67,10 +67,10 @@ describe("development inference diagnostic containment", () => {
     expect(core).not.toContain("recordDevelopmentHostFailure");
     expect(core).not.toContain("waitForDevelopmentHostRecord");
     expect(core).not.toContain("writeDevelopment");
-    expect(core).not.toContain("[vault-inference] host stage=");
+    expect(core).not.toContain("[garden-desk-inference] host stage=");
     expect(core).not.toContain("writeDevelopmentWorkerStderrReady");
-    expect(core).not.toContain("[vault-inference] operation=");
-    expect(core).not.toContain("[vault-inference] worker-stderr-ready");
+    expect(core).not.toContain("[garden-desk-inference] operation=");
+    expect(core).not.toContain("[garden-desk-inference] worker-stderr-ready");
     expect(core).not.toContain("[node-llama-cpp]");
   });
 });

@@ -2,13 +2,13 @@
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { AgentExecutionResult, ChatGenerationResult } from "@vault/shared";
+import type { AgentExecutionResult, ChatGenerationResult } from "@gardendesk/shared";
 import type {
   AgentExecutionObserver,
   AgentSessionExecution,
   CodeAgentLauncher,
   ResolvedAgentSessionExecution,
-} from "@vault/workers";
+} from "@gardendesk/workers";
 import { AuditLog } from "../audit/log.js";
 import { ConversationStore } from "../conversations/store.js";
 import { JobStore } from "../jobs/jobs.js";
@@ -156,7 +156,7 @@ export async function fixture(
   afterPrepared?: (observer: AgentExecutionObserver | undefined) => Promise<void>,
   readWorkspaceFile?: WorkspaceReader,
 ) {
-  const root = await mkdtemp(join(tmpdir(), "vault-agent-service-"));
+  const root = await mkdtemp(join(tmpdir(), "garden-desk-agent-service-"));
   roots.push(root);
   const scope = await WorkspaceScope.create(root);
   const catalog = openWorkspaceCatalog(scope.root);

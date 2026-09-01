@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { AgentWorkspacePathSchema } from "@vault/shared";
+import { AgentWorkspacePathSchema } from "@gardendesk/shared";
 import { type EditName, editSource } from "./generic-edit-source.js";
 import {
   inspectionTools,
@@ -47,7 +47,7 @@ function base64(text: string): string {
 function fileExecution(name: EditName, encoded: Record<string, unknown>) {
   return {
     language: "python" as const,
-    path: `.vault-tools/${name}-${randomUUID()}.py`,
+    path: `.garden-desk-tools/${name}-${randomUUID()}.py`,
     source: editSource(name, encoded),
   };
 }

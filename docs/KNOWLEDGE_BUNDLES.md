@@ -301,7 +301,7 @@ These dates answer different questions and must not be collapsed into a single `
 Before freezing the format in an ADR:
 
 - Validate RO-Crate 1.3 and SPDX 3.0.1 library maturity in the TypeScript/Node toolchain.
-- Decide whether strict BagIt conformance reduces code or merely duplicates the Vault manifest.
+- Decide whether strict BagIt conformance reduces code or merely duplicates the Garden Desk manifest.
 - Compare ZIP64 and tar plus Zstandard for cross-platform streaming, random access, deterministic construction, recovery, and safe extraction.
 - Validate a TUF client and repository implementation with offline removable media, delegated domains, root rotation, expired metadata, and clock skew.
 - Decide whether official bundles also require Sigstore release attestations.

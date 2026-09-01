@@ -1,6 +1,6 @@
-import { AgentTraceSchema } from "@vault/shared";
+import { AgentTraceSchema } from "@gardendesk/shared";
 import { describe, expect, it, vi } from "vitest";
-import type { VaultCore } from "../facade.js";
+import type { GardenDeskCore } from "../facade.js";
 import { dispatchRpc } from "./methods.js";
 
 describe("agent trace RPC", () => {
@@ -13,7 +13,7 @@ describe("agent trace RPC", () => {
       turns: [],
     });
     const getAgentTrace = vi.fn(async () => trace);
-    const core = { getAgentTrace } as unknown as VaultCore;
+    const core = { getAgentTrace } as unknown as GardenDeskCore;
 
     const response = await dispatchRpc(core, {
       jsonrpc: "2.0",
@@ -34,7 +34,7 @@ describe("agent question RPC", () => {
 
   it("routes an answer to the run and reports it answered", async () => {
     const answerQuestion = vi.fn(async () => true);
-    const core = { answerQuestion } as unknown as VaultCore;
+    const core = { answerQuestion } as unknown as GardenDeskCore;
 
     const response = await dispatchRpc(core, {
       jsonrpc: "2.0",
@@ -50,7 +50,7 @@ describe("agent question RPC", () => {
 
   it("maps an unknown or stale question to not_found", async () => {
     const dismissQuestion = vi.fn(async () => false);
-    const core = { dismissQuestion } as unknown as VaultCore;
+    const core = { dismissQuestion } as unknown as GardenDeskCore;
 
     const response = await dispatchRpc(core, {
       jsonrpc: "2.0",
@@ -65,7 +65,7 @@ describe("agent question RPC", () => {
 
   it("rejects an answer with an invalid run id", async () => {
     const answerQuestion = vi.fn(async () => true);
-    const core = { answerQuestion } as unknown as VaultCore;
+    const core = { answerQuestion } as unknown as GardenDeskCore;
 
     const response = await dispatchRpc(core, {
       jsonrpc: "2.0",
@@ -91,7 +91,7 @@ describe("artifact RPC", () => {
       materializeArtifact,
       recordArtifactOpen,
       exportArtifact,
-    } as unknown as VaultCore;
+    } as unknown as GardenDeskCore;
 
     const opened = await dispatchRpc(core, {
       jsonrpc: "2.0",

@@ -16,7 +16,7 @@ const run = promisify(execFile);
 
 const WINDOWS_PRIVATE_DIRECTORY_SCRIPT = `
 $ErrorActionPreference = 'Stop'
-$path = [Environment]::GetEnvironmentVariable('VAULT_DIAGNOSTIC_PATH', 'Process')
+$path = [Environment]::GetEnvironmentVariable('GARDEN_DESK_DIAGNOSTIC_PATH', 'Process')
 $sid = [Security.Principal.WindowsIdentity]::GetCurrent().User
 if ([string]::IsNullOrEmpty($path) -or $null -eq $sid) { throw 'missing diagnostic identity' }
 $acl = [Security.AccessControl.DirectorySecurity]::new()
@@ -37,7 +37,7 @@ if (-not $actual.AreAccessRulesProtected -or $actual.GetOwner([Security.Principa
 
 const WINDOWS_PRIVATE_FILE_SCRIPT = `
 $ErrorActionPreference = 'Stop'
-$path = [Environment]::GetEnvironmentVariable('VAULT_DIAGNOSTIC_PATH', 'Process')
+$path = [Environment]::GetEnvironmentVariable('GARDEN_DESK_DIAGNOSTIC_PATH', 'Process')
 $sid = [Security.Principal.WindowsIdentity]::GetCurrent().User
 if ([string]::IsNullOrEmpty($path) -or $null -eq $sid -or -not (Test-Path -LiteralPath $path -PathType Leaf)) { throw 'missing diagnostic file identity' }
 $acl = [Security.AccessControl.FileSecurity]::new()
@@ -52,8 +52,8 @@ if (-not $actual.AreAccessRulesProtected -or $actual.GetOwner([Security.Principa
 `;
 
 declare global {
-  var __VAULT_DEVELOPMENT_BUILD__: boolean | undefined;
-  var __VAULT_DEVELOPMENT_DIAGNOSTIC_ROOT__: string | undefined;
+  var __GARDEN_DESK_DEVELOPMENT_BUILD__: boolean | undefined;
+  var __GARDEN_DESK_DEVELOPMENT_DIAGNOSTIC_ROOT__: string | undefined;
 }
 
 export interface DevelopmentDiagnosticSink {
@@ -156,25 +156,25 @@ function writeDiagnosticErrorRecord(prefix: string, error: unknown): void {
 }
 
 export function writeDevelopmentWorkerFailure(error: unknown): void {
-  if (globalThis.__VAULT_DEVELOPMENT_BUILD__ !== true) return;
-  writeDiagnosticErrorRecord("[vault-inference] worker failure", error);
+  if (globalThis.__GARDEN_DESK_DEVELOPMENT_BUILD__ !== true) return;
+  writeDiagnosticErrorRecord("[garden-desk-inference] worker failure", error);
 }
 
 export function writeDevelopmentWorkerStderrReady(): void {
-  if (globalThis.__VAULT_DEVELOPMENT_BUILD__ !== true) return;
-  writeDiagnosticRecord("[vault-inference] worker-stderr-ready\n");
+  if (globalThis.__GARDEN_DESK_DEVELOPMENT_BUILD__ !== true) return;
+  writeDiagnosticRecord("[garden-desk-inference] worker-stderr-ready\n");
 }
 
 export function writeDevelopmentOperationFailure(
   operation: InferenceDiagnosticOperation,
   error: unknown,
 ): void {
-  if (globalThis.__VAULT_DEVELOPMENT_BUILD__ !== true) return;
-  writeDiagnosticErrorRecord(`[vault-inference] operation=${operation} failed`, error);
+  if (globalThis.__GARDEN_DESK_DEVELOPMENT_BUILD__ !== true) return;
+  writeDiagnosticErrorRecord(`[garden-desk-inference] operation=${operation} failed`, error);
 }
 
 export function writeDevelopmentLlamaLog(level: string, message: string): void {
-  if (globalThis.__VAULT_DEVELOPMENT_BUILD__ !== true) return;
+  if (globalThis.__GARDEN_DESK_DEVELOPMENT_BUILD__ !== true) return;
   try {
     writeDiagnosticRecord(
       `[node-llama-cpp] level=${boundedText(level, MAX_DIAGNOSTIC_ERROR_NAME_CHARACTERS)}\n${boundedText(
@@ -193,12 +193,12 @@ export async function recordDevelopmentHostFailure(
   error: unknown,
 ): Promise<void> {
   try {
-    if (globalThis.__VAULT_DEVELOPMENT_BUILD__ !== true) return;
+    if (globalThis.__GARDEN_DESK_DEVELOPMENT_BUILD__ !== true) return;
     const sink = createDevelopmentDiagnosticSink("inference-host.log");
     if (sink === undefined) return;
     sink.append(
       Buffer.from(
-        `[vault-inference] host stage=${stage} operation=${operation} failed\n${diagnosticErrorDetails(error)}\n`,
+        `[garden-desk-inference] host stage=${stage} operation=${operation} failed\n${diagnosticErrorDetails(error)}\n`,
         "utf8",
       ).subarray(0, MAX_WORKER_DIAGNOSTIC_RECORD_BYTES),
     );
@@ -210,7 +210,7 @@ export async function recordDevelopmentHostFailure(
 
 async function secureWindowsPath(path: string, script: string): Promise<void> {
   await run("powershell.exe", ["-NoLogo", "-NoProfile", "-NonInteractive", "-Command", script], {
-    env: { ...process.env, VAULT_DIAGNOSTIC_PATH: path },
+    env: { ...process.env, GARDEN_DESK_DIAGNOSTIC_PATH: path },
     windowsHide: true,
   });
 }
@@ -246,12 +246,12 @@ async function preparePrivateDiagnosticOutput(
 export function createDevelopmentDiagnosticSink(
   outputName: InferenceDiagnosticOutput = "worker-stderr.log",
 ): DevelopmentDiagnosticSink | undefined {
-  if (globalThis.__VAULT_DEVELOPMENT_BUILD__ !== true) return undefined;
+  if (globalThis.__GARDEN_DESK_DEVELOPMENT_BUILD__ !== true) return undefined;
   let root: string;
   let directory: string;
   let output: string;
   try {
-    root = globalThis.__VAULT_DEVELOPMENT_DIAGNOSTIC_ROOT__ ?? "";
+    root = globalThis.__GARDEN_DESK_DEVELOPMENT_DIAGNOSTIC_ROOT__ ?? "";
     if (root === "") return undefined;
     directory = join(root, randomUUID());
     output = join(directory, outputName);

@@ -1,4 +1,4 @@
-import type { AgentRunSummary } from "@vault/shared";
+import type { AgentRunSummary } from "@gardendesk/shared";
 import type { AuditLog } from "../audit/log.js";
 import type { ConversationStore } from "../conversations/store.js";
 import type { InferenceService } from "../runtime/inference.js";

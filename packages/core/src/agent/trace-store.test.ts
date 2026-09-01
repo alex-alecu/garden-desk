@@ -14,7 +14,7 @@ import { AgentStore } from "./store.js";
 const roots: string[] = [];
 
 async function fixture() {
-  const root = await mkdtemp(join(tmpdir(), "vault-agent-trace-"));
+  const root = await mkdtemp(join(tmpdir(), "garden-desk-agent-trace-"));
   roots.push(root);
   const scope = await WorkspaceScope.create(root);
   const catalog = openWorkspaceCatalog(scope.root);
@@ -110,7 +110,7 @@ describe("M3 durable inference traces", () => {
     expect(traces[0]?.promptHash).toBe(traces[1]?.promptHash);
     expect(traces[0]?.schemaHash).toBe(traces[1]?.schemaHash);
     expect(traces[0]?.responseHash).toBe(traces[1]?.responseHash);
-    const entries = await readdir(join(root, ".vault", "artifacts"), { recursive: true });
+    const entries = await readdir(join(root, ".garden-desk", "artifacts"), { recursive: true });
     expect(entries.filter((entry) => /^[a-f0-9]{64}$/u.test(basename(entry)))).toHaveLength(3);
     catalog.close();
   });

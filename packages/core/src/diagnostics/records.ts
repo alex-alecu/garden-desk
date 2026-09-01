@@ -16,7 +16,7 @@ import {
   SessionDraftSchema,
   type SessionSummary,
   SessionSummarySchema,
-} from "@vault/shared";
+} from "@gardendesk/shared";
 import { debugStateInvalid } from "./errors.js";
 
 export type Row = Record<string, unknown>;

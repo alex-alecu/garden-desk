@@ -12,8 +12,8 @@ import type {
   RequestId,
   StructuredGenerationRequest,
   StructuredGenerationResult,
-} from "@vault/shared";
-import { JobIdSchema } from "@vault/shared";
+} from "@gardendesk/shared";
+import { JobIdSchema } from "@gardendesk/shared";
 import { gemmaFunctionCallSuffix } from "./prompt-instructions.js";
 
 export type GenerationInput = Omit<

@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { chmod, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { MacOsMicroVmLauncher } from "@vault/workers";
+import { MacOsMicroVmLauncher } from "@gardendesk/workers";
 import { describe, expect, it } from "vitest";
 
 const describeMac =
@@ -45,13 +45,13 @@ const fakeNetworkedReport = {
 
 describeMac("M1 certified macOS microVM", () => {
   it("boots the immutable no-NIC guest with typed IPC and bounded attachments", async () => {
-    const temporaryRoot = await mkdtemp(join(tmpdir(), "vault-m1-native-"));
+    const temporaryRoot = await mkdtemp(join(tmpdir(), "garden-desk-m1-native-"));
     try {
       const input = join(temporaryRoot, "input.img");
       await writeFile(input, "read-only input");
       const helper = join(
         process.cwd(),
-        "packages/workers/native/macos-vz-helper/.generated/vault-vz-helper",
+        "packages/workers/native/macos-vz-helper/.generated/garden-desk-vz-helper",
       );
       const result = await new MacOsMicroVmLauncher(helper).launchProbe({
         jobId: randomUUID(),
@@ -73,7 +73,7 @@ describeMac("M1 certified macOS microVM", () => {
 
 describeMac("M1 microVM certification classification", () => {
   it("cannot report a process-only or network-configured result as certified", async () => {
-    const root = await mkdtemp(join(tmpdir(), "vault-m1-fake-helper-"));
+    const root = await mkdtemp(join(tmpdir(), "garden-desk-m1-fake-helper-"));
     try {
       const helper = join(root, "fake-helper");
       const input = join(root, "input.img");

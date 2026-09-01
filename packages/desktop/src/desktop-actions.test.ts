@@ -4,7 +4,7 @@ import {
   FolderSummarySchema,
   SessionDraftSchema,
   SessionSummarySchema,
-} from "@vault/shared";
+} from "@gardendesk/shared";
 import { describe, expect, it, vi } from "vitest";
 import type { DesktopApi } from "./api.js";
 import { openArtifact, saveArtifact } from "./artifact-actions.js";

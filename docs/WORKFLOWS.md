@@ -25,7 +25,7 @@ Examples:
 - The immutable guest image contains the only available Python, Node.js, BusyBox commands, and library versions.
 - Package installation and runtime network access are unavailable.
 - The guest can write only to its persistent 128 MiB workspace and ephemeral `/run`; it cannot change host source files.
-- Vault Core mediates model completions, limits, cancellation, audit, and results.
+- Garden Desk Core mediates model completions, limits, cancellation, audit, and results.
 - Every file the agent creates or changes under `/workspace` during a run becomes a deliverable once the run finishes with a successful final response. Deliverables are proposals, not silent host mutations; Open uses a verified temporary copy and Save As requires a native user-selected destination. Task text and format names do not create a deliverable requirement.
 - Observable code and activity are reviewable; hidden reasoning is not persisted.
 

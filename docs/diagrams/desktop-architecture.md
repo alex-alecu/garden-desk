@@ -5,7 +5,7 @@ Updated: 2026-07-20
 ```mermaid
 flowchart TD
     UI["Tauri webview: React and TypeScript"] --> Host["Minimal Tauri Rust host"]
-    Host --> Core["Vault Core local daemon"]
+    Host --> Core["Garden Desk Core local daemon"]
     Host --> Dialogs["Native folder and file dialogs"]
     Dialogs --> Grants["Opaque folder grants and attachments"]
     Grants --> Core
@@ -32,6 +32,6 @@ flowchart TD
 ## Notes
 
 - The webview has no unrestricted filesystem, shell, process, environment, endpoint, or network capability.
-- Vault Core owns grants, sessions, model mediation, limits, cancellation, audit, and result validation.
+- Garden Desk Core owns grants, sessions, model mediation, limits, cancellation, audit, and result validation.
 - The microVM has zero virtual NICs and cannot write to the selected host folder.
 - Post-V1 document intelligence may add deterministic fast paths without changing these boundaries.

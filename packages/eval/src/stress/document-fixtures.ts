@@ -243,7 +243,7 @@ async function writePdfObjects(path: string, objects: string[]): Promise<number>
     }
     offset += chunk.length;
   };
-  await write("%PDF-1.4\n%VaultDesk\n");
+  await write("%PDF-1.4\n%GardenDesk\n");
   for (const object of objects) {
     offsets.push(offset);
     await write(object);

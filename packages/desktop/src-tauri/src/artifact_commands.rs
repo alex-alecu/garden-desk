@@ -19,7 +19,7 @@ pub(crate) async fn open_artifact(
     )?;
     let path = path
         .as_str()
-        .ok_or_else(|| "Vault Core returned an invalid generated file path.".to_owned())?;
+        .ok_or_else(|| "Garden Desk Core returned an invalid generated file path.".to_owned())?;
     let open_result = app.shell().open(path, None);
     let outcome = if open_result.is_ok() {
         "succeeded"

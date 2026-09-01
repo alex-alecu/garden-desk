@@ -1,11 +1,11 @@
 import { fileURLToPath } from "node:url";
-import { type InferenceProfile, InferenceProfileSchema } from "@vault/shared";
+import { type InferenceProfile, InferenceProfileSchema } from "@gardendesk/shared";
 import {
   createWindowsInferenceRuntime,
   InferenceWorkerClient,
   LlamaVisionClient,
   MacOsNativeWorkerLauncher,
-} from "@vault/workers";
+} from "@gardendesk/workers";
 import type { AuditLog } from "../audit/log.js";
 import { resolveAgentSessionCapacity, resolveInferenceHardwarePolicy } from "./hardware.js";
 import { ModelResolver } from "./models.js";

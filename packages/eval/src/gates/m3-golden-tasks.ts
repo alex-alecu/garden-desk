@@ -1,7 +1,7 @@
 import { mkdir, readFile, rm } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import type { createVaultCore } from "@vault/core";
-import type { AgentRunSnapshot } from "@vault/shared";
+import type { createGardenDeskCore } from "@gardendesk/core";
+import type { AgentRunSnapshot } from "@gardendesk/shared";
 import {
   createDocxCorpus,
   createPdf,
@@ -12,7 +12,7 @@ import {
 } from "../stress/document-fixtures.js";
 import { pollAgentRun } from "./m3-gate-support.js";
 
-type Core = Awaited<ReturnType<typeof createVaultCore>>;
+type Core = Awaited<ReturnType<typeof createGardenDeskCore>>;
 
 interface GoldenTask {
   name: string;

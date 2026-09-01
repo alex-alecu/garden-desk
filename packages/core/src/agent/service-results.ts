@@ -1,4 +1,4 @@
-import type { AgentRunPerformance, AgentRunResult } from "@vault/shared";
+import type { AgentRunPerformance, AgentRunResult } from "@gardendesk/shared";
 import type { InferenceService } from "../runtime/inference.js";
 import { inferenceFailureCode } from "../runtime/inference-errors.js";
 

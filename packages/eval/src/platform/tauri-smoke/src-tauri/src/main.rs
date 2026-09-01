@@ -5,7 +5,7 @@ use tauri_plugin_shell::ShellExt;
 async fn launch_test_sidecar(app: AppHandle) -> Result<String, String> {
     let sidecar = app
         .shell()
-        .sidecar("vault-m0-sidecar")
+        .sidecar("garden-desk-m0-sidecar")
         .map_err(|error| error.to_string())?;
     let output = sidecar.output().await.map_err(|error| error.to_string())?;
     if !output.status.success() {

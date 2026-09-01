@@ -12,7 +12,7 @@ import {
   AgentSourcePathSchema,
   type AgentWorkspaceDelta,
   isUserArtifactWorkspacePath,
-} from "@vault/shared";
+} from "@gardendesk/shared";
 import type { AgentHelperTransport } from "./agent-transport.js";
 import type {
   AgentExecutionObserver,

@@ -1,5 +1,5 @@
-import type { ErrorCode, InferenceOperation } from "@vault/shared";
-import { ErrorCodeSchema } from "@vault/shared";
+import type { ErrorCode, InferenceOperation } from "@gardendesk/shared";
+import { ErrorCodeSchema } from "@gardendesk/shared";
 
 export class InferenceFailure extends Error {
   constructor(

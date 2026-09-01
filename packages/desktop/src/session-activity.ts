@@ -1,4 +1,4 @@
-import type { AgentRunSnapshot, AgentRunSummary } from "@vault/shared";
+import type { AgentRunSnapshot, AgentRunSummary } from "@gardendesk/shared";
 import type { DesktopApi } from "./api.js";
 
 interface SessionActivity {

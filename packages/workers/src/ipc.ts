@@ -1,4 +1,4 @@
-import { type WorkerFrame, WorkerFrameSchema } from "@vault/shared";
+import { type WorkerFrame, WorkerFrameSchema } from "@gardendesk/shared";
 
 const HEADER_BYTES = 4;
 const MAX_FRAME_BYTES = 192 * 1024 * 1024;

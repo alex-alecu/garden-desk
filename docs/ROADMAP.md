@@ -5,7 +5,7 @@ Updated: 2026-07-23
 ## Completed Foundations
 
 - Pinned cross-platform TypeScript/Node workspace, CI, model manifest, dependency inventory, and evaluation harness.
-- Current-user Vault Core daemon, scoped workspace state, immutable artifacts, audit, jobs, cancellation, and recovery.
+- Current-user Garden Desk Core daemon, scoped workspace state, immutable artifacts, audit, jobs, cancellation, and recovery.
 - Certified no-network microVM launchers on macOS and Windows.
 - macOS host-native supervised inference with grammar generation, embeddings, memory scheduling, and containment evidence.
 

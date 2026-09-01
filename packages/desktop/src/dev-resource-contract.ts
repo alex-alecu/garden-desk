@@ -90,7 +90,7 @@ function macHelperInputs(root: string): string[] {
     join(root, "Package.resolved"),
     join(root, "Package.swift"),
     join(root, "Sources"),
-    join(root, "vault-vz-helper.entitlements.plist"),
+    join(root, "garden-desk-vz-helper.entitlements.plist"),
   ];
 }
 
@@ -117,7 +117,7 @@ function windowsContract(
     requiredOutputs: [
       ...commonOutputs(resourcesRoot),
       join(resourcesRoot, "inference", "node.exe"),
-      join(resourcesRoot, "inference", "vault-appcontainer-launcher.exe"),
+      join(resourcesRoot, "inference", "garden-desk-appcontainer-launcher.exe"),
       join(resourcesRoot, "inference", "vision", "llama-mtmd-cli.exe"),
       join(resourcesRoot, "inference", "vision", "msvcp140.dll"),
       join(resourcesRoot, "inference", "vision", "vcruntime140.dll"),
@@ -127,10 +127,10 @@ function windowsContract(
       ...["win-x64-cuda", "win-x64-cuda-ext", "win-x64-vulkan"].map((name) =>
         join(resourcesRoot, "inference", "node_modules", "@node-llama-cpp", name, "package.json"),
       ),
-      join(resourcesRoot, "workers", "vault-hcs-helper.exe"),
-      join(resourcesRoot, "windows", "vault-hyper-v-setup.exe"),
+      join(resourcesRoot, "workers", "garden-desk-hcs-helper.exe"),
+      join(resourcesRoot, "windows", "garden-desk-hyper-v-setup.exe"),
       ...guestOutputs(resourcesRoot, "x86_64", "bzImage"),
-      join(desktopRoot, "src-tauri", "binaries", "vault-core-x86_64-pc-windows-msvc.exe"),
+      join(desktopRoot, "src-tauri", "binaries", "garden-desk-core-x86_64-pc-windows-msvc.exe"),
     ],
   };
 }
@@ -158,9 +158,9 @@ function macContract(
         "mac-arm64-metal",
         "package.json",
       ),
-      join(resourcesRoot, "workers", "vault-vz-helper"),
+      join(resourcesRoot, "workers", "garden-desk-vz-helper"),
       ...guestOutputs(resourcesRoot, "aarch64", "Image"),
-      join(desktopRoot, "src-tauri", "binaries", "vault-core-aarch64-apple-darwin"),
+      join(desktopRoot, "src-tauri", "binaries", "garden-desk-core-aarch64-apple-darwin"),
     ],
   };
 }

@@ -34,7 +34,7 @@ Every commit is authored solely by the repository owner (after contribution acti
 
 ## Implementation Rule
 
-Vault Core, the harness, and orchestration code are TypeScript on Node.js. Rust and Swift own only OS capabilities, never product policy, filesystem authorization, network brokering, parsing, or workflow logic:
+Garden Desk Core, the harness, and orchestration code are TypeScript on Node.js. Rust and Swift own only OS capabilities, never product policy, filesystem authorization, network brokering, parsing, or workflow logic:
 
 - Tauri v2 desktop host: window lifecycle, native dialogs, capability-scoped OS integration, Core sidecar supervision, connection bootstrap.
 - `packages/core/native/windows-pipe-guard/`: the current-user-only Windows named pipe, owner and DACL checks, opaque byte relay. TypeScript keeps endpoint naming, RPC parsing, limits, dispatch, and policy.
@@ -65,7 +65,7 @@ Documentation is for people. Write the absolute minimum amount of code comments,
 
 ## Agent Skills
 
-The skills under [.agents/skills](.agents/skills) (also exposed at `.claude/skills`) package this workflow for Codex and Claude Code: plan a change, fix a bug, verify, review, review a dependency, hand off. They do not override this file, ADRs, or the active milestone. The GitHub pull request review runs the command in [.claude/commands/vault-code-review.md](.claude/commands/vault-code-review.md), which reads [REVIEW.md](REVIEW.md) first and this file as secondary context, and may only read the pull request and post review comments.
+The skills under [.agents/skills](.agents/skills) (also exposed at `.claude/skills`) package this workflow for Codex and Claude Code: plan a change, fix a bug, verify, review, review a dependency, hand off. They do not override this file, ADRs, or the active milestone. The GitHub pull request review runs the command in [.claude/commands/garden-desk-code-review.md](.claude/commands/garden-desk-code-review.md), which reads [REVIEW.md](REVIEW.md) first and this file as secondary context, and may only read the pull request and post review comments.
 
 ## Where To Look
 

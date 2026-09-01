@@ -1,4 +1,4 @@
-import type { AgentEventType, FolderSummary, SessionSummary } from "@vault/shared";
+import type { AgentEventType, FolderSummary, SessionSummary } from "@gardendesk/shared";
 
 export interface FolderGroup extends FolderSummary {
   sessions: SessionSummary[];

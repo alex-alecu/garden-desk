@@ -60,7 +60,7 @@ On 2026-07-11 a full live-web revalidation pass was run across the model stack, 
 
 ## 2026-07-13 Desktop And Hybrid-Execution Review
 
-Official Tauri v2 sources were reviewed for the operating-system webview architecture, React/TypeScript compatibility, capability-scoped commands, external-binary sidecars, and platform distribution. These remain research-derived until M0 validates a pinned Tauri version, signed Vault Core sidecar packaging, webview behavior, and capability denial on supported Windows and macOS targets.
+Official Tauri v2 sources were reviewed for the operating-system webview architecture, React/TypeScript compatibility, capability-scoped commands, external-binary sidecars, and platform distribution. These remain research-derived until M0 validates a pinned Tauri version, signed Garden Desk Core sidecar packaging, webview behavior, and capability denial on supported Windows and macOS targets.
 
 Official OpenCode sources were reviewed as an interaction and agent-loop reference. OpenCode is not an accepted dependency. M3 starts with a minimal Garden Desk-owned guest loop under offline, no-network, typed-inference, resource, audit, cancellation, package-footprint, and result-validation gates.
 

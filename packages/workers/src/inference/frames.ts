@@ -6,7 +6,7 @@ import {
   type InferenceWorkerRequest,
   InferenceWorkerRequestSchema,
   type InferenceWorkerResponse,
-} from "@vault/shared";
+} from "@gardendesk/shared";
 
 const HEADER_BYTES = 4;
 // Chat requests carry the full conversation history (system + user + every tool

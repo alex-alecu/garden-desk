@@ -17,7 +17,7 @@ const PACKED_LIMITS = {
 };
 
 async function temporaryRoot(): Promise<string> {
-  const root = await mkdtemp(join(tmpdir(), "vault-worker-stage-"));
+  const root = await mkdtemp(join(tmpdir(), "garden-desk-worker-stage-"));
   temporaryRoots.push(root);
   return root;
 }

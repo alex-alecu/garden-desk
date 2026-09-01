@@ -4,7 +4,7 @@ Created: 2026-07-10
 
 This document defines the implementation direction. M0 now contains only the workspace and validation scaffolding authorized by [AGENTS.md](../AGENTS.md).
 
-Vault Core and the local orchestration layer are TypeScript running on Node.js. The Tauri v2 desktop host is the narrow exception: it contains only the minimum Rust needed for the native shell and sidecar boundary.
+Garden Desk Core and the local orchestration layer are TypeScript running on Node.js. The Tauri v2 desktop host is the narrow exception: it contains only the minimum Rust needed for the native shell and sidecar boundary.
 
 ## Scope Of The Harness
 
@@ -60,17 +60,17 @@ The common microVM contract provides:
 
 Research-derived platform targets are Apple Containerization or Virtualization.framework on macOS 26 Apple silicon, HCS/Hyper-V on supported Windows editions, and Firecracker/KVM when Linux desktop certification opens. M0 must validate exact APIs, packaging, edition requirements, licensing, and lifecycle behavior before implementation choices are locked.
 
-Vault Core exposes no generic network service to the guest. Explicit external integrations use a separate typed broker that owns credentials, policy, approval, destination validation, limits, and audit. The broker cannot be invoked as an arbitrary fetch or forwarding service.
+Garden Desk Core exposes no generic network service to the guest. Explicit external integrations use a separate typed broker that owns credentials, policy, approval, destination validation, limits, and audit. The broker cannot be invoked as an arbitrary fetch or forwarding service.
 
 Hardware-accelerated inference remains host-native for the first runtime so Metal, CUDA, HIP, and Vulkan remain available. The inference process is supervised and OS-sandboxed, has no shell or executable tools, and receives no network capability, credentials, arbitrary workspace paths, or approval authority. This is a narrow accelerator exception, not an alternative hostile-work sandbox. See [adr/0012-worker-isolation-and-untrusted-documents.md](adr/0012-worker-isolation-and-untrusted-documents.md).
 
-Agent-authored code uses a separate immutable guest role under the same no-network microVM contract. Each session receives a live read-only folder mount, immutable explicit attachments, pinned offline interpreters and tools, a persistent 128 MiB workspace, and a typed result schema. The guest cannot install dependencies or connect to a general model server. Vault Core mediates bounded completion requests over typed host/guest IPC, records observable source, commands, and results, validates workspace manifests, and keeps at most one warm idle VM. See [adr/0018-offline-dev-agent-first.md](adr/0018-offline-dev-agent-first.md).
+Agent-authored code uses a separate immutable guest role under the same no-network microVM contract. Each session receives a live read-only folder mount, immutable explicit attachments, pinned offline interpreters and tools, a persistent 128 MiB workspace, and a typed result schema. The guest cannot install dependencies or connect to a general model server. Garden Desk Core mediates bounded completion requests over typed host/guest IPC, records observable source, commands, and results, validates workspace manifests, and keeps at most one warm idle VM. See [adr/0018-offline-dev-agent-first.md](adr/0018-offline-dev-agent-first.md).
 
 ## Local Process Boundary
 
-Vault Core should run as a separate packaged sidecar process from the Tauri shell from the first implementation milestone. The versioned local JSON-RPC protocol uses a Unix domain socket on macOS and a named pipe on Windows behind one transport contract. TCP is not part of the desktop boundary.
+Garden Desk Core should run as a separate packaged sidecar process from the Tauri shell from the first implementation milestone. The versioned local JSON-RPC protocol uses a Unix domain socket on macOS and a named pipe on Windows behind one transport contract. TCP is not part of the desktop boundary.
 
-The React webview calls only narrow typed Tauri commands. The minimal Rust host owns native window/dialog integration, validates its command surface, starts and verifies the exact Vault Core sidecar, and bootstraps the local connection. It owns no product workflow or policy.
+The React webview calls only narrow typed Tauri commands. The minimal Rust host owns native window/dialog integration, validates its command surface, starts and verifies the exact Garden Desk Core sidecar, and bootstraps the local connection. It owns no product workflow or policy.
 
 The protocol must include request and job IDs, idempotency keys for mutations, cancellation, bounded streaming, backpressure, reconnect behavior, version negotiation, and structured errors. Unit tests may call the core API directly, but every milestone must also exercise new backend behavior through the daemon. See [adr/0010-electron-and-local-transport.md](adr/0010-electron-and-local-transport.md) and [adr/0014-tauri-desktop-shell.md](adr/0014-tauri-desktop-shell.md).
 
@@ -127,7 +127,7 @@ The Node harness should call local inference runtimes through stable adapter int
 
 Candidate adapter families (support status verified 2026-07-11; see [research/local-ai-runtimes.md](research/local-ai-runtimes.md)):
 
-- node-llama-cpp (MIT) as the first supervised inference-worker adapter: loads Gemma 4 QAT GGUFs, enforces JSON-schema output via grammar-constrained sampling, and supports function calling, embeddings, reranking, speculative decoding, and multiple parallel context sequences on one loaded model (`sequences`, `sequencesLeft`, and a maximum-parallelism batch strategy), with Metal, CUDA, and Vulkan builds. Parallel generation is therefore bounded by KV-cache memory rather than by the runtime; V1 uses bounded extra sequences for sub-agents and concurrent user conversations. It runs behind Vault Core rather than inside the Tauri webview or Rust host.
+- node-llama-cpp (MIT) as the first supervised inference-worker adapter: loads Gemma 4 QAT GGUFs, enforces JSON-schema output via grammar-constrained sampling, and supports function calling, embeddings, reranking, speculative decoding, and multiple parallel context sequences on one loaded model (`sequences`, `sequencesLeft`, and a maximum-parallelism batch strategy), with Metal, CUDA, and Vulkan builds. Parallel generation is therefore bounded by KV-cache memory rather than by the runtime; V1 uses bounded extra sequences for sub-agents and concurrent user conversations. It runs behind Garden Desk Core rather than inside the Tauri webview or Rust host.
 - The pinned llama.cpp `llama-mtmd-cli` as the supervised on-demand image adapter for the current Gemma 4 model pair. It runs one bounded offline request after the resident node-llama-cpp chat worker unloads. Later document-vision models must use the same narrow adapter or a separately reviewed equivalent.
 - MLX-family local serving on macOS.
 - Ollama-compatible serving.
@@ -159,7 +159,7 @@ Planned adapter categories (tool choices verified 2026-07-11; see [research/docu
 - Native Node adapters for born-digital files: pdf.js text layer, mammoth for DOCX, ExcelJS or SheetJS for spreadsheets, officeParser, and mailparser. These run in microVM document workers and cover most files without a heavy Python pipeline.
 - Granite-Docling GGUF adapter for layout-aware PDFs and complex documents, served by the same llama.cpp runtime family as Gemma.
 - PaddleOCR-VL adapter for scanned pages and low-confidence extraction, also served under llama.cpp.
-- One Python document-worker image hosting the remaining Python parsers (Docling full pipeline, MarkItDown, Unstructured) inside the same no-network microVM boundary, packaged without exposing Python dependencies to Vault Core.
+- One Python document-worker image hosting the remaining Python parsers (Docling full pipeline, MarkItDown, Unstructured) inside the same no-network microVM boundary, packaged without exposing Python dependencies to Garden Desk Core.
 - Native spreadsheet adapter for XLSX, XLS, CSV, formulas, sheets, rows, and cells.
 - Gemma multimodal inspection adapter for ambiguous page regions.
 
@@ -169,7 +169,7 @@ The harness should persist a document-set manifest so huge folder jobs can resum
 
 ## Hybrid Execution Principle
 
-For V1, use the generic offline dev agent for folder and attachment work. Prompt-only professional review skills may guide the same generic tools, but they do not add Core routing, domain policy, or deterministic operations. Add typed deterministic operations after V1 only when measurements prove that a maintained operation materially improves speed, accuracy, evidence quality, or model cost. Such operations remain Vault Core-owned and cannot weaken guest isolation or grant host-write authority.
+For V1, use the generic offline dev agent for folder and attachment work. Prompt-only professional review skills may guide the same generic tools, but they do not add Core routing, domain policy, or deterministic operations. Add typed deterministic operations after V1 only when measurements prove that a maintained operation materially improves speed, accuracy, evidence quality, or model cost. Such operations remain Garden Desk Core-owned and cannot weaken guest isolation or grant host-write authority.
 
 Only a request that cannot be expressed through supported operations may be routed by policy to the bounded code-interpreter microVM. Generated code is untrusted input to the verifier, not product authority. Its source, environment, inputs, outputs, logs, resource use, and termination are auditable, and any workspace write or export still crosses normal policy and approval boundaries.
 

@@ -4,7 +4,7 @@ import type {
   AgentExecutionResult,
   ChatMessage,
   ChatToolCall,
-} from "@vault/shared";
+} from "@gardendesk/shared";
 import type { ArtifactExecutionEvidence } from "./artifact-results.js";
 import {
   emitCompletedTool,

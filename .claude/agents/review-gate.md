@@ -1,6 +1,6 @@
 ---
 name: review-gate
-description: Returns a pull request's state, head sha, and last claude-reviewed sha. Used only by /vault-code-review.
+description: Returns a pull request's state, head sha, and last claude-reviewed sha. Used only by /garden-desk-code-review.
 model: claude-haiku-4-5-20251001
 effort: low
 tools: Bash, Read

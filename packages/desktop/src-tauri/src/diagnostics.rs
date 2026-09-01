@@ -7,7 +7,7 @@ use tauri_plugin_shell::ShellExt;
 use tauri_plugin_shell::process::CommandEvent;
 
 const MAX_HELPER_STREAM_BYTES: usize = 4 * 1024;
-const SNAPSHOT_PREFIX: &str = "vault-session-debug-";
+const SNAPSHOT_PREFIX: &str = "garden-desk-session-debug-";
 
 #[derive(Default)]
 pub(crate) struct DebugSnapshots(Mutex<HashMap<String, PathBuf>>);
@@ -78,10 +78,10 @@ async fn create_with_sidecar(app: &AppHandle, session_id: &str) -> Result<PathBu
         .path()
         .app_data_dir()
         .map_err(|_| "debug_catalog_unavailable".to_owned())?
-        .join("state/.vault/catalog.sqlite");
+        .join("state/.garden-desk/catalog.sqlite");
     let command = app
         .shell()
-        .sidecar("vault-core")
+        .sidecar("garden-desk-core")
         .map_err(|_| "debug_helper_unavailable".to_owned())?
         .args([
             "debug-session",
@@ -202,7 +202,8 @@ mod tests {
             "debug_helper_output_invalid"
         );
         assert_eq!(
-            validate_snapshot_path(b"/tmp/vault-session-debug-one\n/private/path\n").unwrap_err(),
+            validate_snapshot_path(b"/tmp/garden-desk-session-debug-one\n/private/path\n")
+                .unwrap_err(),
             "debug_helper_output_invalid"
         );
     }

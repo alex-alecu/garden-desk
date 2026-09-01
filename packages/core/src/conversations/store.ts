@@ -9,7 +9,7 @@ import {
   SessionPageSchema,
   type SessionSummary,
   SessionSummarySchema,
-} from "@vault/shared";
+} from "@gardendesk/shared";
 import type { DatabasePort } from "../workspace/database.js";
 import { inspectFolderGrant } from "../workspace/folder-grants.js";
 import { reorderFolderRows } from "./folder-order.js";

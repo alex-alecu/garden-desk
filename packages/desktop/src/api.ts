@@ -9,7 +9,7 @@ import type {
   SessionDraft,
   SessionPage,
   SessionSummary,
-} from "@vault/shared";
+} from "@gardendesk/shared";
 
 export interface FolderSessionPage {
   folderId: string;

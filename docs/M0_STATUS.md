@@ -9,7 +9,7 @@ Milestone M0 is complete. The Mac and Windows checkpoints and published cross-pl
 - Goal: establish the smallest reproducible Garden Desk workspace and validation surface required by M0.
 - Active milestone and issue: M0, started by the repository owner's explicit 2026-07-16 request; no separate issue was supplied.
 - Allowed scope: phase-rule updates, Apache 2.0 root license, pinned Node/pnpm/Rust and root tooling, M0-only `shared` and `eval` packages, model and compliance manifests, test-only Tauri and microVM probes, guest-image recipe, ADR 0017, and macOS/Windows CI.
-- Product boundaries: model manifests are canonical in `@vault/shared`; model fetching remains development-only in `@vault/eval`; Tauri exposes only a fixed test command and exact sidecar; hostile-work validation requires a no-network guest and typed host/guest IPC; no product UI or external integration is introduced.
+- Product boundaries: model manifests are canonical in `@gardendesk/shared`; model fetching remains development-only in `@gardendesk/eval`; Tauri exposes only a fixed test command and exact sidecar; hostile-work validation requires a no-network guest and typed host/guest IPC; no product UI or external integration is introduced.
 - Explicitly not doing: M1 daemon/CLI/workspace/worker code, product UI, customer-document handling, external integrations, model redistribution, committed binaries, or contribution activation.
 
 ## Gate State
@@ -33,7 +33,7 @@ Milestone M0 is complete. The Mac and Windows checkpoints and published cross-pl
 
 ## Mac Verification Report
 
-- `VAULT_BUILDROOT_ARCHIVE=/tmp/buildroot-2026.05.tar.xz pnpm guest:build -- --arch aarch64` — two clean builds in disposable Docker volumes produced identical outputs; the second ran with Docker networking disabled.
+- `GARDEN_DESK_BUILDROOT_ARCHIVE=/tmp/buildroot-2026.05.tar.xz pnpm guest:build -- --arch aarch64` — two clean builds in disposable Docker volumes produced identical outputs; the second ran with Docker networking disabled.
   - Kernel SHA-256: `211d283fafe9e094e614629ef21f8616cdce24c5e4b43b936c4c73a3e447e7bd`.
   - Initramfs SHA-256: `d7ea5c8df6da1faa9fd6aaf7109833be45dc3b208515977b0021ea478715e3c9`.
 - `pnpm model:fetch --id qwen3-embedding-0.6b-q8_0 --destination /tmp/qwen3-embedding-0.6b-q8_0.gguf` — downloaded the official immutable Qwen artifact and matched SHA-256 `06507c7b42688469c4e7298b0a1e16deff06caf291cf0a5b278c308249c3e439`.

@@ -5,7 +5,7 @@ import {
   FolderSummarySchema,
   SessionPageSchema,
   SessionSummarySchema,
-} from "@vault/shared";
+} from "@gardendesk/shared";
 import { describe, expect, it } from "vitest";
 import { desktopReducer, initialDesktopState } from "./state.js";
 
@@ -35,7 +35,7 @@ describe("desktop navigation state", () => {
     const state = desktopReducer(initialDesktopState, {
       type: "desktop.hydrate",
       snapshot: {
-        catalogPath: "/tmp/state/.vault/catalog.sqlite",
+        catalogPath: "/tmp/state/.garden-desk/catalog.sqlite",
         folders: [folder],
         globalSessions: { items: [], nextCursor: null },
         folderSessions: [
@@ -53,7 +53,7 @@ describe("desktop navigation state", () => {
       },
     });
     expect(state.loaded).toBe(true);
-    expect(state.catalogPath).toBe("/tmp/state/.vault/catalog.sqlite");
+    expect(state.catalogPath).toBe("/tmp/state/.garden-desk/catalog.sqlite");
     expect(state.folders[0]?.sessions).toEqual([firstSession]);
     expect(state.folders[0]?.nextCursor).toBe("next");
   });

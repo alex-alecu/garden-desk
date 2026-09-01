@@ -1,4 +1,4 @@
-import type { WorkerLimits } from "@vault/shared";
+import type { WorkerLimits } from "@gardendesk/shared";
 
 export const AGENT_MODEL_ID = "gemma-4-12b-it-qat-q4_0";
 export const AGENT_PROJECTOR_MODEL_ID = "gemma-4-12b-it-qat-q4_0-mmproj";

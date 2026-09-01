@@ -1,4 +1,4 @@
-import type { AgentQuestionRequest, AgentRunSummary } from "@vault/shared";
+import type { AgentQuestionRequest, AgentRunSummary } from "@gardendesk/shared";
 import type { DesktopApi } from "../api.js";
 import { QuestionPrompt } from "./question-prompt.js";
 

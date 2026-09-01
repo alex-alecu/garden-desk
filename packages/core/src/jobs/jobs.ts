@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { type JobRecord, JobRecordSchema } from "@vault/shared";
+import { type JobRecord, JobRecordSchema } from "@gardendesk/shared";
 import type { DatabasePort } from "../workspace/database.js";
 
 interface JobRow {

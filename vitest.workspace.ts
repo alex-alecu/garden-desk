@@ -7,7 +7,7 @@ export default defineConfig({
       {
         resolve: {
           alias: {
-            "@vault/shared": resolve("packages/shared/src/index.ts"),
+            "@gardendesk/shared": resolve("packages/shared/src/index.ts"),
           },
         },
         test: {

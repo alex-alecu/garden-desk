@@ -13,7 +13,7 @@ Garden Desk V1 is a local desktop application with three isolated layers: a thin
 └──────────────────────────┬────────────────────────────────────┘
                            │ typed commands / local RPC
 ┌──────────────────────────▼────────────────────────────────────┐
-│ Vault Core                                                   │
+│ Garden Desk Core                                                   │
 │ grants · sessions · jobs · policy · audit · model mediation  │
 │ limits · recovery · worker supervision                       │
 └───────────────┬──────────────────────────────┬────────────────┘
@@ -28,15 +28,15 @@ Garden Desk V1 is a local desktop application with three isolated layers: a thin
 
 ## Desktop Plane
 
-The first desktop uses Tauri v2 with React and TypeScript. The Rust host owns only window lifecycle, native dialogs and granted-folder opening, exact Vault Core sidecar startup, and connection bootstrap.
+The first desktop uses Tauri v2 with React and TypeScript. The Rust host owns only window lifecycle, native dialogs and granted-folder opening, exact Garden Desk Core sidecar startup, and connection bootstrap.
 
 The webview receives no generic shell, process launcher, environment reader, network client, local-endpoint selector, or unrestricted filesystem API. It works with opaque folder, session, attachment, job, and artifact identifiers through narrow typed commands.
 
 The sidebar's Chats section begins with New chat and then recent global sessions. Its Folders section begins with Add folder and then folder groups. Each folder group exposes its newest five sessions, cursor-based expansion, and a folder icon that asks the native shell to open the active Core-resolved grant in Finder or Explorer. The main pane restores conversation and observable agent activity. Its header exposes the approved model's human-readable identity, residency state, and manual unload control. The composer remains anchored at the bottom.
 
-## Vault Core
+## Garden Desk Core
 
-Vault Core is a separate Node.js/TypeScript process and the sole product authority. It owns:
+Garden Desk Core is a separate Node.js/TypeScript process and the sole product authority. It owns:
 
 - Current-user-only local RPC and version negotiation.
 - Folder grants and explicit attachments.
@@ -49,7 +49,7 @@ Vault Core is a separate Node.js/TypeScript process and the sole product authori
 
 Unit tests may use the programmatic facade, but every desktop capability also crosses the daemon protocol. macOS uses a Unix domain socket; Windows uses the protected current-user named pipe. Desktop mode has no TCP listener.
 
-The desktop and Vault Core run without administrator privileges on both platforms. Windows HCS requires either an administrator or Hyper-V Administrators account, so a signed Windows-only setup helper may elevate once, identify the requesting account from the non-elevated desktop process token, and add only that account to the built-in Hyper-V Administrators group. After the next Windows sign-in, the ordinary desktop token owns HCS lifecycle and the fixed Hyper-V socket admits that group. macOS retains its existing current-user Virtualization.framework path and has no administrator setup helper or prompt.
+The desktop and Garden Desk Core run without administrator privileges on both platforms. Windows HCS requires either an administrator or Hyper-V Administrators account, so a signed Windows-only setup helper may elevate once, identify the requesting account from the non-elevated desktop process token, and add only that account to the built-in Hyper-V Administrators group. After the next Windows sign-in, the ordinary desktop token owns HCS lifecycle and the fixed Hyper-V socket admits that group. macOS retains its existing current-user Virtualization.framework path and has no administrator setup helper or prompt.
 
 ## Agent MicroVM
 
@@ -65,13 +65,13 @@ The guest receives:
 - A typed task and bounded completion mediation.
 - Fixed Python, Node.js, `/bin/sh`, BusyBox tools, and reviewed offline libraries.
 
-The guest does not receive credentials, user home, writable host mounts, arbitrary host paths, a host shell, package installation, an external broker, a generic Vault Core API, approval authority, export authority, or a generic model endpoint.
+The guest does not receive credentials, user home, writable host mounts, arbitrary host paths, a host shell, package installation, an external broker, a generic Garden Desk Core API, approval authority, export authority, or a generic model endpoint.
 
 Every file a run creates or changes under `/workspace` is a session-owned deliverable; there is no separate internal-versus-deliverable classification. At successful finalization Core validates path, size, bytes, and hash before persistence. Task text, suffixes, format names, and model completion markers do not decide deliverable completion. The guest never commits authoritative state or writes the selected host folder.
 
 ## Agent Loop
 
-Vault Core owns the loop; the guest owns execution.
+Garden Desk Core owns the loop; the guest owns execution.
 
 1. Core resolves the session, canonical folder grant, attachments, and durable history.
 2. Core starts or reuses the guest and hydrates `/workspace`.
@@ -88,7 +88,7 @@ OpenCode informs the persistent conversation, generic tool, sub-agent, and compa
 
 The first runtime is node-llama-cpp with an approved hash-pinned local model. It remains host-native for Metal, CUDA, HIP, or Vulkan acceleration, but runs under an operating-system capability boundary with no external networking, credentials, shell, tools, arbitrary workspace access, or approval authority.
 
-The agent guest never connects directly to inference. Vault Core mediates each request, enforces model identity, typed chat and tool contracts, token and output limits, cancellation, memory budget, and audit. The resident worker loads Gemma once but exposes multiple parallel context sequences, so several model turns can generate concurrently on that single loaded model without multiplying its weight allocation; the added cost is per-sequence KV cache, bounded by the memory budget. Vault Core admits up to the reported sequence count and queues the rest, giving a user's own turn priority over sub-agent turns.
+The agent guest never connects directly to inference. Garden Desk Core mediates each request, enforces model identity, typed chat and tool contracts, token and output limits, cancellation, memory budget, and audit. The resident worker loads Gemma once but exposes multiple parallel context sequences, so several model turns can generate concurrently on that single loaded model without multiplying its weight allocation; the added cost is per-sequence KV cache, bounded by the memory budget. Garden Desk Core admits up to the reported sequence count and queues the rest, giving a user's own turn priority over sub-agent turns.
 
 The worker runtime owns Windows GPU discovery and selection. The signed helper reports DXCore adapter facts and installed physical RAM. TypeScript probes the packaged CUDA and Vulkan backends, maps each runtime device to exactly one adapter, isolates each candidate, and selects one usable dedicated adapter before one integrated adapter. It selects the largest usable memory in that type and uses CUDA before Vulkan for the same adapter. It never uses brand or speed as a support rule, and it never adds memory across devices. A dedicated adapter needs at least 8 GiB and uses its complete isolated memory. Installed RAM gives an integrated adapter an 8 GiB maximum tier at exactly 16 GiB, 12 GiB above 16 GiB through 24 GiB, and 16 GiB above 24 GiB. The isolated runtime capacity selects that tier or the next lower fixed tier. Less than 16 GiB installed RAM or less than 8 GiB isolated capacity is unsupported. Unified profiles use combined CPU and GPU fitting and reserve the full inference budget from host RAM. Dedicated profiles use device-memory fitting and the small host reserve. Shared memory has a 64K cap through 32 GiB installed RAM and 128K above it. Dedicated memory has a 64K cap through 24 GiB and 128K above it. Core receives only a neutral memory profile. After a successful request, an acknowledged Stop, or an acknowledged generation timeout, the worker process and approved model remain resident for the next turn in the same or a different session. Stop and generation timeouts use typed request cancellation and keep their sequence slot until the worker returns the result. If the result does not arrive within one second, Core contains the failed worker and unloads it. An idle-only typed unload command, a model or operation change, image inspection, another contained failure, or Core shutdown terminates the complete worker.
 
@@ -105,18 +105,18 @@ Raw hidden model reasoning is never persisted. Supported typed thought segments 
 ## Security Boundaries
 
 - The user grants a folder or explicit files; the model never chooses host paths.
-- Vault Core stages inputs and rechecks path identity at use time.
+- Garden Desk Core stages inputs and rechecks path identity at use time.
 - Host inputs are read-only to the guest; scratch is guest-only and ephemeral.
 - The VM has no NIC and no general host proxy.
 - Agent code cannot install dependencies or access credentials.
-- The model proposes; Vault Core authorizes and mediates; the guest executes only within its job.
+- The model proposes; Garden Desk Core authorizes and mediates; the guest executes only within its job.
 - The webview has no direct product authority.
 - Generated files are session-owned proposals and cannot silently mutate the host. Only explicit user Open or Save As actions cross the native boundary, and export audit records omit destination paths.
 - Application telemetry, analytics, automatic crash reporting, and background metrics export do not exist.
 
 ## Packaging
 
-V1 packages the Tauri host, exact Vault Core sidecar, native helpers, approved model assets, and verified guest image. First launch performs zero downloads. The Windows package alone contains the one-time Hyper-V membership helper; its signature and hash are recorded in the application-anchored resource manifest and verified before elevation. The macOS bundle excludes it.
+V1 packages the Tauri host, exact Garden Desk Core sidecar, native helpers, approved model assets, and verified guest image. First launch performs zero downloads. The Windows package alone contains the one-time Hyper-V membership helper; its signature and hash are recorded in the application-anchored resource manifest and verified before elevation. The macOS bundle excludes it.
 
 Platform packages verify identities, hashes, signatures, notices, SBOMs, current-user endpoint permissions, no-network VM configuration, model confinement, and restart behavior on physical macOS and Windows systems.
 

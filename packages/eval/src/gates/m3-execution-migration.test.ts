@@ -1,7 +1,7 @@
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { createVaultCore } from "@vault/core";
+import { createGardenDeskCore } from "@gardendesk/core";
 import Database from "better-sqlite3";
 import { afterEach, describe, expect, it } from "vitest";
 
@@ -14,7 +14,7 @@ async function openCore(root: string) {
     join(models, "installed-models.json"),
     JSON.stringify({ schemaVersion: 1, models: [] }),
   );
-  return createVaultCore({ workspaceDir: root, modelStoreDir: models, profile: "local12" });
+  return createGardenDeskCore({ workspaceDir: root, modelStoreDir: models, profile: "local12" });
 }
 
 afterEach(async () => {
@@ -80,7 +80,7 @@ function downgradeToVersionSeven(database: Database.Database): void {
 async function seedVersionSixCatalog(root: string): Promise<string> {
   const first = await openCore(root);
   await first.close();
-  const databasePath = join(root, ".vault", "catalog.sqlite");
+  const databasePath = join(root, ".garden-desk", "catalog.sqlite");
   const database = new Database(databasePath);
   try {
     database.exec(
@@ -108,7 +108,7 @@ function readHistoricalExecution(databasePath: string) {
 
 describe("M3 execution catalog migration", () => {
   it("backfills historical output into normalized execution records", async () => {
-    const root = await mkdtemp(join(tmpdir(), "vault-execution-migration-"));
+    const root = await mkdtemp(join(tmpdir(), "garden-desk-execution-migration-"));
     roots.push(root);
     const databasePath = await seedVersionSixCatalog(root);
     const migrated = await openCore(root);
@@ -123,11 +123,11 @@ describe("M3 execution catalog migration", () => {
   });
 
   it("marks schema-v7 runs as not recorded without fabricating trace turns", async () => {
-    const root = await mkdtemp(join(tmpdir(), "vault-trace-migration-"));
+    const root = await mkdtemp(join(tmpdir(), "garden-desk-trace-migration-"));
     roots.push(root);
     const first = await openCore(root);
     await first.close();
-    const databasePath = join(root, ".vault", "catalog.sqlite");
+    const databasePath = join(root, ".garden-desk", "catalog.sqlite");
     const database = new Database(databasePath);
     try {
       downgradeToVersionSeven(database);

@@ -1,5 +1,5 @@
-import type { WorkerLimits } from "@vault/shared";
-import type { CodeAgentLauncher, CodeAgentSession } from "@vault/workers";
+import type { WorkerLimits } from "@gardendesk/shared";
+import type { CodeAgentLauncher, CodeAgentSession } from "@gardendesk/workers";
 import { requireGuestSuccess } from "./m3-guest-execution.js";
 
 export async function persistentFileProbe(session: CodeAgentSession): Promise<void> {

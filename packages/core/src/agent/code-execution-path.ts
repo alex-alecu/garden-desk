@@ -1,4 +1,4 @@
-import { AgentSourcePathSchema, AgentWorkspacePathSchema } from "@vault/shared";
+import { AgentSourcePathSchema, AgentWorkspacePathSchema } from "@gardendesk/shared";
 import { object, textParam } from "./generic-tool-support.js";
 
 export interface CodeParams {

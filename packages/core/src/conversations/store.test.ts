@@ -9,7 +9,7 @@ import { ConversationStore } from "./store.js";
 const roots: string[] = [];
 
 function temporaryRoot(name: string): string {
-  const root = mkdtempSync(join(tmpdir(), `vault-${name}-`));
+  const root = mkdtempSync(join(tmpdir(), `garden-desk-${name}-`));
   roots.push(root);
   return root;
 }

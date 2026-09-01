@@ -13,7 +13,7 @@ import {
   AgentRunSummarySchema,
   type AttachmentSummary,
   AttachmentSummarySchema,
-} from "@vault/shared";
+} from "@gardendesk/shared";
 import type { DatabasePort } from "../workspace/database.js";
 
 const MAX_ATTACHMENT_BYTES = 512 * 1024 * 1024;

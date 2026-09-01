@@ -1,4 +1,4 @@
-import type { GenerationContextLimitReason, GpuMemoryKind } from "@vault/shared";
+import type { GenerationContextLimitReason, GpuMemoryKind } from "@gardendesk/shared";
 
 const MINIMUM_GENERATION_CONTEXT = 8_192;
 const STANDARD_MAXIMUM_GENERATION_CONTEXT = 65_536;

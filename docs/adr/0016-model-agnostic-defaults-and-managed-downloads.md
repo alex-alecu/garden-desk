@@ -27,11 +27,11 @@ The default dense encoder is Qwen3-Embedding-0.6B (Apache 2.0), pinned to the of
 ### 3. Two distribution flavors
 
 - **Bundled build** — the M3 V1 target: every required runtime, model, helper, and guest asset is packaged as `ships`, first launch completes with zero downloads, and the build contains no downloader.
-- **Model-download build** — a post-V1 option that ships required runtimes and adds managed generation-model installation from Hugging Face. It is the first possible integration of the typed Vault Core network broker reserved for external connections and requires a new owner decision.
+- **Model-download build** — a post-V1 option that ships required runtimes and adds managed generation-model installation from Hugging Face. It is the first possible integration of the typed Garden Desk Core network broker reserved for external connections and requires a new owner decision.
 
 ### 4. Managed download boundary
 
-Model download is a Vault Core capability behind the typed network broker, not a general network path:
+Model download is a Garden Desk Core capability behind the typed network broker, not a general network path:
 
 - The broker allows only the pinned model-host destinations, verifies TLS, and verifies the SHA-256 of every downloaded artifact against a signed catalog entry before the model becomes loadable.
 - A signed, product-supplied catalog defines recommended models ranked by detected hardware fit, and name search resolves only within allowlisted official publisher repositories serving GGUF assets. Arbitrary URLs, arbitrary local paths, unsigned catalog entries, and gated repositories requiring per-user license acceptance are out of scope for the first release of this flavor.

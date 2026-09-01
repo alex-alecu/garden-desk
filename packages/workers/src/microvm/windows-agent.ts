@@ -5,7 +5,7 @@ import { createHash } from "node:crypto";
 import { mkdtemp, open, readFile, rm, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { JobIdSchema, WorkerLimitsSchema } from "@vault/shared";
+import { JobIdSchema, WorkerLimitsSchema } from "@gardendesk/shared";
 import { stagePackedAgentInputs } from "./agent-staging.js";
 import { AgentHelperTransport } from "./agent-transport.js";
 import { emitDiagnostic } from "./diagnostics.js";
@@ -91,7 +91,7 @@ export class WindowsAgentLauncher {
   constructor(
     private readonly helperPath: string,
     private readonly imageRoot: string = join(process.cwd(), "packages/workers/images"),
-    private readonly workspaceRoot: string = join(process.cwd(), ".vault/agent-workspaces"),
+    private readonly workspaceRoot: string = join(process.cwd(), ".garden-desk/agent-workspaces"),
   ) {}
 
   private store(): Promise<AgentWorkspaceStore> {
@@ -155,7 +155,7 @@ export class WindowsAgentLauncher {
     JobIdSchema.parse(request.sessionId);
     WorkerLimitsSchema.parse(request.limits);
     const signal = launchSignal(request.signal, VM_BOOT_GRACE_MS + request.limits.wallTimeMs);
-    const temporaryRoot = await mkdtemp(join(tmpdir(), `vault-agent-${request.sessionId}-`));
+    const temporaryRoot = await mkdtemp(join(tmpdir(), `garden-desk-agent-${request.sessionId}-`));
     try {
       return await this.startAgentSession(request, temporaryRoot, signal);
     } catch (error) {

@@ -76,10 +76,13 @@ export async function stageWindowsApplication(): Promise<void> {
   await rm(packageRoot, { recursive: true, force: true });
   await mkdir(packageRoot, { recursive: true });
   const application = join(packageRoot, "Garden Desk.exe");
-  const sidecar = join(packageRoot, "vault-core.exe");
+  const sidecar = join(packageRoot, "garden-desk-core.exe");
   await copyFile(join(releaseRoot, "garden-desk-desktop.exe"), application);
   const applicationSigningMode = signExecutable(application);
-  await copyFile(join(tauriRoot, "binaries", "vault-core-x86_64-pc-windows-msvc.exe"), sidecar);
+  await copyFile(
+    join(tauriRoot, "binaries", "garden-desk-core-x86_64-pc-windows-msvc.exe"),
+    sidecar,
+  );
   await copyTree(join(tauriRoot, "resources", "core"), join(packageRoot, "resources", "core"));
   const packagedModel = packagedGenerationModelPath(join(packageRoot, "resources", "core"));
   const packagedProjector = packagedProjectorModelPath(join(packageRoot, "resources", "core"));

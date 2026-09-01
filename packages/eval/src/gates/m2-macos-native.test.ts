@@ -2,8 +2,8 @@ import { randomUUID } from "node:crypto";
 import { mkdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
-import { InferenceWorkerRequestSchema } from "@vault/shared";
-import { InferenceWorkerClient, MacOsNativeWorkerLauncher } from "@vault/workers";
+import { InferenceWorkerRequestSchema } from "@gardendesk/shared";
+import { InferenceWorkerClient, MacOsNativeWorkerLauncher } from "@gardendesk/workers";
 import { describe, expect, it } from "vitest";
 
 const itMac = process.platform === "darwin" && process.arch === "arm64" ? it : it.skip;
@@ -11,8 +11,8 @@ const itMac = process.platform === "darwin" && process.arch === "arm64" ? it : i
 describe("M2 macOS native inference boundary", () => {
   itMac("denies network, workspace, credential, shell, and executable-tool authority", async () => {
     const sentinel = join(process.cwd(), "packages/eval/.generated/m2-authority-sentinel.txt");
-    const outOfScopeReadPath = join(tmpdir(), `vault-m2-read-denied-${randomUUID()}`);
-    const outOfScopeWritePath = join(tmpdir(), `vault-m2-out-of-scope-${randomUUID()}`);
+    const outOfScopeReadPath = join(tmpdir(), `garden-desk-m2-read-denied-${randomUUID()}`);
+    const outOfScopeWritePath = join(tmpdir(), `garden-desk-m2-out-of-scope-${randomUUID()}`);
     await mkdir(join(process.cwd(), "packages/eval/.generated"), { recursive: true });
     await writeFile(sentinel, "must remain unreadable");
     await writeFile(outOfScopeReadPath, "must remain unreadable outside the user home");

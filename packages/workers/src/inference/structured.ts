@@ -1,4 +1,4 @@
-import type { StructuredGenerationRequest } from "@vault/shared";
+import type { StructuredGenerationRequest } from "@gardendesk/shared";
 import type {
   ChatSessionModelFunctions,
   Llama,

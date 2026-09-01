@@ -1,7 +1,7 @@
 import { mkdir, mkdtemp, readFile, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { AgentExecutionResult } from "@vault/shared";
+import type { AgentExecutionResult } from "@gardendesk/shared";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { AuditLog } from "../audit/log.js";
 import { ConversationStore } from "../conversations/store.js";
@@ -30,7 +30,7 @@ afterEach(async () => {
 });
 
 async function fixture() {
-  const root = await mkdtemp(join(tmpdir(), "vault-deliverable-test-"));
+  const root = await mkdtemp(join(tmpdir(), "garden-desk-deliverable-test-"));
   roots.push(root);
   const scope = await WorkspaceScope.create(root);
   const catalog = openWorkspaceCatalog(scope.root);
@@ -51,7 +51,7 @@ async function fixture() {
 }
 
 async function imageFixture() {
-  const root = await mkdtemp(join(tmpdir(), "vault-image-input-test-"));
+  const root = await mkdtemp(join(tmpdir(), "garden-desk-image-input-test-"));
   roots.push(root);
   const scope = await WorkspaceScope.create(root);
   const catalog = openWorkspaceCatalog(scope.root);
@@ -63,7 +63,7 @@ async function imageFixture() {
 describe("artifact path policy", () => {
   it("keeps Core bookkeeping paths out of user artifacts", () => {
     const bookkeeping: Pick<AgentExecutionResult, "artifacts"> = {
-      artifacts: [".vault-tools/run.py", ".vault-output/result.txt"].map((name) => ({
+      artifacts: [".garden-desk-tools/run.py", ".garden-desk-output/result.txt"].map((name) => ({
         name,
         mediaType: "application/octet-stream",
         bytesBase64: Buffer.from(name).toString("base64"),
@@ -137,7 +137,8 @@ describe("artifact materialization and export", () => {
       }),
     ).rejects.toThrow("artifact_not_found");
     const digest = item.contentHash.slice("sha256:".length);
-    await writeFile(join(root, ".vault", "artifacts", digest.slice(0, 2), digest), "tampered");
+    const stored = join(root, ".garden-desk", "artifacts", digest.slice(0, 2), digest);
+    await writeFile(stored, "tampered");
     await expect(
       materializeArtifact({
         database: catalog.database,

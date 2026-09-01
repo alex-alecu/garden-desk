@@ -3,12 +3,12 @@ import { existsSync } from "node:fs";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { MacOsMicroVmLauncher, WindowsMicroVmLauncher } from "@vault/workers";
+import { MacOsMicroVmLauncher, WindowsMicroVmLauncher } from "@gardendesk/workers";
 
 async function macReport(): Promise<unknown> {
   const helper = join(
     process.cwd(),
-    "packages/workers/native/macos-vz-helper/.generated/vault-vz-helper",
+    "packages/workers/native/macos-vz-helper/.generated/garden-desk-vz-helper",
   );
   const artifacts = join(process.cwd(), "packages/workers/images/.generated/artifacts/aarch64");
   if (!existsSync(helper) || !existsSync(artifacts)) {
@@ -17,7 +17,7 @@ async function macReport(): Promise<unknown> {
       reason: "Build the signed helper and pinned arm64 guest before certification.",
     };
   }
-  const root = await mkdtemp(join(tmpdir(), "vault-m1-platform-"));
+  const root = await mkdtemp(join(tmpdir(), "garden-desk-m1-platform-"));
   try {
     const input = join(root, "input.img");
     await writeFile(input, "probe input");
@@ -42,7 +42,7 @@ async function macReport(): Promise<unknown> {
 async function windowsReport(): Promise<unknown> {
   const helper = join(
     process.cwd(),
-    "packages/workers/native/windows-hcs-helper/.generated/vault-hcs-helper.exe",
+    "packages/workers/native/windows-hcs-helper/.generated/garden-desk-hcs-helper.exe",
   );
   const artifacts = join(process.cwd(), "packages/workers/images/.generated/artifacts/x86_64");
   if (!existsSync(helper) || !existsSync(artifacts)) {
@@ -51,7 +51,7 @@ async function windowsReport(): Promise<unknown> {
       reason: "Build the signed HCS helper and pinned x86_64 guest before certification.",
     };
   }
-  const root = await mkdtemp(join(tmpdir(), "vault-m1-platform-"));
+  const root = await mkdtemp(join(tmpdir(), "garden-desk-m1-platform-"));
   try {
     const input = join(root, "input.txt");
     await writeFile(input, "probe input");

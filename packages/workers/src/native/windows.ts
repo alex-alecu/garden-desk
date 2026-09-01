@@ -128,7 +128,7 @@ export function windowsNativeWorkerArguments(
 export function defaultWindowsInferenceHelperPath(): string {
   return join(
     process.cwd(),
-    "packages/workers/native/windows-appcontainer-launcher/.generated/vault-appcontainer-launcher.exe",
+    "packages/workers/native/windows-appcontainer-launcher/.generated/garden-desk-appcontainer-launcher.exe",
   );
 }
 
@@ -151,7 +151,7 @@ export class WindowsNativeWorkerLauncher implements NativeWorkerLauncher {
       throw new NativeWorkerLaunchError("unsupported", "unsupported_native_worker_platform");
     }
     await prepareWindowsRuntime(this.helperPath, resolve(request.workerEntryPath));
-    const temporaryRoot = await mkdtemp(join(tmpdir(), "vault-inference-"));
+    const temporaryRoot = await mkdtemp(join(tmpdir(), "garden-desk-inference-"));
     const child = spawn(
       this.helperPath,
       windowsNativeWorkerArguments(request, temporaryRoot, resolve(this.runtimePath), this.options),

@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import type { AgentSessionExecution } from "@vault/workers";
+import type { AgentSessionExecution } from "@gardendesk/workers";
 import type { AgentExecutor } from "./agent-executor.js";
 import { isSuccessfulExecution } from "./execution-success.js";
 
@@ -153,7 +153,7 @@ async function writeChunk(chunk: OutputChunk): Promise<void> {
   ].join("\n");
   const execution: AgentSessionExecution = {
     language: "python",
-    path: `.vault-output/write-${randomUUID()}.py`,
+    path: `.garden-desk-output/write-${randomUUID()}.py`,
     source,
   };
   const result = await (chunk.executor.inspect ?? chunk.executor.execute)(
@@ -173,7 +173,7 @@ async function spill(
   signal?: AbortSignal,
   onGuestExecutionStarted?: () => void,
 ): Promise<string> {
-  const path = `/workspace/.vault-output/${randomUUID()}.txt`;
+  const path = `/workspace/.garden-desk-output/${randomUUID()}.txt`;
   const bytes = Buffer.from(text, "utf8");
   for (let offset = 0; offset < bytes.length; offset += CHUNK_BYTES) {
     signal?.throwIfAborted();

@@ -2,7 +2,7 @@ import { constants } from "node:fs";
 import { mkdir, mkdtemp, open, realpath, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { AgentInputFile } from "@vault/workers";
+import type { AgentInputFile } from "@gardendesk/workers";
 import type { DatabasePort } from "../workspace/database.js";
 import { inspectFolderGrant } from "../workspace/folder-grants.js";
 import type { AgentStore } from "./store.js";
@@ -40,7 +40,7 @@ export class AgentInputResolver {
     if (session.revoked_at !== null) throw new Error("folder_grant_revoked");
     const attachments = this.store.listAttachments(sessionId);
     if (attachments.length > MAX_ATTACHMENTS) throw new Error("worker_input_limit_exceeded");
-    const temporaryRoot = await mkdtemp(join(tmpdir(), `vault-inputs-${sessionId}-`));
+    const temporaryRoot = await mkdtemp(join(tmpdir(), `garden-desk-inputs-${sessionId}-`));
     const attachmentsRoot = join(temporaryRoot, "attachments");
     const emptySource = join(temporaryRoot, "source");
     const files: AgentInputFile[] = [];

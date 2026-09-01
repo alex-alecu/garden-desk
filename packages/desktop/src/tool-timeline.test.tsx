@@ -1,4 +1,4 @@
-import { AgentEventSchema, AgentExecutionSnapshotSchema } from "@vault/shared";
+import { AgentEventSchema, AgentExecutionSnapshotSchema } from "@gardendesk/shared";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { RunProgress } from "./components/run-progress.js";

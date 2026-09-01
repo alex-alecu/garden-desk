@@ -17,7 +17,7 @@ import {
   AttachmentSummarySchema,
   type SessionDraft,
   SessionDraftSchema,
-} from "@vault/shared";
+} from "@gardendesk/shared";
 import type { ArtifactStore } from "../workspace/artifacts.js";
 import type { DatabasePort } from "../workspace/database.js";
 import { materializeAttachment } from "./attachment-materialization.js";

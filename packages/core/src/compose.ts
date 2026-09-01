@@ -1,5 +1,5 @@
 import { resolve } from "node:path";
-import type { InferenceProfile, WorkspaceStatus } from "@vault/shared";
+import type { InferenceProfile, WorkspaceStatus } from "@gardendesk/shared";
 import { createCodeAgentLauncher } from "./agent/launcher.js";
 import { MarkdownDefinitionLibrary } from "./agent/markdown-definition-library.js";
 import { AgentService } from "./agent/service.js";
@@ -11,7 +11,7 @@ import {
   warmConversationSession,
 } from "./conversations/lifecycle.js";
 import { ConversationStore } from "./conversations/store.js";
-import { createFacade, type VaultCore, type VaultCorePorts } from "./facade.js";
+import { createFacade, type GardenDeskCore, type GardenDeskCorePorts } from "./facade.js";
 import { JobStore } from "./jobs/jobs.js";
 import { createInferenceService, unavailableInference } from "./runtime/compose.js";
 import { configurePromptDirectory } from "./runtime/prompt-instructions.js";
@@ -21,7 +21,7 @@ import { openWorkspaceCatalog } from "./workspace/catalog.js";
 import { WorkspaceScope } from "./workspace/scope.js";
 import { getOrCreateWorkspace } from "./workspace/workspaces.js";
 
-export interface VaultCoreOptions {
+export interface GardenDeskCoreOptions {
   workspaceDir: string;
   modelStoreDir: string;
   profile: InferenceProfile;
@@ -42,7 +42,7 @@ function createConversationPorts(
   database: ReturnType<typeof openWorkspaceCatalog>["database"],
   agent?: AgentService,
 ): Pick<
-  VaultCorePorts,
+  GardenDeskCorePorts,
   | "addFolder"
   | "listFolders"
   | "reorderFolders"
@@ -131,7 +131,7 @@ interface CoreServices {
 }
 
 // biome-ignore lint/complexity/noExcessiveLinesPerFunction: facade assembly intentionally lists every public capability.
-function assembleVaultCore(services: CoreServices): VaultCore {
+function assembleGardenDeskCore(services: CoreServices): GardenDeskCore {
   const { catalog, workspace, audit, jobs, conversations, agentStore, inference, agent } = services;
   const unavailableAgent = (): never => {
     throw Object.assign(new Error("agent_not_packaged"), { code: "unsupported" });
@@ -220,7 +220,9 @@ function assembleVaultCore(services: CoreServices): VaultCore {
 }
 
 // biome-ignore lint/complexity/noExcessiveLinesPerFunction: composition remains one explicit authority wiring boundary.
-export async function createVaultCore(options: VaultCoreOptions): Promise<VaultCore> {
+export async function createGardenDeskCore(
+  options: GardenDeskCoreOptions,
+): Promise<GardenDeskCore> {
   const promptDirectory = resolve(options.promptDirectory ?? "prompts");
   configurePromptDirectory(promptDirectory);
   const scope = await WorkspaceScope.create(resolve(options.workspaceDir));
@@ -265,7 +267,7 @@ export async function createVaultCore(options: VaultCoreOptions): Promise<VaultC
           createCodeAgentLauncher(
             options.agentHelperPath,
             options.agentImageRoot,
-            resolve(workspaceRoot, ".vault", "agent-workspaces"),
+            resolve(workspaceRoot, ".garden-desk", "agent-workspaces"),
           ),
           audit,
           agentSessionCapacity,
@@ -275,7 +277,7 @@ export async function createVaultCore(options: VaultCoreOptions): Promise<VaultC
   if (agent !== undefined && restoredSessionId !== undefined) {
     warmConversationSession(agent, audit, restoredSessionId);
   }
-  return assembleVaultCore({
+  return assembleGardenDeskCore({
     catalog,
     workspace,
     audit,

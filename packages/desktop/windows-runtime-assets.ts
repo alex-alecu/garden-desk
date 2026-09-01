@@ -52,10 +52,10 @@ function extract(archive: string, destination: string): void {
       "-NoProfile",
       "-NonInteractive",
       "-Command",
-      "Expand-Archive -LiteralPath $env:VAULT_ARCHIVE -DestinationPath $env:VAULT_DESTINATION -Force",
+      "Expand-Archive -LiteralPath $env:GARDEN_DESK_ARCHIVE -DestinationPath $env:GARDEN_DESK_DESTINATION -Force",
     ],
     {
-      env: { ...process.env, VAULT_ARCHIVE: archive, VAULT_DESTINATION: destination },
+      env: { ...process.env, GARDEN_DESK_ARCHIVE: archive, GARDEN_DESK_DESTINATION: destination },
       encoding: "utf8",
     },
   );

@@ -1,4 +1,4 @@
-import type { ModelRuntimeStatus } from "@vault/shared";
+import type { ModelRuntimeStatus } from "@gardendesk/shared";
 import { describe, expect, it } from "vitest";
 import { contextMeter, gpuMemoryUsage } from "./model-usage.js";
 

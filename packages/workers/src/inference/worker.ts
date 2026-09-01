@@ -4,7 +4,7 @@ import type {
   InferenceWorkerRequest,
   InferenceWorkerResponse,
   RequestId,
-} from "@vault/shared";
+} from "@gardendesk/shared";
 import {
   writeDevelopmentOperationFailure,
   writeDevelopmentWorkerFailure,
@@ -20,10 +20,10 @@ import { inferenceFailureResponse } from "./worker-errors.js";
 import { chat, embed, generate } from "./worker-operations.js";
 import { runtime } from "./worker-runtime.js";
 
-if (globalThis.__VAULT_DEVELOPMENT_BUILD__ === true) writeDevelopmentWorkerStderrReady();
+if (globalThis.__GARDEN_DESK_DEVELOPMENT_BUILD__ === true) writeDevelopmentWorkerStderrReady();
 
 function recordDevelopmentFailure(error: unknown, operation?: "chat" | "generate" | "embed"): void {
-  if (globalThis.__VAULT_DEVELOPMENT_BUILD__ === true) {
+  if (globalThis.__GARDEN_DESK_DEVELOPMENT_BUILD__ === true) {
     if (operation === undefined) writeDevelopmentWorkerFailure(error);
     else writeDevelopmentOperationFailure(operation, error);
   }

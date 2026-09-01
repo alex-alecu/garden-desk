@@ -26,14 +26,14 @@ The primary path is deterministic and product-owned:
 
 The secondary path is a bounded code-interpreter worker for unsupported or novel transformations:
 
-- Vault Core creates a new disposable no-network microVM for each code job.
+- Garden Desk Core creates a new disposable no-network microVM for each code job.
 - Inputs are explicit, job-scoped, and read-only; writable scratch space is ephemeral and bounded.
 - The worker receives no credentials, user home, arbitrary workspace paths, host shell, generic host service, approval authority, or external network access.
 - The generation model remains in the narrow host-native accelerator worker. Completion requests and tool observations cross only versioned typed host/guest IPC; the guest receives no generic model-server socket.
 - Generated code may use only the runtime and pinned libraries in the immutable guest image. Runtime installation and package download are forbidden.
 - CPU, memory, time, process count, storage, output count, and output size are limited.
 - Code, interpreter version, library manifest, input hashes, stdout/stderr, structured result, generated artifacts, policy decisions, and termination reason are recorded for replay and audit.
-- Generated artifacts remain proposals. Vault Core validates their types and destinations, verifies results where possible, and requires approval before export or workspace mutation.
+- Generated artifacts remain proposals. Garden Desk Core validates their types and destinations, verifies results where possible, and requires approval before export or workspace mutation.
 - The microVM is terminated and discarded after success, failure, cancellation, or timeout.
 
 The code interpreter is a fallback chosen by policy after deterministic capabilities are considered. It is not exposed as an unrestricted terminal, generic development environment, or product backend.

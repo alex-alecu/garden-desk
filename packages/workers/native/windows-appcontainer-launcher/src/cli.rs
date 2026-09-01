@@ -142,6 +142,6 @@ pub fn parse() -> Result<Command, Box<dyn Error>> {
                 .map(|value| value.parse::<u32>())
                 .transpose()?,
         })),
-        _ => Err("Usage: vault-appcontainer-launcher <gpu-info|prepare --read PATH...|run --executable PATH --worker PATH --scratch PATH --memory BYTES [--model PATH] [--gpu-backend cuda|vulkan --gpu-device-index INDEX]|run-vision --executable PATH --model PATH --projector PATH --image PATH --prompt-file PATH --scratch PATH --memory BYTES [--vulkan-device-index INDEX]>".into()),
+        _ => Err("Usage: garden-desk-appcontainer-launcher <gpu-info|prepare --read PATH...|run --executable PATH --worker PATH --scratch PATH --memory BYTES [--model PATH] [--gpu-backend cuda|vulkan --gpu-device-index INDEX]|run-vision --executable PATH --model PATH --projector PATH --image PATH --prompt-file PATH --scratch PATH --memory BYTES [--vulkan-device-index INDEX]>".into()),
     }
 }

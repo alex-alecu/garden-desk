@@ -1,4 +1,4 @@
-import type { AgentRunSnapshot } from "@vault/shared";
+import type { AgentRunSnapshot } from "@gardendesk/shared";
 
 const POLL_INTERVAL_MS = 350;
 const RETRY_INTERVAL_MS = 250;

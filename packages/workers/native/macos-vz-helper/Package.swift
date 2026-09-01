@@ -2,8 +2,8 @@
 import PackageDescription
 
 let package = Package(
-    name: "vault-vz-helper",
+    name: "garden-desk-vz-helper",
     platforms: [.macOS(.v26)],
-    products: [.executable(name: "vault-vz-helper", targets: ["vault-vz-helper"])],
-    targets: [.executableTarget(name: "vault-vz-helper")]
+    products: [.executable(name: "garden-desk-vz-helper", targets: ["garden-desk-vz-helper"])],
+    targets: [.executableTarget(name: "garden-desk-vz-helper")]
 )

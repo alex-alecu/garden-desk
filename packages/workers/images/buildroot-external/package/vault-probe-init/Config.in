@@ -1,4 +1,0 @@
-config BR2_PACKAGE_VAULT_PROBE_INIT
-	bool "vault-probe-init"
-	help
-	  Single-purpose M1 guest entrypoint for the bounded worker protocol probe.

@@ -1,7 +1,7 @@
 // biome-ignore lint/style/noRestrictedImports: this module is the bounded transport half of the platform launcher.
 import type { ChildProcessWithoutNullStreams } from "node:child_process";
 import { randomUUID } from "node:crypto";
-import type { AgentGuestUpdateFrame, WorkerFrame } from "@vault/shared";
+import type { AgentGuestUpdateFrame, WorkerFrame } from "@gardendesk/shared";
 import { encodeFrame, FrameDecoder } from "../ipc.js";
 import type { AgentExecutionObserver } from "./launcher.js";
 

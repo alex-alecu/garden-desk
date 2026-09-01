@@ -1,4 +1,4 @@
-import type { AttachmentSummary } from "@vault/shared";
+import type { AttachmentSummary } from "@gardendesk/shared";
 
 interface AttachmentChipProps {
   attachment: AttachmentSummary;

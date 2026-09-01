@@ -1,6 +1,6 @@
 // biome-ignore lint/style/noRestrictedImports: this containment test starts an isolated worker process.
 import { spawn } from "node:child_process";
-import { InferenceWorkerRequestSchema } from "@vault/shared";
+import { InferenceWorkerRequestSchema } from "@gardendesk/shared";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type {
   NativeWorkerHandle,
