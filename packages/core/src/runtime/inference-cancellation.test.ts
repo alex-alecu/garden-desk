@@ -1,4 +1,4 @@
-import type { AuditEventInput } from "@vault/shared";
+import type { AuditEventInput } from "@gardendesk/shared";
 import { describe, expect, it } from "vitest";
 import type { InferencePort } from "./inference.js";
 import type { ModelResolver } from "./models.js";

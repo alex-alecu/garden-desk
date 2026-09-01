@@ -1,13 +1,13 @@
 {
-  "name": "@vault/eval",
+  "name": "@gardendesk/eval",
   "version": "0.0.0",
   "private": true,
   "type": "module",
   "dependencies": {
-    "@vault/cli": "workspace:*",
-    "@vault/core": "workspace:*",
-    "@vault/shared": "workspace:*",
-    "@vault/workers": "workspace:*",
+    "@gardendesk/cli": "workspace:*",
+    "@gardendesk/core": "workspace:*",
+    "@gardendesk/shared": "workspace:*",
+    "@gardendesk/workers": "workspace:*",
     "better-sqlite3": "12.11.1",
     "node-llama-cpp": "3.19.0",
     "tar-stream": "3.2.0",

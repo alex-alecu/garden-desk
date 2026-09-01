@@ -18,7 +18,7 @@ Models may propose tool calls. The control plane validates schema, checks policy
 
 The model must never receive a host shell or unrestricted filesystem access. ADR 0018 permits schema-bounded guest-local `/bin/sh` commands inside the no-network microVM; that shell can write only the session workspace and ephemeral runtime directory.
 
-Any future executable tool that processes untrusted input runs in the no-network microVM boundary defined by [ADR 0012](0012-worker-isolation-and-untrusted-documents.md). Network isolation is established by attaching no virtual network device, not by matching commands, URLs, domains, addresses, or protocols. A tool that needs an approved external integration submits a typed request to a separate Vault Core broker; it never receives a general network socket or proxy.
+Any future executable tool that processes untrusted input runs in the no-network microVM boundary defined by [ADR 0012](0012-worker-isolation-and-untrusted-documents.md). Network isolation is established by attaching no virtual network device, not by matching commands, URLs, domains, addresses, or protocols. A tool that needs an approved external integration submits a typed request to a separate Garden Desk Core broker; it never receives a general network socket or proxy.
 
 ## Consequences
 

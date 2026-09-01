@@ -4,7 +4,7 @@ import {
   type AuditEventInput,
   AuditEventInputSchema,
   AuditEventSchema,
-} from "@vault/shared";
+} from "@gardendesk/shared";
 import type { DatabasePort } from "../workspace/database.js";
 
 type AuditValue = string | number | boolean | null;

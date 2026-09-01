@@ -233,7 +233,7 @@ function collectProcess(input: {
 function defaultWindowsHelper(): string {
   return join(
     process.cwd(),
-    "packages/workers/native/windows-appcontainer-launcher/.generated/vault-appcontainer-launcher.exe",
+    "packages/workers/native/windows-appcontainer-launcher/.generated/garden-desk-appcontainer-launcher.exe",
   );
 }
 
@@ -249,7 +249,7 @@ export class LlamaVisionClient {
     const operationSignal =
       input.signal === undefined ? timeoutSignal : AbortSignal.any([input.signal, timeoutSignal]);
     operationSignal.throwIfAborted();
-    const temporaryRoot = await realpath(await mkdtemp(join(tmpdir(), "vault-vision-")));
+    const temporaryRoot = await realpath(await mkdtemp(join(tmpdir(), "garden-desk-vision-")));
     const promptFile = join(temporaryRoot, "prompt.txt");
     try {
       await writeFile(promptFile, input.prompt, { encoding: "utf8", flag: "wx", mode: 0o600 });

@@ -4,7 +4,7 @@ import { link, mkdir, readFile, rm, stat } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { Transform } from "node:stream";
 import { pipeline } from "node:stream/promises";
-import { type ModelAsset, type ModelManifest, ModelManifestSchema } from "@vault/shared";
+import { type ModelAsset, type ModelManifest, ModelManifestSchema } from "@gardendesk/shared";
 
 const officialModelHost = "huggingface.co";
 

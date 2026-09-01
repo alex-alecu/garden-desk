@@ -5,8 +5,8 @@ import type {
   InferenceWorkerRequest,
   InferenceWorkerResponse,
   StructuredGenerationResult,
-} from "@vault/shared";
-import { JobIdSchema } from "@vault/shared";
+} from "@gardendesk/shared";
+import { JobIdSchema } from "@gardendesk/shared";
 import type {
   ChatInput,
   EmbeddingInput,

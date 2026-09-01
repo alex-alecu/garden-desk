@@ -19,8 +19,8 @@ if (process.platform === "win32") {
     ...process.env,
     CARGO_TARGET_DIR: target,
   });
-  const executable = join(generated, "vault-hyper-v-setup.exe");
-  copyFileSync(join(target, "release", "vault-hyper-v-setup.exe"), executable);
+  const executable = join(generated, "garden-desk-hyper-v-setup.exe");
+  copyFileSync(join(target, "release", "garden-desk-hyper-v-setup.exe"), executable);
   signExecutable(executable);
 } else {
   console.log("The Windows Hyper-V setup helper is not built on this platform.");

@@ -1,5 +1,5 @@
 import { totalmem } from "node:os";
-import type { GpuMemoryKind, InferenceBackend } from "@vault/shared";
+import type { GpuMemoryKind, InferenceBackend } from "@gardendesk/shared";
 import type { Llama, LlamaGpuType, LlamaModel } from "node-llama-cpp";
 import { resolveRuntimeMemoryBudget } from "./memory.js";
 import { loadLlamaRuntime } from "./runtime-loader.js";

@@ -1,4 +1,4 @@
-import type { InferenceWorkerRequest } from "@vault/shared";
+import type { InferenceWorkerRequest } from "@gardendesk/shared";
 
 const MINIMUM_INFERENCE_TIMEOUT_MS = 300_000;
 const GENERATION_TOKEN_TIMEOUT_MS = 60;

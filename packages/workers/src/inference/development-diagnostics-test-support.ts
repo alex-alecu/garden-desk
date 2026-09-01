@@ -19,13 +19,13 @@ const { build } = desktopRequire("esbuild") as {
   build(input: Record<string, unknown>): Promise<{ outputFiles: Array<{ text: string }> }>;
 };
 const productionCoreDefines = {
-  "import.meta.url": '"file:///vault-core.cjs"',
-  "globalThis.__VAULT_DEVELOPMENT_BUILD__": "false",
-  "globalThis.__VAULT_DEVELOPMENT_DIAGNOSTIC_ROOT__": '""',
+  "import.meta.url": '"file:///garden-desk-core.cjs"',
+  "globalThis.__GARDEN_DESK_DEVELOPMENT_BUILD__": "false",
+  "globalThis.__GARDEN_DESK_DEVELOPMENT_DIAGNOSTIC_ROOT__": '""',
 };
 
 export async function temporaryDirectory(): Promise<string> {
-  const directory = await mkdtemp(join(tmpdir(), "vault-inference-diagnostics-"));
+  const directory = await mkdtemp(join(tmpdir(), "garden-desk-inference-diagnostics-"));
   temporaryDirectories.push(directory);
   return directory;
 }
@@ -101,8 +101,8 @@ export async function bundledDiagnostics(developmentBuild: boolean, root: string
   await build({
     bundle: true,
     define: {
-      "globalThis.__VAULT_DEVELOPMENT_BUILD__": String(developmentBuild),
-      "globalThis.__VAULT_DEVELOPMENT_DIAGNOSTIC_ROOT__": JSON.stringify(root),
+      "globalThis.__GARDEN_DESK_DEVELOPMENT_BUILD__": String(developmentBuild),
+      "globalThis.__GARDEN_DESK_DEVELOPMENT_DIAGNOSTIC_ROOT__": JSON.stringify(root),
     },
     format: "esm",
     minifySyntax: true,
@@ -129,8 +129,8 @@ export async function bundledWorker(developmentBuild: boolean, output?: string):
     absWorkingDir: process.cwd(),
     bundle: true,
     define: {
-      "globalThis.__VAULT_DEVELOPMENT_BUILD__": String(developmentBuild),
-      "globalThis.__VAULT_DEVELOPMENT_DIAGNOSTIC_ROOT__": '""',
+      "globalThis.__GARDEN_DESK_DEVELOPMENT_BUILD__": String(developmentBuild),
+      "globalThis.__GARDEN_DESK_DEVELOPMENT_DIAGNOSTIC_ROOT__": '""',
     },
     entryPoints: [fileURLToPath(workerSource)],
     external: ["node-llama-cpp"],
@@ -171,7 +171,7 @@ export async function bundledProductionCore(): Promise<string> {
   const result = await build({
     absWorkingDir: process.cwd(),
     bundle: true,
-    conditions: ["vault-runtime"],
+    conditions: ["gardendesk-runtime"],
     define: productionCoreDefines,
     entryPoints: [fileURLToPath(coreSource)],
     format: "cjs",
@@ -224,8 +224,8 @@ export async function bundledHostileWorker(): Promise<string> {
     absWorkingDir: process.cwd(),
     bundle: true,
     define: {
-      "globalThis.__VAULT_DEVELOPMENT_BUILD__": "true",
-      "globalThis.__VAULT_DEVELOPMENT_DIAGNOSTIC_ROOT__": '""',
+      "globalThis.__GARDEN_DESK_DEVELOPMENT_BUILD__": "true",
+      "globalThis.__GARDEN_DESK_DEVELOPMENT_DIAGNOSTIC_ROOT__": '""',
     },
     entryPoints: [fileURLToPath(workerSource)],
     external: ["node-llama-cpp"],

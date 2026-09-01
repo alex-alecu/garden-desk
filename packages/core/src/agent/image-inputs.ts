@@ -184,7 +184,7 @@ export class AgentImageInputResolver {
   async resolve(sessionId: string, guestPath: string): Promise<ResolvedAgentImage> {
     const bytes = await this.bytes(sessionId, guestPath);
     const extension = validateImage(bytes);
-    const temporaryRoot = await mkdtemp(join(tmpdir(), "vault-image-"));
+    const temporaryRoot = await mkdtemp(join(tmpdir(), "garden-desk-image-"));
     const path = join(temporaryRoot, `input.${extension}`);
     try {
       const handle = await open(

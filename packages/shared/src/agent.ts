@@ -21,10 +21,10 @@ export const AgentLanguageSchema = z.enum(["python", "node", "shell"]);
 export function isUserArtifactWorkspacePath(path: string): boolean {
   if (!AgentWorkspacePathSchema.safeParse(path).success) return false;
   return !(
-    path === ".vault-tools" ||
-    path.startsWith(".vault-tools/") ||
-    path === ".vault-output" ||
-    path.startsWith(".vault-output/")
+    path === ".garden-desk-tools" ||
+    path.startsWith(".garden-desk-tools/") ||
+    path === ".garden-desk-output" ||
+    path.startsWith(".garden-desk-output/")
   );
 }
 

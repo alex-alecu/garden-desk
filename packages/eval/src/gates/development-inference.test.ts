@@ -23,7 +23,7 @@ function developmentHeadlessRoot(): string {
 }
 
 async function legacyDiagnosticFixture() {
-  const root = await mkdtemp(join(tmpdir(), "vault-legacy-diagnostic-"));
+  const root = await mkdtemp(join(tmpdir(), "garden-desk-legacy-diagnostic-"));
   const obsolete = join(root, "headless");
   const run = join(root, "00000000-0000-4000-8000-000000000001");
   const log = join(run, "worker-stderr.log");
@@ -47,7 +47,7 @@ describe("development headless inference worker", () => {
   });
 
   it("keeps the Windows development worker beside the staged runtime", () => {
-    const root = join("C:", "Vault", "resources", "core", "inference");
+    const root = join("C:", "GardenDesk", "resources", "core", "inference");
     expect(developmentInferenceWorkerEntryPath("win32", root)).toBe(
       join(root, ".generated", "development-inference", "worker.mjs"),
     );
@@ -95,8 +95,8 @@ describe("development headless Core build", () => {
         expect(source).toContain("development-inference");
         expect(source).not.toContain("Dynamic require of");
         expect(source).not.toContain('from "esbuild"');
-        expect(source).not.toContain("__VAULT_DEVELOPMENT_BUILD__ =");
-        expect(source).not.toContain("__VAULT_DEVELOPMENT_DIAGNOSTIC_ROOT__ =");
+        expect(source).not.toContain("__GARDEN_DESK_DEVELOPMENT_BUILD__ =");
+        expect(source).not.toContain("__GARDEN_DESK_DEVELOPMENT_DIAGNOSTIC_ROOT__ =");
       }
     } finally {
       await Promise.all(outputs.map(async (path) => await rm(path, { force: true })));

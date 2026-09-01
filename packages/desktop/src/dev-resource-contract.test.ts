@@ -33,17 +33,28 @@ describe("desktop development resource contract", () => {
       contract.requiredOutputs.some((path) => path.endsWith("gemma-4-12b-it-qat-q4_0.gguf")),
     ).toBe(false);
   });
+});
 
+describe("desktop Windows development resource contract", () => {
   it("requires only Windows runtime outputs on Windows x64", () => {
     const contract = developmentResourceContract(desktopRoot, repositoryRoot, "win32", "x64");
     expect(contract.requiredOutputs).toContain(
       join(desktopRoot, "src-tauri", "resources", "core", "inference", "node.exe"),
     );
     expect(contract.requiredOutputs.some((path) => path.includes("mac-arm64-metal"))).toBe(false);
-    expect(contract.requiredOutputs.some((path) => path.endsWith("vault-vz-helper"))).toBe(false);
+    expect(contract.requiredOutputs.some((path) => path.endsWith("garden-desk-vz-helper"))).toBe(
+      false,
+    );
     expect(contract.inputRoots.some((path) => path.includes("macos-vz-helper"))).toBe(false);
     expect(contract.requiredOutputs).toContain(
-      join(desktopRoot, "src-tauri", "resources", "core", "windows", "vault-hyper-v-setup.exe"),
+      join(
+        desktopRoot,
+        "src-tauri",
+        "resources",
+        "core",
+        "windows",
+        "garden-desk-hyper-v-setup.exe",
+      ),
     );
   });
 });

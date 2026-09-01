@@ -18,9 +18,9 @@ use resources::{expected_resource_hash, lock_prompt_resources, lock_resource_pre
 
 #[cfg(windows)]
 const ELEVATED_RESOURCES: [&str; 3] = [
-    "vault-pipe-guard.exe",
-    "inference/vault-appcontainer-launcher.exe",
-    "workers/vault-hcs-helper.exe",
+    "garden-desk-pipe-guard.exe",
+    "inference/garden-desk-appcontainer-launcher.exe",
+    "workers/garden-desk-hcs-helper.exe",
 ];
 
 pub(crate) struct PackageLocks {
@@ -90,12 +90,12 @@ pub(crate) fn lock_packaged_runtime(
     if cfg!(debug_assertions) {
         return Ok(PackageLocks { _files: Vec::new() });
     }
-    let manifest_hash = option_env!("VAULT_RESOURCE_MANIFEST_SHA256")
+    let manifest_hash = option_env!("GARDEN_DESK_RESOURCE_MANIFEST_SHA256")
         .ok_or_else(|| "Release package integrity anchor is missing.".to_owned())?;
-    let sidecar_hash = option_env!("VAULT_SIDECAR_SHA256")
+    let sidecar_hash = option_env!("GARDEN_DESK_SIDECAR_SHA256")
         .ok_or_else(|| "Release sidecar integrity anchor is missing.".to_owned())?;
     let mut files = vec![open_verified(
-        &resource_root.join("vault-core.exe"),
+        &resource_root.join("garden-desk-core.exe"),
         sidecar_hash,
     )?];
     let manifest_path = core_resources.join("resource-manifest.json");
@@ -125,7 +125,7 @@ fn lock_setup_helper_with_manifest(
     core_resources: &Path,
     manifest_hash: &str,
 ) -> Result<LockedSetupHelper, String> {
-    let path = core_resources.join("windows/vault-hyper-v-setup.exe");
+    let path = core_resources.join("windows/garden-desk-hyper-v-setup.exe");
     let manifest_path = core_resources.join("resource-manifest.json");
     let mut manifest_file = open_verified(&manifest_path, manifest_hash)?;
     manifest_file
@@ -133,7 +133,7 @@ fn lock_setup_helper_with_manifest(
         .map_err(|error| error.to_string())?;
     let manifest: Value = serde_json::from_reader(&mut manifest_file)
         .map_err(|_| "Packaged resource manifest is invalid.".to_owned())?;
-    let expected = expected_resource_hash(&manifest, "windows/vault-hyper-v-setup.exe")?;
+    let expected = expected_resource_hash(&manifest, "windows/garden-desk-hyper-v-setup.exe")?;
     Ok(LockedSetupHelper {
         _files: vec![manifest_file, open_verified(&path, &expected)?],
         path,
@@ -144,7 +144,7 @@ fn lock_setup_helper_with_manifest(
 pub(crate) fn lock_windows_setup_helper(
     core_resources: &Path,
 ) -> Result<LockedSetupHelper, String> {
-    let manifest_hash = option_env!("VAULT_RESOURCE_MANIFEST_SHA256")
+    let manifest_hash = option_env!("GARDEN_DESK_RESOURCE_MANIFEST_SHA256")
         .ok_or_else(|| "Windows package integrity anchor is missing.".to_owned())?;
     lock_setup_helper_with_manifest(core_resources, manifest_hash)
 }
@@ -165,7 +165,7 @@ mod tests {
             .duration_since(UNIX_EPOCH)
             .expect("clock")
             .as_nanos();
-        let root = std::env::temp_dir().join(format!("vault-package-integrity-{nonce}"));
+        let root = std::env::temp_dir().join(format!("garden-desk-package-integrity-{nonce}"));
         create_dir(&root).expect("temporary root");
         root
     }
@@ -185,12 +185,12 @@ mod tests {
     fn resolves_only_the_named_safe_manifest_entry() {
         let manifest = serde_json::json!({
             "files": [
-                {"path": "workers/vault-hcs-helper.exe", "sha256": "abc"},
+                {"path": "workers/garden-desk-hcs-helper.exe", "sha256": "abc"},
                 {"path": "../outside.exe", "sha256": "def"}
             ]
         });
         assert_eq!(
-            expected_resource_hash(&manifest, "workers/vault-hcs-helper.exe").expect("hash"),
+            expected_resource_hash(&manifest, "workers/garden-desk-hcs-helper.exe").expect("hash"),
             "abc"
         );
         assert!(expected_resource_hash(&manifest, "outside.exe").is_err());
@@ -201,12 +201,12 @@ mod tests {
         let root = temporary_root();
         let windows = root.join("windows");
         create_dir(&windows).expect("windows resources");
-        let path = windows.join("vault-hyper-v-setup.exe");
+        let path = windows.join("garden-desk-hyper-v-setup.exe");
         write(&path, b"signed setup").expect("fixture");
         let expected = file_sha256(&mut File::open(&path).expect("fixture")).expect("hash");
         let manifest = serde_json::json!({
             "files": [{
-                "path": "windows/vault-hyper-v-setup.exe",
+                "path": "windows/garden-desk-hyper-v-setup.exe",
                 "sha256": expected
             }]
         });

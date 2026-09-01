@@ -3,8 +3,8 @@ import { createHash } from "node:crypto";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { AuditEventInput } from "@vault/shared";
-import { FakeInferenceWorker } from "@vault/workers";
+import type { AuditEventInput } from "@gardendesk/shared";
+import { FakeInferenceWorker } from "@gardendesk/workers";
 import { afterEach, describe, expect, it } from "vitest";
 import { ModelResolver } from "./models.js";
 import { ResourceScheduler } from "./scheduler.js";
@@ -21,7 +21,7 @@ const generationInput = {
 };
 
 async function modelResolver(): Promise<ModelResolver> {
-  const root = await mkdtemp(join(tmpdir(), "vault-image-models-"));
+  const root = await mkdtemp(join(tmpdir(), "garden-desk-image-models-"));
   roots.push(root);
   const bytes = Buffer.from("model");
   await writeFile(join(root, "model.gguf"), bytes);
@@ -50,7 +50,7 @@ afterEach(async () => {
 describe("M3 image inference residency", () => {
   it("unloads chat inference, stages the model pair, and audits one image", async () => {
     const events: AuditEventInput[] = [];
-    const imageRoot = await mkdtemp(join(tmpdir(), "vault-image-inference-"));
+    const imageRoot = await mkdtemp(join(tmpdir(), "garden-desk-image-inference-"));
     roots.push(imageRoot);
     const imagePath = join(imageRoot, "image.png");
     await writeFile(imagePath, "image");

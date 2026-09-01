@@ -41,7 +41,7 @@ mod tests {
             .duration_since(UNIX_EPOCH)
             .expect("clock must follow epoch")
             .as_nanos();
-        let root = std::env::temp_dir().join(format!("vault-drop-test-{nonce}"));
+        let root = std::env::temp_dir().join(format!("garden-desk-drop-test-{nonce}"));
         let folder = root.join("workspace");
         let file = root.join("brief.pdf");
         create_dir(&root).expect("temporary root");

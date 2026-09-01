@@ -1,5 +1,5 @@
-import type { AgentExecutionResult, AgentExecutionSnapshot } from "@vault/shared";
-import type { AgentSessionExecution } from "@vault/workers";
+import type { AgentExecutionResult, AgentExecutionSnapshot } from "@gardendesk/shared";
+import type { AgentSessionExecution } from "@gardendesk/workers";
 
 export type AgentScriptPreparationFailure =
   | "agent_script_missing"

@@ -1,4 +1,4 @@
-import type { AgentExecutionResult } from "@vault/shared";
+import type { AgentExecutionResult } from "@gardendesk/shared";
 
 export function isSuccessfulExecution(
   result: Pick<AgentExecutionResult, "exitCode" | "termination">,

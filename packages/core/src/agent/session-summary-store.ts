@@ -1,4 +1,4 @@
-import { type AgentSessionSummary, AgentSessionSummarySchema } from "@vault/shared";
+import { type AgentSessionSummary, AgentSessionSummarySchema } from "@gardendesk/shared";
 import type { DatabasePort } from "../workspace/database.js";
 
 interface SummaryRow {

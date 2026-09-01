@@ -1,5 +1,5 @@
 [package]
-name = "vault-hcs-helper"
+name = "garden-desk-hcs-helper"
 version = "0.0.0"
 edition = "2024"
 publish = false

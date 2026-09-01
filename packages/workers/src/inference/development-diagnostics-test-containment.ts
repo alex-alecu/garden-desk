@@ -4,7 +4,7 @@ import { once } from "node:events";
 // biome-ignore lint/style/noRestrictedImports: This helper reads private diagnostic permissions.
 import { lstat, readdir } from "node:fs/promises";
 import { join } from "node:path";
-import { JobIdSchema } from "@vault/shared";
+import { JobIdSchema } from "@gardendesk/shared";
 import { expect } from "vitest";
 import { encodeInferenceRequest, InferenceResponseDecoder } from "./frames.js";
 
@@ -42,7 +42,7 @@ export async function assertPrivateDiagnosticTree(path: string): Promise<void> {
   }
   const script = `
 $ErrorActionPreference = 'Stop'
-$root = [Environment]::GetEnvironmentVariable('VAULT_TEST_DIAGNOSTIC_PATH', 'Process')
+$root = [Environment]::GetEnvironmentVariable('GARDEN_DESK_TEST_DIAGNOSTIC_PATH', 'Process')
 $sid = [Security.Principal.WindowsIdentity]::GetCurrent().User.Value
 $items = @((Get-Item -LiteralPath $root -Force)) + @(Get-ChildItem -LiteralPath $root -Recurse -Force)
 foreach ($item in $items) {
@@ -55,7 +55,7 @@ foreach ($item in $items) {
     execFile(
       "powershell.exe",
       ["-NoLogo", "-NoProfile", "-NonInteractive", "-Command", script],
-      { env: { ...process.env, VAULT_TEST_DIAGNOSTIC_PATH: path }, windowsHide: true },
+      { env: { ...process.env, GARDEN_DESK_TEST_DIAGNOSTIC_PATH: path }, windowsHide: true },
       (error) => (error === null ? resolve() : reject(error)),
     );
   });

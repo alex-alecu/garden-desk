@@ -1,6 +1,6 @@
 const stageLabels = {
-  coreBundle: "Bundling the Vault Core backend",
-  coreExecutable: "Creating and signing the Vault Core executable",
+  coreBundle: "Bundling the Garden Desk Core backend",
+  coreExecutable: "Creating and signing the Garden Desk Core executable",
   currentUserTransport: "Building the current-user local transport helper",
   windowsPermissionSetup: "Building the one-time Windows permission helper",
   inferenceWorker: "Bundling the local inference worker",

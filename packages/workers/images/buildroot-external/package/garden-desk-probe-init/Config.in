@@ -1,0 +1,4 @@
+config BR2_PACKAGE_GARDEN_DESK_PROBE_INIT
+	bool "garden-desk-probe-init"
+	help
+	  Single-purpose M1 guest entrypoint for the bounded worker protocol probe.

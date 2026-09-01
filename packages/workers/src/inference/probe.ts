@@ -1,4 +1,4 @@
-import type { InferenceWorkerResponse, NativeWorkerProbeRequest } from "@vault/shared";
+import type { InferenceWorkerResponse, NativeWorkerProbeRequest } from "@gardendesk/shared";
 
 async function operationDenied(operation: () => Promise<unknown>): Promise<boolean> {
   try {

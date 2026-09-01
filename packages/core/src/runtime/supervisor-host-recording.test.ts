@@ -11,8 +11,8 @@ const diagnostics = vi.hoisted(() => ({
   record: async (..._arguments: unknown[]): Promise<void> => undefined,
 }));
 
-vi.mock("@vault/workers", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("@vault/workers")>()),
+vi.mock("@gardendesk/workers", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@gardendesk/workers")>()),
   recordDevelopmentHostFailure: (...arguments_: unknown[]) => diagnostics.record(...arguments_),
 }));
 
@@ -38,12 +38,12 @@ function deferred<T>() {
 }
 
 function enableDevelopmentBuild(): () => void {
-  const globals = globalThis as typeof globalThis & { __VAULT_DEVELOPMENT_BUILD__?: boolean };
-  const previous = globals.__VAULT_DEVELOPMENT_BUILD__;
-  globals.__VAULT_DEVELOPMENT_BUILD__ = true;
+  const globals = globalThis as typeof globalThis & { __GARDEN_DESK_DEVELOPMENT_BUILD__?: boolean };
+  const previous = globals.__GARDEN_DESK_DEVELOPMENT_BUILD__;
+  globals.__GARDEN_DESK_DEVELOPMENT_BUILD__ = true;
   return () => {
-    if (previous === undefined) delete globals.__VAULT_DEVELOPMENT_BUILD__;
-    else globals.__VAULT_DEVELOPMENT_BUILD__ = previous;
+    if (previous === undefined) delete globals.__GARDEN_DESK_DEVELOPMENT_BUILD__;
+    else globals.__GARDEN_DESK_DEVELOPMENT_BUILD__ = previous;
   };
 }
 
@@ -96,7 +96,7 @@ afterEach(async () => {
 
 describe("development host model recording", () => {
   it("persists a quick private record before the fixed safe error", async () => {
-    const root = await mkdtemp(join(tmpdir(), "vault-host-model-record-"));
+    const root = await mkdtemp(join(tmpdir(), "garden-desk-host-model-record-"));
     roots.push(root);
     const marker = join(root, "persisted");
     const restore = enableDevelopmentBuild();

@@ -2,7 +2,7 @@
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "Garden Desk M0 Capability Smoke",
   "version": "0.0.0",
-  "identifier": "dev.vaultdesk.m0-capability-smoke",
+  "identifier": "ai.gardendesk.m0-capability-smoke",
   "build": {
     "frontendDist": "../.generated/frontend"
   },
@@ -24,6 +24,6 @@
   "bundle": {
     "active": false,
     "icon": [],
-    "externalBin": ["binaries/vault-m0-sidecar"]
+    "externalBin": ["binaries/garden-desk-m0-sidecar"]
   }
 }

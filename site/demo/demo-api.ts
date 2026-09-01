@@ -1,4 +1,4 @@
-import type { AgentRunSnapshot, ConversationMessage, SessionSummary } from "@vault/shared";
+import type { AgentRunSnapshot, ConversationMessage, SessionSummary } from "@gardendesk/shared";
 import {
   AgentRunSnapshotSchema,
   AgentRunSummarySchema,
@@ -6,7 +6,7 @@ import {
   ConversationMessageSchema,
   SessionDraftSchema,
   SessionSummarySchema,
-} from "@vault/shared";
+} from "@gardendesk/shared";
 import type { DesktopApi } from "../../packages/desktop/src/api.js";
 import { responseFor } from "./demo-content.js";
 import {

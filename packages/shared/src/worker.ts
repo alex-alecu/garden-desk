@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { AgentExecutionResultSchema, AgentVmDiagnosticCodeSchema } from "./agent.js";
 import { AgentSourcePathSchema, AgentWorkspacePathSchema } from "./agent-path.js";
-import { VaultErrorSchema } from "./errors.js";
+import { GardenDeskErrorSchema } from "./errors.js";
 import { AgentExecutionIdSchema, JobIdSchema, RequestIdSchema } from "./ids.js";
 
 export const WorkerLimitsSchema = z.object({
@@ -171,7 +171,7 @@ export const WorkerFailureSchema = z.object({
   protocolVersion: z.literal(1),
   requestId: RequestIdSchema,
   status: z.literal("error"),
-  error: VaultErrorSchema,
+  error: GardenDeskErrorSchema,
 });
 
 export const AgentGuestHelloResultSchema = z.object({

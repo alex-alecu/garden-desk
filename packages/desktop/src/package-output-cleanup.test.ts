@@ -54,7 +54,7 @@ async function writePackage(
 }
 
 async function macTarget(profile: "debug" | "release"): Promise<PackageBuildTarget> {
-  const root = await mkdtemp(join(tmpdir(), "vault-package-cleanup-"));
+  const root = await mkdtemp(join(tmpdir(), "garden-desk-package-cleanup-"));
   roots.push(root);
   const target = packageBuildTarget(
     join(root, "packages", "desktop"),
@@ -181,7 +181,7 @@ describe("package output safety", () => {
   });
 
   it("selects only supported package outputs", async () => {
-    const root = await mkdtemp(join(tmpdir(), "vault-package-target-"));
+    const root = await mkdtemp(join(tmpdir(), "garden-desk-package-target-"));
     roots.push(root);
     const desktop = join(root, "packages", "desktop");
     expect(

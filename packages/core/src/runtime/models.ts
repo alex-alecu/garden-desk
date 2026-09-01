@@ -13,7 +13,7 @@ import {
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { isAbsolute, join, relative, resolve } from "node:path";
-import { InstalledModelStoreSchema } from "@vault/shared";
+import { InstalledModelStoreSchema } from "@gardendesk/shared";
 
 export interface StagedModel {
   path: string;
@@ -83,7 +83,7 @@ export class ModelResolver {
     if (!state.isFile() || state.isSymbolicLink() || state.nlink !== 1) {
       throw new Error("model_path_unsafe");
     }
-    const stagedRoot = await mkdtemp(join(tmpdir(), "vault-model-"));
+    const stagedRoot = await mkdtemp(join(tmpdir(), "garden-desk-model-"));
     const stagedPath = join(stagedRoot, model.storeKey);
     try {
       signal?.throwIfAborted();

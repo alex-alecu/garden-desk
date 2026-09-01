@@ -6,7 +6,7 @@ Date: 2026-07-11
 
 Partially superseded
 
-The Electron shell decision is superseded by [ADR 0014](0014-tauri-desktop-shell.md). The separate Vault Core process, local transport, and early daemon-validation decisions remain accepted.
+The Electron shell decision is superseded by [ADR 0014](0014-tauri-desktop-shell.md). The separate Garden Desk Core process, local transport, and early daemon-validation decisions remain accepted.
 
 ## Context
 
@@ -18,9 +18,9 @@ Deferring the real process transport would allow most backend work to be tested 
 
 Garden Desk will use Electron with React and TypeScript for the first Community Desktop implementation.
 
-The Electron renderer has context isolation enabled and Node integration disabled. The preload exposes only a narrow, schema-validated IPC facade. The Electron main process is a client of Vault Core and does not duplicate product workflows or privileged business logic.
+The Electron renderer has context isolation enabled and Node integration disabled. The preload exposes only a narrow, schema-validated IPC facade. The Electron main process is a client of Garden Desk Core and does not duplicate product workflows or privileged business logic.
 
-Vault Core runs as a separate Node.js process from the beginning of implementation. Its local JSON-RPC transport uses:
+Garden Desk Core runs as a separate Node.js process from the beginning of implementation. Its local JSON-RPC transport uses:
 
 - A Unix domain socket on macOS.
 - A named pipe on Windows.

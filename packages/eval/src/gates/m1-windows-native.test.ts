@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { WindowsMicroVmLauncher } from "@vault/workers";
+import { WindowsMicroVmLauncher } from "@gardendesk/workers";
 import { describe, expect, it } from "vitest";
 
 const describeWindows =
@@ -12,7 +12,7 @@ const describeWindows =
 function helperPath(): string {
   return join(
     process.cwd(),
-    "packages/workers/native/windows-hcs-helper/.generated/vault-hcs-helper.exe",
+    "packages/workers/native/windows-hcs-helper/.generated/garden-desk-hcs-helper.exe",
   );
 }
 
@@ -63,7 +63,7 @@ function configuration(
 
 describeWindows("M1 certified Windows microVM", () => {
   it("boots the immutable no-NIC guest with typed IPC and bounded attachments", async () => {
-    const root = await mkdtemp(join(tmpdir(), "vault-m1-windows-"));
+    const root = await mkdtemp(join(tmpdir(), "garden-desk-m1-windows-"));
     try {
       const input = join(root, "input.txt");
       await writeFile(input, "read-only input");
@@ -85,7 +85,7 @@ describeWindows("M1 certified Windows microVM", () => {
   }, 90_000);
 
   it("configures only typed Hyper-V socket and bounded SCSI attachments", async () => {
-    const root = await mkdtemp(join(tmpdir(), "vault-m1-windows-config-"));
+    const root = await mkdtemp(join(tmpdir(), "garden-desk-m1-windows-config-"));
     try {
       const input = join(root, "input.vhd");
       const scratch = join(root, "scratch.vhd");

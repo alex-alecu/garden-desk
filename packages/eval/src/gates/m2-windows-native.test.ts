@@ -2,12 +2,12 @@ import { randomUUID } from "node:crypto";
 import { mkdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { InferenceWorkerRequestSchema } from "@vault/shared";
+import { InferenceWorkerRequestSchema } from "@gardendesk/shared";
 import {
   InferenceWorkerClient,
   WindowsNativeWorkerLauncher,
   windowsNativeWorkerEntryPath,
-} from "@vault/workers";
+} from "@gardendesk/workers";
 import { describe, expect, it } from "vitest";
 
 const itWindows = process.platform === "win32" && process.arch === "x64" ? it : it.skip;
@@ -22,10 +22,10 @@ async function removeProbeFiles(paths: string[]): Promise<void> {
 }
 
 async function runAuthorityProbe() {
-  const workspaceRoot = join(tmpdir(), `vault-m2-workspace-${randomUUID()}`);
+  const workspaceRoot = join(tmpdir(), `garden-desk-m2-workspace-${randomUUID()}`);
   const sentinel = join(workspaceRoot, "authority-sentinel.txt");
-  const outOfScopeReadPath = join(tmpdir(), `vault-m2-read-denied-${randomUUID()}`);
-  const outOfScopeWritePath = join(tmpdir(), `vault-m2-out-of-scope-${randomUUID()}`);
+  const outOfScopeReadPath = join(tmpdir(), `garden-desk-m2-read-denied-${randomUUID()}`);
+  const outOfScopeWritePath = join(tmpdir(), `garden-desk-m2-out-of-scope-${randomUUID()}`);
   await mkdir(workspaceRoot, { recursive: true });
   await writeFile(sentinel, "must remain unreadable");
   await writeFile(outOfScopeReadPath, "must remain unreadable outside job scratch");

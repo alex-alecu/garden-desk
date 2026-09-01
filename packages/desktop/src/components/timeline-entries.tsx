@@ -1,4 +1,8 @@
-import type { AgentArtifactSummary, AgentRunPerformance, AttachmentSummary } from "@vault/shared";
+import type {
+  AgentArtifactSummary,
+  AgentRunPerformance,
+  AttachmentSummary,
+} from "@gardendesk/shared";
 import { useEffect, useRef, useState } from "react";
 import Markdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -17,7 +21,6 @@ function formatDuration(milliseconds: number): string {
   const minutes = Math.floor(milliseconds / 60_000);
   return `${minutes}m ${Math.round((milliseconds % 60_000) / 1_000)}s`;
 }
-
 function ResponseMetrics({ performance }: { performance: AgentRunPerformance }) {
   return (
     <footer className="response-metrics">

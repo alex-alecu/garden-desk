@@ -1,4 +1,8 @@
-import type { AgentArtifactSummary, AgentRunPerformance, AttachmentSummary } from "@vault/shared";
+import type {
+  AgentArtifactSummary,
+  AgentRunPerformance,
+  AttachmentSummary,
+} from "@gardendesk/shared";
 import { useLayoutEffect, useRef } from "react";
 import type { ArtifactSaveResult } from "../artifact-actions.js";
 import type { TimelineItem } from "../state.js";

@@ -1,4 +1,4 @@
-import type { InferenceWorkerMessage } from "@vault/shared";
+import type { InferenceWorkerMessage } from "@gardendesk/shared";
 import type { LlamaChatResponseChunk } from "node-llama-cpp";
 import { describe, expect, it } from "vitest";
 import { generationCallbacks } from "./worker-operations.js";

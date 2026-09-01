@@ -43,7 +43,7 @@ pub(crate) async fn open_attachment(
     )?;
     let path = path
         .as_str()
-        .ok_or_else(|| "Vault Core returned an invalid attachment path.".to_owned())?;
+        .ok_or_else(|| "Garden Desk Core returned an invalid attachment path.".to_owned())?;
     app.shell()
         .open(path, None)
         .map_err(|error| error.to_string())

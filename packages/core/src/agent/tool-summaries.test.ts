@@ -1,4 +1,4 @@
-import type { ChatToolCall } from "@vault/shared";
+import type { ChatToolCall } from "@gardendesk/shared";
 import { describe, expect, it } from "vitest";
 import { subagentTitle, toolCompletedSummary, toolStartedSummary } from "./tool-summaries.js";
 

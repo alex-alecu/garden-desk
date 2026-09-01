@@ -1,4 +1,4 @@
-import type { SessionSummary } from "@vault/shared";
+import type { SessionSummary } from "@gardendesk/shared";
 import type { FolderGroup } from "../state.js";
 import { Icon } from "./icons.js";
 import { SidebarItemRow } from "./sidebar-item-row.js";

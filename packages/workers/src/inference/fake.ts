@@ -1,4 +1,4 @@
-import type { InferenceWorkerRequest, InferenceWorkerResponse } from "@vault/shared";
+import type { InferenceWorkerRequest, InferenceWorkerResponse } from "@gardendesk/shared";
 
 function memoryReport(request: { contextSize: number | "auto" }, budgetBytes: number) {
   return {

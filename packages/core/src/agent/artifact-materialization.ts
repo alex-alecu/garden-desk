@@ -56,7 +56,7 @@ export async function materializeArtifact(reference: ArtifactReference): Promise
   if (item === undefined) throw new Error("artifact_not_found");
   const name = basename(item.name);
   if (name.length === 0) throw new Error("artifact_name_invalid");
-  const directory = await mkdtemp(join(tmpdir(), "vault-deliverable-"));
+  const directory = await mkdtemp(join(tmpdir(), "garden-desk-deliverable-"));
   await chmod(directory, 0o700);
   const path = join(directory, name);
   try {
@@ -127,7 +127,7 @@ async function verifiedExportTarget(destination: string): Promise<ExportTarget> 
 
 async function commitExport(destination: ExportTarget, bytes: Uint8Array): Promise<void> {
   const { device, inode, parent, target } = destination;
-  const temporary = join(parent, `.vault-export-${process.pid}-${crypto.randomUUID()}.tmp`);
+  const temporary = join(parent, `.garden-desk-export-${process.pid}-${crypto.randomUUID()}.tmp`);
   try {
     await writeOwnerOnly(temporary, bytes);
     const parentAfter = await lstat(parent);

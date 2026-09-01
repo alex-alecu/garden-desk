@@ -1,4 +1,4 @@
-import { MacOsMicroVmLauncher, WindowsMicroVmLauncher } from "@vault/workers";
+import { MacOsMicroVmLauncher, WindowsMicroVmLauncher } from "@gardendesk/workers";
 
 export function createCodeAgentLauncher(
   helperPath: string,

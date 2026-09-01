@@ -1,4 +1,0 @@
-config BR2_PACKAGE_VAULT_ANTIWORD
-	bool "vault-antiword"
-	help
-	  Fixed legacy Microsoft Word text reader for the M3 agent guest.

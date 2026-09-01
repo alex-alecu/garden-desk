@@ -135,7 +135,7 @@ const key = platformKey();
 const runtime = manifest.platforms[key];
 if (runtime === undefined) throw new Error(`Unknown vision platform: ${key}`);
 const destination = join(repositoryRoot, "packages/eval/.generated/vision", key);
-const temporaryRoot = await mkdtemp(join(tmpdir(), "vault-vision-fetch-"));
+const temporaryRoot = await mkdtemp(join(tmpdir(), "garden-desk-vision-fetch-"));
 const staged = join(dirname(destination), `.${key}-${process.pid}`);
 try {
   await rm(staged, { recursive: true, force: true });

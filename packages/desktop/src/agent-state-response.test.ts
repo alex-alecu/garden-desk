@@ -2,7 +2,7 @@ import {
   AgentRunSnapshotSchema,
   ConversationMessageSchema,
   SessionSummarySchema,
-} from "@vault/shared";
+} from "@gardendesk/shared";
 import { describe, expect, it } from "vitest";
 import { desktopReducer, initialDesktopState } from "./state.js";
 

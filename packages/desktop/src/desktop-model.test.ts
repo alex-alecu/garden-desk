@@ -1,4 +1,4 @@
-import type { ModelRuntimeStatus } from "@vault/shared";
+import type { ModelRuntimeStatus } from "@gardendesk/shared";
 import { expect, it, vi } from "vitest";
 import type { DesktopApi } from "./api.js";
 

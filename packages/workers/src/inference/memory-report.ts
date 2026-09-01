@@ -1,4 +1,4 @@
-import type { GenerationContextLimitReason } from "@vault/shared";
+import type { GenerationContextLimitReason } from "@gardendesk/shared";
 import type { Llama } from "node-llama-cpp";
 
 interface MemoryReportRuntime {

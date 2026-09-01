@@ -3,7 +3,7 @@ import type {
   InferenceWorkerRequest,
   InferenceWorkerResponse,
   RequestId,
-} from "@vault/shared";
+} from "@gardendesk/shared";
 import type { NativeWorkerHandle } from "../native/launcher.js";
 import { createDevelopmentDiagnosticSink } from "./development-diagnostics.js";
 import {

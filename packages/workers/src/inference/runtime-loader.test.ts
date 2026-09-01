@@ -7,10 +7,10 @@ const logLevels = {
   error: "error" as LlamaLogLevel,
 };
 
-const originalDevelopmentBuild = globalThis.__VAULT_DEVELOPMENT_BUILD__;
+const originalDevelopmentBuild = globalThis.__GARDEN_DESK_DEVELOPMENT_BUILD__;
 
 afterEach(() => {
-  globalThis.__VAULT_DEVELOPMENT_BUILD__ = originalDevelopmentBuild;
+  globalThis.__GARDEN_DESK_DEVELOPMENT_BUILD__ = originalDevelopmentBuild;
 });
 
 describe("Windows inference runtime selection", () => {
@@ -19,13 +19,13 @@ describe("Windows inference runtime selection", () => {
   });
 
   it("uses the raw library logger only from a development artifact", () => {
-    globalThis.__VAULT_DEVELOPMENT_BUILD__ = true;
+    globalThis.__GARDEN_DESK_DEVELOPMENT_BUILD__ = true;
     expect(llamaRuntimeLogOptions(logLevels)).toMatchObject({
       logLevel: "debug",
       logger: expect.any(Function),
     });
 
-    globalThis.__VAULT_DEVELOPMENT_BUILD__ = false;
+    globalThis.__GARDEN_DESK_DEVELOPMENT_BUILD__ = false;
     expect(llamaRuntimeLogOptions(logLevels)).toEqual({ logLevel: "error" });
   });
 });

@@ -1,9 +1,13 @@
-import type { AuditEventInput, InferenceOperation, InferenceWorkerRequest } from "@vault/shared";
+import type {
+  AuditEventInput,
+  InferenceOperation,
+  InferenceWorkerRequest,
+} from "@gardendesk/shared";
 import {
   type InferenceDiagnosticOperation,
   recordDevelopmentHostFailure,
   waitForDevelopmentHostRecord,
-} from "@vault/workers";
+} from "@gardendesk/workers";
 import type {
   ChatInput,
   EmbeddingInput,
@@ -49,7 +53,7 @@ async function recordModelPreparationFailure(
   error: unknown,
 ): Promise<void> {
   try {
-    if (globalThis.__VAULT_DEVELOPMENT_BUILD__ === true)
+    if (globalThis.__GARDEN_DESK_DEVELOPMENT_BUILD__ === true)
       await waitForDevelopmentHostRecord(
         recordDevelopmentHostFailure("model_prepare", operation, error),
       );
@@ -68,7 +72,6 @@ function modelPreparationFailure(error: unknown): InferenceFailure {
   }
   return new InferenceFailure("internal", "Inference failed.");
 }
-
 export class InferenceSupervisor extends ImageInferenceController implements InferenceService {
   private readonly residency = new AsyncSerial();
   private measurements: Parameters<typeof modelRuntimeStatus>[2] = {};
@@ -90,7 +93,6 @@ export class InferenceSupervisor extends ImageInferenceController implements Inf
   ) {
     super(models, scheduler, audit, imagePort);
   }
-
   private async execute(
     request: InferenceWorkerRequest,
     execution: ActiveInferenceExecution,
@@ -172,7 +174,6 @@ export class InferenceSupervisor extends ImageInferenceController implements Inf
     );
     return { lease: resident.lease, stagedModel: resident.stagedModel };
   }
-
   private async executeOne(
     request: InferenceWorkerRequest,
     execution: ActiveInferenceExecution,
@@ -203,7 +204,6 @@ export class InferenceSupervisor extends ImageInferenceController implements Inf
       throw error;
     }
   }
-
   private async run(
     request: InferenceWorkerRequest,
     options: InferenceStreamCallbacks & {

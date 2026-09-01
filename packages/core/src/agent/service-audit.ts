@@ -1,4 +1,4 @@
-import type { AgentRunSummary } from "@vault/shared";
+import type { AgentRunSummary } from "@gardendesk/shared";
 import type { AuditLog } from "../audit/log.js";
 
 export function appendSuccessfulRunAudit(

@@ -9,13 +9,13 @@ interface StatementChanges {
   lastInsertRowid: number | bigint;
 }
 
-interface VaultStatement {
+interface GardenDeskStatement {
   all(...parameters: unknown[]): unknown[];
   get(...parameters: unknown[]): unknown;
   run(...parameters: unknown[]): StatementChanges;
 }
 
-export class VaultDatabase {
+export class GardenDeskDatabase {
   private readonly database: DatabaseSync;
   private savepointSequence = 0;
 
@@ -31,7 +31,7 @@ export class VaultDatabase {
     this.database.exec(sql);
   }
 
-  prepare(sql: string): VaultStatement {
+  prepare(sql: string): GardenDeskStatement {
     const statement = this.database.prepare(sql);
     const parameters = (values: unknown[]) => values as SQLInputValue[];
     return {
@@ -50,7 +50,7 @@ export class VaultDatabase {
 
   private beginTransaction(): string | undefined {
     const savepoint = this.database.isTransaction
-      ? `vault_nested_${this.savepointSequence++}`
+      ? `garden_desk_nested_${this.savepointSequence++}`
       : undefined;
     this.exec(savepoint === undefined ? "BEGIN" : `SAVEPOINT ${savepoint}`);
     return savepoint;
@@ -85,6 +85,6 @@ export class VaultDatabase {
 }
 
 export type DatabasePort = Pick<
-  VaultDatabase,
+  GardenDeskDatabase,
   "close" | "exec" | "pragma" | "prepare" | "transaction"
 >;

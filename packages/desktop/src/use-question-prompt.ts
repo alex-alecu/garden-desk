@@ -1,4 +1,4 @@
-import type { AgentQuestion, AgentQuestionRequest } from "@vault/shared";
+import type { AgentQuestion, AgentQuestionRequest } from "@gardendesk/shared";
 import { useMemo, useState } from "react";
 import {
   applyCustom,

@@ -4,7 +4,7 @@ import { writeDevelopmentLlamaLog } from "./development-diagnostics.js";
 export const windowsGpuOrder: readonly LlamaGpuType[] = ["cuda", "vulkan"];
 
 export function llamaRuntimeLogOptions(levels: { debug: LlamaLogLevel; error: LlamaLogLevel }) {
-  if (globalThis.__VAULT_DEVELOPMENT_BUILD__ === true) {
+  if (globalThis.__GARDEN_DESK_DEVELOPMENT_BUILD__ === true) {
     return { logLevel: levels.debug, logger: writeDevelopmentLlamaLog };
   }
   return { logLevel: levels.error };

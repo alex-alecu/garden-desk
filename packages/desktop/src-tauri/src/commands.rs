@@ -12,19 +12,19 @@ pub(crate) async fn desktop_bootstrap(core: State<'_, CoreBridge>) -> Result<Val
         .get("workspace")
         .and_then(|workspace| workspace.get("rootPath"))
         .and_then(Value::as_str)
-        .ok_or_else(|| "Vault Core returned an invalid workspace path.".to_owned())?;
-    let catalog_path = path_text(&Path::new(workspace_root).join(".vault/catalog.sqlite"))?;
+        .ok_or_else(|| "Garden Desk Core returned an invalid workspace path.".to_owned())?;
+    let catalog_path = path_text(&Path::new(workspace_root).join(".garden-desk/catalog.sqlite"))?;
     let folders = core.call("folders.list", json!({}))?;
     let global_sessions = core.call("sessions.list", json!({ "folderId": null, "limit": 5 }))?;
     let mut folder_sessions = Vec::new();
     let items = folders
         .as_array()
-        .ok_or_else(|| "Vault Core returned invalid folders.".to_owned())?;
+        .ok_or_else(|| "Garden Desk Core returned invalid folders.".to_owned())?;
     for folder in items {
         let folder_id = folder
             .get("id")
             .and_then(Value::as_str)
-            .ok_or_else(|| "Vault Core returned an invalid folder.".to_owned())?;
+            .ok_or_else(|| "Garden Desk Core returned an invalid folder.".to_owned())?;
         let page = core.call(
             "sessions.list",
             json!({ "folderId": folder_id, "limit": 5 }),
@@ -134,7 +134,7 @@ pub(crate) async fn open_folder(
     let path = core.call("folders.resolvePath", json!({ "folderId": folder_id }))?;
     let path = path
         .as_str()
-        .ok_or_else(|| "Vault Core returned an invalid folder path.".to_owned())?;
+        .ok_or_else(|| "Garden Desk Core returned an invalid folder path.".to_owned())?;
     app.shell()
         .open(path, None)
         .map_err(|error| error.to_string())

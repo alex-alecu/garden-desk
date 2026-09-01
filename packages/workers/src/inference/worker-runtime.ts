@@ -2,10 +2,10 @@ import type {
   ChatGenerationRequest,
   GenerationContextLimitReason,
   StructuredGenerationRequest,
-} from "@vault/shared";
+} from "@gardendesk/shared";
 import type { LlamaChatSession, LlamaEmbeddingContext, LlamaModel } from "node-llama-cpp";
 import { ChatSequencePool } from "./chat-pool.js";
-import { loadVaultGemma4ChatWrapper } from "./gemma-native-format.js";
+import { loadGardenDeskGemma4ChatWrapper } from "./gemma-native-format.js";
 import {
   combinedAllocationBytes,
   fitCombinedGenerationContext,
@@ -157,7 +157,7 @@ async function buildChatPool(request: ChatGenerationRequest, runtime: LoadedRunt
     sequenceCount === 1
       ? probe.context
       : await recreateContextWithSequences(probe.context, request, runtime, sequenceCount);
-  const chatWrapper = await loadVaultGemma4ChatWrapper();
+  const chatWrapper = await loadGardenDeskGemma4ChatWrapper();
   const chats = Array.from(
     { length: context.totalSequences },
     () => new LlamaChat({ contextSequence: context.getSequence(), chatWrapper }),

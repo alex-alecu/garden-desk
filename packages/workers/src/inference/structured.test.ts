@@ -1,4 +1,4 @@
-import { JobIdSchema, type StructuredGenerationRequest } from "@vault/shared";
+import { JobIdSchema, type StructuredGenerationRequest } from "@gardendesk/shared";
 import type { ChatSessionModelFunctions, LlamaChatSession, Token } from "node-llama-cpp";
 import { describe, expect, it } from "vitest";
 import { structuredValue } from "./structured.js";

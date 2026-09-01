@@ -4,7 +4,7 @@ import {
   type ConversationMessage,
   JobIdSchema,
   MAX_ANCHORED_SUMMARY_CHARACTERS,
-} from "@vault/shared";
+} from "@gardendesk/shared";
 import type { InferenceService } from "../runtime/inference.js";
 import { InferenceFailure } from "../runtime/inference-errors.js";
 import { withCurrentTimeContext } from "./chat-current-time.js";

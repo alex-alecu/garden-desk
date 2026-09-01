@@ -1,4 +1,4 @@
-import type { ChatMessage } from "@vault/shared";
+import type { ChatMessage } from "@gardendesk/shared";
 import type { ChatAgentInput } from "./chat-loop.js";
 
 function systemText(input: ChatAgentInput): string {

@@ -3,7 +3,7 @@ import { createHash, randomBytes } from "node:crypto";
 import { mkdtemp, open, readFile, rm, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { basename, join } from "node:path";
-import { JobIdSchema, MicroVmProbeReportSchema, WorkerLimitsSchema } from "@vault/shared";
+import { JobIdSchema, MicroVmProbeReportSchema, WorkerLimitsSchema } from "@gardendesk/shared";
 import type {
   CodeAgentLauncher,
   CodeAgentSession,
@@ -212,7 +212,7 @@ export class WindowsMicroVmLauncher implements MicroVmLauncher, CodeAgentLaunche
       throw new Error("Windows scratch size must be aligned to 512 bytes.");
     const signal = launchSignal(request.signal, request.limits.wallTimeMs);
     signal.throwIfAborted();
-    const temporaryRoot = await mkdtemp(join(tmpdir(), `vault-worker-${request.jobId}-`));
+    const temporaryRoot = await mkdtemp(join(tmpdir(), `garden-desk-worker-${request.jobId}-`));
     try {
       const inputs = await stageInputs(request.readonlyInputs, temporaryRoot, request, signal);
       const scratch =

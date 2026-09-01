@@ -1,6 +1,6 @@
 import { type FileHandle, open, stat, truncate, unlink } from "node:fs/promises";
 import { join } from "node:path";
-import type { AgentGuestInput, WorkerLimits } from "@vault/shared";
+import type { AgentGuestInput, WorkerLimits } from "@gardendesk/shared";
 import type { AgentInputFile } from "./launcher.js";
 
 const BLOCK_BYTES = 4096;

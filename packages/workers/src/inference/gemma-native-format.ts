@@ -102,10 +102,10 @@ function declarations(
  * was not trained on. Function-call detection is disabled here; the worker parses the
  * emitted call from the generated tokens itself (see `gemma-tool-call.ts`).
  */
-function vaultGemma4ChatWrapper(runtime: NativeRuntime): typeof Gemma4ChatWrapper {
+function gardenDeskGemma4ChatWrapper(runtime: NativeRuntime): typeof Gemma4ChatWrapper {
   const special = specialText(runtime);
-  return class VaultGemma4ChatWrapper extends runtime.Gemma4ChatWrapper {
-    override readonly wrapperName = "Vault Gemma 4";
+  return class GardenDeskGemma4ChatWrapper extends runtime.Gemma4ChatWrapper {
+    override readonly wrapperName = "Garden Desk Gemma 4";
 
     override generateContextState(
       options: ChatWrapperGenerateContextStateOptions,
@@ -149,7 +149,7 @@ function vaultGemma4ChatWrapper(runtime: NativeRuntime): typeof Gemma4ChatWrappe
 }
 
 /** The runtime is imported lazily because the packaged worker resolves it only after start. */
-export async function loadVaultGemma4ChatWrapper(): Promise<Gemma4ChatWrapper> {
+export async function loadGardenDeskGemma4ChatWrapper(): Promise<Gemma4ChatWrapper> {
   const runtime = await import("node-llama-cpp");
-  return new (vaultGemma4ChatWrapper(runtime))({ reasoning: true });
+  return new (gardenDeskGemma4ChatWrapper(runtime))({ reasoning: true });
 }

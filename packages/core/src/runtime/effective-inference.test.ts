@@ -1,4 +1,8 @@
-import { InferenceWorkerRequestSchema, JobIdSchema, MAX_GENERATION_TOKENS } from "@vault/shared";
+import {
+  InferenceWorkerRequestSchema,
+  JobIdSchema,
+  MAX_GENERATION_TOKENS,
+} from "@gardendesk/shared";
 import { describe, expect, it } from "vitest";
 import { createGenerationRequest, effectiveGenerationInput } from "./inference.js";
 

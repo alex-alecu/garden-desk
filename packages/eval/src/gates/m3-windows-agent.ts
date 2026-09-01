@@ -2,8 +2,8 @@ import { spawn } from "node:child_process";
 import { mkdir, mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { createVaultCore } from "@vault/core";
-import { WindowsMicroVmLauncher } from "@vault/workers";
+import { createGardenDeskCore } from "@gardendesk/core";
+import { WindowsMicroVmLauncher } from "@gardendesk/workers";
 import { prepareAgentModelStore } from "./agent-model-store.js";
 import { requireM3ProductCheck } from "./m3-gate-support.js";
 import { runGoldenTasks } from "./m3-golden-tasks.js";
@@ -12,7 +12,7 @@ import { developmentWindowsInferencePaths } from "./windows-inference.js";
 
 const repositoryRoot = process.cwd();
 const nativeRoot = join(repositoryRoot, "packages/workers/native");
-const helper = join(nativeRoot, "windows-hcs-helper/.generated/vault-hcs-helper.exe");
+const helper = join(nativeRoot, "windows-hcs-helper/.generated/garden-desk-hcs-helper.exe");
 const images = join(repositoryRoot, "packages/workers/images");
 const modelRoot = join(repositoryRoot, "packages/eval/.generated/models");
 
@@ -81,7 +81,7 @@ if (process.platform !== "win32" || process.arch !== "x64") {
   throw new Error("The M3 Windows gate requires Windows x64 with Hyper-V.");
 }
 
-const root = await mkdtemp(join(tmpdir(), "vault-m3-windows-agent-"));
+const root = await mkdtemp(join(tmpdir(), "garden-desk-m3-windows-agent-"));
 try {
   const image = await windowsAgentImage();
   await prepareAgentModelStore(modelRoot);
@@ -91,7 +91,7 @@ try {
   );
   await malformedFrameEvidence(root, image);
   const inference = await developmentWindowsInferencePaths();
-  const core = await createVaultCore({
+  const core = await createGardenDeskCore({
     workspaceDir: join(root, "agent-workspace"),
     modelStoreDir: modelRoot,
     profile: "auto",

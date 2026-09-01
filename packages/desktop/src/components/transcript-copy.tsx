@@ -1,4 +1,4 @@
-import type { AgentArtifactSummary, AgentExecutionSnapshot } from "@vault/shared";
+import type { AgentArtifactSummary, AgentExecutionSnapshot } from "@gardendesk/shared";
 import { useEffect, useRef, useState } from "react";
 import { sessionTranscript, transcriptHasContent } from "../session-transcript.js";
 import type { TimelineItem } from "../state.js";

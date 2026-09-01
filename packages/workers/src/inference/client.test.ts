@@ -1,5 +1,5 @@
 import { spawn } from "node:child_process";
-import { InferenceWorkerRequestSchema } from "@vault/shared";
+import { InferenceWorkerRequestSchema } from "@gardendesk/shared";
 import { describe, expect, it } from "vitest";
 import type {
   NativeWorkerHandle,

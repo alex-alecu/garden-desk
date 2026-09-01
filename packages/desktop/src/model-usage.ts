@@ -1,4 +1,4 @@
-import type { GenerationContextLimitReason, ModelRuntimeStatus } from "@vault/shared";
+import type { GenerationContextLimitReason, ModelRuntimeStatus } from "@gardendesk/shared";
 
 const MIB = 1024 ** 2;
 const GIB = 1024 ** 3;

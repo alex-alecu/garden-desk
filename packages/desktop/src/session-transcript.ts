@@ -1,4 +1,4 @@
-import type { AgentArtifactSummary, AgentExecutionSnapshot } from "@vault/shared";
+import type { AgentArtifactSummary, AgentExecutionSnapshot } from "@gardendesk/shared";
 import { type ActivityRow, type ClusterEntry, clusterEntries } from "./activity-rows.js";
 import type { TimelineItem } from "./state.js";
 

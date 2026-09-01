@@ -16,7 +16,11 @@ describe("M3 cross-platform guest runtime", () => {
     const [macos, windows] = await Promise.all(
       ["aarch64", "x86_64"].map(async (architecture) =>
         readFile(
-          join(imageRoot, "buildroot-external/configs", `vault_agent_${architecture}_defconfig`),
+          join(
+            imageRoot,
+            "buildroot-external/configs",
+            `garden_desk_agent_${architecture}_defconfig`,
+          ),
           "utf8",
         ),
       ),

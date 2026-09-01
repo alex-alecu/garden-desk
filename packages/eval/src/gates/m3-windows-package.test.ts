@@ -14,9 +14,9 @@ describe("M3 Windows package contract", () => {
     for (const value of [
       "inference/worker.mjs",
       "inference/node.exe",
-      "inference/vault-appcontainer-launcher.exe",
+      "inference/garden-desk-appcontainer-launcher.exe",
       "inference/vision/llama-mtmd-cli.exe",
-      "workers/vault-hcs-helper.exe",
+      "workers/garden-desk-hcs-helper.exe",
       "workers/images",
       "--packaged-model-store",
     ]) {
@@ -36,7 +36,7 @@ describe("M3 Windows portable package", () => {
     for (const value of [
       "windows-portable-directory",
       "Garden Desk.exe",
-      "vault-core.exe",
+      "garden-desk-core.exe",
       "resource-manifest.json",
       "nativeRuntimePackages()",
       "canonicalGenerationModelPath",
@@ -113,7 +113,7 @@ describe("M3 Windows application authority", () => {
     ]);
     expect(manifest).toContain('level="asInvoker"');
     expect(manifest).not.toContain('level="requireAdministrator"');
-    expect(launcher).not.toContain("--vault-windows-elevated-dev");
+    expect(launcher).not.toContain("--garden-desk-windows-elevated-dev");
     expect(launcher).not.toContain("-Verb RunAs");
     expect(launcher).toContain('process.platform === "win32"');
     expect(launcher).toContain('tauriArguments[0] === "dev"');
@@ -144,12 +144,12 @@ describe("M3 Windows setup helper", () => {
       readFile(join(process.cwd(), "packages/desktop/windows-setup-resource.ts"), "utf8"),
     ]);
     expect(signing).toContain("windowsSigningConfiguration");
-    expect(signing).toContain("VAULT_SIGN_THUMBPRINT");
+    expect(signing).toContain("GARDEN_DESK_SIGN_THUMBPRINT");
     expect(setupArguments).toContain('arguments[0] != "--requester-pid"');
     expect(setup).toContain("S-1-5-32-578");
     expect(setup).toContain("NetLocalGroupAddMembers");
     expect(resources).toContain("installWindowsSetupHelper");
     expect(setupResource).toContain("windowsSetupHelperSignature");
-    expect(setupResource).toContain("vault-hyper-v-setup.exe");
+    expect(setupResource).toContain("garden-desk-hyper-v-setup.exe");
   });
 });

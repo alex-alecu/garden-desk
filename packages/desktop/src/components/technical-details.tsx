@@ -2,7 +2,7 @@ import type {
   AgentArtifactSummary,
   AgentExecutionSnapshot,
   ModelRuntimeStatus,
-} from "@vault/shared";
+} from "@gardendesk/shared";
 import { type CSSProperties, useEffect, useReducer, useState } from "react";
 import capabilities from "../../../workers/images/agent/capabilities.json" with { type: "json" };
 import type { DesktopApi } from "../api.js";

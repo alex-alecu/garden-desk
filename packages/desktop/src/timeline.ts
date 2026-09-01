@@ -1,4 +1,4 @@
-import type { AgentEvent } from "@vault/shared";
+import type { AgentEvent } from "@gardendesk/shared";
 import type { TimelineItem } from "./state.js";
 
 function bounded(label: string, value: string | null, limit: number): string | undefined {

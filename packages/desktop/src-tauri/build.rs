@@ -34,13 +34,16 @@ fn anchor_windows_package() {
         return;
     }
     println!(
-        "cargo:rustc-env=VAULT_RESOURCE_MANIFEST_SHA256={}",
+        "cargo:rustc-env=GARDEN_DESK_RESOURCE_MANIFEST_SHA256={}",
         sha256(&manifest)
     );
     if std::env::var("PROFILE").as_deref() == Ok("release") {
-        let sidecar = root.join("binaries/vault-core-x86_64-pc-windows-msvc.exe");
+        let sidecar = root.join("binaries/garden-desk-core-x86_64-pc-windows-msvc.exe");
         println!("cargo:rerun-if-changed={}", sidecar.display());
-        println!("cargo:rustc-env=VAULT_SIDECAR_SHA256={}", sha256(&sidecar));
+        println!(
+            "cargo:rustc-env=GARDEN_DESK_SIDECAR_SHA256={}",
+            sha256(&sidecar)
+        );
     }
 }
 

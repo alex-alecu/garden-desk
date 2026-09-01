@@ -17,11 +17,11 @@ if (process.platform === "darwin") {
   const moduleCache = join(generated, "module-cache");
   rmSync(moduleCache, { force: true, recursive: true });
   mkdirSync(moduleCache, { recursive: true });
-  const executable = join(generated, "vault-vz-helper");
+  const executable = join(generated, "garden-desk-vz-helper");
   run(
     "swiftc",
     [
-      join(root, "Sources/vault-vz-helper/main.swift"),
+      join(root, "Sources/garden-desk-vz-helper/main.swift"),
       "-parse-as-library",
       "-framework",
       "Virtualization",
@@ -38,7 +38,7 @@ if (process.platform === "darwin") {
     "--sign",
     "-",
     "--entitlements",
-    join(root, "vault-vz-helper.entitlements.plist"),
+    join(root, "garden-desk-vz-helper.entitlements.plist"),
     executable,
   ]);
   run("codesign", ["--verify", "--strict", executable]);

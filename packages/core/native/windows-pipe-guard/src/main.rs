@@ -30,7 +30,7 @@ fn run() -> Result<(), Box<dyn Error>> {
         }
         (Some("probe"), Some(endpoint), None, None, None) => probe::probe(&endpoint),
         _ => Err(
-            "Usage: vault-pipe-guard <serve ENDPOINT MAXIMUM PARENT_PID|request ENDPOINT MAXIMUM|probe ENDPOINT>.".into(),
+            "Usage: garden-desk-pipe-guard <serve ENDPOINT MAXIMUM PARENT_PID|request ENDPOINT MAXIMUM|probe ENDPOINT>.".into(),
         ),
     }
 }

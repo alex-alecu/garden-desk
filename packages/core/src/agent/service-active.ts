@@ -1,4 +1,4 @@
-import type { AgentRunSnapshot } from "@vault/shared";
+import type { AgentRunSnapshot } from "@gardendesk/shared";
 import type { PendingQuestion } from "./agent-questions.js";
 import type { AgentStore } from "./store.js";
 

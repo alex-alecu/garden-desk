@@ -22,6 +22,8 @@ const repositoryRoot = resolve(desktopRoot, "../..");
 const resourcesRoot = join(desktopRoot, "src-tauri", "resources", "core");
 const inferenceRoot = join(resourcesRoot, "inference");
 const workerResourcesRoot = join(resourcesRoot, "workers");
+const workersNativeRoot = join(repositoryRoot, "packages/workers/native");
+const coreNativeRoot = join(repositoryRoot, "packages/core/native");
 
 export type { ResourceHashes } from "./src/resource-hashes.js";
 
@@ -92,9 +94,9 @@ async function installMacAgentResources(): Promise<
   reportDevelopmentResourceStage("agentHelper");
   runPnpm(["workers:macos:build"]);
   await mkdir(workerResourcesRoot, { recursive: true });
-  const helper = join(workerResourcesRoot, "vault-vz-helper");
+  const helper = join(workerResourcesRoot, "garden-desk-vz-helper");
   await copyFile(
-    join(repositoryRoot, "packages/workers/native/macos-vz-helper/.generated/vault-vz-helper"),
+    join(workersNativeRoot, "macos-vz-helper/.generated/garden-desk-vz-helper"),
     helper,
   );
   await chmod(helper, 0o755);
@@ -111,12 +113,9 @@ async function installWindowsAgentResources(): Promise<
   reportDevelopmentResourceStage("agentHelper");
   runPnpm(["workers:windows:build"]);
   await mkdir(workerResourcesRoot, { recursive: true });
-  const helper = join(workerResourcesRoot, "vault-hcs-helper.exe");
+  const helper = join(workerResourcesRoot, "garden-desk-hcs-helper.exe");
   await copyFile(
-    join(
-      repositoryRoot,
-      "packages/workers/native/windows-hcs-helper/.generated/vault-hcs-helper.exe",
-    ),
+    join(workersNativeRoot, "windows-hcs-helper/.generated/garden-desk-hcs-helper.exe"),
     helper,
   );
   const agentHelperSignature = signExecutable(helper);
@@ -132,11 +131,11 @@ async function installWindowsInferenceHelper(
 ): Promise<Pick<ResourceHashes, "inferenceHelper" | "inferenceHelperSignature">> {
   reportDevelopmentResourceStage("inferenceIsolation");
   runPnpm(["workers:windows-native:build"]);
-  const helper = join(destinationRoot, "vault-appcontainer-launcher.exe");
+  const helper = join(destinationRoot, "garden-desk-appcontainer-launcher.exe");
   await copyFile(
     join(
-      repositoryRoot,
-      "packages/workers/native/windows-appcontainer-launcher/.generated/vault-appcontainer-launcher.exe",
+      workersNativeRoot,
+      "windows-appcontainer-launcher/.generated/garden-desk-appcontainer-launcher.exe",
     ),
     helper,
   );
@@ -170,8 +169,8 @@ async function buildInferenceWorkers(
         platform: "node",
         target: "node24",
         define: {
-          "globalThis.__VAULT_DEVELOPMENT_BUILD__": String(developmentBuild),
-          "globalThis.__VAULT_DEVELOPMENT_DIAGNOSTIC_ROOT__": '""',
+          "globalThis.__GARDEN_DESK_DEVELOPMENT_BUILD__": String(developmentBuild),
+          "globalThis.__GARDEN_DESK_DEVELOPMENT_DIAGNOSTIC_ROOT__": '""',
         },
         minifySyntax: true,
       });
@@ -251,9 +250,9 @@ async function installWindowsPipeGuard(): Promise<string | undefined> {
   if (process.platform !== "win32" || process.argv.includes("--check")) return undefined;
   reportDevelopmentResourceStage("currentUserTransport");
   runPnpm(["core:windows-pipe-guard:build"]);
-  const pipeGuard = join(resourcesRoot, "vault-pipe-guard.exe");
+  const pipeGuard = join(resourcesRoot, "garden-desk-pipe-guard.exe");
   await copyFile(
-    join(repositoryRoot, "packages/core/native/windows-pipe-guard/.generated/vault-pipe-guard.exe"),
+    join(coreNativeRoot, "windows-pipe-guard/.generated/garden-desk-pipe-guard.exe"),
     pipeGuard,
   );
   return await sha256(pipeGuard);

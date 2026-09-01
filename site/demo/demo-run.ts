@@ -1,9 +1,9 @@
-import type { AgentRunPerformance, AgentRunState, AgentRunSummary } from "@vault/shared";
+import type { AgentRunPerformance, AgentRunState, AgentRunSummary } from "@gardendesk/shared";
 import {
   AgentEventSchema,
   AgentExecutionSnapshotSchema,
   AgentRunSummarySchema,
-} from "@vault/shared";
+} from "@gardendesk/shared";
 
 export const demoTime = "2026-07-21T10:00:00.000Z";
 

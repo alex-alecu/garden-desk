@@ -1,4 +1,4 @@
-import type { ModelRuntimeStatus } from "@vault/shared";
+import type { ModelRuntimeStatus } from "@gardendesk/shared";
 import { contextMeter, gpuMemoryUsage } from "../model-usage.js";
 
 function formatTokens(tokens: number): string {

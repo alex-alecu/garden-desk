@@ -1,4 +1,4 @@
-import type { AuditEventInput, InferenceOperation, RequestId } from "@vault/shared";
+import type { AuditEventInput, InferenceOperation, RequestId } from "@gardendesk/shared";
 
 type AuditAppender = (event: AuditEventInput) => void;
 

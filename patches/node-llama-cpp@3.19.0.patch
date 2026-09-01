@@ -7,7 +7,7 @@ index e9cb280..2da67ac 100644
      }
      else if (platform === "win") {
 -        if (buildMetadata.buildOptions.gpu !== false)
-+        if (process.env.VAULT_APPCONTAINER_LOCKED !== "1" &&
++        if (process.env.GARDEN_DESK_APPCONTAINER_LOCKED !== "1" &&
 +            buildMetadata.buildOptions.gpu !== false)
              return true;
      }

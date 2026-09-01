@@ -1,11 +1,11 @@
-import type { WorkerLimits } from "@vault/shared";
+import type { WorkerLimits } from "@gardendesk/shared";
 import type {
   AgentExecutionObserver,
   AgentExecutionUpdate,
   AgentSessionExecution,
   CodeAgentLauncher,
   CodeAgentSession,
-} from "@vault/workers";
+} from "@gardendesk/workers";
 import { agentScriptPreparationFailure } from "./agent-executor.js";
 import type { AgentInputResolver, ResolvedAgentInputs } from "./inputs.js";
 

@@ -10,8 +10,8 @@ import {
   RpcRequestSchema,
   type RpcResponse,
   SessionIdSchema,
-} from "@vault/shared";
-import type { VaultCore } from "../facade.js";
+} from "@gardendesk/shared";
+import type { GardenDeskCore } from "../facade.js";
 import { dispatchArtifactMethod } from "./artifact-methods.js";
 import { dispatchQuestionMethod } from "./question-methods.js";
 
@@ -56,43 +56,43 @@ function nullableFolderId(value: unknown): string | null | undefined {
   return parsed.success ? parsed.data : undefined;
 }
 
-async function addFolder(core: VaultCore, request: RpcRequest): Promise<RpcResponse> {
+async function addFolder(core: GardenDeskCore, request: RpcRequest): Promise<RpcResponse> {
   const path = request.params.rootPath;
   if (typeof path !== "string") return failure(request, "invalid_request", "Invalid folder path.");
   return success(request, await core.addFolder(path));
 }
 
-async function revokeFolder(core: VaultCore, request: RpcRequest): Promise<RpcResponse> {
+async function revokeFolder(core: GardenDeskCore, request: RpcRequest): Promise<RpcResponse> {
   const folderId = FolderIdSchema.safeParse(request.params.folderId);
   if (!folderId.success) return failure(request, "invalid_request", "Invalid folder id.");
   return success(request, { revoked: await core.revokeFolder(folderId.data) });
 }
 
-async function reorderFolders(core: VaultCore, request: RpcRequest): Promise<RpcResponse> {
+async function reorderFolders(core: GardenDeskCore, request: RpcRequest): Promise<RpcResponse> {
   const parsed = FolderIdSchema.array().safeParse(request.params.folderIds);
   if (!parsed.success) return failure(request, "invalid_request", "Invalid folder order.");
   return success(request, await core.reorderFolders(parsed.data));
 }
 
-async function resolveFolderPath(core: VaultCore, request: RpcRequest): Promise<RpcResponse> {
+async function resolveFolderPath(core: GardenDeskCore, request: RpcRequest): Promise<RpcResponse> {
   const folderId = FolderIdSchema.safeParse(request.params.folderId);
   if (!folderId.success) return failure(request, "invalid_request", "Invalid folder id.");
   return success(request, await core.resolveFolderPath(folderId.data));
 }
 
-async function createSession(core: VaultCore, request: RpcRequest): Promise<RpcResponse> {
+async function createSession(core: GardenDeskCore, request: RpcRequest): Promise<RpcResponse> {
   const folderId = nullableFolderId(request.params.folderId);
   if (folderId === undefined) return failure(request, "invalid_request", "Invalid folder id.");
   return success(request, await core.createSession(folderId));
 }
 
-async function deleteSession(core: VaultCore, request: RpcRequest): Promise<RpcResponse> {
+async function deleteSession(core: GardenDeskCore, request: RpcRequest): Promise<RpcResponse> {
   const sessionId = SessionIdSchema.safeParse(request.params.sessionId);
   if (!sessionId.success) return failure(request, "invalid_request", "Invalid session id.");
   return success(request, { deleted: await core.deleteSession(sessionId.data) });
 }
 
-async function listSessions(core: VaultCore, request: RpcRequest): Promise<RpcResponse> {
+async function listSessions(core: GardenDeskCore, request: RpcRequest): Promise<RpcResponse> {
   const folderId = nullableFolderId(request.params.folderId);
   if (folderId === undefined) return failure(request, "invalid_request", "Invalid folder id.");
   const { cursor, limit } = request.params;
@@ -105,7 +105,7 @@ async function listSessions(core: VaultCore, request: RpcRequest): Promise<RpcRe
   return success(request, await core.listSessions(folderId, cursor, limit));
 }
 
-async function appendMessage(core: VaultCore, request: RpcRequest): Promise<RpcResponse> {
+async function appendMessage(core: GardenDeskCore, request: RpcRequest): Promise<RpcResponse> {
   const sessionId = SessionIdSchema.safeParse(request.params.sessionId);
   const role = MessageRoleSchema.safeParse(request.params.role);
   const { content } = request.params;
@@ -115,7 +115,7 @@ async function appendMessage(core: VaultCore, request: RpcRequest): Promise<RpcR
   return success(request, await core.appendMessage(sessionId.data, role.data, content));
 }
 
-async function listMessages(core: VaultCore, request: RpcRequest): Promise<RpcResponse> {
+async function listMessages(core: GardenDeskCore, request: RpcRequest): Promise<RpcResponse> {
   const sessionId = SessionIdSchema.safeParse(request.params.sessionId);
   if (!sessionId.success) return failure(request, "invalid_request", "Invalid session id.");
   return success(request, await core.listMessages(sessionId.data));
@@ -127,36 +127,39 @@ function sessionIdParam(request: RpcRequest) {
   return parsed.data;
 }
 
-async function saveDraft(core: VaultCore, request: RpcRequest): Promise<RpcResponse> {
+async function saveDraft(core: GardenDeskCore, request: RpcRequest): Promise<RpcResponse> {
   const sessionId = sessionIdParam(request);
   const { content } = request.params;
   if (typeof content !== "string") return failure(request, "invalid_request", "Invalid draft.");
   return success(request, await core.saveDraft(sessionId, content));
 }
 
-async function loadDraft(core: VaultCore, request: RpcRequest): Promise<RpcResponse> {
+async function loadDraft(core: GardenDeskCore, request: RpcRequest): Promise<RpcResponse> {
   return success(request, (await core.loadDraft(sessionIdParam(request))) ?? null);
 }
 
-async function addAttachment(core: VaultCore, request: RpcRequest): Promise<RpcResponse> {
+async function addAttachment(core: GardenDeskCore, request: RpcRequest): Promise<RpcResponse> {
   const sessionId = sessionIdParam(request);
   const { path } = request.params;
   if (typeof path !== "string") return failure(request, "invalid_request", "Invalid file path.");
   return success(request, await core.addAttachment(sessionId, path));
 }
 
-async function listAttachments(core: VaultCore, request: RpcRequest): Promise<RpcResponse> {
+async function listAttachments(core: GardenDeskCore, request: RpcRequest): Promise<RpcResponse> {
   return success(request, await core.listAttachments(sessionIdParam(request)));
 }
 
-async function materializeAttachment(core: VaultCore, request: RpcRequest): Promise<RpcResponse> {
+async function materializeAttachment(
+  core: GardenDeskCore,
+  request: RpcRequest,
+): Promise<RpcResponse> {
   const sessionId = sessionIdParam(request);
   const attachmentId = AttachmentIdSchema.safeParse(request.params.attachmentId);
   if (!attachmentId.success) return failure(request, "invalid_request", "Invalid attachment id.");
   return success(request, await core.materializeAttachment(sessionId, attachmentId.data));
 }
 
-async function removeAttachment(core: VaultCore, request: RpcRequest): Promise<RpcResponse> {
+async function removeAttachment(core: GardenDeskCore, request: RpcRequest): Promise<RpcResponse> {
   const sessionId = sessionIdParam(request);
   const attachmentId = AttachmentIdSchema.safeParse(request.params.attachmentId);
   if (!attachmentId.success) return failure(request, "invalid_request", "Invalid attachment id.");
@@ -165,7 +168,7 @@ async function removeAttachment(core: VaultCore, request: RpcRequest): Promise<R
   });
 }
 
-async function startAgent(core: VaultCore, request: RpcRequest): Promise<RpcResponse> {
+async function startAgent(core: GardenDeskCore, request: RpcRequest): Promise<RpcResponse> {
   const sessionId = sessionIdParam(request);
   const { task } = request.params;
   if (typeof task !== "string" || task.trim().length === 0) {
@@ -174,29 +177,29 @@ async function startAgent(core: VaultCore, request: RpcRequest): Promise<RpcResp
   return success(request, await core.startAgent(sessionId, task));
 }
 
-async function getAgentRun(core: VaultCore, request: RpcRequest): Promise<RpcResponse> {
+async function getAgentRun(core: GardenDeskCore, request: RpcRequest): Promise<RpcResponse> {
   const runId = AgentRunIdSchema.safeParse(request.params.runId);
   if (!runId.success) return failure(request, "invalid_request", "Invalid run id.");
   return success(request, await core.getAgentRun(runId.data));
 }
 
-async function getAgentTrace(core: VaultCore, request: RpcRequest): Promise<RpcResponse> {
+async function getAgentTrace(core: GardenDeskCore, request: RpcRequest): Promise<RpcResponse> {
   const runId = AgentRunIdSchema.safeParse(request.params.runId);
   if (!runId.success) return failure(request, "invalid_request", "Invalid run id.");
   return success(request, await core.getAgentTrace(runId.data));
 }
 
-async function listAgentRuns(core: VaultCore, request: RpcRequest): Promise<RpcResponse> {
+async function listAgentRuns(core: GardenDeskCore, request: RpcRequest): Promise<RpcResponse> {
   return success(request, await core.listAgentRuns(sessionIdParam(request)));
 }
 
-async function cancelAgent(core: VaultCore, request: RpcRequest): Promise<RpcResponse> {
+async function cancelAgent(core: GardenDeskCore, request: RpcRequest): Promise<RpcResponse> {
   const jobId = JobIdSchema.safeParse(request.params.jobId);
   if (!jobId.success) return failure(request, "invalid_request", "Invalid job id.");
   return success(request, { cancelled: await core.cancelAgent(jobId.data) });
 }
 
-async function questionMethod(core: VaultCore, request: RpcRequest): Promise<RpcResponse> {
+async function questionMethod(core: GardenDeskCore, request: RpcRequest): Promise<RpcResponse> {
   const result = await dispatchQuestionMethod(core, request);
   if (result.ok) return success(request, result.value);
   if (result.reason === "not_found") {
@@ -205,14 +208,14 @@ async function questionMethod(core: VaultCore, request: RpcRequest): Promise<Rpc
   return failure(request, "invalid_request", "Invalid question request.");
 }
 
-async function cancelJob(core: VaultCore, request: RpcRequest): Promise<RpcResponse> {
+async function cancelJob(core: GardenDeskCore, request: RpcRequest): Promise<RpcResponse> {
   const jobId = JobIdSchema.safeParse(request.params.jobId);
   if (!jobId.success) return failure(request, "invalid_request", "Invalid job id.");
   return success(request, { cancelled: await core.cancelJob(jobId.data) });
 }
 
 // biome-ignore lint/complexity/noExcessiveLinesPerFunction: the exhaustive protocol switch keeps routing explicit.
-async function dispatchMethod(core: VaultCore, request: RpcRequest): Promise<RpcResponse> {
+async function dispatchMethod(core: GardenDeskCore, request: RpcRequest): Promise<RpcResponse> {
   switch (request.method) {
     case "status":
       return success(request, await core.status());
@@ -277,7 +280,7 @@ async function dispatchMethod(core: VaultCore, request: RpcRequest): Promise<Rpc
   }
 }
 
-export async function dispatchRpc(core: VaultCore, input: unknown): Promise<RpcResponse> {
+export async function dispatchRpc(core: GardenDeskCore, input: unknown): Promise<RpcResponse> {
   const parsed = RpcRequestSchema.safeParse(input);
   if (!parsed.success) return failure(undefined, "invalid_request", "Invalid JSON-RPC request.");
   if (parsed.data.protocolVersion !== PROTOCOL_VERSION) {

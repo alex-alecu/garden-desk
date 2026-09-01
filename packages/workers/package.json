@@ -1,5 +1,5 @@
 {
-  "name": "@vault/workers",
+  "name": "@gardendesk/workers",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -13,7 +13,7 @@
     }
   },
   "dependencies": {
-    "@vault/shared": "workspace:*",
+    "@gardendesk/shared": "workspace:*",
     "node-llama-cpp": "3.19.0"
   }
 }

@@ -1,5 +1,5 @@
-import { AgentArtifactIdSchema, type RpcRequest, SessionIdSchema } from "@vault/shared";
-import type { VaultCore } from "../facade.js";
+import { AgentArtifactIdSchema, type RpcRequest, SessionIdSchema } from "@gardendesk/shared";
+import type { GardenDeskCore } from "../facade.js";
 
 function artifactParameters(request: RpcRequest): { artifactId: string; sessionId: string } {
   const sessionId = SessionIdSchema.safeParse(request.params.sessionId);
@@ -9,7 +9,7 @@ function artifactParameters(request: RpcRequest): { artifactId: string; sessionI
   return { artifactId: artifactId.data, sessionId: sessionId.data };
 }
 
-export async function dispatchArtifactMethod(core: VaultCore, request: RpcRequest) {
+export async function dispatchArtifactMethod(core: GardenDeskCore, request: RpcRequest) {
   const { artifactId, sessionId } = artifactParameters(request);
   if (request.method === "artifacts.materialize") {
     return await core.materializeArtifact(sessionId, artifactId);

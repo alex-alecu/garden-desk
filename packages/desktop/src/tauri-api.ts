@@ -1,4 +1,3 @@
-import { getCurrentWebview } from "@tauri-apps/api/webview";
 import {
   AgentRunSnapshotSchema,
   AgentRunSummarySchema,
@@ -10,7 +9,8 @@ import {
   SessionDraftSchema,
   SessionPageSchema,
   SessionSummarySchema,
-} from "@vault/shared";
+} from "@gardendesk/shared";
+import { getCurrentWebview } from "@tauri-apps/api/webview";
 import type {
   DesktopApi,
   DesktopBootstrap,

@@ -1,5 +1,5 @@
 import { totalmem } from "node:os";
-import type { InferenceProfile } from "@vault/shared";
+import type { InferenceProfile } from "@gardendesk/shared";
 
 const GiB = 1024 * 1024 * 1024;
 const PROFILE_BUDGETS = { local12: 12 * GiB, local16: 16 * GiB } as const;

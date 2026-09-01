@@ -1,4 +1,4 @@
-import { FolderSummarySchema, SessionSummarySchema } from "@vault/shared";
+import { FolderSummarySchema, SessionSummarySchema } from "@gardendesk/shared";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";

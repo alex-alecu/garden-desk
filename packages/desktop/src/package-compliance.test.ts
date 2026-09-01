@@ -12,7 +12,7 @@ afterEach(async () => {
 });
 
 async function fixture(): Promise<{ external: string; guest: string; resources: string }> {
-  const root = await mkdtemp(join(tmpdir(), "vault-package-compliance-"));
+  const root = await mkdtemp(join(tmpdir(), "garden-desk-package-compliance-"));
   roots.push(root);
   const resources = join(root, "resources");
   const guest = join(root, "guest.json");

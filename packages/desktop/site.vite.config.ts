@@ -10,7 +10,7 @@ export default defineConfig({
   plugins: [react()],
   resolve: {
     alias: {
-      "@vault/shared": resolve(import.meta.dirname, "../shared/src/index.ts"),
+      "@gardendesk/shared": resolve(import.meta.dirname, "../shared/src/index.ts"),
       react: resolve(import.meta.dirname, "node_modules/react"),
       "react-dom": resolve(import.meta.dirname, "node_modules/react-dom"),
     },
@@ -35,7 +35,6 @@ export default defineConfig({
       input: {
         home: resolve(siteRoot, "index.html"),
         demo: resolve(siteRoot, "demo/index.html"),
-        downloads: resolve(siteRoot, "downloads/index.html"),
         privacy: resolve(siteRoot, "privacy/index.html"),
         terms: resolve(siteRoot, "terms/index.html"),
         security: resolve(siteRoot, "security/index.html"),

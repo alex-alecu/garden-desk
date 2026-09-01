@@ -1,4 +1,4 @@
-import { AttachmentSummarySchema } from "@vault/shared";
+import { AttachmentSummarySchema } from "@gardendesk/shared";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";

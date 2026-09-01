@@ -2,7 +2,7 @@
 import type { ChildProcessWithoutNullStreams } from "node:child_process";
 import { EventEmitter } from "node:events";
 import { PassThrough } from "node:stream";
-import { AgentGuestExecuteRequestSchema, AgentGuestResultSchema } from "@vault/shared";
+import { AgentGuestExecuteRequestSchema, AgentGuestResultSchema } from "@gardendesk/shared";
 
 export function fakeChild(): {
   child: ChildProcessWithoutNullStreams;

@@ -1,4 +1,4 @@
-import type { FolderSummary } from "@vault/shared";
+import type { FolderSummary } from "@gardendesk/shared";
 import type { DatabasePort } from "../workspace/database.js";
 
 interface FolderOrderRow {

@@ -6,7 +6,7 @@ import {
   type ChatGenerationResult,
   type ChatMessage,
   JobIdSchema,
-} from "@vault/shared";
+} from "@gardendesk/shared";
 import type { InferenceService } from "../runtime/inference.js";
 import { artifactCandidateNames } from "./artifact-results.js";
 import { compactChatHistory } from "./chat-compaction.js";

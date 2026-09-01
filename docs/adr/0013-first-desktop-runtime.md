@@ -20,7 +20,7 @@ This host-native worker uses the accelerator exception defined by [ADR 0012](001
 
 The first retrieval path uses the default dense encoder selected by [ADR 0016](0016-model-agnostic-defaults-and-managed-downloads.md) — Qwen3-Embedding-0.6B, official GGUF — through the same node-llama-cpp runtime.
 
-The runtime adapter exposes model loading, structured generation, embeddings, cancellation, resource reporting, health, and disposal without exposing node-llama-cpp types to Vault Core.
+The runtime adapter exposes model loading, structured generation, embeddings, cancellation, resource reporting, health, and disposal without exposing node-llama-cpp types to Garden Desk Core.
 
 Runtime builds, model hashes, grammar conversion behavior, context configuration, and memory-affecting options are pinned and recorded in benchmark reports.
 

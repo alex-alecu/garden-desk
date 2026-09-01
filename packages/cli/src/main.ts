@@ -12,7 +12,7 @@ async function main(args: string[]): Promise<number> {
   const command = args[0];
   const workspace = option(args, "--workspace");
   if (command !== "status" || workspace === undefined) {
-    writeError("Usage: vault status --workspace <directory> [--json]");
+    writeError("Usage: garden-desk status --workspace <directory> [--json]");
     return 2;
   }
   const response = await request(daemonEndpoint(workspace), {

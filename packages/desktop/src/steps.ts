@@ -1,4 +1,4 @@
-import type { AgentExecutionSnapshot, AgentInferenceTurn, AgentTrace } from "@vault/shared";
+import type { AgentExecutionSnapshot, AgentInferenceTurn, AgentTrace } from "@gardendesk/shared";
 import type { DesktopState, TimelineItem } from "./state.js";
 
 export interface AgentStep {

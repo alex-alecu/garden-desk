@@ -5,7 +5,7 @@ import { chmod, lstat, mkdir, mkdtemp, open, realpath, rm, writeFile } from "nod
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { promisify } from "node:util";
-import { AgentWorkspacePathSchema, ContentHashSchema } from "@vault/shared";
+import { AgentWorkspacePathSchema, ContentHashSchema } from "@gardendesk/shared";
 import { DebugSessionError, debugStateInvalid } from "./errors.js";
 
 const MAX_WORKSPACE_BYTES = 128 * 1024 * 1024;
@@ -14,7 +14,7 @@ const run = promisify(execFile);
 
 const WINDOWS_PRIVATE_DIRECTORY_SCRIPT = `
 $ErrorActionPreference = 'Stop'
-$path = [Environment]::GetEnvironmentVariable('VAULT_SNAPSHOT_PATH', 'Process')
+$path = [Environment]::GetEnvironmentVariable('GARDEN_DESK_SNAPSHOT_PATH', 'Process')
 $sid = [Security.Principal.WindowsIdentity]::GetCurrent().User
 if ([string]::IsNullOrEmpty($path) -or $null -eq $sid) { throw 'missing snapshot identity' }
 $acl = [Security.AccessControl.DirectorySecurity]::new()
@@ -213,8 +213,8 @@ export async function safeDatabasePath(path: string): Promise<string> {
 export async function makeSnapshotDirectory(): Promise<string> {
   const root =
     process.platform === "win32"
-      ? join(tmpdir(), `vault-session-debug-${randomUUID()}`)
-      : await mkdtemp(join(tmpdir(), "vault-session-debug-"));
+      ? join(tmpdir(), `garden-desk-session-debug-${randomUUID()}`)
+      : await mkdtemp(join(tmpdir(), "garden-desk-session-debug-"));
   try {
     await makePrivateDirectory(root);
     return root;
@@ -246,7 +246,7 @@ export async function makePrivateDirectory(path: string): Promise<void> {
       "powershell.exe",
       ["-NoLogo", "-NoProfile", "-NonInteractive", "-Command", WINDOWS_PRIVATE_DIRECTORY_SCRIPT],
       {
-        env: { ...process.env, VAULT_SNAPSHOT_PATH: path },
+        env: { ...process.env, GARDEN_DESK_SNAPSHOT_PATH: path },
         windowsHide: true,
       },
     );

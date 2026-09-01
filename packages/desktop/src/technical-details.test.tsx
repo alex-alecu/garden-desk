@@ -1,4 +1,4 @@
-import { AgentArtifactSummarySchema, AgentExecutionSnapshotSchema } from "@vault/shared";
+import { AgentArtifactSummarySchema, AgentExecutionSnapshotSchema } from "@gardendesk/shared";
 import { renderToStaticMarkup } from "react-dom/server";
 import { expect, it } from "vitest";
 import type { DesktopApi } from "./api.js";
@@ -121,7 +121,7 @@ function renderTechnicalDetails(selectedStepId?: string, nativeActionMessage?: s
     <TechnicalDetails
       api={{} as DesktopApi}
       artifacts={[artifact]}
-      catalogPath="/Users/alex/Library/Application Support/dev.vaultdesk.desktop/state/.vault/catalog.sqlite"
+      catalogPath="/Users/alex/Library/Application Support/ai.gardendesk.desktop/state/.garden-desk/catalog.sqlite"
       executions={[execution]}
       model={{
         modelId: "gemma-4-12b-it-qat-q4_0",
@@ -250,12 +250,12 @@ it("shows pending, success, reveal, and failure states", () => {
       onReveal={() => undefined}
       state={{
         ...initialDebugSnapshotState,
-        path: "/tmp/vault-session-debug-ready",
+        path: "/tmp/garden-desk-session-debug-ready",
       }}
     />,
   );
   expect(ready).toContain('aria-label="Debug snapshot path"');
-  expect(ready).toContain("/tmp/vault-session-debug-ready");
+  expect(ready).toContain("/tmp/garden-desk-session-debug-ready");
   expect(ready).toContain("Reveal snapshot");
 
   const failed = renderToStaticMarkup(

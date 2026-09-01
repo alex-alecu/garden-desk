@@ -1,4 +1,4 @@
-import type { ChatMessage } from "@vault/shared";
+import type { ChatMessage } from "@gardendesk/shared";
 
 function serialized(message: ChatMessage): string {
   if (message.role === "assistant") {

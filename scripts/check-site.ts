@@ -10,7 +10,6 @@ const localAssetPattern = /(?:href|src)=["']([^"']+\.(?:css|js|png|svg|woff2))["
 const routeFiles = [
   "index.html",
   "demo/index.html",
-  "downloads/index.html",
   "privacy/index.html",
   "terms/index.html",
   "security/index.html",
@@ -142,7 +141,7 @@ if ((home.match(/Coming soon/gu) ?? []).length < 2) {
 }
 
 const sitemap = await text("sitemap.xml");
-for (const route of ["/", "/demo/", "/downloads/", "/privacy/", "/terms/", "/security/"]) {
+for (const route of ["/", "/demo/", "/privacy/", "/terms/", "/security/"]) {
   requireText(sitemap, new URL(route, publishedRoot).href, "sitemap");
 }
 

@@ -2,7 +2,7 @@
 import { mkdtemp, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { InferenceWorkerRequestSchema } from "@vault/shared";
+import { InferenceWorkerRequestSchema } from "@gardendesk/shared";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type {
   NativeWorkerHandle,
@@ -46,12 +46,12 @@ function deferred<T>() {
 }
 
 function enableDevelopmentBuild(): () => void {
-  const globals = globalThis as typeof globalThis & { __VAULT_DEVELOPMENT_BUILD__?: boolean };
-  const previous = globals.__VAULT_DEVELOPMENT_BUILD__;
-  globals.__VAULT_DEVELOPMENT_BUILD__ = true;
+  const globals = globalThis as typeof globalThis & { __GARDEN_DESK_DEVELOPMENT_BUILD__?: boolean };
+  const previous = globals.__GARDEN_DESK_DEVELOPMENT_BUILD__;
+  globals.__GARDEN_DESK_DEVELOPMENT_BUILD__ = true;
   return () => {
-    if (previous === undefined) delete globals.__VAULT_DEVELOPMENT_BUILD__;
-    else globals.__VAULT_DEVELOPMENT_BUILD__ = previous;
+    if (previous === undefined) delete globals.__GARDEN_DESK_DEVELOPMENT_BUILD__;
+    else globals.__GARDEN_DESK_DEVELOPMENT_BUILD__ = previous;
   };
 }
 
@@ -89,7 +89,7 @@ afterEach(async () => {
 
 describe("development host launch recording", () => {
   it("persists a quick private record before the fixed safe error", async () => {
-    const root = await mkdtemp(join(tmpdir(), "vault-host-launch-record-"));
+    const root = await mkdtemp(join(tmpdir(), "garden-desk-host-launch-record-"));
     roots.push(root);
     const marker = join(root, "persisted");
     const restore = enableDevelopmentBuild();

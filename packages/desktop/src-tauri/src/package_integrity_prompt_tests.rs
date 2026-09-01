@@ -7,7 +7,7 @@ fn temporary_root() -> PathBuf {
         .duration_since(UNIX_EPOCH)
         .expect("clock")
         .as_nanos();
-    let root = std::env::temp_dir().join(format!("vault-prompt-integrity-{nonce}"));
+    let root = std::env::temp_dir().join(format!("garden-desk-prompt-integrity-{nonce}"));
     create_dir(&root).expect("temporary root");
     root
 }

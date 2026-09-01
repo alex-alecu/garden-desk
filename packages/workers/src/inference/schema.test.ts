@@ -1,4 +1,4 @@
-import { StructuredGenerationRequestSchema } from "@vault/shared";
+import { StructuredGenerationRequestSchema } from "@gardendesk/shared";
 import { describe, expect, it } from "vitest";
 
 const request = {

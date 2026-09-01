@@ -1,4 +1,4 @@
-import type { AgentRunSnapshot } from "@vault/shared";
+import type { AgentRunSnapshot } from "@gardendesk/shared";
 import type { DesktopState } from "./state.js";
 import { eventItems } from "./timeline.js";
 

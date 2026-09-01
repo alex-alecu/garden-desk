@@ -5,7 +5,7 @@ import {
   type RpcRequest,
   type RpcResponse,
   RpcResponseSchema,
-} from "@vault/shared";
+} from "@gardendesk/shared";
 import { requestWindows } from "./windows-client.js";
 
 const MAX_RESPONSE_BYTES = 192 * 1024 * 1024;

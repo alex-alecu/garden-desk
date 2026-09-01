@@ -1,10 +1,10 @@
-import type { AgentExecutionResult } from "@vault/shared";
+import type { AgentExecutionResult } from "@gardendesk/shared";
 import type {
   AgentExecutionObserver,
   AgentSessionExecution,
   CodeAgentLauncher,
   CodeAgentSession,
-} from "@vault/workers";
+} from "@gardendesk/workers";
 import { describe, expect, it } from "vitest";
 import { runGuestSecurityEvidence } from "./m3-guest-security.js";
 

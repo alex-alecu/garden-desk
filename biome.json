@@ -41,7 +41,7 @@
           "options": {
             "patterns": [
               {
-                "group": ["@vault/*/src/**", "../*/src/**"],
+                "group": ["@gardendesk/*/src/**", "../*/src/**"],
                 "message": "Import only another package's public export map."
               },
               {
@@ -146,7 +146,7 @@
               "options": {
                 "patterns": [
                   {
-                    "group": ["@vault/*/src/**", "../*/src/**"],
+                    "group": ["@gardendesk/*/src/**", "../*/src/**"],
                     "message": "Import only another package's public export map."
                   }
                 ]
@@ -166,8 +166,8 @@
               "options": {
                 "patterns": [
                   {
-                    "group": ["node:*", "@vault/*", "@vault/*/**"],
-                    "message": "@vault/shared depends only on Zod."
+                    "group": ["node:*", "@gardendesk/*", "@gardendesk/*/**"],
+                    "message": "@gardendesk/shared depends only on Zod."
                   }
                 ]
               }

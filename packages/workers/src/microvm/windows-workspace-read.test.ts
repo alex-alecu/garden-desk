@@ -14,7 +14,7 @@ afterEach(async () => {
 });
 
 it("reads committed workspace bytes through the public Windows launcher", async () => {
-  const root = await mkdtemp(join(tmpdir(), "vault-windows-workspace-read-"));
+  const root = await mkdtemp(join(tmpdir(), "garden-desk-windows-workspace-read-"));
   roots.push(root);
   const store = await AgentWorkspaceStore.create(root);
   const sessionId = randomUUID();

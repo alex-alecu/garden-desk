@@ -1,4 +1,4 @@
-import type { AttachmentSummary } from "@vault/shared";
+import type { AttachmentSummary } from "@gardendesk/shared";
 import { useEffect, useRef, useState } from "react";
 import type { TimelineItem } from "../state.js";
 import { Icon } from "./icons.js";

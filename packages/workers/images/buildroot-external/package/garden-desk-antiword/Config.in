@@ -1,0 +1,4 @@
+config BR2_PACKAGE_GARDEN_DESK_ANTIWORD
+	bool "garden-desk-antiword"
+	help
+	  Fixed legacy Microsoft Word text reader for the M3 agent guest.

@@ -1,4 +1,4 @@
-import type { InferenceOperation } from "@vault/shared";
+import type { InferenceOperation } from "@gardendesk/shared";
 
 const GiB = 1024 * 1024 * 1024;
 
