@@ -38,13 +38,17 @@ If the gate demands disproportionate code, propose reducing the requirement befo
 
 ## 4. Verify
 
-For an ordinary pull request run:
+Use the smallest row that matches the change:
 
-```sh
-pnpm lint && pnpm typecheck && pnpm test
-```
+| Change | Local verification |
+| --- | --- |
+| Documentation or instructions only | Inspect the diff, validate links and command names, and run `git diff --check`. Run no product tests. |
+| Focused source change | Run `pnpm lint`, `pnpm typecheck`, and the one focused test required by the Test Rule, if any. For a platform boundary, use `pnpm test:platform:gate`. For an M2 native boundary, use `pnpm test:native:m2`. |
+| Native helper, build script, or packaged runtime | Run `pnpm verify`. Do not duplicate commands that it includes. |
+| Full `pnpm test` suite | Leave it to CI unless the owner explicitly requests a local run. |
+| Real model, physical microVM, golden task, or milestone gate | Use only as a last resort and only with explicit owner approval under the Top Priority rule in `AGENTS.md`. |
 
-plus the one targeted test the change added, if any. `pnpm verify` is the release check (source limits, lint, typecheck, native builds, Rust lint, and the `unit` and `native` Vitest projects) and runs in CI. The `platform` and `m2-native` projects are not in it: run `pnpm test:platform:gate` or `pnpm test:native:m2` when the change touches that boundary, and run `pnpm verify` locally only for native helper, build script, or packaged runtime changes. Run `pnpm test:gate --milestone <n>` and the platform, model, or package commands only when claiming that milestone's gate. Missing hardware, models, workers, or packages are reported as not run, never as passed.
+A request to fully verify, commit, push, or open a pull request does not select a larger row. A general instruction to run a full command means a complete run of the selected command, not the largest repository gate. Missing or unapproved hardware, models, workers, packages, or checks are reported as not run, never as passed.
 
 The `garden-desk-verify-change` skill produces the verification report. Report `not ready` for a fixable incomplete change and `blocked` only when progress needs a decision, authority, platform, or asset that is unavailable.
 
@@ -69,15 +73,17 @@ A pull request is ready for review when it links the active milestone and issue,
 
 ## Real-Model Reproduction
 
-Use the real Gemma worker and no-network guest when diagnosing agent-loop behavior; a fake inference test or desktop-only reproduction is not sufficient evidence. Raw development inference diagnostics are private and must not enter reports, product records, debug snapshots, user-interface data, or Git.
+Real-model reproduction is a last-resort diagnostic method, not a standard agent-loop check. First use source inspection, existing evidence, and focused deterministic tests. If those methods cannot answer an important question, state the unresolved question, why cheaper evidence cannot answer it, the exact command or workload, and the number of planned invocations. Ask the owner before the run. A direct owner request for that workload is approval. Approval covers only the named commands and invocation count; a failed, interrupted, or additional run needs new approval. A general request to fix, verify, commit, push, or open a pull request is not approval.
+
+Raw development inference diagnostics are private and must not enter reports, product records, debug snapshots, user-interface data, or Git.
 
 During `pnpm desktop:dev`, the terminal shows WebView console output, unhandled WebView errors, and Garden Desk Core process output. This development-only stream is not stored and must not include prompts, messages, tool payloads, hidden reasoning, or file contents.
 
-- Run `pnpm test:m3:macos` on physical Apple silicon for the canonical headless M3 gate. It verifies the pinned Gemma 4 model, real multi-step Python tasks, artifacts, guest isolation, timeout, and output limits without the desktop UI; guest Node.js coverage is the direct-source probe only.
-- For a task-specific daemon reproduction, create an ignored script under `packages/eval/.generated/`. Use `createGardenDeskCore` with `packages/eval/.generated/models`, the generated macOS helper, and `packages/workers/images`; start the real current-user server with `startDaemon`; then call it through `packages/cli/src/client.ts` using `folders.add`, `sessions.create`, `agent.start`, and repeated `agent.get` requests until the run is terminal.
-- Put the ephemeral workspace directly under `/tmp` so the macOS Unix-socket path stays within its length limit. If the restricted shell returns `listen EPERM` or denies Virtualization.framework, rerun the same command outside the restricted shell; that sandbox denial is not a product failure.
-- Capture the terminal run state, error, response, and complete ordered events, including generated code, stdout, stderr, and termination. Reproduce once before editing and rerun the identical fixture and task after the fix.
-- Keep models, generated helpers, guest images, reproduction scripts, fixtures, and workspaces uncommitted. After the focused reproduction passes, run `pnpm test:m3:macos` and `pnpm verify`; report Windows evidence separately and never infer it from macOS.
+- With explicit approval, run `pnpm test:m3:macos` on physical Apple silicon for the canonical headless M3 gate. It verifies the pinned Gemma 4 model, real multi-step Python tasks, artifacts, guest isolation, timeout, and output limits without the desktop UI; guest Node.js coverage is the direct-source probe only.
+- For an approved task-specific daemon reproduction, create an ignored script under `packages/eval/.generated/`. Use `createGardenDeskCore` with `packages/eval/.generated/models`, the generated macOS helper, and `packages/workers/images`; start the real current-user server with `startDaemon`; then call it through `packages/cli/src/client.ts` using `folders.add`, `sessions.create`, `agent.start`, and repeated `agent.get` requests until the run is terminal.
+- Put the ephemeral workspace directly under `/tmp` so the macOS Unix-socket path stays within its length limit. If the restricted shell returns `listen EPERM` or denies Virtualization.framework, do not treat that sandbox denial as a product failure. Ask for new approval before a rerun outside the restricted shell.
+- Capture the terminal run state, error, response, and complete ordered events, including generated code, stdout, stderr, and termination. Run only the invocations that the owner approved.
+- Keep models, generated helpers, guest images, reproduction scripts, fixtures, and workspaces uncommitted. Report Windows evidence separately and never infer it from macOS.
 - After a real golden-task run, report the pass count (`golden: N/4 passed`) to the owner.
 
 Development inference diagnostics live in [packages/eval/src/gates/development-inference.ts](../packages/eval/src/gates/development-inference.ts).

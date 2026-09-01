@@ -5,8 +5,10 @@ description: Review a Garden Desk diff or pull request for actionable defects. U
 
 # Review A Garden Desk Change
 
+Top priority: apply the Minimum Work and Test Rules in [AGENTS.md](../../../AGENTS.md) to every review. Treat unnecessary production code and unnecessary tests as P2 defects. Never request a test beyond the Test Rule.
+
 Use [AGENTS.md](../../../AGENTS.md), accepted ADRs, and the active milestone as the baseline. Review in the order and with the P0-P3 severities in [the development workflow](../../../docs/DEVELOPMENT_WORKFLOW.md#5-review-and-hand-off).
 
-For each finding give a concise title, severity, exact path and line, the failure scenario, and the smallest valid remedy. Do not report style preferences as defects. Flag tests that exceed the Test Rule as P2.
+For each finding give a concise title, severity, exact path and line, the failure scenario, and the smallest valid remedy. Do not report style preferences as defects.
 
 Lead with findings. If there are none, say so and state the remaining verification limits. Review only; do not edit, approve, merge, or publish unless separately asked.
