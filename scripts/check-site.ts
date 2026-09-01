@@ -158,12 +158,23 @@ requireText(assetText, "max(790px,100svh - 96px)", "home demo viewport height");
 requireText(assetText, "min-width:1120px", "demo minimum width");
 requireText(assetText, "min-height:700px", "demo minimum height");
 requireText(assetText, "prefers-reduced-motion", "home reduced-motion fallback");
-if (
-  /@media\s*\(prefers-reduced-motion:\s*reduce\)\s*\{[^}]*\[data-steam\][^}]*animation:[^}]*branch-drift/u.test(
-    assetText,
-  )
+const reducedMotionPattern = /@media\s*\(prefers-reduced-motion:\s*reduce\)\s*\{/gu;
+for (
+  let match = reducedMotionPattern.exec(assetText);
+  match !== null;
+  match = reducedMotionPattern.exec(assetText)
 ) {
-  failures.push("home reduced motion: steam group still animates");
+  let depth = 1;
+  let index = reducedMotionPattern.lastIndex;
+  while (depth > 0 && index < assetText.length) {
+    if (assetText[index] === "{") depth += 1;
+    if (assetText[index] === "}") depth -= 1;
+    index += 1;
+  }
+  const block = assetText.slice(reducedMotionPattern.lastIndex, index);
+  if (/\.garden-scene[^{}]*\{[^{}]*animation:\s*(?!none\b)/u.test(block)) {
+    failures.push("home reduced motion: garden scene still animates");
+  }
 }
 if (!/IntersectionObserver/u.test(assetText)) {
   failures.push("home motion: missing scroll reveal observer");
