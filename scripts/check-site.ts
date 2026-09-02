@@ -160,7 +160,11 @@ if (socialCard.readUInt32BE(16) !== 1200 || socialCard.readUInt32BE(20) !== 630)
 
 const assets = (await files(output)).filter((path) => [".js", ".css"].includes(extname(path)));
 const assetText = (await Promise.all(assets.map((path) => readFile(path, "utf8")))).join("\n");
-const homeBundle = await readFile(join(output, "assets", "home.js"), "utf8").catch(() => "");
+const homeScript = home.match(/src="([^"]+\.js)"/u)?.[1];
+const homeBundle =
+  homeScript === undefined
+    ? ""
+    : await readFile(resolve(output, homeScript.slice(1)), "utf8").catch(() => "");
 requireText(assetText, ".skip-link:focus-visible", "home skip link");
 requireText(assetText, ".technical-details-action{display:none}", "demo technical details control");
 requireText(assetText, "max(790px,100svh - 96px)", "home demo viewport height");
