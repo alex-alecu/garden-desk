@@ -840,46 +840,6 @@ html.motion-ready [data-reveal].is-revealed {
   background: #0b2116;
 }
 
-.demo-mobile-gate {
-  position: absolute;
-  z-index: 2;
-  inset: 0;
-  display: none;
-  place-content: center;
-  padding: 30px;
-  color: var(--ink);
-  background:
-    radial-gradient(circle at 82% 18%, rgb(121 180 147 / 28%), transparent 18rem),
-    rgb(240 237 227 / 12.2%);
-  text-align: center;
-}
-
-.demo-mobile-gate .eyebrow {
-  margin-bottom: 10px;
-}
-
-.demo-mobile-gate h3 {
-  margin: 0;
-  font-family: "IBM Plex Serif", Charter, "Iowan Old Style", Georgia, serif;
-  font-size: clamp(30px, 9vw, 44px);
-  font-weight: 560;
-  line-height: 1.05;
-  letter-spacing: -0.035em;
-}
-
-.demo-mobile-gate > p:not(.eyebrow) {
-  max-width: 430px;
-  margin: 16px auto 0;
-  color: var(--ink-soft);
-  font-size: 15px;
-  line-height: 1.55;
-}
-
-.demo-mobile-gate .button {
-  width: fit-content;
-  margin: 24px auto 0;
-}
-
 .requirements-section {
   overflow: hidden;
   isolation: isolate;
@@ -1344,13 +1304,6 @@ html.motion-ready [data-reveal].is-revealed {
   background: #e5e8e7;
 }
 
-.demo-mobile-gate {
-  color: var(--ink);
-  background:
-    radial-gradient(circle at 82% 18%, rgb(157 196 176 / 28%), transparent 18rem),
-    rgb(240 237 227 / 12.2%);
-}
-
 .requirement-card {
   background: rgb(240 237 227 / 16%);
 }
@@ -1740,21 +1693,6 @@ html.motion-ready [data-reveal].is-revealed {
 @media (hover: none) and (pointer: coarse) and (min-width: 601px) {
   .skip-link {
     top: 102px;
-  }
-}
-
-@media (max-width: 1119px), (hover: none) and (pointer: coarse) {
-  .demo-viewport {
-    height: 430px;
-    min-height: 430px;
-  }
-
-  .demo-wrap iframe {
-    display: none;
-  }
-
-  .demo-mobile-gate {
-    display: grid;
   }
 }
 

@@ -12,6 +12,10 @@ body {
   overflow: auto;
 }
 
+body.embedded-demo {
+  grid-template-rows: minmax(0, 1fr);
+}
+
 .demo-frame {
   display: flex;
   min-height: 42px;
