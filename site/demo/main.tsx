@@ -7,6 +7,11 @@ import "./demo.css";
 import { DemoDesktopApi } from "./demo-api.js";
 import { guidedExamples } from "./demo-content.js";
 
+if (new URLSearchParams(window.location.search).has("embedded")) {
+  document.body.classList.add("embedded-demo");
+  document.querySelector(".demo-frame")?.remove();
+}
+
 const root = document.getElementById("root");
 if (root === null) throw new Error("Demo root element is missing.");
 

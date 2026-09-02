@@ -115,12 +115,17 @@ for (const path of htmlFiles) {
 }
 
 const home = await text("index.html");
-requireText(home, 'data-src="./demo/"', "home desktop demo source");
+requireText(home, 'data-src="./demo/?embedded"', "home embedded demo source");
 requireText(home, 'href="./demo/"', "home");
-requireText(home, "data-embedded-demo", "home mobile demo gate");
-requireText(home, "Open the demo to interact.", "home mobile demo gate");
+requireText(home, "data-home-demo", "home desktop demo");
+if (!/<section[^>]+data-home-demo[^>]+hidden/u.test(home)) {
+  failures.push("home desktop demo: section is visible before the viewport check");
+}
+if (home.includes("demo-mobile-gate")) {
+  failures.push("home mobile demo: fallback remains in the page");
+}
 if (/<iframe[^>]+data-embedded-demo[^>]+\ssrc=/u.test(home)) {
-  failures.push("home mobile demo gate: iframe loads before the desktop check");
+  failures.push("home desktop demo: iframe loads before the viewport check");
 }
 requireText(home, "SoftwareApplication", "home");
 requireText(home, "social-card.png", "home");
@@ -155,11 +160,21 @@ if (socialCard.readUInt32BE(16) !== 1200 || socialCard.readUInt32BE(20) !== 630)
 
 const assets = (await files(output)).filter((path) => [".js", ".css"].includes(extname(path)));
 const assetText = (await Promise.all(assets.map((path) => readFile(path, "utf8")))).join("\n");
+const homeScript = home.match(/src="([^"]+\.js)"/u)?.[1];
+const homeBundle =
+  homeScript === undefined
+    ? ""
+    : await readFile(resolve(output, homeScript.slice(1)), "utf8").catch(() => "");
 requireText(assetText, ".skip-link:focus-visible", "home skip link");
 requireText(assetText, ".technical-details-action{display:none}", "demo technical details control");
 requireText(assetText, "max(790px,100svh - 96px)", "home demo viewport height");
 requireText(assetText, "min-width:1120px", "demo minimum width");
 requireText(assetText, "min-height:700px", "demo minimum height");
+requireText(
+  assetText,
+  "body.embedded-demo{grid-template-rows:minmax(0,1fr)}",
+  "embedded demo layout",
+);
 requireText(assetText, "prefers-reduced-motion", "home reduced-motion fallback");
 const reducedMotionPattern = /@media\s*\(prefers-reduced-motion:\s*reduce\)\s*\{/gu;
 for (
@@ -182,20 +197,10 @@ for (
 if (!/IntersectionObserver/u.test(assetText)) {
   failures.push("home motion: missing scroll reveal observer");
 }
-if (!/toggleAttribute\([`'"]inert[`'"]/u.test(assetText)) {
-  failures.push("home mobile demo gate: missing inert iframe controller");
-}
-if (!/removeAttribute\([`'"]src[`'"]/u.test(assetText)) {
-  failures.push("home mobile demo gate: missing iframe unload");
-}
-if (!/setAttribute\([`'"]src[`'"]/u.test(assetText)) {
-  failures.push("home desktop demo: missing iframe load");
-}
-if (!/max-width:\s*1119px/u.test(assetText)) {
-  failures.push("home mobile demo gate: missing narrow viewport rule");
-}
-if (!/hover:\s*none\)?\s*and\s*\(pointer:\s*coarse/u.test(assetText)) {
-  failures.push("home mobile demo gate: missing touch-first device rule");
+requireText(homeBundle, "[data-home-demo]", "home desktop demo controller");
+if (!/\.remove\(\)/u.test(homeBundle)) failures.push("home mobile demo: section is not removed");
+if (!/\.hidden\s*=\s*!1/u.test(homeBundle)) {
+  failures.push("home desktop demo: section is not revealed");
 }
 for (const forbidden of [
   "@tauri-apps",
@@ -233,6 +238,12 @@ if (demoScript === undefined) {
   const bundlePath = resolve(output, demoScript.slice(1));
   const demoBundle = await readFile(bundlePath, "utf8").catch(() => "");
   if (demoBundle.length === 0) failures.push("demo: bundled script does not resolve");
+  requireText(demoBundle, "URLSearchParams", "embedded demo header");
+  requireText(demoBundle, ".demo-frame", "embedded demo header");
+  requireText(demoBundle, "embedded-demo", "embedded demo header");
+  if (!/\.remove\(\)/u.test(demoBundle)) {
+    failures.push("embedded demo header: standalone header is not removed");
+  }
 }
 
 if (failures.length > 0) {
