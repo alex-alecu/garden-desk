@@ -21,7 +21,6 @@ M3 Offline Dev-Agent Desktop V1 is active. The desktop runs one general-purpose 
 
 ## What Remains Open
 
-- A current Windows golden-task gate. On 2026-09-03, commit `6ffb71b` failed before guest start because the local x86-64 agent root image did not match the immutable manifest.
 - Blind qualified-reviewer check of the professional review skills' outputs (legal, finance, medical administration) on both platforms before public release.
 - Packaged Open and Save As for generated files, observed on the built macOS and Windows applications.
 - Windows setup certified under a dedicated standard-user account (current evidence used an administrator account with UAC filtering).
@@ -29,14 +28,13 @@ M3 Offline Dev-Agent Desktop V1 is active. The desktop runs one general-purpose 
 
 ## 2026-09-03 Windows Gate Result
 
-The run used physical Windows x64 after `git fetch origin main`. The checked commit was the current `origin/main` tip, `6ffb71b`.
+The run used physical Windows x64 after `git fetch origin main`. The checked base commit was the current `origin/main` tip, `6ffb71b`. The first run found that the x86-64 root-image hash in the manifest was stale after the product-name change.
 
-- `pnpm install --frozen-lockfile` passed.
-- `pnpm guest:build:agent:windows` failed the immutable image check. The two independent builds were byte-for-byte equal. The kernel SHA-256 was the required `9fabee42a89b8128aa9f16dee4d43289c113f8b2aea398cabc904b6911a41dea`. The root image SHA-256 was `452478a3997469786ebfe14471da2983b5417f3033089d6c5ca513c1c65a7b63`, but the manifest requires `8b7cf436d933f5698147e50e12d3e866516e1a71fa11e14da3e6bd84dca2488a`.
-- `pnpm desktop:build-sidecar` failed when it checked the x86-64 guest image against the same manifest.
-- `pnpm test:m3:windows` exited with code 1 and reported `Agent initramfs hash mismatch.` The guest did not start. The real model and all four golden folder tasks did not run. No golden pass count was printed.
+- `pnpm guest:build:agent:windows` passed after the manifest fix. The two independent builds were byte-for-byte equal. The kernel SHA-256 was `9fabee42a89b8128aa9f16dee4d43289c113f8b2aea398cabc904b6911a41dea`. The root-image SHA-256 was `452478a3997469786ebfe14471da2983b5417f3033089d6c5ca513c1c65a7b63`.
+- `pnpm desktop:build-sidecar` passed and recorded the same two image hashes.
+- `pnpm test:m3:windows` passed the guest boundary checks and all four golden tasks: XLSX extraction, DOCX extraction, PDF extraction, and the mixed-folder report. It printed `golden: 4/4 passed`.
 
-This result does not pass the Windows M3 gate. It is an image reproducibility and manifest failure, not a model-quality result.
+This result passes the current Windows headless M3 gate. Packaged application checks and the other open release items remain separate.
 
 ## Running The Golden Tasks
 
