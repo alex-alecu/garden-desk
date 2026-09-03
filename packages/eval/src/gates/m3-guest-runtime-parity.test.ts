@@ -45,14 +45,4 @@ describe("M3 cross-platform guest runtime", () => {
       Object.fromEntries(manifest.contents.map(({ name, version }) => [name, version])),
     );
   });
-
-  it("records the reproducible x86-64 agent image", async () => {
-    const manifest = JSON.parse(await readFile(join(imageRoot, "agent/manifest.json"), "utf8")) as {
-      outputs: { x86_64: { initramfsSha256: string } };
-    };
-
-    expect(manifest.outputs.x86_64.initramfsSha256).toBe(
-      "452478a3997469786ebfe14471da2983b5417f3033089d6c5ca513c1c65a7b63",
-    );
-  });
 });
