@@ -1,6 +1,6 @@
 # Milestone M3 Status
 
-Updated: 2026-08-30
+Updated: 2026-09-03
 
 M3 Offline Dev-Agent Desktop V1 is active. The desktop runs one general-purpose local agent per conversation: a system prompt plus a fixed tool set, executing every file read and every command inside a no-network microVM (a virtual machine with no network interface).
 
@@ -25,6 +25,16 @@ M3 Offline Dev-Agent Desktop V1 is active. The desktop runs one general-purpose 
 - Packaged Open and Save As for generated files, observed on the built macOS and Windows applications.
 - Windows setup certified under a dedicated standard-user account (current evidence used an administrator account with UAC filtering).
 - Release signing: macOS Developer ID notarization and Windows Authenticode signing under the production certificate.
+
+## 2026-09-03 Windows Gate Result
+
+The run used physical Windows x64 after `git fetch origin main`. The checked base commit was the current `origin/main` tip, `6ffb71b`. The first run found that the x86-64 root-image hash in the manifest was stale after the product-name change.
+
+- `pnpm guest:build:agent:windows` passed after the manifest fix. The two independent builds were byte-for-byte equal. The kernel SHA-256 was `9fabee42a89b8128aa9f16dee4d43289c113f8b2aea398cabc904b6911a41dea`. The root-image SHA-256 was `452478a3997469786ebfe14471da2983b5417f3033089d6c5ca513c1c65a7b63`.
+- `pnpm desktop:build-sidecar` passed and recorded the same two image hashes.
+- `pnpm test:m3:windows` passed the guest boundary checks and all four golden tasks: XLSX extraction, DOCX extraction, PDF extraction, and the mixed-folder report. It printed `golden: 4/4 passed`.
+
+This result passes the current Windows headless M3 gate. Packaged application checks and the other open release items remain separate.
 
 ## Running The Golden Tasks
 
