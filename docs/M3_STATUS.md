@@ -36,6 +36,14 @@ The run used physical Windows x64 after `git fetch origin main`. The checked bas
 
 This result passes the current Windows headless M3 gate. Packaged application checks and the other open release items remain separate.
 
+## 2026-09-03 macOS Gate Result
+
+The run used physical Apple silicon on macOS 26.6.2 at the current `origin/main` tip, `ebe19d0`. No product fix was necessary.
+
+- `pnpm test:m3:macos` passed the guest boundary checks and all four golden tasks: XLSX extraction, DOCX extraction, PDF extraction, and the mixed-folder report. It printed `golden: 4/4 passed`.
+
+This result passes the current macOS headless M3 gate. Packaged application checks and the other open release items remain separate.
+
 ## Running The Golden Tasks
 
 `pnpm test:m3:macos` and `pnpm test:m3:windows` run the guest security probes (no network interface, read-only `/source`, cancellation, resource limits, persistence), then four golden folder tasks — XLSX extraction, DOCX extraction, PDF extraction, and a mixed-folder report — each through one real agent run, checked deterministically against known fixture values. They print `golden: N/4 passed` and exit non-zero if any task fails. There is no separate readiness record or result classification beyond that count.
