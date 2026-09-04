@@ -18,7 +18,7 @@ import { Icon } from "./icons.js";
 import { StepList } from "./step-list.js";
 import { selectAdjacentTab } from "./tab-keyboard.js";
 import { sessionTitle } from "./technical-details-title.js";
-import { TechnicalModelUsage } from "./technical-model-usage.js";
+import { TechnicalOverviewTable } from "./technical-overview-table.js";
 import { TranscriptCopy } from "./transcript-copy.js";
 
 export { shouldFollowLog } from "./technical-logs.js";
@@ -147,14 +147,26 @@ function Overview({
   const limits = timeline.find((item) => item.eventType === "run.started")?.text;
   return (
     <div className="technical-details-scroll" role="tabpanel" id="technical-overview-panel">
-      {limits === undefined && executions.length === 0 ? (
-        <p className="technical-details-empty">Technical details will appear after a task runs.</p>
-      ) : null}
+      <article className="technical-details-item technical-overview">
+        <TechnicalOverviewTable
+          catalogPath={catalogPath}
+          contextAllocatedTokens={contextAllocatedTokens}
+          contextUsedTokens={contextUsedTokens}
+          limits={limits}
+          model={model}
+          sessionId={sessionId}
+        />
+        <details>
+          <summary>Show tools and runtimes</summary>
+          <pre>{guestCapabilities()}</pre>
+        </details>
+      </article>
       {sessionId === undefined ? null : (
-        <article className="technical-details-item">
-          <p className="technical-path">Local session ID: {sessionId}</p>
-          <p className="technical-path">Catalog path: {catalogPath}</p>
+        <article className="technical-details-item technical-overview">
           <p className="debug-snapshot-purpose">AI agent debugging snapshot</p>
+          <p className="technical-limits">
+            The snapshot contains saved workspace files and a file list. It is not the live folder.
+          </p>
           <p className="technical-limits">
             Create this for an AI coding agent such as Codex or Claude Code. It contains this
             session&apos;s SQLite-backed records, workspace, generated files, inference traces, and
@@ -176,19 +188,6 @@ function Overview({
           />
         </article>
       )}
-      <article className="technical-details-item">
-        <p>Certified guest capabilities</p>
-        <TechnicalModelUsage
-          contextAllocatedTokens={contextAllocatedTokens}
-          contextUsedTokens={contextUsedTokens}
-          model={model}
-        />
-        {limits === undefined ? null : <p className="technical-limits">{limits}</p>}
-        <details>
-          <summary>Show tools and runtimes</summary>
-          <pre>{guestCapabilities()}</pre>
-        </details>
-      </article>
     </div>
   );
 }

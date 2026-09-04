@@ -1971,45 +1971,37 @@ textarea:focus-visible {
   white-space: pre-wrap;
 }
 
-.technical-details-item .technical-path {
-  overflow-wrap: anywhere;
+.technical-details-item.technical-overview {
+  border: 0;
+  background: transparent;
 }
 
-.technical-model-usage {
-  display: grid;
-  gap: 6px;
-  margin: 10px 0 0;
+.technical-overview-table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
   font-size: 12px;
 }
 
-.technical-model-usage div {
-  display: flex;
-  justify-content: space-between;
-  gap: 14px;
+.technical-overview-table th,
+.technical-overview-table td {
+  padding: 7px 0;
+  border: 0;
+  vertical-align: top;
+  overflow-wrap: anywhere;
+  text-align: left;
+  line-height: 1.5;
 }
 
-.technical-model-usage dt {
-  color: var(--ink-soft);
-}
-
-.technical-model-usage dd {
-  margin: 0;
-  font-weight: 650;
-  font-variant-numeric: tabular-nums;
-  text-align: right;
-}
-
-.technical-model-usage .technical-model-reason {
-  display: block;
-  margin-top: 4px;
-}
-
-.technical-model-reason dd {
-  margin-top: 2px;
+.technical-overview-table th {
+  width: 36%;
+  padding-right: 14px;
   color: var(--ink-soft);
   font-weight: 400;
-  line-height: 1.45;
-  text-align: left;
+}
+
+.technical-overview-table td {
+  font-variant-numeric: tabular-nums;
 }
 
 .technical-details-item .technical-limits {
@@ -2602,7 +2594,7 @@ textarea:focus-visible {
   background: var(--reading-raised);
 }
 
-.app-shell[data-theme="dark"] .technical-details-item {
+.app-shell[data-theme="dark"] .technical-details-item:not(.technical-overview) {
   color: #c8c7c3;
   background: rgb(36 38 40 / 92%);
 }
@@ -3093,10 +3085,8 @@ textarea:focus-visible {
   height: 15px;
 }
 
-.technical-context-meter dd {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+.technical-context-meter .context-meter-track {
+  margin-top: 4px;
 }
 
 .context-meter-track {

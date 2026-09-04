@@ -6,28 +6,29 @@ function formatTokens(tokens: number): string {
   return `${Number((tokens / 1_000).toFixed(1))}K`;
 }
 
-function GpuMemoryLine({ usage }: { usage: NonNullable<ReturnType<typeof gpuMemoryUsage>> }) {
-  const memory = usage.budget === undefined ? usage.used : `${usage.used} of ${usage.budget}`;
+function GpuMemoryLine({ usage }: { usage: ReturnType<typeof gpuMemoryUsage> }) {
+  const memory =
+    usage === undefined ? "Not available" : `${usage.used} of ${usage.budget ?? "Not available"}`;
   const sequences =
-    usage.sequences !== undefined && usage.sequences > 1
+    usage?.sequences !== undefined && usage.sequences > 1
       ? ` · ${usage.sequences} parallel sequences`
       : "";
   return (
-    <div>
-      <dt>{usage.label}</dt>
-      <dd>
+    <tr>
+      <th scope="row">{usage?.label ?? "GPU memory"}</th>
+      <td>
         {memory}
         {sequences}
-      </dd>
-    </div>
+      </td>
+    </tr>
   );
 }
 
 function ContextMeterRow({ meter }: { meter: NonNullable<ReturnType<typeof contextMeter>> }) {
   return (
-    <div className="technical-context-meter">
-      <dt>Context</dt>
-      <dd>
+    <tr className="technical-context-meter">
+      <th scope="row">Context</th>
+      <td>
         <span className="context-meter-label">
           {formatTokens(meter.used)} / {formatTokens(meter.allocated)} · {meter.percent}%
         </span>
@@ -37,8 +38,8 @@ function ContextMeterRow({ meter }: { meter: NonNullable<ReturnType<typeof conte
         >
           <span className="context-meter-fill" style={{ width: `${meter.percent}%` }} />
         </span>
-      </dd>
-    </div>
+      </td>
+    </tr>
   );
 }
 
@@ -53,11 +54,18 @@ export function TechnicalModelUsage({
 }) {
   const gpuMemory = gpuMemoryUsage(model);
   const meter = contextMeter(contextUsedTokens, contextAllocatedTokens, model);
-  if (gpuMemory === undefined && meter === undefined) return null;
+  const allocated = contextAllocatedTokens ?? model.contextSizeTokens;
   return (
-    <dl className="technical-model-usage">
-      {gpuMemory === undefined ? null : <GpuMemoryLine usage={gpuMemory} />}
-      {meter === undefined ? null : <ContextMeterRow meter={meter} />}
-    </dl>
+    <>
+      <GpuMemoryLine usage={gpuMemory} />
+      {meter === undefined ? (
+        <tr>
+          <th scope="row">Context</th>
+          <td>Not available{allocated === undefined ? "" : ` / ${formatTokens(allocated)}`}</td>
+        </tr>
+      ) : (
+        <ContextMeterRow meter={meter} />
+      )}
+    </>
   );
 }
