@@ -160,6 +160,16 @@ class GardenModel {
     }
   }
 
+  entrance(): void {
+    this.box("stone", [0, 1.43, -4.3], [1.65, 2.86, 2]);
+    this.box("roofSlate", [0, 2.94, -4.3], [1.85, 0.16, 2.2]);
+    this.box("cream", [0, 1.28, -3.265], [1.15, 2.5, 0.1]);
+    this.box("leafDark", [0, 1.28, -3.2], [0.97, 2.32, 0.04]);
+    this.box("cityGlass", [0, 1.75, -3.17], [0.73, 0.92, 0.025]);
+    this.box("iron", [0.33, 1.12, -3.12], [0.16, 0.04, 0.07]);
+    this.box("stone", [0, 0.11, -2.99], [1.35, 0.22, 0.6]);
+  }
+
   city(): void {
     const transform = new Object3D();
     for (const { surface, shape, pieces } of createCity()) {
@@ -196,9 +206,11 @@ class GardenModel {
   }
 
   plants(): void {
-    this.box("pot", [0, 0.36, -3.85], [6.2, 0.72, 1.2]);
-    this.box("soil", [0, 0.725, -3.85], [5.95, 0.025, 0.96]);
-    for (let i = 0; i < 5; i++)
+    for (const x of [-2, 2]) {
+      this.box("pot", [x, 0.36, -3.85], [2.2, 0.72, 1.2]);
+      this.box("soil", [x, 0.725, -3.85], [1.95, 0.025, 0.96]);
+    }
+    for (const i of [0, 1, 3, 4])
       this.crown([-2.2 + i * 1.1, 1.24, -3.85], [0.48, 0.38, 0.45], 140, 190 + i);
     for (const side of [-1, 1]) {
       this.box("pot", [side * 2.85, 0.33, 0.3], [0.9, 0.66, 8.1]);
@@ -277,6 +289,7 @@ export function createGarden(): GardenModel {
   garden.city();
   garden.ground();
   garden.walls();
+  garden.entrance();
   garden.plants();
   garden.desk();
   return garden;
