@@ -21,6 +21,7 @@ export interface InferenceExecution {
   memoryBudgetBytes: number;
   timeoutMs: number;
   signal?: AbortSignal;
+  reasoning?: Map<string, string>;
   onThinkingDelta?(text: string): void;
   onResponseDelta?(text: string): void;
 }

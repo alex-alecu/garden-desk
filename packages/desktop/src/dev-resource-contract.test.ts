@@ -20,17 +20,25 @@ describe("desktop development resource contract", () => {
   it("requires only macOS runtime outputs on Apple silicon", () => {
     const contract = developmentResourceContract(desktopRoot, repositoryRoot, "darwin", "arm64");
     expect(contract.requiredOutputs).toContain(
-      join(desktopRoot, "src-tauri", "resources", "core", "inference", "node"),
+      join(
+        desktopRoot,
+        "src-tauri",
+        "resources",
+        "core",
+        "inference",
+        "macos-arm64",
+        "llama-server",
+      ),
     );
     expect(contract.requiredOutputs.some((path) => path.endsWith("node.exe"))).toBe(false);
     expect(contract.requiredOutputs.some((path) => path.includes("win-x64"))).toBe(false);
     expect(contract.inputRoots.some((path) => path.includes("windows-appcontainer"))).toBe(false);
     expect(contract.requiredOutputs.some((path) => path.includes("hyper-v-setup"))).toBe(false);
-    expect(contract.inputRoots.some((path) => path.endsWith("gemma-4-12b-it-qat-q4_0.gguf"))).toBe(
+    expect(contract.inputRoots.some((path) => path.endsWith("qwen3.8-27b-ud-iq4_xs.gguf"))).toBe(
       true,
     );
     expect(
-      contract.requiredOutputs.some((path) => path.endsWith("gemma-4-12b-it-qat-q4_0.gguf")),
+      contract.requiredOutputs.some((path) => path.endsWith("qwen3.8-27b-ud-iq4_xs.gguf")),
     ).toBe(false);
   });
 });
@@ -39,7 +47,15 @@ describe("desktop Windows development resource contract", () => {
   it("requires only Windows runtime outputs on Windows x64", () => {
     const contract = developmentResourceContract(desktopRoot, repositoryRoot, "win32", "x64");
     expect(contract.requiredOutputs).toContain(
-      join(desktopRoot, "src-tauri", "resources", "core", "inference", "node.exe"),
+      join(
+        desktopRoot,
+        "src-tauri",
+        "resources",
+        "core",
+        "inference",
+        "windows-cuda-x64",
+        "llama-server.exe",
+      ),
     );
     expect(contract.requiredOutputs.some((path) => path.includes("mac-arm64-metal"))).toBe(false);
     expect(contract.requiredOutputs.some((path) => path.endsWith("garden-desk-vz-helper"))).toBe(

@@ -1,6 +1,6 @@
 // biome-ignore lint/style/noRestrictedImports: this module launches the bounded GPU fact probes.
 import { spawn } from "node:child_process";
-import { dirname, extname, join, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import type { NativeWorkerHandle } from "./launcher.js";
 import {
   defaultWindowsInferenceHelperPath,
@@ -11,7 +11,6 @@ import {
 import { isExpectedWindowsGpuIdentity } from "./windows-gpu-identity.js";
 import {
   parseWindowsGpuInfo,
-  parseWindowsRuntimeProbe,
   resolveWindowsGpuProfileFromFacts,
   type WindowsGpuProfile,
   type WindowsRuntimeProbeResult,
@@ -38,7 +37,9 @@ function resolvedOptions(input: ResolveWindowsGpuProfileOptions): ResolvedOption
   return {
     workerEntryPath: input.workerEntryPath,
     helperPath: resolve(input.helperPath ?? defaultWindowsInferenceHelperPath()),
-    runtimePath: resolve(input.runtimePath ?? process.execPath),
+    runtimePath: resolve(
+      input.runtimePath ?? "packages/eval/.generated/inference/windows-cuda-x64/llama-server.exe",
+    ),
   };
 }
 
@@ -91,18 +92,12 @@ async function gpuInfo(options: ResolvedOptions) {
   const output = await collectWindowsGpuProcess(
     spawn(options.helperPath, ["gpu-info"], {
       env: windowsHelperEnvironment(),
+      windowsHide: true,
       stdio: ["ignore", "pipe", "pipe"],
     }),
     "windows_gpu_info_failed",
   );
   return parseWindowsGpuInfo(output);
-}
-
-function hardwareWorkerPath(workerEntryPath: string): string {
-  return join(
-    dirname(workerEntryPath),
-    extname(workerEntryPath) === ".mjs" ? "hardware-worker.mjs" : "hardware-worker.js",
-  );
 }
 
 async function collectHandle(handle: NativeWorkerHandle): Promise<string> {
@@ -118,14 +113,38 @@ async function runtimeProbe(
   options: ResolvedOptions,
   gpu: WindowsGpuLaunch,
 ): Promise<WindowsRuntimeProbeResult | undefined> {
-  const launcher = new WindowsNativeWorkerLauncher(options.helperPath, options.runtimePath, {
-    gpu,
-  });
+  const launcher = new WindowsNativeWorkerLauncher(
+    options.helperPath,
+    windowsServerPath(options.runtimePath, gpu.backend),
+    {
+      gpu,
+    },
+  );
   const handle = await launcher.launch({
-    workerEntryPath: hardwareWorkerPath(options.workerEntryPath),
+    workerEntryPath: options.workerEntryPath,
     memoryBudgetBytes: PROBE_MEMORY_BYTES,
+    serverArguments: ["--list-devices", "--offline"],
   });
-  return parseWindowsRuntimeProbe(await collectHandle(handle));
+  const output = await collectHandle(handle);
+  const devices = [
+    ...output.matchAll(/^\s*(?:CUDA|Vulkan)\d+:\s+(.+?)\s+\((\d+)\s+MiB,\s*(\d+)\s+MiB free\)/gmu),
+  ];
+  if (devices.length === 0) return undefined;
+  return {
+    schemaVersion: 1,
+    backend: gpu.backend,
+    deviceNames: devices.map((match) => match[1] as string),
+    totalMemoryBytes: Number(devices[0]?.[2]) * 1024 ** 2,
+    availableMemoryBytes: Number(devices[0]?.[3]) * 1024 ** 2,
+  };
+}
+
+export function windowsServerPath(path: string | undefined, backend: "cuda" | "vulkan"): string {
+  const base =
+    path ?? resolve("packages/eval/.generated/inference/windows-cuda-x64/llama-server.exe");
+  return backend === "cuda"
+    ? base
+    : join(dirname(dirname(base)), "windows-vulkan-x64", "llama-server.exe");
 }
 
 export async function resolveWindowsGpuProfile(
@@ -178,7 +197,7 @@ export async function assertWindowsVisionSelection(
   profile: WindowsGpuProfile,
 ): Promise<void> {
   await assertWindowsGpuSelection(input, profile, {
-    backend: "vulkan",
+    backend: profile.selection.backend,
     deviceIndex: profile.visionSelection.deviceIndex,
     expectedName: profile.visionSelection.expectedName,
   });

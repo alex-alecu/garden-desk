@@ -15,9 +15,9 @@ const helper = join(
 );
 const images = join(repositoryRoot, "packages/workers/images");
 const modelRoot = join(repositoryRoot, "packages/eval/.generated/models");
-const visionRuntime = join(
+const inferenceRuntime = join(
   repositoryRoot,
-  "packages/eval/.generated/vision/macos-arm64/llama-mtmd-cli",
+  "packages/eval/.generated/inference/macos-arm64/llama-server",
 );
 
 if (process.platform !== "darwin" || process.arch !== "arm64") {
@@ -35,7 +35,7 @@ try {
     agentHelperPath: helper,
     agentImageRoot: images,
     workerEntryPath: developmentInferenceWorkerEntryPath(),
-    visionRuntimePath: visionRuntime,
+    inferenceRuntimePath: inferenceRuntime,
   });
   try {
     await runGoldenTasks(core, root);

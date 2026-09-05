@@ -7,9 +7,7 @@ describe("automatic inference hardware policy", () => {
   it.each([
     [48, 16],
     [32, 16],
-    [24, 12],
-    [18, 12],
-    [16, 10],
+    [24, 16],
   ])("uses a %d GiB Mac with a %d GiB model and context budget", (memory, budget) => {
     expect(resolveInferenceHardwarePolicy("auto", "darwin", memory * GiB)).toEqual({
       supported: true,
@@ -20,22 +18,23 @@ describe("automatic inference hardware policy", () => {
   it("rejects an 8 GiB Mac before inference starts", () => {
     expect(resolveInferenceHardwarePolicy("auto", "darwin", 8 * GiB)).toEqual({
       supported: false,
-      message: "This Mac has 8 GB of memory. Garden Desk requires more memory to run locally.",
+      message: "Garden Desk requires a Mac with at least 24 GB of memory.",
     });
   });
 
   it("uses system memory only as the Windows worker process bound", () => {
     expect(resolveInferenceHardwarePolicy("auto", "win32", 64 * GiB)).toEqual({
       supported: true,
-      memoryBudgetBytes: 64 * GiB,
+      memoryBudgetBytes: 16 * GiB,
     });
   });
 
-  it("preserves explicit certification budgets", () => {
-    expect(resolveInferenceHardwarePolicy("local12", "darwin", 48 * GiB)).toEqual({
+  it("checks hardware before an explicit profile", () => {
+    expect(resolveInferenceHardwarePolicy("local16", "darwin", 48 * GiB)).toEqual({
       supported: true,
-      memoryBudgetBytes: 12 * GiB,
+      memoryBudgetBytes: 16 * GiB,
     });
+    expect(resolveInferenceHardwarePolicy("local16", "darwin", 16 * GiB).supported).toBe(false);
     expect(resolveInferenceHardwarePolicy("local16", "win32", 64 * GiB)).toEqual({
       supported: true,
       memoryBudgetBytes: 16 * GiB,
@@ -45,19 +44,19 @@ describe("automatic inference hardware policy", () => {
 
 describe("agent VM memory policy", () => {
   it.each([
-    [16, 10, 1],
-    [24, 12, 1],
-    [32, 16, 2],
-    [48, 16, 5],
+    [16, 16, 0],
+    [24, 16, 1],
+    [32, 16, 3],
+    [48, 16, 7],
   ])("allows %d GiB Macs %d GiB inference and %d agent VMs", (memory, inference, sessions) => {
     expect(resolveAgentSessionCapacity(inference * GiB, memory * GiB)).toBe(sessions);
   });
 
   it.each([
-    [32, 5],
-    [64, 12],
-    [128, 25],
+    [32, 3],
+    [64, 11],
+    [128, 27],
   ])("keeps discrete GPU VRAM outside the %d GiB Windows host RAM pool", (memory, sessions) => {
-    expect(resolveAgentSessionCapacity(2 * GiB, memory * GiB)).toBe(sessions);
+    expect(resolveAgentSessionCapacity(16 * GiB, memory * GiB)).toBe(sessions);
   });
 });

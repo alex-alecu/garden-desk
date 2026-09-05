@@ -3,14 +3,10 @@ export function nativeRuntimePackages(
   architecture: string = process.arch,
 ): string[] {
   if (platform === "darwin" && architecture === "arm64") {
-    return ["@node-llama-cpp/mac-arm64-metal"];
+    return ["macos-arm64"];
   }
   if (platform === "win32" && architecture === "x64") {
-    return [
-      "@node-llama-cpp/win-x64-cuda",
-      "@node-llama-cpp/win-x64-cuda-ext",
-      "@node-llama-cpp/win-x64-vulkan",
-    ];
+    return ["windows-cuda-x64", "windows-vulkan-x64"];
   }
   throw new Error("Unsupported Garden Desk inference runtime target.");
 }

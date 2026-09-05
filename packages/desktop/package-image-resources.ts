@@ -6,7 +6,7 @@ import * as model from "./src/package-model-contract.js";
 import type { ResourceHashes } from "./src/resource-hashes.js";
 
 type HashFile = (path: string) => Promise<string>;
-interface VisionRuntimeManifest {
+interface InferenceRuntimeManifest {
   platforms: Record<
     string,
     {
@@ -20,13 +20,17 @@ const desktopRoot = fileURLToPath(new URL(".", import.meta.url));
 const repositoryRoot = resolve(desktopRoot, "../..");
 const resourcesRoot = join(desktopRoot, "src-tauri", "resources", "core");
 
-function visionPlatform(): "macos-arm64" | "windows-vulkan-x64" {
-  if (process.platform === "darwin" && process.arch === "arm64") return "macos-arm64";
-  if (process.platform === "win32" && process.arch === "x64") return "windows-vulkan-x64";
-  throw new Error("Unsupported image inspection package target.");
+function runtimePlatforms(): string[] {
+  if (process.platform === "darwin" && process.arch === "arm64") return ["macos-arm64"];
+  if (process.platform === "win32" && process.arch === "x64")
+    return ["windows-cuda-x64", "windows-vulkan-x64"];
+  throw new Error("Unsupported inference package target.");
 }
 
-export function visionResourceNames(manifest: VisionRuntimeManifest, platform: string): string[] {
+export function runtimeResourceNames(
+  manifest: InferenceRuntimeManifest,
+  platform: string,
+): string[] {
   const runtime = manifest.platforms[platform];
   if (runtime === undefined) throw new Error("Image inspection runtime platform is missing.");
   const names = [
@@ -53,37 +57,43 @@ async function requireFetchedAsset(path: string, fetchCommand: string): Promise<
   }
 }
 
-export async function installVisionResources(
+export async function installRuntimeResources(
   sha256: HashFile,
-): Promise<Pick<ResourceHashes, "visionRuntime">> {
-  reportDevelopmentResourceStage("visionRuntime");
-  const platform = visionPlatform();
-  const source = join(repositoryRoot, "packages/eval/.generated/vision", platform);
-  await requireFetchedAsset(source, "pnpm vision:fetch");
-  const destination = join(resourcesRoot, "inference", "vision");
+  destinationRoot: string,
+): Promise<Pick<ResourceHashes, "inferenceRuntime">> {
+  reportDevelopmentResourceStage("inferenceRuntime");
   const manifest = JSON.parse(
-    await readFile(join(repositoryRoot, "assets/vision-runtime.json"), "utf8"),
-  ) as VisionRuntimeManifest;
-  const names = visionResourceNames(manifest, platform);
-  await rm(destination, { recursive: true, force: true });
-  await mkdir(destination, { recursive: true });
-  await Promise.all(names.map((name) => copyFile(join(source, name), join(destination, name))));
-  const executable = join(
-    destination,
-    process.platform === "win32" ? "llama-mtmd-cli.exe" : "llama-mtmd-cli",
-  );
-  await chmod(executable, 0o755);
+    await readFile(join(repositoryRoot, "assets/inference-runtime.json"), "utf8"),
+  ) as InferenceRuntimeManifest;
   const hashes: Record<string, string> = {};
-  for (const entry of await readdir(destination, { withFileTypes: true })) {
-    if (!entry.isFile()) throw new Error("Image inspection runtime must contain files only.");
-    hashes[entry.name] = await sha256(join(destination, entry.name));
+  for (const platform of runtimePlatforms()) {
+    const source = join(repositoryRoot, "packages/eval/.generated/inference", platform);
+    await requireFetchedAsset(source, `pnpm inference:fetch --platform ${platform}`);
+    const destination = join(destinationRoot, platform);
+    const names = runtimeResourceNames(manifest, platform);
+    await rm(destination, { recursive: true, force: true });
+    await mkdir(destination, { recursive: true });
+    await Promise.all(names.map((name) => copyFile(join(source, name), join(destination, name))));
+    await chmod(
+      join(destination, (manifest.platforms[platform] as { executable: string }).executable),
+      0o755,
+    );
+    for (const entry of await readdir(destination, { withFileTypes: true })) {
+      if (!entry.isFile()) throw new Error("Inference runtime must contain files only.");
+      hashes[`${platform}/${entry.name}`] = await sha256(join(destination, entry.name));
+    }
   }
   await mkdir(join(resourcesRoot, "licenses"), { recursive: true });
-  await copyFile(
-    join(repositoryRoot, "assets/licenses/llama.cpp-LICENSE.txt"),
-    join(resourcesRoot, "licenses/llama.cpp-LICENSE.txt"),
-  );
-  return { visionRuntime: hashes };
+  const licenses = [
+    "llama.cpp-LICENSE.txt",
+    ...(process.platform === "win32" ? ["cuda-EULA.html", "llvm-OpenMP-LICENSE.txt"] : []),
+  ];
+  for (const license of licenses)
+    await copyFile(
+      join(repositoryRoot, "assets/licenses", license),
+      join(resourcesRoot, "licenses", license),
+    );
+  return { inferenceRuntime: hashes };
 }
 
 export async function installImageModelResources(
@@ -97,13 +107,13 @@ export async function installImageModelResources(
       modelId: model.generationModelId,
       storeKey: model.generationModelFileName,
       source: model.canonicalGenerationModelPath(repositoryRoot),
-      runtimeBuild: "node-llama-cpp@3.19.0",
+      runtimeBuild: "llama.cpp@b10816",
     },
     {
       modelId: model.projectorModelId,
       storeKey: model.projectorModelFileName,
       source: model.canonicalProjectorModelPath(repositoryRoot),
-      runtimeBuild: "llama.cpp@b9842",
+      runtimeBuild: "llama.cpp@b10816",
     },
   ] as const;
   for (const candidate of candidates) {

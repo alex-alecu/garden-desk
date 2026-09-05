@@ -53,28 +53,27 @@ async function files(root: string, directory = root): Promise<string[]> {
 
 const hostPackages = [
   { name: "Node.js", version: "24.18.0", license: "MIT" },
-  { name: "node-llama-cpp", version: "3.19.0", license: "MIT" },
   {
     name: "llama.cpp",
-    version: "b9842",
+    version: "b10816",
     license: "MIT",
     notice: "License text: licenses/llama.cpp-LICENSE.txt",
     source: {
       file:
         process.platform === "win32"
-          ? "llama-b9842-bin-win-vulkan-x64.zip"
-          : "llama-b9842-bin-macos-arm64.tar.gz",
+          ? "llama-b10816-bin-win-cuda-13.3-x64.zip"
+          : "llama-b10816-bin-macos-arm64.tar.gz",
       sha256:
         process.platform === "win32"
-          ? "8056f5c2fd8863a9b02719db527edd3c51f16567abb26981de4292d8d797444e"
-          : "c2903c14b9e0cf60a62fc85b8b8ab379267f5f849b9c6f29c8a4e21d299fa62b",
+          ? "f362882b139862e04714cce6ecb886ab82e256bdd0717c6010f24082fd340c57"
+          : "726ca8e7680203280b72029f92380aaf482e6a48ebe4a73fbe934ccc0bcf2de9",
       url:
         process.platform === "win32"
-          ? "https://github.com/ggml-org/llama.cpp/releases/download/b9842/llama-b9842-bin-win-vulkan-x64.zip"
-          : "https://github.com/ggml-org/llama.cpp/releases/download/b9842/llama-b9842-bin-macos-arm64.tar.gz",
+          ? "https://github.com/ggml-org/llama.cpp/releases/download/b10816/llama-b10816-bin-win-cuda-13.3-x64.zip"
+          : "https://github.com/ggml-org/llama.cpp/releases/download/b10816/llama-b10816-bin-macos-arm64.tar.gz",
     },
   },
-  { name: "Gemma 4 12B IT QAT GGUF", version: "Q4_0", license: "Apache-2.0" },
+  { name: "Qwen3.8 27B GGUF", version: "UD-IQ4_XS", license: "Apache-2.0" },
   { name: "React", version: "19.2.7", license: "MIT" },
   { name: "Tauri", version: "2.11.5", license: "Apache-2.0 OR MIT" },
 ];
@@ -89,17 +88,18 @@ function platformPackages(): NoticePackage[] {
           purpose: "DXCore GPU and installed-memory discovery in the Windows inference helper",
         },
         {
-          name: "Microsoft Visual C++ OpenMP Runtime",
-          version: "MSVC 19.50.35721",
-          license: "Microsoft Software License Terms",
-          purpose: "application-local Windows image inference runtime dependency",
-          notice: "The pinned llama.cpp b9842 Windows archive supplies libomp140.x86_64.dll.",
+          name: "LLVM OpenMP Runtime",
+          version: "b10816",
+          license: "Apache-2.0 WITH LLVM-exception",
+          purpose: "application-local Windows inference runtime dependency",
+          notice:
+            "License text: licenses/llvm-OpenMP-LICENSE.txt. The pinned b10816 archive supplies libomp.dll.",
         },
         {
           name: "Microsoft Visual C++ Desktop Runtime",
           version: "14.0.33321.0",
           license: "Microsoft Software License Terms",
-          purpose: "application-local Windows image inference runtime dependency",
+          purpose: "application-local Windows inference runtime dependency",
           source: {
             file: "Microsoft.VCLibs.x64.14.00.Desktop.appx",
             sha256: "b56a9101f706f9d95f815f5b7fa6efbac972e86573d378b96a07cff5540c5961",
@@ -107,10 +107,28 @@ function platformPackages(): NoticePackage[] {
           },
         },
         {
-          name: "NVIDIA cuBLAS",
-          version: "13.2.0.9",
+          name: "NVIDIA CUDA Runtime",
+          version: "13.3",
           license: "NVIDIA CUDA Toolkit EULA",
           purpose: "packaged NVIDIA CUDA inference runtime",
+          notice: "License text: licenses/cuda-EULA.html (CUDA 13.3).",
+          source: {
+            file: "cudart-llama-bin-win-cuda-13.3-x64.zip",
+            sha256: "1462a050eb4c684921ba51dcc4cc488a036674c3e73e9945ee705b854808d03e",
+            url: "https://github.com/ggml-org/llama.cpp/releases/download/b10816/cudart-llama-bin-win-cuda-13.3-x64.zip",
+          },
+        },
+        {
+          name: "llama.cpp Vulkan",
+          version: "b10816",
+          license: "MIT",
+          purpose: "packaged Windows Vulkan inference runtime",
+          notice: "License text: licenses/llama.cpp-LICENSE.txt",
+          source: {
+            file: "llama-b10816-bin-win-vulkan-x64.zip",
+            sha256: "ea6704bd058cb37c3d960913638b37b766f66fb5baff37547d0fa95aa0ed7528",
+            url: "https://github.com/ggml-org/llama.cpp/releases/download/b10816/llama-b10816-bin-win-vulkan-x64.zip",
+          },
         },
       ]
     : [];
@@ -152,27 +170,6 @@ function spdxPackage(item: NoticePackage, index: number) {
   };
 }
 
-async function runtimePackages(resourcesRoot: string): Promise<NoticePackage[]> {
-  const modules = join(resourcesRoot, "inference/node_modules");
-  const packages: NoticePackage[] = [];
-  for (const path of await files(modules)) {
-    if (!path.endsWith("package.json")) continue;
-    const metadata = JSON.parse(await readFile(path, "utf8")) as {
-      name?: string;
-      version?: string;
-      license?: string;
-    };
-    if (metadata.name === undefined || metadata.version === undefined) continue;
-    packages.push({
-      name: metadata.name,
-      version: metadata.version,
-      license: metadata.license ?? "NOASSERTION",
-      purpose: "host-native inference runtime dependency",
-    });
-  }
-  return packages;
-}
-
 // biome-ignore lint/complexity/noExcessiveLinesPerFunction: notices, SBOM, and hashes are emitted together so a package cannot contain only part of its compliance record.
 export async function writePackageCompliance(
   resourcesRoot: string,
@@ -184,7 +181,6 @@ export async function writePackageCompliance(
   const packageCandidates = [
     ...hostPackages.map((item) => ({ ...item, purpose: "packaged desktop runtime" })),
     ...platformPackages(),
-    ...(await runtimePackages(resourcesRoot)),
     ...guest.contents,
   ];
   const packages = [

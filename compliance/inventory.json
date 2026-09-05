@@ -20,11 +20,11 @@
     "agentGuestImage": "packages/workers/images/agent/manifest.json",
     "agentGuestCapabilities": "packages/workers/images/agent/capabilities.json",
     "agentGuestReview": "docs/research/m3-agent-guest-dependency-review.md",
-    "windowsRuntimeAssets": "packages/desktop/windows-runtime-assets.json",
     "windowsRuntimeReview": "docs/research/m3-windows-runtime-dependency-review.md",
     "windowsPackageIntegrityReview": "docs/research/m3-package-integrity-dependency-review.md",
-    "visionRuntimeAssets": "assets/vision-runtime.json",
-    "visionRuntimeReview": "docs/research/m3-image-runtime-dependency-review.md"
+    "visionRuntimeReview": "docs/research/m3-image-runtime-dependency-review.md",
+    "inferenceRuntimeAssets": "assets/inference-runtime.json",
+    "inferenceRuntimeDecision": "docs/adr/0019-qwen38-private-server.md"
   },
   "directDependencies": [
     {
@@ -75,49 +75,72 @@
       "license": "MIT",
       "use": "development"
     },
-    { "name": "@types/node", "version": "24.13.3", "license": "MIT", "use": "development" },
-    { "name": "@types/tar-stream", "version": "3.1.4", "license": "MIT", "use": "development" },
+    {
+      "name": "@types/node",
+      "version": "24.13.3",
+      "license": "MIT",
+      "use": "development"
+    },
+    {
+      "name": "@types/tar-stream",
+      "version": "3.1.4",
+      "license": "MIT",
+      "use": "development"
+    },
     {
       "name": "better-sqlite3",
       "version": "12.11.1",
       "license": "MIT",
       "use": "historical_m1_eval_catalog_and_native_smoke"
     },
-    { "name": "esbuild", "version": "0.28.1", "license": "MIT", "use": "sidecar_bundle_build" },
     {
-      "name": "node-llama-cpp",
-      "version": "3.19.0",
+      "name": "esbuild",
+      "version": "0.28.1",
       "license": "MIT",
-      "use": "native_smoke_supervised_inference_and_packaged_runtime",
-      "patch": "patches/node-llama-cpp@3.19.0.patch"
+      "use": "sidecar_bundle_build"
     },
     {
-      "name": "NVIDIA cuBLAS",
-      "version": "13.2.0.9",
+      "name": "NVIDIA CUDA Runtime",
+      "version": "13.3",
       "license": "NVIDIA CUDA Toolkit EULA",
       "use": "packaged_windows_cuda_runtime"
     },
     {
       "name": "llama.cpp",
-      "version": "b9842",
+      "version": "b10816",
       "license": "MIT",
-      "use": "packaged_local_image_inference_runtime"
+      "use": "packaged_private_inference_runtime"
     },
     {
       "name": "Microsoft Visual C++ Desktop Runtime",
       "version": "14.0.33321.0",
       "license": "Microsoft Software License Terms",
-      "use": "packaged_windows_image_inference_runtime"
+      "use": "packaged_windows_inference_runtime"
     },
     {
-      "name": "Microsoft Visual C++ OpenMP Runtime",
-      "version": "MSVC 19.50.35721",
-      "license": "Microsoft Software License Terms",
-      "use": "packaged_windows_image_inference_runtime"
+      "name": "LLVM OpenMP Runtime",
+      "version": "b10816",
+      "license": "Apache-2.0 WITH LLVM-exception",
+      "use": "packaged_windows_inference_runtime"
     },
-    { "name": "postject", "version": "1.0.0-alpha.6", "license": "MIT", "use": "node_sea_build" },
-    { "name": "react", "version": "19.2.7", "license": "MIT", "use": "desktop_ui" },
-    { "name": "react-dom", "version": "19.2.7", "license": "MIT", "use": "desktop_ui" },
+    {
+      "name": "postject",
+      "version": "1.0.0-alpha.6",
+      "license": "MIT",
+      "use": "node_sea_build"
+    },
+    {
+      "name": "react",
+      "version": "19.2.7",
+      "license": "MIT",
+      "use": "desktop_ui"
+    },
+    {
+      "name": "react-dom",
+      "version": "19.2.7",
+      "license": "MIT",
+      "use": "desktop_ui"
+    },
     {
       "name": "react-markdown",
       "version": "10.1.0",
@@ -130,13 +153,48 @@
       "license": "MIT",
       "use": "desktop_assistant_gfm_tables_and_lists"
     },
-    { "name": "tar-stream", "version": "3.2.0", "license": "MIT", "use": "development_validation" },
-    { "name": "tsx", "version": "4.23.1", "license": "MIT", "use": "development" },
-    { "name": "tuf-js", "version": "6.0.0", "license": "MIT", "use": "development_validation" },
-    { "name": "typescript", "version": "7.0.2", "license": "Apache-2.0", "use": "development" },
-    { "name": "vite", "version": "8.1.4", "license": "MIT", "use": "development" },
-    { "name": "vitest", "version": "4.1.10", "license": "MIT", "use": "development" },
-    { "name": "zod", "version": "4.4.3", "license": "MIT", "use": "runtime_schema" }
+    {
+      "name": "tar-stream",
+      "version": "3.2.0",
+      "license": "MIT",
+      "use": "development_validation"
+    },
+    {
+      "name": "tsx",
+      "version": "4.23.1",
+      "license": "MIT",
+      "use": "development"
+    },
+    {
+      "name": "tuf-js",
+      "version": "6.0.0",
+      "license": "MIT",
+      "use": "development_validation"
+    },
+    {
+      "name": "typescript",
+      "version": "7.0.2",
+      "license": "Apache-2.0",
+      "use": "development"
+    },
+    {
+      "name": "vite",
+      "version": "8.1.4",
+      "license": "MIT",
+      "use": "development"
+    },
+    {
+      "name": "vitest",
+      "version": "4.1.10",
+      "license": "MIT",
+      "use": "development"
+    },
+    {
+      "name": "zod",
+      "version": "4.4.3",
+      "license": "MIT",
+      "use": "runtime_schema"
+    }
   ],
   "nativeDependencies": [
     {
@@ -177,8 +235,18 @@
     }
   ],
   "toolsAndInputs": [
-    { "name": "Node.js", "version": "24.18.0", "license": "MIT", "use": "runtime_and_sidecar" },
-    { "name": "pnpm", "version": "11.13.1", "license": "MIT", "use": "package_manager" },
+    {
+      "name": "Node.js",
+      "version": "24.18.0",
+      "license": "MIT",
+      "use": "runtime_and_sidecar"
+    },
+    {
+      "name": "pnpm",
+      "version": "11.13.1",
+      "license": "MIT",
+      "use": "package_manager"
+    },
     {
       "name": "Apple Swift",
       "version": "6.3.3",

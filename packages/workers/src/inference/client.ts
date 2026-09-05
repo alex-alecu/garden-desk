@@ -1,4 +1,10 @@
-import type { InferenceWorkerResponse } from "@gardendesk/shared";
+import { setTimeout as delay } from "node:timers/promises";
+import {
+  INFERENCE_PROFILE,
+  type InferenceWorkerRequest,
+  type InferenceWorkerResponse,
+  InferenceWorkerResponseSchema,
+} from "@gardendesk/shared";
 import {
   type NativeWorkerHandle,
   NativeWorkerLaunchError,
@@ -11,117 +17,218 @@ import {
   InferenceWorkerError,
   ResidentWorker,
 } from "./resident-worker.js";
+import { chatBody, completeChat } from "./server-chat.js";
+import { ServerError, serverRequest } from "./server-http.js";
+import { startServer } from "./server-runtime.js";
 
 export { type InferenceExecution, InferenceWorkerError } from "./resident-worker.js";
 
-function abortedExecution(signal: AbortSignal | undefined): InferenceWorkerError {
-  const code =
-    signal?.reason instanceof DOMException && signal.reason.name === "TimeoutError"
-      ? "timeout"
-      : signal?.reason instanceof Error &&
-          "code" in signal.reason &&
-          signal.reason.code === "timeout"
-        ? "timeout"
-        : "cancelled";
+type ModelRequest = Exclude<InferenceWorkerRequest, { operation: "probe" }>;
+function boundedFailure(error: unknown): Error {
+  if (
+    error instanceof InferenceWorkerError ||
+    error instanceof ServerError ||
+    error instanceof NativeWorkerLaunchError
+  )
+    return error;
+  if (error instanceof Error && error.message === "generation_token_limit") return error;
+  return new ServerError("malformed_worker_message");
+}
+interface ResidentServer {
+  handle: NativeWorkerHandle;
+  modelPath: string;
+  contextTokens: number;
+  embedding: boolean;
+}
+
+function interruption(signal: AbortSignal): InferenceWorkerError {
+  const reason = signal.reason;
+  const timeout =
+    reason instanceof Error &&
+    (reason.name === "TimeoutError" || ("code" in reason && reason.code === "timeout"));
   return new InferenceWorkerError(
-    code,
-    code === "timeout" ? "Inference timed out." : "Inference cancelled.",
+    timeout ? "timeout" : "cancelled",
+    timeout ? "Inference timed out." : "Inference cancelled.",
   );
 }
 
-function launchFailure(error: unknown): Error {
-  try {
-    if (error instanceof NativeWorkerLaunchError && error.code === "unsupported")
-      return new NativeWorkerLaunchError("unsupported", "unsupported_native_worker_platform");
-  } catch {
-    // Return the fixed worker error below.
-  }
-  return new InferenceWorkerError("worker_crash", "Inference worker stopped.");
-}
-
-async function recordLaunchFailure(execution: InferenceExecution, error: unknown): Promise<void> {
-  try {
-    if (
-      globalThis.__GARDEN_DESK_DEVELOPMENT_BUILD__ === true &&
-      execution.request.operation !== "probe"
-    ) {
-      await waitForDevelopmentHostRecord(
-        recordDevelopmentHostFailure("worker_launch", execution.request.operation, error),
-      );
-    }
-  } catch {
-    // Diagnostics must not change inference behavior.
-  }
+async function embedding(handle: NativeWorkerHandle, input: string, signal: AbortSignal) {
+  const value = (await serverRequest(
+    handle,
+    "/v1/embeddings",
+    { input, encoding_format: "float", truncate: false },
+    { signal },
+  )) as { data: Array<{ embedding: number[] }> };
+  const vector = value.data[0]?.embedding;
+  if (!Array.isArray(vector) || vector.some((x) => !Number.isFinite(x)))
+    throw new ServerError("malformed_worker_message");
+  const norm = Math.sqrt(vector.reduce((sum, x) => sum + x * x, 0));
+  if (norm === 0) throw new ServerError("malformed_worker_message");
+  return vector.map((x) => x / norm);
 }
 
 export class InferenceWorkerClient {
-  private resident: ResidentWorker | undefined;
-
+  private resident: ResidentServer | undefined;
+  private busy = false;
   constructor(
     private readonly launcher: NativeWorkerLauncher,
     private readonly workerEntryPath: string,
   ) {}
 
-  async execute(execution: InferenceExecution): Promise<InferenceWorkerResponse> {
-    if (execution.signal?.aborted) {
-      throw abortedExecution(execution.signal);
-    }
-    const worker = await this.worker(execution);
-    if (execution.signal?.aborted) {
-      throw abortedExecution(execution.signal);
-    }
-    try {
-      return await worker.execute(execution);
-    } finally {
-      if (execution.request.operation === "probe" && !worker.busy) await worker.dispose();
-    }
+  async unload(): Promise<boolean> {
+    if (this.busy) return false;
+    return await this.dropResident();
   }
 
-  async unload(): Promise<boolean> {
-    const worker = this.resident;
-    if (worker === undefined) return false;
-    if (worker.busy) return false;
+  private async dropResident(): Promise<boolean> {
+    const resident = this.resident;
     this.resident = undefined;
-    await worker.dispose();
+    if (resident === undefined) return false;
+    await resident.handle.dispose();
     return true;
   }
 
-  private async worker(execution: InferenceExecution): Promise<ResidentWorker> {
-    const resident = this.resident;
-    const reusable =
-      execution.request.operation !== "probe" &&
-      resident?.modelPath === execution.modelPath &&
-      resident?.memoryBudgetBytes === execution.memoryBudgetBytes;
-    if (reusable && resident !== undefined) return resident;
-    if (this.resident !== undefined) {
-      if (this.resident.busy)
-        throw new InferenceWorkerError("worker_crash", "Inference worker is busy.");
-      await this.resident.dispose();
-      this.resident = undefined;
+  async execute(execution: InferenceExecution): Promise<InferenceWorkerResponse> {
+    const signal = AbortSignal.any([
+      AbortSignal.timeout(execution.timeoutMs),
+      ...(execution.signal === undefined ? [] : [execution.signal]),
+    ]);
+    if (signal.aborted) throw interruption(signal);
+    const request = execution.request;
+    if (request.operation === "probe") return await this.probe(execution, signal);
+    if (this.busy) throw new InferenceWorkerError("worker_crash", "Inference worker is busy.");
+    this.busy = true;
+    try {
+      const resident = await this.prepare(execution, request, signal);
+      return await this.complete(execution, request, resident, signal);
+    } catch (error) {
+      if (signal.aborted) {
+        await this.cancel();
+        throw interruption(signal);
+      }
+      await this.dropResident();
+      throw boundedFailure(error);
+    } finally {
+      this.busy = false;
     }
-    const handle = await this.launch(execution);
-    const worker = new ResidentWorker(
-      handle,
-      execution.modelPath,
-      execution.memoryBudgetBytes,
-      () => {
-        if (this.resident === worker) this.resident = undefined;
-      },
-    );
-    if (execution.request.operation !== "probe") this.resident = worker;
-    return worker;
   }
 
-  private async launch(execution: InferenceExecution): Promise<NativeWorkerHandle> {
+  private async probe(execution: InferenceExecution, signal: AbortSignal) {
+    const handle = await this.launcher.launch({
+      workerEntryPath: this.workerEntryPath,
+      memoryBudgetBytes: execution.memoryBudgetBytes,
+    });
+    const worker = new ResidentWorker(handle, undefined, execution.memoryBudgetBytes, () => {});
     try {
-      return await this.launcher.launch({
-        workerEntryPath: this.workerEntryPath,
-        ...(execution.modelPath === undefined ? {} : { modelPath: execution.modelPath }),
-        memoryBudgetBytes: execution.memoryBudgetBytes,
+      if (signal.aborted) throw interruption(signal);
+      return await worker.execute({ ...execution, signal });
+    } finally {
+      await worker.dispose();
+    }
+  }
+
+  private async prepare(
+    execution: InferenceExecution,
+    request: ModelRequest,
+    signal: AbortSignal,
+  ): Promise<ResidentServer> {
+    const modelPath = execution.modelPath;
+    if (modelPath === undefined) throw new ServerError("invalid_argument");
+    const contextTokens =
+      request.contextSize === "auto" ? INFERENCE_PROFILE.contextTokens : request.contextSize;
+    const embedding = request.operation === "embed";
+    if (
+      this.resident &&
+      (this.resident.modelPath !== modelPath ||
+        this.resident.contextTokens !== contextTokens ||
+        this.resident.embedding !== embedding)
+    )
+      await this.dropResident();
+    if (this.resident) return this.resident;
+    const handle = await startServer(
+      this.launcher,
+      this.workerEntryPath,
+      { modelPath, contextTokens, embedding, memoryBudgetBytes: execution.memoryBudgetBytes },
+      signal,
+    ).catch(async (error: unknown) => {
+      if (
+        signal.aborted ||
+        error instanceof ServerError ||
+        error instanceof NativeWorkerLaunchError
+      )
+        throw error;
+      if (globalThis.__GARDEN_DESK_DEVELOPMENT_BUILD__ === true)
+        await waitForDevelopmentHostRecord(
+          recordDevelopmentHostFailure("worker_launch", request.operation, error),
+        );
+      throw new InferenceWorkerError("worker_crash", "Inference worker stopped.");
+    });
+    this.resident = { handle, modelPath, contextTokens, embedding };
+    return this.resident;
+  }
+
+  private memory(contextTokens: number, budgetBytes: number) {
+    const gpu = this.launcher.gpu;
+    return {
+      budgetBytes,
+      backend: gpu?.backend ?? "metal",
+      gpuMemoryKind: gpu?.memoryKind ?? "unified",
+      selectedDeviceCount: 1,
+      ...(gpu?.detectedMemoryBytes === undefined
+        ? {}
+        : { detectedGpuMemoryBytes: gpu.detectedMemoryBytes }),
+      contextSizeTokens: contextTokens,
+      contextLimitTokens: INFERENCE_PROFILE.contextTokens,
+      contextLimitReason: "certified_standard",
+      sequenceCount: 1,
+    };
+  }
+
+  private async complete(
+    execution: InferenceExecution,
+    request: ModelRequest,
+    resident: ResidentServer,
+    signal: AbortSignal,
+  ) {
+    const { handle, contextTokens } = resident;
+    const base = {
+      protocolVersion: 2,
+      requestId: request.requestId,
+      status: "ok",
+      operation: request.operation,
+      memory: this.memory(contextTokens, execution.memoryBudgetBytes),
+    };
+    if (request.operation === "embed")
+      return InferenceWorkerResponseSchema.parse({
+        ...base,
+        vector: await embedding(handle, request.input, signal),
       });
-    } catch (error) {
-      await recordLaunchFailure(execution, error);
-      throw launchFailure(error);
+    const result = await completeChat(handle, chatBody(request, execution), signal, execution);
+    if (request.operation === "chat")
+      return InferenceWorkerResponseSchema.parse({ ...base, ...result });
+    if (result.stopReason === "maxTokens") throw new Error("generation_token_limit");
+    return InferenceWorkerResponseSchema.parse({
+      ...base,
+      value: JSON.parse(result.text),
+      performance: result.performance,
+    });
+  }
+
+  private async cancel(): Promise<void> {
+    if (this.resident === undefined) return;
+    const handle = this.resident.handle;
+    const signal = AbortSignal.timeout(1_000);
+    try {
+      while (
+        (
+          (await serverRequest(handle, "/slots", undefined, { signal })) as Array<{
+            is_processing: boolean;
+          }>
+        ).some((slot) => slot.is_processing)
+      )
+        await delay(25, undefined, { signal });
+    } catch {
+      await this.dropResident();
     }
   }
 }

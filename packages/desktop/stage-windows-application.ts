@@ -44,12 +44,12 @@ async function packageRecord(
 ): Promise<Record<string, unknown>> {
   const coreResources = join(packageRoot, "resources", "core");
   const resourceManifest = join(coreResources, "resource-manifest.json");
-  const model = join(coreResources, "models", "gemma-4-12b-it-qat-q4_0.gguf");
-  const projector = join(coreResources, "models", "gemma-4-12b-it-qat-q4_0-mmproj.gguf");
+  const model = join(coreResources, "models", "qwen3.8-27b-ud-iq4_xs.gguf");
+  const projector = join(coreResources, "models", "qwen3.8-27b-mmproj-f16.gguf");
   const inferenceRuntimes = nativeRuntimePackages();
   await Promise.all(
     inferenceRuntimes.map((name) =>
-      stat(join(coreResources, "inference", "node_modules", ...name.split("/"))),
+      stat(join(coreResources, "inference", name, "llama-server.exe")),
     ),
   );
   return {

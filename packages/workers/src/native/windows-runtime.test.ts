@@ -11,6 +11,7 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock("./windows-gpu.js", () => ({
+  windowsServerPath: (path: string) => path,
   assertWindowsInferenceSelection: mocks.assertInferenceSelection,
   assertWindowsVisionSelection: mocks.assertVisionSelection,
   resolveWindowsGpuProfile: mocks.resolveProfile,
@@ -97,8 +98,9 @@ describe("Windows inference runtime composition", () => {
     expect(runtime.hardwareProfile).not.toHaveProperty("deviceIndex");
     expect(mocks.launcherArguments).toEqual([
       ["helper.exe", "node.exe", { gpu: profile.selection }],
+      ["helper.exe", "node.exe", { gpu: profile.selection }],
     ]);
-    expect(mocks.visionArguments).toEqual([["vision.exe", "helper.exe", 2]]);
+    expect(mocks.visionArguments).toEqual([[expect.any(Object), "worker.mjs"]]);
 
     await expect(runtime.visionClient?.inspect(execution)).resolves.toEqual({ text: "ready" });
     expect(mocks.assertVisionSelection).toHaveBeenCalledWith(

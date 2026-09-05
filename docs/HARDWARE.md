@@ -39,31 +39,14 @@ May work for technical users. No guarantee and limited support.
 
 ## Community Target
 
-Current community targets:
+Current community targets follow [ADR 0019](adr/0019-qwen38-private-server.md).
 
-- 8 GB Macs do not start local inference and explain the requirement to the user.
-- Macs through 16 GB use a 10 GiB model-plus-context budget; Macs through 24 GB use 12 GiB; Macs above 24 GB use 16 GiB.
-- Windows selects one usable dedicated GPU first. If none is usable, it selects one integrated GPU. Brand and speed do not decide support, and the runtime never adds memory across devices.
-- A Windows dedicated GPU needs at least 8 GiB of isolated device memory and uses that complete memory. An integrated GPU needs at least 16 GiB installed RAM and 8 GiB isolated capacity. Installed RAM sets the maximum 8/12/16 GiB shared-pool tier, and the isolated runtime capacity can select a lower fixed tier.
-- Windows agent execution requires Windows Pro or Enterprise with Hyper-V already enabled. The Windows-only setup helper adds the requesting account to Hyper-V Administrators once; it does not enable or download Windows features. macOS has no administrator prerequisite.
-- Active context is fitted automatically inside the selected budget. Shared-memory systems through 32 GiB installed RAM and Windows dedicated GPUs through 24 GiB are capped at 64K. Systems above the applicable threshold are capped at 128K.
+- Mac: at least 24 GiB installed memory, with a 16 GiB inference budget, 4 GiB for the host, and 4 GiB per microVM.
+- Windows: one dedicated GPU with at least 16 billion bytes, or one integrated GPU with 16 GiB usable allocation and at least 24 GiB installed memory. Reserve host memory before admitting microVMs. CUDA and Vulkan retain device identity and isolation checks.
+- Generation: Qwen3.8 27B Q4, fixed 32K context, all weights and context state on one GPU. No automatic fitting or CPU fallback.
+- Windows agent execution requires Pro or Enterprise with Hyper-V enabled. The setup helper only adds the requesting user to Hyper-V Administrators.
 
-The support class applies to an exact configuration, not to a GPU vendor. A configuration is Certified only after its complete physical and packaged gates pass. Other configurations that meet the implemented memory and isolation contract are Compatible. Untested future platforms are Experimental. The website and download surfaces must not describe a vendor as verified or an untested configuration as Certified.
-
-The product should degrade by reducing active context pressure, multimodal usage, or concurrency rather than exposing low-level runtime choices to ordinary users. Hardware tiers must not differ by verification strictness, citation requirements, supported workflows, or safety policy.
-
-Current model target:
-
-- Gemma 4 12B QAT as the single default across the supported hardware-derived tiers.
-- Approximate Q4_0 model-load memory target: 6.7 GB before KV cache and product overhead.
-- Retrieval-first prompting and bounded active context.
-- One resident Gemma generation at a time, with different conversations allowed to overlap guest work within the RAM-derived VM capacity.
-- Background ingestion throttled around available memory.
-- Automatic active context from an 8K floor through a 64K or 128K hardware cap. Shared memory needs more than 32 GiB installed RAM for 128K. Windows dedicated memory needs more than 24 GiB.
-- One first desktop runtime and model format across Windows and macOS: node-llama-cpp with the pinned official Gemma 4 QAT GGUF, per [ADR 0013](adr/0013-first-desktop-runtime.md).
-- A hardware capability check that selects the memory budget or returns a clear unsupported state before the user starts a model-dependent workflow.
-
-See [PERFORMANCE_AND_CONTEXT.md](PERFORMANCE_AND_CONTEXT.md).
+Memory admission is not certification. Exact hardware still needs physical evidence. Mac verification is pending.
 
 ## Personal Computer Target
 
@@ -113,7 +96,7 @@ The first office appliance should benchmark from real workflow demand, not from 
 
 Planned first-choice runtime directions:
 
-- Apple Silicon: node-llama-cpp through Metal with the pinned official QAT GGUF first; MLX-family serving is a later adapter-backed optimization candidate.
+- Apple Silicon: the pinned llama.cpp server through Metal with Qwen3.8 Q4 first; MLX-family serving is a later adapter-backed optimization candidate.
 - Windows: one package contains CUDA and Vulkan. The worker probes both and uses one adapter that it can map and isolate. CUDA has priority over Vulkan only for the same adapter. The user supplies a compatible display driver, not a separate Garden Desk installation.
 - Shared appliance or Linux server: vLLM-class serving only after the automatic desktop tiers are validated and appliance profiles are re-opened.
 - NVIDIA-specific optimization: later, after exact model support is proven.

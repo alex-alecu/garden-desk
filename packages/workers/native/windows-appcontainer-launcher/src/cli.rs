@@ -7,7 +7,6 @@ pub enum Command {
     GpuInfo,
     Prepare { read_roots: Vec<PathBuf> },
     Run(RunArguments),
-    RunVision(VisionArguments),
     RunServer(ServerArguments),
     Connect { socket: PathBuf },
 }
@@ -19,17 +18,6 @@ pub struct ServerArguments {
     pub gpu: GpuArguments,
     pub read_paths: Vec<PathBuf>,
     pub arguments: Vec<String>,
-}
-
-pub struct VisionArguments {
-    pub executable: PathBuf,
-    pub model: PathBuf,
-    pub projector: PathBuf,
-    pub image: PathBuf,
-    pub prompt_file: PathBuf,
-    pub scratch: PathBuf,
-    pub memory_bytes: usize,
-    pub vulkan_device_index: Option<u32>,
 }
 
 pub struct RunArguments {
@@ -160,18 +148,6 @@ pub fn parse() -> Result<Command, Box<dyn Error>> {
             memory_bytes: value(&values, "--memory")?.parse()?,
             gpu: gpu_arguments(&values)?,
         })),
-        "run-vision" if read_roots.is_empty() => Ok(Command::RunVision(VisionArguments {
-            executable: PathBuf::from(value(&values, "--executable")?),
-            model: PathBuf::from(value(&values, "--model")?),
-            projector: PathBuf::from(value(&values, "--projector")?),
-            image: PathBuf::from(value(&values, "--image")?),
-            prompt_file: PathBuf::from(value(&values, "--prompt-file")?),
-            scratch: PathBuf::from(value(&values, "--scratch")?),
-            memory_bytes: value(&values, "--memory")?.parse()?,
-            vulkan_device_index: optional(&values, "--vulkan-device-index")
-                .map(|value| value.parse::<u32>())
-                .transpose()?,
-        })),
-        _ => Err("Usage: garden-desk-appcontainer-launcher <gpu-info|prepare --read PATH...|run --executable PATH --worker PATH --scratch PATH --memory BYTES [--model PATH] [--gpu-backend cuda|vulkan --gpu-device-index INDEX]|run-vision --executable PATH --model PATH --projector PATH --image PATH --prompt-file PATH --scratch PATH --memory BYTES [--vulkan-device-index INDEX]|run-server --executable PATH --scratch PATH --memory BYTES [--read PATH] [--gpu-backend cuda|vulkan --gpu-device-index INDEX] -- RUNTIME_ARGS...|connect --socket PATH>".into()),
+        _ => Err("Usage: garden-desk-appcontainer-launcher <gpu-info|prepare --read PATH...|run --executable PATH --worker PATH --scratch PATH --memory BYTES [--model PATH] [--gpu-backend cuda|vulkan --gpu-device-index INDEX]|run-server --executable PATH --scratch PATH --memory BYTES [--read PATH] [--gpu-backend cuda|vulkan --gpu-device-index INDEX] -- RUNTIME_ARGS...|connect --socket PATH>".into()),
     }
 }

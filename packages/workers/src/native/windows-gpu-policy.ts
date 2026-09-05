@@ -1,9 +1,8 @@
+import { INFERENCE_PROFILE } from "@gardendesk/shared";
 import type { WindowsGpuLaunch } from "./windows.js";
 
-const GiB = 1024 ** 3;
 const MAX_GPU_DEVICES = 64;
-const DEDICATED_HOST_MEMORY_BYTES = 2 * GiB;
-const INTEGRATED_MEMORY_TIERS_BYTES = [16 * GiB, 12 * GiB, 8 * GiB] as const;
+const DEDICATED_HOST_MEMORY_BYTES = INFERENCE_PROFILE.memoryBudgetBytes;
 
 export interface WindowsGpuAdapterInfo {
   id: string;
@@ -25,6 +24,7 @@ export interface WindowsRuntimeProbeResult {
   backend: "cuda" | "vulkan";
   deviceNames: string[];
   totalMemoryBytes: number;
+  availableMemoryBytes?: number;
 }
 
 export interface WindowsGpuProfile {
@@ -46,6 +46,7 @@ interface IsolatedVariant {
   deviceIndex: number;
   expectedName: string;
   totalMemoryBytes: number;
+  availableMemoryBytes?: number;
 }
 
 type Probe = (selection: WindowsGpuLaunch) => Promise<WindowsRuntimeProbeResult | undefined>;
@@ -122,24 +123,22 @@ export function resolveIntegratedGpuBudget(
   installedMemoryBytes: number,
   detectedMemoryBytes: number,
 ): number | undefined {
-  if (installedMemoryBytes < 16 * GiB) return undefined;
-  let maximumTier = 16 * GiB;
-  if (installedMemoryBytes <= 24 * GiB) maximumTier = 12 * GiB;
-  if (installedMemoryBytes === 16 * GiB) maximumTier = 8 * GiB;
-  return INTEGRATED_MEMORY_TIERS_BYTES.find(
-    (tier) => tier <= maximumTier && tier <= detectedMemoryBytes,
-  );
+  return installedMemoryBytes >= INFERENCE_PROFILE.minimumUnifiedMemoryBytes &&
+    detectedMemoryBytes >= INFERENCE_PROFILE.memoryBudgetBytes
+    ? INFERENCE_PROFILE.memoryBudgetBytes
+    : undefined;
 }
 
 export function resolveWindowsGpuMemoryProfile(
   integrated: boolean,
   detectedMemoryBytes: number,
   installedMemoryBytes: number,
+  availableMemoryBytes = detectedMemoryBytes,
 ): { hostMemoryReservationBytes: number; memoryBudgetBytes: number } | undefined {
   const memoryBudgetBytes = integrated
-    ? resolveIntegratedGpuBudget(installedMemoryBytes, detectedMemoryBytes)
-    : detectedMemoryBytes >= 8 * GiB
-      ? detectedMemoryBytes
+    ? resolveIntegratedGpuBudget(installedMemoryBytes, availableMemoryBytes)
+    : detectedMemoryBytes >= INFERENCE_PROFILE.minimumDedicatedMemoryBytes
+      ? Math.min(detectedMemoryBytes, INFERENCE_PROFILE.memoryBudgetBytes)
       : undefined;
   if (memoryBudgetBytes === undefined || detectedMemoryBytes < memoryBudgetBytes) return undefined;
   return {
@@ -209,6 +208,9 @@ async function isolatedVariant(
     deviceIndex,
     expectedName: result.deviceNames[0] as string,
     totalMemoryBytes: result.totalMemoryBytes,
+    ...(result.availableMemoryBytes === undefined
+      ? {}
+      : { availableMemoryBytes: result.availableMemoryBytes }),
   };
 }
 
@@ -221,13 +223,13 @@ async function resolveCandidate(
     isolatedVariant(candidate, "cuda", probe),
     isolatedVariant(candidate, "vulkan", probe),
   ]);
-  if (vulkan === undefined) return undefined;
   for (const generation of [cuda, vulkan]) {
     if (generation === undefined) continue;
     const memory = resolveWindowsGpuMemoryProfile(
       candidate.adapter.integrated,
       generation.totalMemoryBytes,
       installedMemoryBytes,
+      generation.availableMemoryBytes,
     );
     if (memory === undefined) continue;
     return {
@@ -242,8 +244,8 @@ async function resolveCandidate(
         memoryKind: candidate.adapter.integrated ? "unified" : "dedicated",
       },
       visionSelection: {
-        deviceIndex: vulkan.deviceIndex,
-        expectedName: vulkan.expectedName,
+        deviceIndex: generation.deviceIndex,
+        expectedName: generation.expectedName,
       },
     };
   }

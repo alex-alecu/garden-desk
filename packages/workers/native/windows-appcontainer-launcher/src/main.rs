@@ -12,7 +12,7 @@ mod sandbox;
 mod win32;
 
 #[cfg(windows)]
-use cli::{Command, RunArguments, ServerArguments, VisionArguments};
+use cli::{Command, RunArguments, ServerArguments};
 #[cfg(windows)]
 use std::error::Error;
 
@@ -86,56 +86,6 @@ fn run_worker(arguments: RunArguments) -> Result<i32, Box<dyn Error>> {
 }
 
 #[cfg(windows)]
-fn run_vision(arguments: VisionArguments) -> Result<i32, Box<dyn Error>> {
-    let container = sandbox::AppContainer::open(PROFILE_NAME)?;
-    let executable = arguments.executable.canonicalize()?;
-    let model = arguments.model.canonicalize()?;
-    let projector = arguments.projector.canonicalize()?;
-    let image = arguments.image.canonicalize()?;
-    let prompt_file = arguments.prompt_file.canonicalize()?;
-    let scratch = arguments.scratch.canonicalize()?;
-    container.grant_scratch(&scratch)?;
-    for path in [&model, &projector, &image, &prompt_file] {
-        container.grant_file_read(path)?;
-    }
-    let child_arguments = vec![
-        "--offline".to_owned(),
-        "--no-warmup".to_owned(),
-        "--log-verbosity".to_owned(),
-        "1".to_owned(),
-        "--jinja".to_owned(),
-        "--model".to_owned(),
-        model.to_string_lossy().into_owned(),
-        "--mmproj".to_owned(),
-        projector.to_string_lossy().into_owned(),
-        "--image".to_owned(),
-        image.to_string_lossy().into_owned(),
-        "--file".to_owned(),
-        prompt_file.to_string_lossy().into_owned(),
-        "--predict".to_owned(),
-        "2048".to_owned(),
-        "--ctx-size".to_owned(),
-        "8192".to_owned(),
-        "--temperature".to_owned(),
-        "0".to_owned(),
-    ];
-    process::run_sandboxed(
-        &executable,
-        &child_arguments,
-        &scratch,
-        arguments.memory_bytes,
-        container.sid(),
-        &container.profile_path()?,
-        process::GpuEnvironment {
-            backend: arguments
-                .vulkan_device_index
-                .map(|_| process::GpuBackend::Vulkan),
-            device_index: arguments.vulkan_device_index,
-        },
-    )
-}
-
-#[cfg(windows)]
 fn run_server(arguments: ServerArguments) -> Result<i32, Box<dyn Error>> {
     let container = sandbox::AppContainer::open(PROFILE_NAME)?;
     let executable = arguments.executable.canonicalize()?;
@@ -173,7 +123,6 @@ fn run() -> Result<i32, Box<dyn Error>> {
             Ok(0)
         }
         Command::Run(arguments) => run_worker(arguments),
-        Command::RunVision(arguments) => run_vision(arguments),
         Command::RunServer(arguments) => run_server(arguments),
         Command::Connect { socket } => relay::connect(&socket).map(|()| 0),
     }

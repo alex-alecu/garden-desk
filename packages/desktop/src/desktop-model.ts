@@ -1,10 +1,11 @@
 import type { ModelRuntimeStatus } from "@gardendesk/shared";
+import { INFERENCE_PROFILE } from "@gardendesk/shared";
 import { useEffect } from "react";
 import type { DesktopApi } from "./api.js";
 
 export const initialModelStatus: ModelRuntimeStatus = {
-  modelId: "gemma-4-12b-it-qat-q4_0",
-  name: "Gemma 4 12B QAT",
+  modelId: INFERENCE_PROFILE.modelId,
+  name: INFERENCE_PROFILE.name,
   state: "unloaded",
   thinkingSupported: true,
 };

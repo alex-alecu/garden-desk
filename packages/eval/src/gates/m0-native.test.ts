@@ -1,5 +1,4 @@
 import Database from "better-sqlite3";
-import { getLlama, LlamaLogLevel } from "node-llama-cpp";
 import { describe, expect, it } from "vitest";
 
 describe("M0 native dependency load smoke", () => {
@@ -12,10 +11,4 @@ describe("M0 native dependency load smoke", () => {
       database.close();
     }
   });
-
-  it("loads and initializes the pinned llama.cpp binding without a model", async () => {
-    const llama = await getLlama({ logLevel: LlamaLogLevel.error });
-    expect(llama).toBeDefined();
-    await llama.dispose();
-  }, 120_000);
 });

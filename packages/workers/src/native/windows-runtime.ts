@@ -10,6 +10,7 @@ import {
   assertWindowsVisionSelection,
   type ResolveWindowsGpuProfileOptions,
   resolveWindowsGpuProfile,
+  windowsServerPath,
 } from "./windows-gpu.js";
 import type { WindowsGpuProfile } from "./windows-gpu-policy.js";
 
@@ -38,6 +39,9 @@ export class VerifiedWindowsVisionClient {
 }
 
 class VerifiedWindowsWorkerLauncher implements NativeWorkerLauncher {
+  get gpu() {
+    return this.launcher.gpu;
+  }
   constructor(
     private readonly launcher: NativeWorkerLauncher,
     private readonly verifySelection: () => Promise<void>,
@@ -69,11 +73,13 @@ function visionClient(
   resolver: ResolveWindowsGpuProfileOptions,
   profile: WindowsGpuProfile,
 ) {
-  if (options.visionRuntimePath === undefined) return undefined;
   const client = new LlamaVisionClient(
-    options.visionRuntimePath,
-    options.inferenceHelperPath,
-    profile.visionSelection.deviceIndex,
+    new WindowsNativeWorkerLauncher(
+      options.inferenceHelperPath,
+      windowsServerPath(options.inferenceRuntimePath, profile.selection.backend),
+      { gpu: profile.selection },
+    ),
+    resolver.workerEntryPath,
   );
   return new VerifiedWindowsVisionClient(
     client,
@@ -93,9 +99,13 @@ export async function createWindowsInferenceRuntime(options: WindowsInferenceRun
     hardwareProfile,
     workerEntryPath,
     workerLauncher: new VerifiedWindowsWorkerLauncher(
-      new WindowsNativeWorkerLauncher(options.inferenceHelperPath, options.inferenceRuntimePath, {
-        gpu: profile.selection,
-      }),
+      new WindowsNativeWorkerLauncher(
+        options.inferenceHelperPath,
+        windowsServerPath(options.inferenceRuntimePath, profile.selection.backend),
+        {
+          gpu: profile.selection,
+        },
+      ),
       async () => await assertWindowsInferenceSelection(resolver, profile),
     ),
     visionClient: visionClient(options, resolver, profile),

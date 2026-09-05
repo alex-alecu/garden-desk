@@ -44,7 +44,7 @@ function diagnosticEntrySource(): string {
 
 function diagnosticCaptureSource(): string {
   return [
-    'import { createDevelopmentDiagnosticSink, writeDevelopmentLlamaLog, writeDevelopmentOperationFailure } from "./development-diagnostics.js";',
+    'import { createDevelopmentDiagnosticSink, writeDevelopmentOperationFailure } from "./development-diagnostics.js";',
     "export async function capture(chunks) {",
     "  const sink = createDevelopmentDiagnosticSink();",
     "  if (sink === undefined) return false;",
@@ -61,7 +61,6 @@ function diagnosticCaptureSource(): string {
     "    error.stack = 'stack=' + 's'.repeat(1024 * 1024);",
     "    error.cause = { reason: 'native failure', nested: { private: 'not recorded' } };",
     "    writeDevelopmentOperationFailure('chat', error);",
-    "    writeDevelopmentLlamaLog('debug', 'raw llama log ' + 'l'.repeat(1024 * 1024));",
     "  } finally {",
     "    process.stderr.write = write;",
     "  }",
@@ -80,7 +79,6 @@ function hostileDiagnosticSource(): string {
     "    process.stderr.write = () => true;",
     "    const hostile = new Proxy(new Error('private'), { get() { throw new Error('hostile getter'); }, getPrototypeOf() { throw new Error('hostile prototype'); } });",
     "    writeDevelopmentOperationFailure('chat', hostile);",
-    "    writeDevelopmentLlamaLog(new Proxy({}, { get() { throw new Error('hostile level'); } }), new Proxy({}, { get() { throw new Error('hostile message'); } }));",
     "    sink.append(new Proxy(Buffer.from('private'), { get() { throw new Error('hostile chunk'); } }));",
     "    await sink.close();",
     "    return true;",
@@ -133,7 +131,6 @@ export async function bundledWorker(developmentBuild: boolean, output?: string):
       "globalThis.__GARDEN_DESK_DEVELOPMENT_DIAGNOSTIC_ROOT__": '""',
     },
     entryPoints: [fileURLToPath(workerSource)],
-    external: ["node-llama-cpp"],
     format: "esm",
     minifySyntax: true,
     platform: "node",
@@ -228,7 +225,6 @@ export async function bundledHostileWorker(): Promise<string> {
       "globalThis.__GARDEN_DESK_DEVELOPMENT_DIAGNOSTIC_ROOT__": '""',
     },
     entryPoints: [fileURLToPath(workerSource)],
-    external: ["node-llama-cpp"],
     format: "esm",
     minifySyntax: true,
     platform: "node",

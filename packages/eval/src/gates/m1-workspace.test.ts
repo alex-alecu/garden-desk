@@ -21,7 +21,7 @@ async function createTestCore(workspaceDir: string) {
     join(modelStoreDir, "installed-models.json"),
     JSON.stringify({ schemaVersion: 1, models: [] }),
   );
-  return createGardenDeskCore({ workspaceDir, modelStoreDir, profile: "local12" });
+  return createGardenDeskCore({ workspaceDir, modelStoreDir, profile: "local16" });
 }
 
 async function temporaryRoot(): Promise<string> {

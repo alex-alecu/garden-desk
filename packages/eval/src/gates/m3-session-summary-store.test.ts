@@ -14,7 +14,7 @@ async function openCore(root: string) {
     join(models, "installed-models.json"),
     JSON.stringify({ schemaVersion: 1, models: [] }),
   );
-  return createGardenDeskCore({ workspaceDir: root, modelStoreDir: models, profile: "local12" });
+  return createGardenDeskCore({ workspaceDir: root, modelStoreDir: models, profile: "local16" });
 }
 
 afterEach(async () => {

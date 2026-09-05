@@ -2,8 +2,8 @@
   "bundle": {
     "resources": {
       "resources/core/": "resources/core/",
-      "../../eval/.generated/models/gemma-4-12b-it-qat-q4_0.gguf": "resources/core/models/gemma-4-12b-it-qat-q4_0.gguf",
-      "../../eval/.generated/models/gemma-4-12b-it-qat-q4_0-mmproj.gguf": "resources/core/models/gemma-4-12b-it-qat-q4_0-mmproj.gguf",
+      "../../eval/.generated/models/qwen3.8-27b-ud-iq4_xs.gguf": "resources/core/models/qwen3.8-27b-ud-iq4_xs.gguf",
+      "../../eval/.generated/models/qwen3.8-27b-mmproj-f16.gguf": "resources/core/models/qwen3.8-27b-mmproj-f16.gguf",
       "../../../assets/fonts/LICENSE.txt": "assets/fonts/LICENSE.txt"
     }
   }

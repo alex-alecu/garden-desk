@@ -9,9 +9,49 @@ import { createGenerationRequest } from "../runtime/inference.js";
 import { ArtifactStore } from "../workspace/artifacts.js";
 import { openWorkspaceCatalog } from "../workspace/catalog.js";
 import { WorkspaceScope } from "../workspace/scope.js";
+import { ChatAgentLoop } from "./chat-loop.js";
+import { execution, generated, input, source, tool } from "./chat-loop-test-support.js";
 import { AgentStore } from "./store.js";
 
 const roots: string[] = [];
+
+it("keeps tool-cycle reasoning outside persistent traces and clears it after the run", async () => {
+  const { catalog, store, conversations, jobs } = await fixture();
+  const session = conversations.createSession(null);
+  const run = store.createRun(session.id, jobs.create("agent", "reasoning").id);
+  let retained: Map<string, string> | undefined;
+  let turn = 0;
+  const loop = new ChatAgentLoop({
+    async chat(_request, _signal, streams) {
+      retained = streams?.reasoning;
+      if (turn++ === 0) {
+        retained?.set("call-1", "private-reasoning-sentinel");
+        return generated("", [tool("python", "call-1", { source: "print(2)" })]);
+      }
+      expect(retained?.get("call-1")).toBe("private-reasoning-sentinel");
+      return generated("Two.");
+    },
+  });
+  try {
+    await loop.run(
+      input(
+        {
+          async execute(request) {
+            return execution(source(request));
+          },
+        },
+        ["python"],
+        { trace: { runId: run.id, store: store.trace } },
+      ),
+    );
+    expect(JSON.stringify(await store.trace.get(run.id))).not.toContain(
+      "private-reasoning-sentinel",
+    );
+    expect(retained?.size).toBe(0);
+  } finally {
+    catalog.close();
+  }
+});
 
 async function fixture() {
   const root = await mkdtemp(join(tmpdir(), "garden-desk-agent-trace-"));
@@ -69,7 +109,7 @@ describe("M3 durable inference traces", () => {
     if (trace.captureVersion !== 1) throw new Error("trace_missing");
     expect(trace.turns.map((turn) => turn.sequence)).toEqual([0, 1]);
     expect(trace.turns[0]).toMatchObject({
-      prompt: `${"First line\r\nSecond line"}\nCall exactly one available function with your answer.`,
+      prompt: "First line\r\nSecond line",
       jsonSchema: first.input.jsonSchema,
       structuredResponse: { z: 2, a: [3, { y: true, x: null }] },
       outcome: "accepted_execution",
