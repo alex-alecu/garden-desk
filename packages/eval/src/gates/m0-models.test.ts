@@ -5,7 +5,7 @@ import { readCanonicalModelManifest, verifyModelBytes } from "../models.js";
 describe("M0 canonical model manifest", () => {
   it("accepts the committed hash-pinned assets", async () => {
     const manifest = await readCanonicalModelManifest();
-    expect(manifest.models).toHaveLength(5);
+    expect(manifest.models).toHaveLength(3);
   });
 
   it("rejects an unapproved ships transition", async () => {
