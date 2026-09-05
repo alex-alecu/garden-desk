@@ -126,7 +126,6 @@ export function resolveIntegratedGpuBudget(
     ? INFERENCE_PROFILE.memoryBudgetBytes
     : undefined;
 }
-
 export function resolveWindowsGpuMemoryProfile(
   integrated: boolean,
   detectedMemoryBytes: number,
@@ -141,10 +140,11 @@ export function resolveWindowsGpuMemoryProfile(
   if (memoryBudgetBytes === undefined || detectedMemoryBytes < memoryBudgetBytes) return undefined;
   return {
     memoryBudgetBytes,
-    hostMemoryReservationBytes: INFERENCE_PROFILE.memoryBudgetBytes,
+    hostMemoryReservationBytes: integrated
+      ? INFERENCE_PROFILE.memoryBudgetBytes
+      : INFERENCE_PROFILE.windowsDedicatedHostMemoryBytes,
   };
 }
-
 export function mapRuntimeGpuName(
   adapters: WindowsGpuAdapterInfo[],
   runtimeName: string,

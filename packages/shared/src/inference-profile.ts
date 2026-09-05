@@ -6,6 +6,7 @@ export const INFERENCE_PROFILE = {
   imageContextTokens: 8_192,
   imageTokens: 2_048,
   memoryBudgetBytes: 16 * 1024 ** 3,
+  windowsDedicatedHostMemoryBytes: 20 * 1024 ** 3,
   minimumUnifiedMemoryBytes: 24 * 1024 ** 3,
   minimumDedicatedMemoryBytes: 16_000_000_000,
   runtimeBuild: "llama.cpp@b10816",

@@ -2,6 +2,7 @@ import { spawn } from "node:child_process";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
+import { INFERENCE_PROFILE } from "@gardendesk/shared";
 import type {
   NativeWorkerHandle,
   NativeWorkerLauncher,
@@ -125,7 +126,11 @@ export function windowsNativeWorkerArguments(
       "--scratch",
       scratch,
       "--memory",
-      String(request.memoryBudgetBytes),
+      String(
+        options.gpu?.memoryKind === "dedicated"
+          ? INFERENCE_PROFILE.windowsDedicatedHostMemoryBytes
+          : request.memoryBudgetBytes,
+      ),
       ...(request.readPaths ?? []).flatMap((path) => ["--read", resolve(path)]),
       ...(options.gpu === undefined ? [] : windowsGpuArguments(options.gpu)),
       "--",
