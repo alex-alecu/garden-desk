@@ -1,6 +1,5 @@
 import {
   BoxGeometry,
-  ConeGeometry,
   CylinderGeometry,
   Group,
   InstancedMesh,
@@ -15,6 +14,7 @@ import {
 import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.js";
 
 import { createCity } from "./garden-city";
+import { gableGeometry, waterTexture } from "./garden-geometries";
 
 type Point = [number, number, number];
 const colors = {
@@ -25,9 +25,9 @@ const colors = {
   stone: 0xc3c1b6,
   grout: 0x777b72,
   soil: 0x394431,
-  brick: 0x996e55,
-  brickLight: 0xb38c6a,
-  brickDark: 0x785a48,
+  brick: 0x915744,
+  brickLight: 0xba8665,
+  brickDark: 0x594139,
   iron: 0x333b37,
   glass: 0x698b7b,
   screen: 0xd9e6ce,
@@ -37,24 +37,34 @@ const colors = {
   pot: 0x656b63,
   cityStone: 0xa5a498,
   cityGlass: 0x607b81,
-  cityWindow: 0x45575a,
+  cityWindow: 0x354f51,
+  roofTile: 0x995e43,
+  roofSlate: 0x515b60,
+  water: 0x548589,
+  waterLight: 0x89b2b0,
 };
 type Surface = keyof typeof colors;
 
 class GardenModel {
   readonly scene = new Scene();
   readonly sway: Group[] = [];
+  private readonly water = waterTexture();
   private readonly materials = Object.fromEntries(
     Object.entries(colors).map(([name, color]) => [
       name,
-      new MeshStandardMaterial({ color, roughness: name === "wood" ? 0.58 : 0.85 }),
+      new MeshStandardMaterial({
+        color,
+        roughness: name === "water" ? 0.32 : name === "wood" ? 0.58 : 0.85,
+        bumpMap: name === "water" ? this.water : null,
+        bumpScale: 0.12,
+      }),
     ]),
   ) as Record<Surface, MeshStandardMaterial>;
   private readonly shapes = {
     box: new BoxGeometry(1, 1, 1),
     round: new RoundedBoxGeometry(1, 1, 1, 2, 0.065),
     leaf: new SphereGeometry(1, 8, 4),
-    cone: new ConeGeometry(1, 1, 12),
+    gable: gableGeometry(),
     cylinder: new CylinderGeometry(0.85, 1, 1, 12),
     handle: new TorusGeometry(0.12, 0.025, 6, 14),
   };
@@ -115,33 +125,38 @@ class GardenModel {
   }
 
   ground(): void {
-    this.box("brick", [0, -5.2, 0.3], [12.5, 10, 12.3]);
-    this.box("stone", [0, -0.2, 0.3], [13, 0.35, 12.8]);
+    this.box("brickDark", [0, -5, -0.3], [7.1, 10, 13.6]);
+    this.box("cream", [0, -0.2, -0.3], [7.6, 0.25, 13.9]);
     for (const y of [-2.2, -4.8, -7.4]) {
-      this.box("brickLight", [0, y - 1.05, 0.3], [12.65, 0.12, 12.45]);
-      for (const offset of [-4.5, -1.5, 1.5, 4.5]) {
-        this.box("iron", [offset, y, 6.47], [1.05, 1.6, 0.05]);
-        this.box("glass", [offset, y, 6.51], [0.85, 1.4, 0.04]);
-        this.box("iron", [6.27, y, offset + 0.3], [0.05, 1.6, 1.05]);
-        this.box("glass", [6.31, y, offset + 0.3], [0.04, 1.4, 0.85]);
+      this.box("stone", [0, y - 1.05, -0.3], [7.2, 0.1, 13.7]);
+      for (const x of [-2.35, 0, 2.35]) {
+        this.box("cream", [x, y, 6.53], [1.12, 1.8, 0.1]);
+        this.box("cityWindow", [x, y, 6.6], [0.87, 1.55, 0.04]);
+        this.box("cream", [x, y + 0.18, 6.63], [0.89, 0.06, 0.035]);
+        this.box("cream", [x, y, 6.63], [0.055, 1.56, 0.035]);
+      }
+      for (const z of [-4.8, -1.8, 1.2, 4.2]) {
+        this.box("cream", [3.58, y, z], [0.1, 1.8, 1.1]);
+        this.box("cityWindow", [3.65, y, z], [0.04, 1.55, 0.87]);
       }
     }
-    this.box("grout", [0, 0, 0.7], [8.4, 0.1, 8]);
+    const roof = this.box("roofTile", [0, -0.02, -6.12], [7.2, 1.7, 1.6]);
+    roof.geometry = this.shapes.gable;
+    this.box("grout", [0, 0, 0.7], [5.4, 0.1, 8]);
     for (let row = 0; row < 6; row++) {
-      for (let col = 0; col < 7; col++) {
-        this.box("stone", [-3.6 + col * 1.2, 0.065, -2.6 + row * 1.3], [1.185, 0.08, 1.285]);
-      }
+      for (let col = 0; col < 5; col++)
+        this.box("stone", [-2.16 + col * 1.08, 0.065, -2.6 + row * 1.3], [1.06, 0.08, 1.285]);
     }
   }
 
   walls(): void {
-    this.box("stone", [0, 0.6, 6.2], [12.3, 1.2, 0.3]);
-    this.box("cream", [0, 1.22, 6.2], [12.5, 0.12, 0.4]);
-    this.box("stone", [0, 1.15, -5], [12, 2.3, 0.3]);
-    for (let i = 0; i < 14; i++) this.box("wood", [0, 0.17 + i * 0.17, -4.79], [11.7, 0.15, 0.07]);
+    this.box("stone", [0, 0.6, 6.2], [7.3, 1.2, 0.3]);
+    this.box("cream", [0, 1.22, 6.2], [7.5, 0.12, 0.4]);
+    this.box("stone", [0, 1.15, -5], [7.2, 2.3, 0.3]);
+    for (let i = 0; i < 14; i++) this.box("wood", [0, 0.17 + i * 0.17, -4.79], [7.1, 0.15, 0.07]);
     for (const side of [-1, 1]) {
-      this.box("stone", [side * 6, 0.7, 0.6], [0.3, 1.4, 11.4]);
-      this.box("cream", [side * 6, 1.42, 0.6], [0.4, 0.12, 11.4]);
+      this.box("stone", [side * 3.55, 0.7, 0.6], [0.3, 1.4, 11.4]);
+      this.box("cream", [side * 3.55, 1.42, 0.6], [0.4, 0.12, 11.4]);
     }
   }
 
@@ -152,6 +167,7 @@ class GardenModel {
       for (const [index, piece] of pieces.entries()) {
         transform.position.set(...piece.at);
         transform.scale.set(...piece.size);
+        transform.rotation.set(...piece.turn);
         transform.updateMatrix();
         blocks.setMatrixAt(index, transform.matrix);
       }
@@ -180,16 +196,16 @@ class GardenModel {
   }
 
   plants(): void {
-    this.box("pot", [0, 0.36, -3.85], [10.8, 0.72, 1.2]);
-    this.box("soil", [0, 0.725, -3.85], [10.55, 0.025, 0.96]);
-    for (let i = 0; i < 7; i++)
-      this.crown([-4.35 + i * 1.45, 1.24, -3.85], [0.68, 0.38, 0.45], 180, 190 + i);
+    this.box("pot", [0, 0.36, -3.85], [6.2, 0.72, 1.2]);
+    this.box("soil", [0, 0.725, -3.85], [5.95, 0.025, 0.96]);
+    for (let i = 0; i < 5; i++)
+      this.crown([-2.2 + i * 1.1, 1.24, -3.85], [0.48, 0.38, 0.45], 140, 190 + i);
     for (const side of [-1, 1]) {
-      this.box("pot", [side * 4.85, 0.33, 0.3], [1.2, 0.66, 8.1]);
-      this.box("soil", [side * 4.85, 0.665, 0.3], [0.96, 0.025, 7.86]);
-      this.tree(side * 4.85, -2.8, side + 50);
+      this.box("pot", [side * 2.85, 0.33, 0.3], [0.9, 0.66, 8.1]);
+      this.box("soil", [side * 2.85, 0.665, 0.3], [0.66, 0.025, 7.86]);
+      this.tree(side * 2.85, -2.8, side + 50);
       for (let i = 0; i < 3; i++)
-        this.crown([side * 4.85, 1.04, i * 1.6], [0.42, 0.3, 0.56], 100, i + side + 80);
+        this.crown([side * 2.85, 1.04, i * 1.6], [0.42, 0.3, 0.56], 100, i + side + 80);
     }
   }
 
@@ -252,6 +268,7 @@ class GardenModel {
     });
     for (const geometry of Object.values(this.shapes)) geometry.dispose();
     for (const material of Object.values(this.materials)) material.dispose();
+    this.water.dispose();
   }
 }
 

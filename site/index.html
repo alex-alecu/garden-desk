@@ -85,13 +85,27 @@
           </p>
           <p class="availability">No account, ever. Installers coming soon.</p>
         </div>
-        <div class="garden-scene" data-scene role="img" aria-label="A wooden desk and chair in a private New York rooftop garden, with two small trees, low shrubs, stone paving, and a wood screen">
+        <div class="garden-scene" data-scene role="img" aria-label="A wooden desk and chair in a private Amsterdam townhouse roof garden, with small trees, low shrubs, gabled houses, canals, bridges, and a distant sea view">
         <svg class="garden-poster" viewBox="700 0 760 700" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
           <defs>
             <linearGradient id="sky-wash" x2="0" y2="1"><stop stop-color="#d5dbd4" /><stop offset="1" stop-color="#e8e8df" /></linearGradient>
             <linearGradient id="threshold" x2="0" y2="1"><stop stop-color="#122b1d" stop-opacity="0" /><stop offset="1" stop-color="#122b1d" stop-opacity=".65" /></linearGradient>
             <radialGradient id="desk-shadow"><stop stop-color="#30392f" stop-opacity=".3" /><stop offset="1" stop-color="#30392f" stop-opacity="0" /></radialGradient>
-            <pattern id="city-windows" width="17" height="19" patternUnits="userSpaceOnUse"><rect x="5" y="5" width="5" height="9" fill="#53686a" opacity=".42" /></pattern>
+            <linearGradient id="canal-water" x2="0" y2="1"><stop stop-color="#adc4c2" /><stop offset="1" stop-color="#548589" /></linearGradient>
+            <g id="canal-house">
+              <path d="M0 90V0L27-34 54 0v90Z" fill="currentColor" />
+              <path d="M-1 1 27-35 55 1M0 90h54" fill="none" stroke="#e1dbc9" stroke-width="3" />
+              <g fill="#415d60" stroke="#e1dbc9" stroke-width="2"><path d="M10 12h11v20H10Zm23 0h11v20H33ZM10 43h11v20H10Zm23 0h11v20H33ZM22-17h10v13H22Z" /></g>
+              <path d="M15 12v20m23-20v20M15 43v20m23-20v20M10 22h11m12 0h11M10 53h11m12 0h11" stroke="#e1dbc9" />
+              <path d="M23 90V72h12v18M26-29v-13h8" fill="#34423c" stroke="#34423c" stroke-width="2" />
+            </g>
+            <g id="stepped-house">
+              <path d="M0 90V0h6v-12h9v-12h8v-12h10v12h8v12h9V0h6v90Z" fill="currentColor" />
+              <path d="M0 0h6v-12h9v-12h8v-12h10v12h8v12h9V0h6M0 90h56" fill="none" stroke="#e1dbc9" stroke-width="3" />
+              <g fill="#415d60" stroke="#e1dbc9" stroke-width="2"><path d="M11 12h11v20H11Zm23 0h11v20H34ZM11 43h11v20H11Zm23 0h11v20H34ZM23-17h10v13H23Z" /></g>
+              <path d="M11 22h11m12 0h11M11 53h11m12 0h11" stroke="#e1dbc9" />
+              <path d="M23 90V72h12v18M28-29v-13h8" fill="#34423c" stroke="#34423c" stroke-width="2" />
+            </g>
             <pattern id="roof-slats" width="760" height="18" patternUnits="userSpaceOnUse"><rect width="760" height="18" fill="#806047" /><path d="M0 17h760" stroke="#644b38" /></pattern>
             <pattern id="roof-leaves" width="23" height="19" patternUnits="userSpaceOnUse">
               <rect width="23" height="19" fill="#46604a" /><ellipse cx="5" cy="5" rx="4" ry="2" fill="#657c55" transform="rotate(-30 5 5)" /><ellipse cx="16" cy="12" rx="5" ry="2" fill="#344e3a" transform="rotate(35 16 12)" />
@@ -104,18 +118,31 @@
           </defs>
           <rect x="700" width="760" height="700" fill="url(#sky-wash)" />
           <g data-layer="city">
-            <path d="M688 302V142h16V98h30V75h10V98h29v44h15v160Zm108 0V116h18V64h40v52h18v186Zm98 0V160h19v-43h36v43h20v142Zm91 0V117h15V67h13V38h16v29h13v50h15v185Zm100 0V130h20V90h46v40h18v172Zm105 0V111h12V49h15V24h12v25h15v62h17v191Zm94 0V150h16v-39h45v39h17v152Zm94 0V108h20V67h39v41h20v194Z" fill="#a5b1ad" opacity=".58" />
-            <path d="M688 302V142h16V98h30V75h10V98h29v44h15v160Zm108 0V116h18V64h40v52h18v186Zm98 0V160h19v-43h36v43h20v142Zm91 0V117h15V67h13V38h16v29h13v50h15v185Zm100 0V130h20V90h46v40h18v172Zm105 0V111h12V49h15V24h12v25h15v62h17v191Zm94 0V150h16v-39h45v39h17v152Zm94 0V108h20V67h39v41h20v194Z" fill="url(#city-windows)" opacity=".32" />
-            <path d="M695 310V216h61v94Zm65 0V179h65v131Zm70 0V206h58v104Zm63 0V162h72v148Zm77 0V220h55v90Zm60 0V195h66v115Zm72 0V229h63v81Zm68 0V177h69v133Zm75 0V211h65v99Zm71 0V184h63v126Z" fill="#9a9485" opacity=".76" />
-            <path d="M695 310V216h61v94Zm65 0V179h65v131Zm70 0V206h58v104Zm63 0V162h72v148Zm77 0V220h55v90Zm60 0V195h66v115Zm72 0V229h63v81Zm68 0V177h69v133Zm75 0V211h65v99Zm71 0V184h63v126Z" fill="url(#city-windows)" />
-            <g fill="#ccc8ba"><path d="M758 177h69v5h-69Zm133-17h76v5h-76Zm205 33h-68v5h68Zm73-18h72v5h-72Zm146 7h67v5h-67Z" /></g>
-            <g fill="#6b7169" stroke="#6b7169" stroke-width="2">
-              <path d="M787 162v17m20-17v17m392-19v17m19-17v17" fill="none" />
-              <path d="M783 141v22h28v-22l-14-9Zm412-4v24h28v-24l-14-10Z" />
+            <rect x="700" y="45" width="760" height="305" fill="url(#canal-water)" />
+            <path d="M712 77h68m38 15h38m70-30h75m37 35h54m70-24h63m49 24h60m-642 17h32m152-4h61m173 1h86m55-46h52" fill="none" stroke="#d4e1d8" stroke-width="2" opacity=".65" />
+            <g transform="translate(873 89)"><path d="M-18 0h39l-7 7h-25Z" fill="#536461" /><path d="M0-38V0M2-34 21-3H2Z" fill="#eee6cd" stroke="#eee6cd" /></g>
+            <g transform="translate(1250 76) scale(.65)"><path d="M-18 0h39l-7 7h-25Z" fill="#536461" /><path d="M0-38V0M2-34 21-3H2Z" fill="#eee6cd" stroke="#eee6cd" /></g>
+            <g opacity=".83">
+              <use href="#canal-house" transform="translate(699 137) scale(.8)" color="#947b67" /><use href="#stepped-house" transform="translate(747 126) scale(.86 .92)" color="#82675c" />
+              <use href="#canal-house" transform="translate(799 140) scale(.82 .76)" color="#ab876d" /><use href="#canal-house" transform="translate(848 131) scale(.9 .87)" color="#737b76" />
+              <use href="#stepped-house" transform="translate(901 121) scale(.85 .98)" color="#987866" /><use href="#canal-house" transform="translate(953 134) scale(.87 .84)" color="#806960" />
+              <use href="#stepped-house" transform="translate(1004 141) scale(.83 .76)" color="#aa9077" /><use href="#canal-house" transform="translate(1055 123) scale(.94 .96)" color="#876654" />
+              <use href="#canal-house" transform="translate(1110 136) scale(.84 .82)" color="#9c8b76" /><use href="#stepped-house" transform="translate(1160 128) scale(.85 .91)" color="#78645a" />
+              <use href="#canal-house" transform="translate(1212 140) scale(.86 .77)" color="#a18065" /><use href="#canal-house" transform="translate(1364 132) scale(.84 .86)" color="#967e6a" />
+              <use href="#stepped-house" transform="translate(1415 123) scale(.85 .96)" color="#7e6c60" />
             </g>
-            <path d="M700 302V272h64v30Zm70 0V229h80v73Zm86 0V264h61v38Zm67 0V242h92v60Zm98 0V270h62v32Zm68 0V220h83v82Zm89 0V258h76v44Zm82 0V235h62v67Z" fill="#a69780" />
-            <path d="M700 302V272h64v30Zm70 0V229h80v73Zm86 0V264h61v38Zm67 0V242h92v60Zm98 0V270h62v32Zm68 0V220h83v82Zm89 0V258h76v44Zm82 0V235h62v67Z" fill="url(#city-windows)" />
-            <path d="M700 272h64m6-43h80m6 35h61m6-22h92m6 28h62m6-50h83m6 38h76m6-23h62" stroke="#d0c9b8" stroke-width="5" />
+            <path d="M700 213h570m87 0h103" fill="none" stroke="#c3c1b6" stroke-width="8" />
+            <path d="M703 236h45m25 13h87m82-17h74m34 19h49m104-17h62m75 15h37m28-39v52" fill="none" stroke="#aecbc4" stroke-width="2" opacity=".8" />
+            <path d="M1262 217Q1314 185 1364 217v8Q1313 196 1262 225Z" fill="#806453" />
+            <path d="M1262 210Q1314 178 1364 210m-96-3v12m17-21v14m18-21v15m18-15v15m18-8v14m17-14v12" fill="none" stroke="#45554b" stroke-width="2" />
+            <g transform="translate(924 245)"><path d="M-25 0h50l-7 8h-36Z" fill="#394e49" /><rect x="-12" y="-9" width="23" height="11" rx="2" fill="#d8d5bc" /><path d="M-9-7H8v5H-9Z" fill="#526f73" /></g>
+            <g>
+              <use href="#stepped-house" transform="translate(683 253) scale(1.2)" color="#785746" /><use href="#canal-house" transform="translate(753 235) scale(1.18 1.4)" color="#a57252" />
+              <use href="#canal-house" transform="translate(820 264) scale(1.1 1.1)" color="#695346" /><use href="#stepped-house" transform="translate(885 244) scale(1.12 1.3)" color="#9b8065" />
+              <use href="#canal-house" transform="translate(951 258) scale(1.1 1.1)" color="#a8775d" /><use href="#canal-house" transform="translate(1016 230) scale(1.19 1.45)" color="#655248" />
+              <use href="#stepped-house" transform="translate(1086 251) scale(1.13 1.2)" color="#a48c72" /><use href="#canal-house" transform="translate(1154 242) scale(1.17 1.32)" color="#8b5945" />
+              <use href="#canal-house" transform="translate(1375 249) scale(1.15 1.25)" color="#9b7054" /><use href="#stepped-house" transform="translate(1441 236) scale(1.14 1.4)" color="#6d594d" />
+            </g>
           </g>
           <rect x="700" y="302" width="760" height="174" fill="url(#roof-slats)" />
           <path d="M700 476h760v224H700Z" fill="#c3c1b6" />
