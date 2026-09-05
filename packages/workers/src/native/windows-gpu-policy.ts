@@ -2,7 +2,6 @@ import { INFERENCE_PROFILE } from "@gardendesk/shared";
 import type { WindowsGpuLaunch } from "./windows.js";
 
 const MAX_GPU_DEVICES = 64;
-const DEDICATED_HOST_MEMORY_BYTES = INFERENCE_PROFILE.memoryBudgetBytes;
 
 export interface WindowsGpuAdapterInfo {
   id: string;
@@ -50,7 +49,6 @@ interface IsolatedVariant {
 }
 
 type Probe = (selection: WindowsGpuLaunch) => Promise<WindowsRuntimeProbeResult | undefined>;
-
 function safeInteger(value: unknown, allowZero = true): value is number {
   return (
     typeof value === "number" && Number.isSafeInteger(value) && (allowZero ? value >= 0 : value > 0)
@@ -143,7 +141,7 @@ export function resolveWindowsGpuMemoryProfile(
   if (memoryBudgetBytes === undefined || detectedMemoryBytes < memoryBudgetBytes) return undefined;
   return {
     memoryBudgetBytes,
-    hostMemoryReservationBytes: integrated ? memoryBudgetBytes : DEDICATED_HOST_MEMORY_BYTES,
+    hostMemoryReservationBytes: INFERENCE_PROFILE.memoryBudgetBytes,
   };
 }
 
