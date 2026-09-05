@@ -1794,7 +1794,7 @@ body {
   position: relative;
   display: grid;
   align-items: center;
-  min-height: min(760px, 100svh - 90px);
+  min-height: clamp(700px, 100svh, 1000px);
   margin-top: -90px;
   padding-top: 90px;
   overflow: hidden;
@@ -1806,6 +1806,79 @@ body {
   inset: 0;
   width: 100%;
   height: 100%;
+  overflow: hidden;
+  pointer-events: none;
+  background: #173a27;
+}
+
+.garden-scene canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.garden-poster {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 65%;
+  height: 100%;
+}
+
+.garden-scene[data-rendered] .garden-poster {
+  visibility: hidden;
+}
+
+.garden-scene::after {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(
+      90deg,
+      rgb(9 31 19 / 96%) 0%,
+      rgb(9 31 19 / 86%) 27%,
+      rgb(9 31 19 / 34%) 48%,
+      transparent 68%
+    ),
+    linear-gradient(0deg, var(--shade), transparent 18%);
+  content: "";
+}
+
+.garden-poster [data-dapple] {
+  opacity: 0.18;
+}
+.garden-poster [data-beam] {
+  opacity: 0.4;
+}
+.garden-poster [data-steam] {
+  opacity: 0.4;
+}
+.garden-poster [data-fall],
+.garden-poster [data-mote] {
+  display: none;
+}
+
+.garden-pause {
+  position: absolute;
+  z-index: 2;
+  right: 28px;
+  bottom: 26px;
+  min-height: 44px;
+  padding: 10px 16px;
+  border: 1px solid rgb(240 237 227 / 34%);
+  border-radius: 999px;
+  color: var(--bone);
+  background: rgb(12 35 23 / 86%);
+  font: inherit;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.garden-pause:hover {
+  background: var(--shade);
+}
+.garden-pause[hidden] {
+  display: none;
 }
 
 .garden-copy {
@@ -1977,234 +2050,71 @@ body {
   }
 }
 
-@media (max-width: 900px) {
+@media (max-width: 1023px) {
+  .garden {
+    min-height: max(900px, 100svh);
+    align-items: start;
+  }
+  .garden-copy {
+    width: calc(100% - 64px);
+    padding-block: 40px 30px;
+    gap: 18px;
+  }
+  .garden-copy > * {
+    max-width: 32ch;
+  }
+  .garden h1 {
+    font-size: clamp(2.6rem, 7vw, 3.6rem);
+  }
+  .garden-poster {
+    width: 100%;
+    height: 62%;
+  }
+  .garden-scene::after {
+    background:
+      linear-gradient(
+        180deg,
+        rgb(9 31 19 / 96%) 0%,
+        rgb(9 31 19 / 90%) 350px,
+        rgb(9 31 19 / 72%) 460px,
+        transparent 600px
+      ),
+      linear-gradient(0deg, var(--shade), transparent 12%);
+  }
+}
+
+@media (max-width: 767px), (max-height: 599px) {
   .garden {
     display: block;
     min-height: 0;
   }
-
   .garden-copy {
-    width: min(1180px, 100% - 44px);
-    padding-block: 44px 30px;
+    width: calc(100% - 44px);
+    padding-block: 36px 26px;
   }
-
   .garden-copy > * {
-    max-width: 28ch;
+    max-width: 32ch;
   }
-
   .garden h1 {
-    font-size: clamp(2.6rem, 12vw, 3.6rem);
+    font-size: clamp(2.6rem, 10vw, 3.6rem);
   }
-
   .garden-scene {
     position: relative;
     inset: auto;
-    display: block;
+    height: clamp(300px, 85vw, 420px);
+  }
+  .garden-poster {
     width: 100%;
-    height: min(46svh, 330px);
+    height: 100%;
   }
-}
-
-/* Scene motion. Every element carries its own duration and delay so the
-   garden rustles unevenly rather than pulsing in lockstep. */
-.garden-scene [data-layer] {
-  transition: transform 380ms cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.garden-scene .sway {
-  transform-box: fill-box;
-  transform-origin: 0 50%;
-  animation: sway var(--dur, 7s) ease-in-out var(--del, 0s) infinite;
-}
-
-.garden-scene [data-steam] path {
-  transform-box: fill-box;
-  transform-origin: 50% 100%;
-  animation: steam var(--dur, 4.5s) ease-out var(--del, 0s) infinite;
-}
-
-.garden-scene .branch-drift {
-  transform-box: fill-box;
-  transform-origin: 0 20%;
-  animation: branch-drift 13s ease-in-out infinite;
-}
-
-.garden-scene [data-glow] {
-  animation: glow 7s ease-in-out infinite;
-}
-
-.garden-scene [data-beam] {
-  transform-box: fill-box;
-  transform-origin: 50% 0;
-  animation: beam 19s ease-in-out infinite;
-}
-
-.garden-scene [data-dapple] ellipse {
-  transform-box: fill-box;
-  transform-origin: 50% 50%;
-  animation: dapple var(--dur, 13s) ease-in-out var(--del, 0s) infinite;
-}
-
-.garden-scene [data-fall] {
-  transform-box: fill-box;
-  animation: fall var(--dur, 16s) linear var(--del, 0s) infinite;
-}
-
-.garden-scene [data-mote] circle {
-  transform-box: fill-box;
-  animation: mote var(--dur, 12s) ease-in-out var(--del, 0s) infinite;
-}
-
-.garden-scene [data-bird] {
-  transform-box: fill-box;
-  animation: fly var(--dur, 26s) linear infinite;
-}
-
-.garden-scene [data-caret] {
-  animation: caret 1.15s steps(1) infinite;
-}
-
-@keyframes sway {
-  0%,
-  100% {
-    transform: rotate(calc(var(--amp, 10deg) * -1));
-  }
-  50% {
-    transform: rotate(var(--amp, 10deg));
-  }
-}
-
-@keyframes branch-drift {
-  0%,
-  100% {
-    transform: rotate(-1.1deg) translateY(-3px);
-  }
-  50% {
-    transform: rotate(1.1deg) translateY(3px);
-  }
-}
-
-@keyframes steam {
-  0% {
-    opacity: 0;
-    transform: translateY(6px) scaleY(0.7);
-  }
-  25% {
-    opacity: 0.55;
-  }
-  100% {
-    opacity: 0;
-    transform: translateY(-26px) scaleY(1.25);
-  }
-}
-
-@keyframes glow {
-  0%,
-  100% {
-    opacity: 0.78;
-  }
-  50% {
-    opacity: 1;
-  }
-}
-
-@keyframes beam {
-  0%,
-  100% {
-    opacity: 0.5;
-    transform: skewX(0deg);
-  }
-  50% {
-    opacity: 0.85;
-    transform: skewX(1.6deg);
-  }
-}
-
-@keyframes dapple {
-  0%,
-  100% {
-    opacity: 0.12;
-    transform: translate(0, 0) scale(1);
-  }
-  50% {
-    opacity: 0.28;
-    transform: translate(14px, -5px) scale(1.07);
-  }
-}
-
-@keyframes fall {
-  0% {
-    opacity: 0;
-    transform: translate(0, 0) rotate(0deg);
-  }
-  8% {
-    opacity: 0.9;
-  }
-  88% {
-    opacity: 0.9;
-  }
-  100% {
-    opacity: 0;
-    transform: translate(var(--dx, -80px), 660px) rotate(520deg);
-  }
-}
-
-@keyframes mote {
-  0%,
-  100% {
-    opacity: 0;
-    transform: translate(0, 0);
-  }
-  30%,
-  70% {
-    opacity: 0.5;
-  }
-  100% {
-    transform: translate(26px, -70px);
-  }
-}
-
-@keyframes fly {
-  0% {
-    opacity: 0;
-    transform: translate(-90px, 26px);
-  }
-  10%,
-  85% {
-    opacity: 0.75;
-  }
-  100% {
-    opacity: 0;
-    transform: translate(720px, -46px);
-  }
-}
-
-@keyframes caret {
-  50% {
-    opacity: 0;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .garden-scene [data-layer],
-  .garden-scene .sway,
-  .garden-scene .branch-drift,
-  .garden-scene [data-steam] path,
-  .garden-scene [data-glow],
-  .garden-scene [data-beam],
-  .garden-scene [data-dapple] ellipse,
-  .garden-scene [data-fall],
-  .garden-scene [data-mote] circle,
-  .garden-scene [data-bird],
-  .garden-scene [data-caret] {
-    transition: none;
-    animation: none;
-  }
-
-  .garden-scene [data-fall],
-  .garden-scene [data-mote] circle,
-  .garden-scene [data-bird] {
-    display: none;
+  .garden-scene::after {
+    background: linear-gradient(
+      180deg,
+      var(--shade),
+      transparent 18%,
+      transparent 86%,
+      var(--shade)
+    );
   }
 }
 
