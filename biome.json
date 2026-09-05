@@ -9,6 +9,7 @@
       "!**/.generated",
       "!**/src-tauri/gen",
       "!packages/desktop/src-tauri/resources",
+      "!assets/licenses/cuda-EULA.html",
       "!pnpm-lock.yaml"
     ]
   },

@@ -47,15 +47,9 @@ function probe(
 
 describe("Windows integrated GPU budgets", () => {
   it.each([
-    [16 * GiB - 1, 16 * GiB, undefined],
-    [16 * GiB, 8 * GiB - 1, undefined],
-    [16 * GiB, 8 * GiB, 8 * GiB],
-    [16 * GiB + 1, 12 * GiB, 12 * GiB],
-    [24 * GiB, 12 * GiB - 1, 8 * GiB],
-    [24 * GiB + 1, 16 * GiB, 16 * GiB],
-    [34_359_738_368, 16_972_775_424, 12 * GiB],
-    [32 * GiB, 12 * GiB - 1, 8 * GiB],
-    [32 * GiB, 8 * GiB - 1, undefined],
+    [24 * GiB - 1, 16 * GiB, undefined],
+    [24 * GiB, 16 * GiB - 1, undefined],
+    [24 * GiB, 16 * GiB, 16 * GiB],
   ])(
     "maps installed bytes %d and detected bytes %d to the safe budget",
     (installed, detected, budget) => {
@@ -76,9 +70,9 @@ describe("Windows dedicated GPU preference", () => {
         inventory("vulkan", ["AMD Integrated Graphics", "NVIDIA GPU"]),
       ],
       probe({
-        "cuda:0": { name: "NVIDIA GPU", memory: 12 * GiB },
+        "cuda:0": { name: "NVIDIA GPU", memory: 16 * GiB },
         "vulkan:0": { name: "AMD Integrated Graphics", memory: 16 * GiB },
-        "vulkan:1": { name: "NVIDIA GPU", memory: 12 * GiB },
+        "vulkan:1": { name: "NVIDIA GPU", memory: 16 * GiB },
       }),
     );
     expect(selected.selection).toMatchObject({
@@ -88,7 +82,7 @@ describe("Windows dedicated GPU preference", () => {
       memoryKind: "dedicated",
     });
     expect(selected.adapterId).toBe("nvidia");
-    expect(selected.visionSelection).toEqual({ deviceIndex: 1, expectedName: "NVIDIA GPU" });
+    expect(selected.visionSelection).toEqual({ deviceIndex: 0, expectedName: "NVIDIA GPU" });
   });
 });
 
@@ -102,7 +96,7 @@ describe("Windows GPU selection without vendor rules", () => {
       [inventory("vulkan", ["Intel Integrated Graphics", "Intel Arc Graphics"])],
       probe({
         "vulkan:0": { name: "Intel Integrated Graphics", memory: 16 * GiB },
-        "vulkan:1": { name: "Intel Arc Graphics", memory: 12 * GiB },
+        "vulkan:1": { name: "Intel Arc Graphics", memory: 16 * GiB },
       }),
     );
     expect(selected.selection).toMatchObject({
@@ -120,11 +114,11 @@ describe("Windows integrated GPU fallback", () => {
       const selected = await resolveWindowsGpuProfileFromFacts(
         facts([adapter("integrated", name, true)], 24 * GiB),
         [inventory("vulkan", [name])],
-        probe({ "vulkan:0": { name, memory: 12 * GiB } }),
+        probe({ "vulkan:0": { name, memory: 16 * GiB } }),
       );
       expect(selected).toMatchObject({
-        memoryBudgetBytes: 12 * GiB,
-        hostMemoryReservationBytes: 12 * GiB,
+        memoryBudgetBytes: 16 * GiB,
+        hostMemoryReservationBytes: 16 * GiB,
         selection: { expectedName: name, memoryKind: "unified" },
       });
     },
@@ -159,7 +153,7 @@ describe("Windows GPU candidate ranking", () => {
       facts([adapter("large", "Large GPU", false), adapter("small", "Small GPU", false)]),
       [inventory("vulkan", ["Small GPU", "Large GPU"])],
       probe({
-        "vulkan:0": { name: "Small GPU", memory: 12 * GiB },
+        "vulkan:0": { name: "Small GPU", memory: 16 * GiB },
         "vulkan:1": { name: "Large GPU", memory: 24 * GiB },
       }),
     );
@@ -174,8 +168,8 @@ describe("Windows GPU candidate ranking", () => {
       facts([adapter("gpu", "GPU", false)]),
       [inventory("cuda", ["GPU"]), inventory("vulkan", ["GPU"])],
       probe({
-        "cuda:0": { name: "GPU", memory: 12 * GiB },
-        "vulkan:0": { name: "GPU", memory: 12 * GiB },
+        "cuda:0": { name: "GPU", memory: 16 * GiB },
+        "vulkan:0": { name: "GPU", memory: 16 * GiB },
       }),
     );
     expect(selected.selection.backend).toBe("cuda");
@@ -187,9 +181,9 @@ describe("Windows GPU candidate ranking", () => {
       facts([adapter("a", "A Vulkan GPU", false), adapter("z", "Z CUDA GPU", false)]),
       [inventory("cuda", ["Z CUDA GPU"]), inventory("vulkan", ["A Vulkan GPU", "Z CUDA GPU"])],
       probe({
-        "cuda:0": { name: "Z CUDA GPU", memory: 12 * GiB },
-        "vulkan:0": { name: "A Vulkan GPU", memory: 12 * GiB },
-        "vulkan:1": { name: "Z CUDA GPU", memory: 12 * GiB },
+        "cuda:0": { name: "Z CUDA GPU", memory: 16 * GiB },
+        "vulkan:0": { name: "A Vulkan GPU", memory: 16 * GiB },
+        "vulkan:1": { name: "Z CUDA GPU", memory: 16 * GiB },
       }),
     );
     expect(selected.selection).toMatchObject({
@@ -217,7 +211,7 @@ describe("Windows GPU identity failures", () => {
       name: "changed topology",
       adapters: [adapter("gpu", "GPU A", false)],
       inventories: [inventory("vulkan", ["GPU A"])],
-      isolated: { "vulkan:0": { name: "GPU B", memory: 12 * GiB } },
+      isolated: { "vulkan:0": { name: "GPU B", memory: 16 * GiB } },
     },
     {
       name: "insufficient integrated capacity",
@@ -251,7 +245,7 @@ describe("Windows GPU identity failures", () => {
 describe("Windows GPU adapter identity", () => {
   it("rejects a same-name adapter with a changed ID", () => {
     const selection = { backend: "vulkan" as const, expectedName: "Same GPU" };
-    const result = inventory("vulkan", ["Same GPU"], 12 * GiB);
+    const result = inventory("vulkan", ["Same GPU"], 16 * GiB);
     expect(
       isExpectedWindowsGpuIdentity(
         "original",

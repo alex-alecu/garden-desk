@@ -18,9 +18,9 @@ Conversations, files, generated work, audit records, and diagnostic traces stay 
 
 ## How we are building it
 
-- **Generation and image model:** the official `Gemma 4 12B IT QAT Q4_0` GGUF and its official multimodal projector. This is the default image model pair. Physical cross-platform image certification is pending.
+- **Generation and image model:** Qwen3.8-27B `UD-IQ4_XS` GGUF and its F16 projector. Physical Mac verification is pending.
 - **Retrieval encoder:** the official `Qwen3-Embedding-0.6B Q8_0` GGUF for local semantic search. Document retrieval is part of the post-V1 document-intelligence work; the encoder's local runtime path is already validated.
-- **Model runtime:** [`node-llama-cpp` 3.19.0](https://node-llama-cpp.withcat.ai/) for chat and pinned `llama.cpp` b9842 for on-demand image inspection, using the same GGUF model on macOS and Windows. The model stack is Apache 2.0 licensed; the runtimes are MIT licensed.
+- **Model runtime:** pinned `llama.cpp b10816` for text, images, and embeddings through a private socket. Model files are Apache-2.0 licensed; llama.cpp is MIT licensed.
 - **Desktop and control plane:** a [Tauri v2](https://tauri.app/) and React interface over a TypeScript and Node.js core that owns permissions, sessions, model requests, limits, audit, and recovery.
 
 The model does not run as a server on an exposed port. It runs in a separate, supervised process and communicates with Garden Desk Core through fixed, typed stdin and stdout. This preserves local GPU acceleration while denying the model network access, credentials, a host shell, unrestricted files, or approval authority. It also lets the operating system reclaim the complete model runtime when the worker stops.
@@ -50,14 +50,9 @@ To run the desktop locally:
 
    On Windows, Vite continues to reload frontend changes while `desktop:dev` disables Tauri's Rust file watcher. Some Windows filesystems report source-file reads as access changes, which Tauri can mistake for edits and restart forever. Restart `desktop:dev` after changing Rust desktop-host code. macOS keeps Tauri's normal Rust watcher.
 
-## What we learned running Gemma 4
+## Local model operation
 
-Gemma 4 is the default model, and a few of its habits shaped the agent loop. These are the high-level fixes.
-
-- **Tool calls in Gemma's own format.** Gemma 4 writes tool arguments as `key:<|"|>value<|"|>`: bare keys, and strings between two delimiter tokens with no escaping. Generic runtimes rewrite that into JSON and force the arguments through a JSON grammar, so every quote in generated Python or Node code must be escaped in a format the model never learned; the result was corrupted scripts that the model regenerated unchanged turn after turn. The inference worker now renders tool declarations, calls, and results the way Gemma's own chat template does and reads the model's call from the generated tokens by token id, so a string keeps every byte the model wrote ([#81](https://github.com/alex-alecu/garden-desk/pull/81)).
-- **A run that loops just reaches the turn cap.** Earlier builds added duplicate-call detection, a temperature bump during recovery, and a dedicated `agent_stalled_duplicate` failure code to catch a model that repeats itself. None of it changed outcomes enough to justify the complexity, so it was removed: a run now stops at 40 model turns like any other run, with one plain failure and no special-cased detection.
-- **Reasoning stays private and bounded.** Gemma's thought channel is on with a token budget. Thoughts are shown live and are never stored in conversations, traces, or audit records.
-- **Small format habits are handled where they appear.** Some spreadsheet exports read as empty under openpyxl's read-only mode; the workbook skill tells the model to avoid it. Nothing filters the model's code inside the no-network microVM.
+Generation uses Q4 weights and a 32K context. Reasoning is shown live and stays outside stored conversations, traces, and audit records. The model proposes tool calls; Core controls execution inside the no-network microVM.
 
 ## Public website
 

@@ -72,7 +72,7 @@ export function modelUsage(model: ModelRuntimeStatus) {
  */
 export function gpuMemoryUsage(model: ModelRuntimeStatus):
   | {
-      used: string;
+      used: string | undefined;
       budget: string | undefined;
       label: "VRAM" | "Unified GPU memory";
       sequences: number | undefined;
@@ -83,7 +83,7 @@ export function gpuMemoryUsage(model: ModelRuntimeStatus):
     model.gpuMemoryKind === "unified"
       ? totalAllocation(model)
       : optionalMemory(model.gpuMemoryBytes);
-  if (used === undefined) return undefined;
+  if (used === undefined && model.memoryBudgetBytes === undefined) return undefined;
   return {
     used,
     budget: optionalMemory(model.memoryBudgetBytes),

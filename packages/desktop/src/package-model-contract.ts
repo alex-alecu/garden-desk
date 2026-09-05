@@ -1,9 +1,10 @@
 import { join } from "node:path";
+import { INFERENCE_PROFILE } from "@gardendesk/shared";
 
-export const generationModelId = "gemma-4-12b-it-qat-q4_0";
+export const generationModelId = INFERENCE_PROFILE.modelId;
 export const generationModelFileName = `${generationModelId}.gguf`;
 export const generationModelResourcePath = `models/${generationModelFileName}`;
-export const projectorModelId = "gemma-4-12b-it-qat-q4_0-mmproj";
+export const projectorModelId = INFERENCE_PROFILE.projectorId;
 export const projectorModelFileName = `${projectorModelId}.gguf`;
 export const projectorModelResourcePath = `models/${projectorModelFileName}`;
 export const packagedModelFiles = [

@@ -10,7 +10,6 @@ const MAX_DIAGNOSTIC_ERROR_NAME_CHARACTERS = 512;
 const MAX_DIAGNOSTIC_MESSAGE_CHARACTERS = 4 * 1024;
 const MAX_DIAGNOSTIC_STACK_CHARACTERS = 8 * 1024;
 const MAX_DIAGNOSTIC_CAUSE_CHARACTERS = 4 * 1024;
-const MAX_DIAGNOSTIC_LIBRARY_LOG_CHARACTERS = 12 * 1024;
 const MAX_DIAGNOSTIC_CAUSE_PROPERTIES = 8;
 const run = promisify(execFile);
 
@@ -171,20 +170,6 @@ export function writeDevelopmentOperationFailure(
 ): void {
   if (globalThis.__GARDEN_DESK_DEVELOPMENT_BUILD__ !== true) return;
   writeDiagnosticErrorRecord(`[garden-desk-inference] operation=${operation} failed`, error);
-}
-
-export function writeDevelopmentLlamaLog(level: string, message: string): void {
-  if (globalThis.__GARDEN_DESK_DEVELOPMENT_BUILD__ !== true) return;
-  try {
-    writeDiagnosticRecord(
-      `[node-llama-cpp] level=${boundedText(level, MAX_DIAGNOSTIC_ERROR_NAME_CHARACTERS)}\n${boundedText(
-        message,
-        MAX_DIAGNOSTIC_LIBRARY_LOG_CHARACTERS,
-      )}\n`,
-    );
-  } catch {
-    // Diagnostics must not change the fixed worker response.
-  }
 }
 
 export async function recordDevelopmentHostFailure(

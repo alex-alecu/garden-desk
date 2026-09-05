@@ -1,4 +1,10 @@
 import { spawn } from "node:child_process";
+import { EventEmitter } from "node:events";
+import { createServer } from "node:http";
+import { createConnection } from "node:net";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { PassThrough } from "node:stream";
 import { InferenceWorkerRequestSchema } from "@gardendesk/shared";
 import { describe, expect, it } from "vitest";
 import type {
@@ -28,92 +34,6 @@ class ScriptLauncher implements NativeWorkerLauncher {
   }
 }
 
-const residentWorkerScript = `
-let pending = Buffer.alloc(0);
-function send(value) {
-  const payload = Buffer.from(JSON.stringify(value));
-  const frame = Buffer.alloc(4 + payload.length);
-  frame.writeUInt32BE(payload.length, 0);
-  payload.copy(frame, 4);
-  process.stdout.write(frame);
-}
-process.stdin.on("data", (chunk) => {
-  pending = Buffer.concat([pending, chunk]);
-  while (pending.length >= 4) {
-    const length = pending.readUInt32BE(0);
-    if (pending.length < 4 + length) return;
-    const request = JSON.parse(pending.subarray(4, 4 + length));
-    pending = pending.subarray(4 + length);
-    send({protocolVersion: 2, requestId: request.requestId, status: "stream", event: "thinking.delta", text: "Checking locally. "});
-    send({protocolVersion: 2, requestId: request.requestId, status: "stream", event: "response.delta", text: "Answering locally. "});
-    send({
-      protocolVersion: 2,
-      requestId: request.requestId,
-      status: "ok",
-      operation: "generate",
-      value: {result: "ok"},
-      memory: {
-        cpuRamBytes: 1,
-        gpuMemoryBytes: 1,
-        budgetBytes: 1024,
-        detectedGpuMemoryBytes: 1024,
-        gpuMemoryKind: "unified" as const,
-        backend: "metal" as const,
-        selectedDeviceCount: 1 as const,
-      },
-      performance: {promptTokens: 10, outputTokens: 2, promptDurationMs: 5, generationDurationMs: 4, totalDurationMs: 9}
-    });
-  }
-});
-`;
-
-const parallelWorkerScript = `
-let pending = Buffer.alloc(0);
-function send(value) {
-  const payload = Buffer.from(JSON.stringify(value));
-  const frame = Buffer.alloc(4 + payload.length);
-  frame.writeUInt32BE(payload.length, 0);
-  payload.copy(frame, 4);
-  process.stdout.write(frame);
-}
-function done(request) {
-  send({
-    protocolVersion: 2,
-    requestId: request.requestId,
-    status: "ok",
-    operation: "generate",
-    value: {result: "ok"},
-    memory: {
-      cpuRamBytes: 1,
-      gpuMemoryBytes: 1,
-      budgetBytes: 1024,
-      detectedGpuMemoryBytes: 1024,
-      gpuMemoryKind: "unified" as const,
-      backend: "metal" as const,
-      selectedDeviceCount: 1 as const,
-    },
-    performance: {promptTokens: 10, outputTokens: 2, promptDurationMs: 5, generationDurationMs: 4, totalDurationMs: 9}
-  });
-}
-const requests = new Map();
-process.stdin.on("data", (chunk) => {
-  pending = Buffer.concat([pending, chunk]);
-  while (pending.length >= 4) {
-    const length = pending.readUInt32BE(0);
-    if (pending.length < 4 + length) return;
-    const frame = JSON.parse(pending.subarray(4, 4 + length));
-    pending = pending.subarray(4 + length);
-    if (frame.operation === "cancel") {
-      const request = requests.get(frame.requestId);
-      if (request) done(request);
-      continue;
-    }
-    requests.set(frame.requestId, frame);
-    if (frame.requestId === "second") setTimeout(() => done(frame), 10);
-  }
-});
-`;
-
 const probe = InferenceWorkerRequestSchema.parse({
   protocolVersion: 2,
   requestId: "test",
@@ -136,16 +56,75 @@ const largeGeneration = InferenceWorkerRequestSchema.parse({
   maxTokens: 8,
 });
 
-function generation(requestId: string) {
-  return InferenceWorkerRequestSchema.parse({
-    ...largeGeneration,
-    requestId,
+function completionServer() {
+  return createServer((req, res) => {
+    if (req.url === "/health") {
+      res.end("{}");
+      return;
+    }
+    req.resume();
+    req.on("end", () => {
+      res.writeHead(200, { "Content-Type": "text/event-stream" });
+      res.end(
+        `data: ${JSON.stringify({ choices: [{ delta: { content: "{}" }, finish_reason: "stop" }], usage: { prompt_tokens: 100, completion_tokens: 4 }, timings: { prompt_n: 10, prompt_ms: 5, predicted_n: 4, predicted_ms: 8 } })}\n\ndata: [DONE]\n\n`,
+      );
+    });
   });
 }
+
+it("reports the server allocation measurements with the inference result", async () => {
+  const socket =
+    process.platform === "win32"
+      ? `\\\\.\\pipe\\garden-desk-memory-${process.pid}`
+      : join(tmpdir(), `garden-desk-memory-${process.pid}.sock`);
+  const server = completionServer();
+  await new Promise<void>((accept) => server.listen(socket, accept));
+  const client = new InferenceWorkerClient(
+    {
+      gpu: { backend: "cuda", memoryKind: "dedicated" },
+      async launch() {
+        const child = Object.assign(new EventEmitter(), {
+          stdout: new PassThrough(),
+          stderr: new PassThrough(),
+          stdin: new PassThrough(),
+        });
+        setTimeout(() => {
+          child.stderr.write(
+            "load_tensors: CUDA0 model buffer size = 12000.00 MiB\nllama_kv_cache: CUDA0 KV buffer size = 256.00 MiB\nllama_memory_recurrent: CUDA0 RS buffer size = 128.00 MiB\ngraph_reserve: CUDA0 compute buffer size = 64.00 MiB\nllama_context: CUDA_Host output buffer size = 2.00 MiB\n",
+          );
+          child.stdout.write("listening on unix://private");
+        }, 0);
+        return {
+          process: child as unknown as NativeWorkerHandle["process"],
+          connect: () => createConnection(socket),
+          async dispose() {
+            child.emit("close", 0);
+          },
+        };
+      },
+    },
+    "unused",
+  );
+  try {
+    const result = await client.execute({
+      request: largeGeneration,
+      modelPath: "model.gguf",
+      memoryBudgetBytes: 16 * 1024 ** 3,
+      timeoutMs: 2_000,
+    });
+    expect(result).toMatchObject({
+      memory: { gpuMemoryBytes: 12448 * 1024 ** 2, cpuRamBytes: 2 * 1024 ** 2 },
+    });
+  } finally {
+    await client.unload();
+    await new Promise<void>((accept) => server.close(() => accept()));
+  }
+});
 
 function execute(script: string, timeoutMs = 500, signal?: AbortSignal, request = probe) {
   return new InferenceWorkerClient(new ScriptLauncher(script), "unused").execute({
     request,
+    modelPath: "unused-model",
     memoryBudgetBytes: 1024,
     timeoutMs,
     ...(signal === undefined ? {} : { signal }),
@@ -196,84 +175,76 @@ describe("M2 inference worker containment", () => {
   );
 });
 
-describe("resident inference worker", () => {
-  // These cases spawn real Node worker processes, so the timeout must cover process
-  // startup on a loaded runner. The timed-out and cancelled cases above keep their
-  // short budgets because they assert the timeout and cancellation paths themselves.
-  const residentTimeoutMs = 30_000;
-
-  it("reuses one process, routes both text streams, and unloads explicitly", async () => {
-    const launcher = new ScriptLauncher(residentWorkerScript);
-    const client = new InferenceWorkerClient(launcher, "unused");
-    const thinking: string[] = [];
-    const responses: string[] = [];
-    const execution = {
-      request: largeGeneration,
-      modelPath: "/approved/model.gguf",
-      memoryBudgetBytes: 1024,
-      timeoutMs: residentTimeoutMs,
-      onThinkingDelta: (text: string) => thinking.push(text),
-      onResponseDelta: (text: string) => responses.push(text),
-    };
-
-    await expect(client.execute(execution)).resolves.toMatchObject({ operation: "generate" });
-    await expect(client.execute(execution)).resolves.toMatchObject({ operation: "generate" });
-
-    expect(launcher.launches).toBe(1);
-    expect(thinking).toEqual(["Checking locally. ", "Checking locally. "]);
-    expect(responses).toEqual(["Answering locally. ", "Answering locally. "]);
-    await expect(client.unload()).resolves.toBe(true);
-  });
-
-  it("cancels one multiplexed request without interrupting its sibling", async () => {
-    const client = new InferenceWorkerClient(new ScriptLauncher(parallelWorkerScript), "unused");
-    const controller = new AbortController();
-    const common = {
-      modelPath: "/approved/model.gguf",
-      memoryBudgetBytes: 1024,
-      timeoutMs: residentTimeoutMs,
-    };
-    const first = client.execute({
-      request: generation("first"),
-      signal: controller.signal,
-      ...common,
+// biome-ignore lint/complexity/noExcessiveLinesPerFunction: one transport case keeps its server and cleanup together.
+it("uses private HTTP, reuses the server, and cancels a stream before reuse", async () => {
+  const socket =
+    process.platform === "win32"
+      ? `\\\\.\\pipe\\garden-desk-test-${process.pid}`
+      : join(tmpdir(), `garden-desk-test-${process.pid}.sock`);
+  const server = createServer((req, res) => {
+    if (req.url !== "/v1/chat/completions") {
+      res.end(req.url === "/slots" ? "[]" : "{}");
+      return;
+    }
+    let body = "";
+    req.setEncoding("utf8").on("data", (chunk) => {
+      body += chunk;
     });
-    const second = client.execute({ request: generation("second"), ...common });
-    controller.abort(new DOMException("stop", "AbortError"));
-    await expect(first).rejects.toMatchObject({ code: "cancelled" });
-    await expect(second).resolves.toMatchObject({ operation: "generate" });
-    await expect(client.unload()).resolves.toBe(true);
-  });
-});
-
-describe("cancelled turn residency", () => {
-  it("keeps the resident model loaded when the turn is cancelled during launch", async () => {
-    const inner = new ScriptLauncher(residentWorkerScript);
-    let release = (): void => {};
-    const gate = new Promise<void>((resolve) => {
-      release = resolve;
+    req.on("end", () => {
+      res.writeHead(200, { "Content-Type": "text/event-stream" });
+      res.write(
+        `data: ${JSON.stringify({ choices: [{ delta: { reasoning_content: "private thought" } }] })}\n\n`,
+      );
+      if (JSON.parse(body).max_tokens === 1) return;
+      res.end(
+        `data: ${JSON.stringify({ choices: [{ delta: { content: '{"result":"ok"}' }, finish_reason: "stop" }], usage: { prompt_tokens: 100, completion_tokens: 4 }, timings: { prompt_n: 10, prompt_ms: 5, predicted_n: 4, predicted_ms: 8 } })}\n\ndata: [DONE]\n\n`,
+      );
     });
-    const gated: NativeWorkerLauncher = {
-      launch: async (request) => {
-        await gate;
-        return await inner.launch(request);
-      },
-    };
-    const client = new InferenceWorkerClient(gated, "unused");
-    const common = {
-      request: largeGeneration,
-      modelPath: "/approved/model.gguf",
-      memoryBudgetBytes: 1024,
-      timeoutMs: 30_000,
-    };
-    const controller = new AbortController();
-    const cancelled = client.execute({ ...common, signal: controller.signal });
-    controller.abort(new DOMException("stop", "AbortError"));
-    release();
-    await expect(cancelled).rejects.toMatchObject({ code: "cancelled" });
-
-    await expect(client.execute(common)).resolves.toMatchObject({ operation: "generate" });
-    expect(inner.launches).toBe(1);
-    await expect(client.unload()).resolves.toBe(true);
   });
+  await new Promise<void>((accept) => server.listen(socket, accept));
+  let launches = 0;
+  const launcher: NativeWorkerLauncher = {
+    async launch() {
+      launches++;
+      const child = Object.assign(new EventEmitter(), {
+        stdout: new PassThrough(),
+        stderr: new PassThrough(),
+        stdin: new PassThrough(),
+      });
+      setTimeout(() => child.stdout.write("listening on unix://private"), 0);
+      return {
+        process: child as unknown as NativeWorkerHandle["process"],
+        connect: () => createConnection(socket),
+        async dispose() {
+          child.emit("close", 0);
+        },
+      };
+    },
+  };
+  const client = new InferenceWorkerClient(launcher, "unused");
+  const common = { modelPath: "model.gguf", memoryBudgetBytes: 1024, timeoutMs: 2_000 };
+  try {
+    const result = await client.execute({ ...common, request: largeGeneration });
+    expect(result).toMatchObject({
+      operation: "generate",
+      value: { result: "ok" },
+      performance: { promptTokens: 10, outputTokens: 4 },
+    });
+    const controller = new AbortController();
+    await expect(
+      client.execute({
+        ...common,
+        request: InferenceWorkerRequestSchema.parse({ ...largeGeneration, maxTokens: 1 }),
+        signal: controller.signal,
+        onThinkingDelta: () => controller.abort(),
+      }),
+    ).rejects.toMatchObject({ code: "cancelled" });
+    await expect(client.execute({ ...common, request: largeGeneration })).resolves.toMatchObject({
+      operation: "generate",
+    });
+    expect(launches).toBe(1);
+  } finally {
+    await client.unload();
+    await new Promise<void>((accept) => server.close(() => accept()));
+  }
 });

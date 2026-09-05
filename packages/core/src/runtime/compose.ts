@@ -1,5 +1,9 @@
 import { fileURLToPath } from "node:url";
-import { type InferenceProfile, InferenceProfileSchema } from "@gardendesk/shared";
+import {
+  INFERENCE_PROFILE,
+  type InferenceProfile,
+  InferenceProfileSchema,
+} from "@gardendesk/shared";
 import {
   createWindowsInferenceRuntime,
   InferenceWorkerClient,
@@ -84,8 +88,8 @@ export function unavailableInference(message?: string) {
     inspectImage: unsupported,
     async modelStatus() {
       return {
-        modelId: "gemma-4-12b-it-qat-q4_0",
-        name: "Gemma 4 12B QAT",
+        modelId: INFERENCE_PROFILE.modelId,
+        name: INFERENCE_PROFILE.name,
         state: message === undefined ? ("unloaded" as const) : ("unsupported" as const),
         thinkingSupported: true,
         ...(message === undefined ? {} : { message }),
@@ -121,10 +125,7 @@ export async function createInferenceService(
     selectedWindowsRuntime?.workerLauncher ??
     new MacOsNativeWorkerLauncher([workspaceRoot], options.inferenceRuntimePath);
   const vision =
-    selectedWindowsRuntime?.visionClient ??
-    (options.visionRuntimePath === undefined
-      ? undefined
-      : new LlamaVisionClient(options.visionRuntimePath, options.inferenceHelperPath));
+    selectedWindowsRuntime?.visionClient ?? new LlamaVisionClient(launcher, workerEntryPath);
   return {
     service: new InferenceSupervisor(
       new InferenceWorkerClient(launcher, workerEntryPath),

@@ -1,0 +1,133 @@
+{
+  "schemaVersion": 1,
+  "runtime": "llama.cpp",
+  "revision": "b10816",
+  "platforms": {
+    "macos-arm64": {
+      "archive": "llama-b10816-bin-macos-arm64.tar.gz",
+      "byteLength": 11128247,
+      "sha256": "726ca8e7680203280b72029f92380aaf482e6a48ebe4a73fbe934ccc0bcf2de9",
+      "url": "https://github.com/ggml-org/llama.cpp/releases/download/b10816/llama-b10816-bin-macos-arm64.tar.gz",
+      "files": {
+        "llama-b10816/libllama-common.0.4.0.dylib": "libllama-common.0.dylib",
+        "llama-b10816/libmtmd.0.4.0.dylib": "libmtmd.0.dylib",
+        "llama-b10816/libllama.0.4.0.dylib": "libllama.0.dylib",
+        "llama-b10816/libggml-base.0.23.0.dylib": "libggml-base.0.dylib",
+        "llama-b10816/libggml.0.23.0.dylib": "libggml.0.dylib",
+        "llama-b10816/libggml-cpu.0.23.0.dylib": "libggml-cpu.0.dylib",
+        "llama-b10816/libggml-metal.0.23.0.dylib": "libggml-metal.0.dylib",
+        "llama-b10816/libggml-blas.0.23.0.dylib": "libggml-blas.0.dylib",
+        "llama-b10816/libggml-rpc.0.23.0.dylib": "libggml-rpc.0.dylib",
+        "llama-b10816/llama-server": "llama-server",
+        "llama-b10816/libllama-server-impl.dylib": "libllama-server-impl.dylib",
+        "llama-b10816/libllama-fit-params-impl.dylib": "libllama-fit-params-impl.dylib"
+      },
+      "executable": "llama-server"
+    },
+    "windows-cuda-x64": {
+      "archive": "llama-b10816-bin-win-cuda-13.3-x64.zip",
+      "byteLength": 149564704,
+      "sha256": "f362882b139862e04714cce6ecb886ab82e256bdd0717c6010f24082fd340c57",
+      "url": "https://github.com/ggml-org/llama.cpp/releases/download/b10816/llama-b10816-bin-win-cuda-13.3-x64.zip",
+      "files": {
+        "ggml-cuda.dll": "ggml-cuda.dll",
+        "ggml-cpu-icelake.dll": "ggml-cpu-icelake.dll",
+        "llama-fit-params-impl.dll": "llama-fit-params-impl.dll",
+        "ggml-cpu-ivybridge.dll": "ggml-cpu-ivybridge.dll",
+        "ggml-cpu-sapphirerapids.dll": "ggml-cpu-sapphirerapids.dll",
+        "ggml-base.dll": "ggml-base.dll",
+        "ggml-cpu-cascadelake.dll": "ggml-cpu-cascadelake.dll",
+        "ggml.dll": "ggml.dll",
+        "llama-common.dll": "llama-common.dll",
+        "ggml-cpu-haswell.dll": "ggml-cpu-haswell.dll",
+        "ggml-cpu-zen4.dll": "ggml-cpu-zen4.dll",
+        "llama.dll": "llama.dll",
+        "ggml-cpu-x64.dll": "ggml-cpu-x64.dll",
+        "mtmd.dll": "mtmd.dll",
+        "ggml-rpc.dll": "ggml-rpc.dll",
+        "ggml-cpu-cannonlake.dll": "ggml-cpu-cannonlake.dll",
+        "ggml-cpu-skylakex.dll": "ggml-cpu-skylakex.dll",
+        "ggml-cpu-sse42.dll": "ggml-cpu-sse42.dll",
+        "ggml-cpu-cooperlake.dll": "ggml-cpu-cooperlake.dll",
+        "ggml-cpu-sandybridge.dll": "ggml-cpu-sandybridge.dll",
+        "libomp.dll": "libomp.dll",
+        "ggml-cpu-alderlake.dll": "ggml-cpu-alderlake.dll",
+        "llama-server-impl.dll": "llama-server-impl.dll",
+        "llama-server.exe": "llama-server.exe",
+        "ggml-cpu-piledriver.dll": "ggml-cpu-piledriver.dll"
+      },
+      "executable": "llama-server.exe",
+      "dependencies": [
+        {
+          "archive": "cudart-llama-bin-win-cuda-13.3-x64.zip",
+          "byteLength": 390970417,
+          "sha256": "1462a050eb4c684921ba51dcc4cc488a036674c3e73e9945ee705b854808d03e",
+          "url": "https://github.com/ggml-org/llama.cpp/releases/download/b10816/cudart-llama-bin-win-cuda-13.3-x64.zip",
+          "files": {
+            "cublas64_13.dll": "cublas64_13.dll",
+            "cublasLt64_13.dll": "cublasLt64_13.dll",
+            "cudart64_13.dll": "cudart64_13.dll"
+          }
+        },
+        {
+          "archive": "Microsoft.VCLibs.x64.14.00.Desktop.appx",
+          "byteLength": 6764349,
+          "sha256": "b56a9101f706f9d95f815f5b7fa6efbac972e86573d378b96a07cff5540c5961",
+          "url": "https://download.microsoft.com/download/4/7/c/47c6134b-d61f-4024-83bd-b9c9ea951c25/Microsoft.VCLibs.x64.14.00.Desktop.appx",
+          "files": {
+            "msvcp140.dll": "msvcp140.dll",
+            "vcruntime140.dll": "vcruntime140.dll",
+            "vcruntime140_1.dll": "vcruntime140_1.dll"
+          }
+        }
+      ]
+    },
+    "windows-vulkan-x64": {
+      "archive": "llama-b10816-bin-win-vulkan-x64.zip",
+      "byteLength": 35228033,
+      "sha256": "ea6704bd058cb37c3d960913638b37b766f66fb5baff37547d0fa95aa0ed7528",
+      "url": "https://github.com/ggml-org/llama.cpp/releases/download/b10816/llama-b10816-bin-win-vulkan-x64.zip",
+      "files": {
+        "ggml-vulkan.dll": "ggml-vulkan.dll",
+        "ggml-cpu-icelake.dll": "ggml-cpu-icelake.dll",
+        "llama-fit-params-impl.dll": "llama-fit-params-impl.dll",
+        "ggml-cpu-ivybridge.dll": "ggml-cpu-ivybridge.dll",
+        "ggml-cpu-sapphirerapids.dll": "ggml-cpu-sapphirerapids.dll",
+        "ggml-base.dll": "ggml-base.dll",
+        "ggml-cpu-cascadelake.dll": "ggml-cpu-cascadelake.dll",
+        "ggml.dll": "ggml.dll",
+        "llama-common.dll": "llama-common.dll",
+        "ggml-cpu-haswell.dll": "ggml-cpu-haswell.dll",
+        "ggml-cpu-zen4.dll": "ggml-cpu-zen4.dll",
+        "llama.dll": "llama.dll",
+        "ggml-cpu-x64.dll": "ggml-cpu-x64.dll",
+        "mtmd.dll": "mtmd.dll",
+        "ggml-rpc.dll": "ggml-rpc.dll",
+        "ggml-cpu-cannonlake.dll": "ggml-cpu-cannonlake.dll",
+        "ggml-cpu-skylakex.dll": "ggml-cpu-skylakex.dll",
+        "ggml-cpu-sse42.dll": "ggml-cpu-sse42.dll",
+        "ggml-cpu-cooperlake.dll": "ggml-cpu-cooperlake.dll",
+        "ggml-cpu-sandybridge.dll": "ggml-cpu-sandybridge.dll",
+        "libomp.dll": "libomp.dll",
+        "ggml-cpu-alderlake.dll": "ggml-cpu-alderlake.dll",
+        "llama-server-impl.dll": "llama-server-impl.dll",
+        "llama-server.exe": "llama-server.exe",
+        "ggml-cpu-piledriver.dll": "ggml-cpu-piledriver.dll"
+      },
+      "executable": "llama-server.exe",
+      "dependencies": [
+        {
+          "archive": "Microsoft.VCLibs.x64.14.00.Desktop.appx",
+          "byteLength": 6764349,
+          "sha256": "b56a9101f706f9d95f815f5b7fa6efbac972e86573d378b96a07cff5540c5961",
+          "url": "https://download.microsoft.com/download/4/7/c/47c6134b-d61f-4024-83bd-b9c9ea951c25/Microsoft.VCLibs.x64.14.00.Desktop.appx",
+          "files": {
+            "msvcp140.dll": "msvcp140.dll",
+            "vcruntime140.dll": "vcruntime140.dll",
+            "vcruntime140_1.dll": "vcruntime140_1.dll"
+          }
+        }
+      ]
+    }
+  }
+}

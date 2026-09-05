@@ -127,8 +127,8 @@ The Node harness should call local inference runtimes through stable adapter int
 
 Candidate adapter families (support status verified 2026-07-11; see [research/local-ai-runtimes.md](research/local-ai-runtimes.md)):
 
-- node-llama-cpp (MIT) as the first supervised inference-worker adapter: loads Gemma 4 QAT GGUFs, enforces JSON-schema output via grammar-constrained sampling, and supports function calling, embeddings, reranking, speculative decoding, and multiple parallel context sequences on one loaded model (`sequences`, `sequencesLeft`, and a maximum-parallelism batch strategy), with Metal, CUDA, and Vulkan builds. Parallel generation is therefore bounded by KV-cache memory rather than by the runtime; V1 uses bounded extra sequences for sub-agents and concurrent user conversations. It runs behind Garden Desk Core rather than inside the Tauri webview or Rust host.
-- The pinned llama.cpp `llama-mtmd-cli` as the supervised on-demand image adapter for the current Gemma 4 model pair. It runs one bounded offline request after the resident node-llama-cpp chat worker unloads. Later document-vision models must use the same narrow adapter or a separately reviewed equivalent.
+- The pinned llama.cpp server (MIT) supplies chat, structured output, and embeddings through a private socket. One resident model has one slot. Core owns scheduling and tool authority. See [ADR 0019](adr/0019-qwen38-private-server.md).
+- Image inspection uses the same private server with the projector after generation unload.
 - MLX-family local serving on macOS.
 - Ollama-compatible serving.
 - Google LiteRT-LM's OpenAI-compatible local server as an emerging Google-first adapter to track.
@@ -137,9 +137,9 @@ Candidate adapter families (support status verified 2026-07-11; see [research/lo
 
 ONNX Runtime GenAI has no official Node.js bindings as of July 2026 and is not a candidate primary runtime.
 
-The first Windows and macOS certification uses node-llama-cpp and the pinned official QAT GGUF. MLX-family serving remains a later adapter-backed optimization rather than a parallel first implementation. See [adr/0013-first-desktop-runtime.md](adr/0013-first-desktop-runtime.md).
+The current Windows and Mac certification target is Qwen3.8 Q4 through the private server in ADR 0019.
 
-The first certified adapters should be evaluated against the hardware-derived Gemma 4 12B QAT budgets documented in [MODEL_STRATEGY.md](MODEL_STRATEGY.md) and [PERFORMANCE_AND_CONTEXT.md](PERFORMANCE_AND_CONTEXT.md).
+Use the fixed memory budget in [ADR 0019](adr/0019-qwen38-private-server.md).
 
 ## Structured Output Principle
 
@@ -187,7 +187,7 @@ Audit shape: define a small, versioned Garden Desk schema for agent invocation, 
 
 The harness should coordinate:
 
-- Qwen3-Embedding-0.6B indexing (via node-llama-cpp GGUF embeddings or the Transformers.js ONNX path).
+- Qwen3-Embedding-0.6B indexing (via llama.cpp server embeddings or the Transformers.js ONNX path).
 - Lexical indexing.
 - An embedded hybrid index (LanceDB is the verified primary candidate: in-process for Node, hybrid lexical-plus-dense search, binary quantization), with TurboQuant-based acceleration only if benchmarks justify it. See [RETRIEVAL_AND_VERIFICATION.md](RETRIEVAL_AND_VERIFICATION.md).
 - Evidence pack assembly.

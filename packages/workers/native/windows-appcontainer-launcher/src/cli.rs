@@ -7,18 +7,17 @@ pub enum Command {
     GpuInfo,
     Prepare { read_roots: Vec<PathBuf> },
     Run(RunArguments),
-    RunVision(VisionArguments),
+    RunServer(ServerArguments),
+    Connect { socket: PathBuf },
 }
 
-pub struct VisionArguments {
+pub struct ServerArguments {
     pub executable: PathBuf,
-    pub model: PathBuf,
-    pub projector: PathBuf,
-    pub image: PathBuf,
-    pub prompt_file: PathBuf,
     pub scratch: PathBuf,
     pub memory_bytes: usize,
-    pub vulkan_device_index: Option<u32>,
+    pub gpu: GpuArguments,
+    pub read_paths: Vec<PathBuf>,
+    pub arguments: Vec<String>,
 }
 
 pub struct RunArguments {
@@ -104,7 +103,15 @@ pub fn parse() -> Result<Command, Box<dyn Error>> {
     let action = arguments.next().ok_or("Missing helper action.")?;
     let mut values = Vec::new();
     let mut read_roots = Vec::new();
+    let mut child_arguments = Vec::new();
     while let Some(key) = arguments.next() {
+        if key == "--" {
+            if action != "run-server" {
+                return Err("Only run-server accepts runtime arguments.".into());
+            }
+            child_arguments.extend(arguments);
+            break;
+        }
         let argument = arguments
             .next()
             .ok_or("Every helper argument must have a value.")?;
@@ -115,6 +122,17 @@ pub fn parse() -> Result<Command, Box<dyn Error>> {
         }
     }
     match action.as_str() {
+        "run-server" => Ok(Command::RunServer(ServerArguments {
+            executable: PathBuf::from(value(&values, "--executable")?),
+            scratch: PathBuf::from(value(&values, "--scratch")?),
+            memory_bytes: value(&values, "--memory")?.parse()?,
+            gpu: gpu_arguments(&values)?,
+            read_paths: read_roots,
+            arguments: child_arguments,
+        })),
+        "connect" if values.len() == 1 && read_roots.is_empty() && child_arguments.is_empty() => {
+            Ok(Command::Connect { socket: PathBuf::from(value(&values, "--socket")?) })
+        }
         "gpu-info" if values.is_empty() && read_roots.is_empty() => Ok(Command::GpuInfo),
         "prepare" if values.is_empty() && !read_roots.is_empty() => {
             Ok(Command::Prepare { read_roots })
@@ -130,18 +148,6 @@ pub fn parse() -> Result<Command, Box<dyn Error>> {
             memory_bytes: value(&values, "--memory")?.parse()?,
             gpu: gpu_arguments(&values)?,
         })),
-        "run-vision" if read_roots.is_empty() => Ok(Command::RunVision(VisionArguments {
-            executable: PathBuf::from(value(&values, "--executable")?),
-            model: PathBuf::from(value(&values, "--model")?),
-            projector: PathBuf::from(value(&values, "--projector")?),
-            image: PathBuf::from(value(&values, "--image")?),
-            prompt_file: PathBuf::from(value(&values, "--prompt-file")?),
-            scratch: PathBuf::from(value(&values, "--scratch")?),
-            memory_bytes: value(&values, "--memory")?.parse()?,
-            vulkan_device_index: optional(&values, "--vulkan-device-index")
-                .map(|value| value.parse::<u32>())
-                .transpose()?,
-        })),
-        _ => Err("Usage: garden-desk-appcontainer-launcher <gpu-info|prepare --read PATH...|run --executable PATH --worker PATH --scratch PATH --memory BYTES [--model PATH] [--gpu-backend cuda|vulkan --gpu-device-index INDEX]|run-vision --executable PATH --model PATH --projector PATH --image PATH --prompt-file PATH --scratch PATH --memory BYTES [--vulkan-device-index INDEX]>".into()),
+        _ => Err("Usage: garden-desk-appcontainer-launcher <gpu-info|prepare --read PATH...|run --executable PATH --worker PATH --scratch PATH --memory BYTES [--model PATH] [--gpu-backend cuda|vulkan --gpu-device-index INDEX]|run-server --executable PATH --scratch PATH --memory BYTES [--read PATH] [--gpu-backend cuda|vulkan --gpu-device-index INDEX] -- RUNTIME_ARGS...|connect --socket PATH>".into()),
     }
 }

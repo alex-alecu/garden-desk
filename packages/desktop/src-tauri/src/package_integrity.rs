@@ -110,7 +110,7 @@ pub(crate) fn lock_packaged_runtime(
     files.extend(lock_resource_prefix(
         core_resources,
         &manifest,
-        "inference/vision",
+        "inference",
         "inference",
     )?);
     for relative in ELEVATED_RESOURCES {

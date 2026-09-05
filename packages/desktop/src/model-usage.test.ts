@@ -16,6 +16,15 @@ const ready: ModelRuntimeStatus = {
 };
 
 describe("gpuMemoryUsage", () => {
+  it("retains the known budget when allocation measurements are missing", () => {
+    const { cpuRamBytes: _cpu, gpuMemoryBytes: _gpu, ...model } = ready;
+    expect(gpuMemoryUsage(model)).toMatchObject({
+      used: undefined,
+      budget: "16.0 GiB",
+      label: "Unified GPU memory",
+    });
+  });
+
   it("collapses to a single model-plus-context value against the budget", () => {
     expect(gpuMemoryUsage(ready)).toEqual({
       used: "12.5 GiB",

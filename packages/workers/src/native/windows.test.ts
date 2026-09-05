@@ -1,5 +1,24 @@
 import { describe, expect, it } from "vitest";
 import { windowsHelperEnvironment, windowsNativeWorkerArguments } from "./windows.js";
+import { resolveWindowsGpuMemoryProfile } from "./windows-gpu-policy.js";
+
+it("reserves host memory beyond the GPU budget for the Windows inference process", () => {
+  const gpuBudget = 16 * 1024 ** 3;
+  const hostLimit = 20 * 1024 ** 3;
+  const arguments_ = windowsNativeWorkerArguments(
+    { workerEntryPath: "unused", memoryBudgetBytes: gpuBudget, serverArguments: [] },
+    "scratch",
+    "/packaged/llama-server.exe",
+    { gpu: { backend: "cuda", memoryKind: "dedicated" } },
+  );
+  expect(
+    arguments_.slice(arguments_.indexOf("--memory"), arguments_.indexOf("--memory") + 2),
+  ).toEqual(["--memory", String(hostLimit)]);
+  expect(resolveWindowsGpuMemoryProfile(false, gpuBudget, 32 * 1024 ** 3)).toEqual({
+    memoryBudgetBytes: gpuBudget,
+    hostMemoryReservationBytes: hostLimit,
+  });
+});
 
 describe("Windows native worker launch arguments", () => {
   it("uses the dedicated packaged Node runtime", () => {

@@ -12,10 +12,8 @@ describe("M3 Windows package contract", () => {
       )
     ).join("\n");
     for (const value of [
-      "inference/worker.mjs",
-      "inference/node.exe",
+      "inference/windows-cuda-x64/llama-server.exe",
       "inference/garden-desk-appcontainer-launcher.exe",
-      "inference/vision/llama-mtmd-cli.exe",
       "workers/garden-desk-hcs-helper.exe",
       "workers/images",
       "--packaged-model-store",
@@ -30,7 +28,7 @@ describe("M3 Windows portable package", () => {
     const [configuration, staging, assets] = await Promise.all([
       readFile(join(process.cwd(), "packages/desktop/src-tauri/tauri.windows.conf.json"), "utf8"),
       readFile(join(process.cwd(), "packages/desktop/stage-windows-application.ts"), "utf8"),
-      readFile(join(process.cwd(), "packages/desktop/windows-runtime-assets.json"), "utf8"),
+      readFile(join(process.cwd(), "assets/inference-runtime.json"), "utf8"),
     ]);
     expect(JSON.parse(configuration)).toEqual({ bundle: { active: false } });
     for (const value of [
@@ -43,22 +41,19 @@ describe("M3 Windows portable package", () => {
     ]) {
       expect(staging).toContain(value);
     }
-    const cuda = JSON.parse(assets) as {
-      cudaToolkitVersion: string;
-      files: Array<{ destination: string }>;
-    };
-    expect(cuda.cudaToolkitVersion).toBe("13.1.0");
-    expect(cuda.files.map((file) => file.destination)).toEqual([
+    const cuda = JSON.parse(assets).platforms["windows-cuda-x64"];
+    expect(cuda.archive).toBe("llama-b10816-bin-win-cuda-13.3-x64.zip");
+    expect(Object.values(cuda.dependencies[0].files)).toEqual([
       "cublas64_13.dll",
       "cublasLt64_13.dll",
-      "NVIDIA-CUDA-LICENSE.txt",
+      "cudart64_13.dll",
     ]);
   });
 });
 
 describe("M3 Windows image runtime", () => {
   it("packages the exact application-local Visual C++ dependencies", async () => {
-    const source = await readFile(join(process.cwd(), "assets/vision-runtime.json"), "utf8");
+    const source = await readFile(join(process.cwd(), "assets/inference-runtime.json"), "utf8");
     const runtime = (
       JSON.parse(source) as {
         platforms: { "windows-vulkan-x64": { dependencies: Array<{ files: object }> } };
@@ -87,14 +82,14 @@ describe("M3 model package input", () => {
       bundle: { resources: Record<string, string> };
     };
     expect(base.bundle.resources).not.toHaveProperty(
-      "../../eval/.generated/models/gemma-4-12b-it-qat-q4_0.gguf",
+      "../../eval/.generated/models/qwen3.8-27b-ud-iq4_xs.gguf",
     );
     expect(packageConfiguration.bundle.resources).toEqual({
       "resources/core/": "resources/core/",
-      "../../eval/.generated/models/gemma-4-12b-it-qat-q4_0.gguf":
-        "resources/core/models/gemma-4-12b-it-qat-q4_0.gguf",
-      "../../eval/.generated/models/gemma-4-12b-it-qat-q4_0-mmproj.gguf":
-        "resources/core/models/gemma-4-12b-it-qat-q4_0-mmproj.gguf",
+      "../../eval/.generated/models/qwen3.8-27b-ud-iq4_xs.gguf":
+        "resources/core/models/qwen3.8-27b-ud-iq4_xs.gguf",
+      "../../eval/.generated/models/qwen3.8-27b-mmproj-f16.gguf":
+        "resources/core/models/qwen3.8-27b-mmproj-f16.gguf",
       "../../../assets/fonts/LICENSE.txt": "assets/fonts/LICENSE.txt",
     });
     expect(launcher).toContain('tauriArguments[0] === "dev"');

@@ -249,7 +249,7 @@ export class AgentService {
         onResponse: (response) => this.updateActive(run.jobId, { response }),
         onContext: (contextUsedTokens, contextAllocatedTokens, measured) => {
           if (measured) measuredContextTokens = contextAllocatedTokens;
-          this.updateActive(run.jobId, { contextUsedTokens, contextAllocatedTokens });
+          this.store.setContext(run.id, contextUsedTokens, contextAllocatedTokens);
         },
         askQuestion: (questions) =>
           askRunQuestion({ active: this.active, store: this.store, run, signal, questions }),

@@ -34,8 +34,8 @@ V1 uses only the components present under `packages/`. The table below is resear
 
 | Responsibility | Default component | Fallback | Why least code |
 |---|---|---|---|
-| Generation runtime | node-llama-cpp (MIT) in a supervised inference worker | Pinned llama.cpp command adapter | Typed Node integration, official Gemma 4 QAT GGUFs, grammar-enforced JSON output, function calling, embeddings, and crash containment |
-| Direct image inspection | Pinned llama.cpp `llama-mtmd-cli` child using the generation model and its projector | Later reviewed local vision adapter | Same model and runtime family as generation, with one bounded offline process and no separate ML stack |
+| Generation runtime | the pinned llama.cpp server (MIT) in a supervised inference worker | Pinned llama.cpp command adapter | Typed Node integration, Qwen3.8 Q4 GGUF, grammar-enforced JSON output, function calling, embeddings, and crash containment |
+| Direct image inspection | The same private llama.cpp server with the generation model and its projector | Later reviewed local vision adapter | Same model and runtime family as generation, with one bounded offline process and no separate ML stack |
 | Post-V1 document vision and OCR | Later reviewed llama.cpp-compatible document model | Specialized no-network document worker | Keeps document extraction out of the V1 direct-image path and requires measured value before expansion |
 | Born-digital parsing | Native Node parsers in a no-network microVM: pdf.js, mammoth, ExcelJS/SheetJS, officeParser, mailparser | Process-only compatibility mode, not certified | Permissive licenses, covers most files, and places hostile inputs behind a VM boundary |
 | Layout-aware parsing | Granite-Docling-258M GGUF | Docling Python sidecar | Docling-class quality through the already-shipped runtime |
@@ -44,9 +44,9 @@ V1 uses only the components present under `packages/`. The table below is resear
 | Deterministic document operations | Typed Garden Desk Core queries over canonical documents | Format adapter escalation | Common search, filter, join, compare, calculate, and extraction behavior without model-generated scripts |
 | Long-tail transformation | Minimal Garden Desk-owned code-interpreter guest loop in a fresh no-network microVM | OpenCode only if it passes identical offline, security, footprint, and audit gates and reduces code | Keeps uncommon transformations possible without making a coding agent the product backend |
 | Index (lexical plus dense) | LanceDB (Apache 2.0) | sqlite-vec plus FTS5; turbovec via the Python sidecar if benchmarks justify | One embedded dependency covers full-text, vector, hybrid fusion, and quantization |
-| Embeddings | Qwen3-Embedding-0.6B via node-llama-cpp GGUF | Transformers.js ONNX | Same runtime as generation; Apache 2.0 official GGUF |
-| Tool loop | Vercel AI SDK 6 (Apache 2.0) with per-tool approval gating | Thin hand-rolled loop on node-llama-cpp | Approval-paused tool execution and typed schemas provided, policy stays in Garden Desk code |
-| Structured output | JSON Schema to grammar via node-llama-cpp, schemas defined once in TypeScript | — | One schema source feeds grammar, validation, and tool typing |
+| Embeddings | Qwen3-Embedding-0.6B via the pinned llama.cpp server GGUF | Transformers.js ONNX | Same runtime as generation; Apache 2.0 official GGUF |
+| Tool loop | Vercel AI SDK 6 (Apache 2.0) with per-tool approval gating | Thin hand-rolled loop on the pinned llama.cpp server | Approval-paused tool execution and typed schemas provided, policy stays in Garden Desk code |
+| Structured output | JSON Schema to grammar via the pinned llama.cpp server, schemas defined once in TypeScript | — | One schema source feeds grammar, validation, and tool typing |
 | Audit trace shape | Small versioned Garden Desk schema persisted to a local append-only log, with no telemetry exporter | — | Keeps the customer-owned audit contract explicit, stable, local, and limited to product needs |
 | Desktop shell | Tauri v2 with React/TypeScript and a minimal Rust host | — | Operating-system webview, capability-scoped native surface, sidecar packaging, and no product logic in the shell |
 

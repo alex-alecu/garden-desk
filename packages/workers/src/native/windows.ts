@@ -2,12 +2,14 @@ import { spawn } from "node:child_process";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
+import { INFERENCE_PROFILE } from "@gardendesk/shared";
 import type {
   NativeWorkerHandle,
   NativeWorkerLauncher,
   NativeWorkerLaunchRequest,
 } from "./launcher.js";
 import { NativeWorkerLaunchError } from "./launcher.js";
+import { connectWindowsSocket, protectSocketDirectory } from "./private-socket.js";
 
 const preparations = new Map<string, Promise<void>>();
 
@@ -61,16 +63,23 @@ function runtimeReadPaths(workerEntryPath: string): string[] {
   return [resolve(workerDirectory, "../..")];
 }
 
-export function prepareWindowsRuntime(helperPath: string, workerEntryPath: string): Promise<void> {
+export function prepareWindowsRuntime(
+  helperPath: string,
+  workerEntryPath: string,
+  server = false,
+): Promise<void> {
   const key = `${helperPath}\0${workerEntryPath}`;
   const existing = preparations.get(key);
   if (existing !== undefined) return existing;
   const pending = new Promise<void>((accept, reject) => {
     const args = ["prepare"];
-    for (const path of runtimeReadPaths(workerEntryPath)) args.push("--read", path);
+    for (const path of server ? [dirname(workerEntryPath)] : runtimeReadPaths(workerEntryPath))
+      args.push("--read", path);
     const child = spawn(helperPath, args, {
       env: windowsHelperEnvironment(),
       stdio: ["ignore", "ignore", "pipe"],
+      windowsHide: true,
+      timeout: 15_000,
     });
     let stderr = "";
     child.stderr.on("data", (chunk) => {
@@ -109,6 +118,27 @@ export function windowsNativeWorkerArguments(
   runtimePath: string,
   options: WindowsNativeWorkerLauncherOptions = {},
 ): string[] {
+  if (request.serverArguments !== undefined) {
+    return [
+      "run-server",
+      "--executable",
+      runtimePath,
+      "--scratch",
+      scratch,
+      "--memory",
+      String(
+        options.gpu?.memoryKind === "dedicated"
+          ? INFERENCE_PROFILE.windowsDedicatedHostMemoryBytes
+          : request.memoryBudgetBytes,
+      ),
+      ...(request.readPaths ?? []).flatMap((path) => ["--read", resolve(path)]),
+      ...(options.gpu === undefined ? [] : windowsGpuArguments(options.gpu)),
+      "--",
+      "--host",
+      join(scratch, "s.sock"),
+      ...request.serverArguments,
+    ];
+  }
   const args = [
     "run",
     "--executable",
@@ -140,38 +170,64 @@ export function windowsNativeWorkerEntryPath(): string {
 }
 
 export class WindowsNativeWorkerLauncher implements NativeWorkerLauncher {
+  get gpu() {
+    return this.options.gpu;
+  }
   constructor(
     private readonly helperPath = defaultWindowsInferenceHelperPath(),
-    private readonly runtimePath = process.execPath,
+    private readonly runtimePath = resolve(
+      "packages/eval/.generated/inference/windows-cuda-x64/llama-server.exe",
+    ),
     private readonly options: WindowsNativeWorkerLauncherOptions = {},
   ) {}
 
+  // biome-ignore lint/complexity/noExcessiveLinesPerFunction: keep native launch and cleanup paired.
   async launch(request: NativeWorkerLaunchRequest): Promise<NativeWorkerHandle> {
     if (process.platform !== "win32" || process.arch !== "x64") {
       throw new NativeWorkerLaunchError("unsupported", "unsupported_native_worker_platform");
     }
-    await prepareWindowsRuntime(this.helperPath, resolve(request.workerEntryPath));
-    const temporaryRoot = await mkdtemp(join(tmpdir(), "garden-desk-inference-"));
+    const server = request.serverArguments !== undefined;
+    await prepareWindowsRuntime(
+      this.helperPath,
+      resolve(server ? this.runtimePath : request.workerEntryPath),
+      server,
+    );
+    const temporaryRoot = await mkdtemp(join(tmpdir(), "gd-"));
+    if (server)
+      await protectSocketDirectory(temporaryRoot).catch(async (error: unknown) => {
+        await rm(temporaryRoot, { recursive: true, force: true });
+        throw error;
+      });
     const child = spawn(
       this.helperPath,
-      windowsNativeWorkerArguments(request, temporaryRoot, resolve(this.runtimePath), this.options),
+      windowsNativeWorkerArguments(
+        request,
+        temporaryRoot,
+        server ? resolve(this.runtimePath) : process.execPath,
+        this.options,
+      ),
       {
         cwd: temporaryRoot,
         env: windowsHelperEnvironment(),
         stdio: ["pipe", "pipe", "pipe"],
+        windowsHide: true,
       },
     );
+    const exited = new Promise<void>((accept) => {
+      child.once("close", () => accept());
+      child.once("error", () => accept());
+    });
     let disposed = false;
     return {
       process: child,
+      ...(server
+        ? { connect: () => connectWindowsSocket(this.helperPath, join(temporaryRoot, "s.sock")) }
+        : {}),
       async dispose() {
         if (disposed) return;
         disposed = true;
         if (child.exitCode === null && child.signalCode === null) child.kill("SIGKILL");
-        await new Promise<void>((accept) => {
-          if (child.exitCode !== null || child.signalCode !== null) accept();
-          else child.once("close", () => accept());
-        });
+        await exited;
         await rm(temporaryRoot, {
           recursive: true,
           force: true,

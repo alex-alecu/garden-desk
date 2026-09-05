@@ -53,7 +53,7 @@ Garden Desk Core, the harness, and orchestration code are TypeScript on Node.js.
 - `packages/core/native/windows-pipe-guard/`: the current-user-only Windows named pipe, owner and DACL checks, opaque byte relay. TypeScript keeps endpoint naming, RPC parsing, limits, dispatch, and policy.
 - `packages/workers/native/macos-vz-helper/` and `packages/workers/native/windows-hcs-helper/`: microVM launch.
 - `packages/desktop/native/windows-hyper-v-setup/`: one elevated step that adds only the requesting user to the Hyper-V Administrators group. Desktop and Core stay non-elevated; macOS has no administrator setup.
-- `packages/workers/native/windows-appcontainer-launcher/`: the fixed no-capability AppContainer, job limits, scoped read access, and worker launch.
+- `packages/workers/native/windows-appcontainer-launcher/`: the fixed no-capability AppContainer, job limits, scoped read access, worker or runtime launch, and opaque private Unix-socket relay. TypeScript owns runtime arguments and HTTP parsing.
 
 Follow the architecture and gates in [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) and the folder map in [docs/IMPLEMENTATION_STRUCTURE.md](docs/IMPLEMENTATION_STRUCTURE.md). Start from the product architecture and security boundaries, not framework defaults. Keep source small and hand-editable. Install only dependencies pinned in the lockfiles; commit no generated binaries, models, images, build output, or dependency directories. Do not introduce employer-owned, confidential, or third-party proprietary content. Mark carried-forward research claims as research-derived until validated.
 
@@ -69,7 +69,7 @@ Documentation is for people. Write the absolute minimum amount of code comments,
 
 - Local and offline first. No cloud dependency, no silent cloud fallback, no telemetry. Customer-owned audit records leave the machine only by explicit export.
 - No AI infrastructure vocabulary in the ordinary user experience. Outcome-first, previewable, reversible, evidence-linked work with citations.
-- Hardware-aware defaults, not user-managed model configuration. Gemma 4 12B QAT is the default certified generation model and Qwen3-Embedding-0.6B the managed encoder ([ADR 0016](docs/adr/0016-model-agnostic-defaults-and-managed-downloads.md)). Model installation is managed and catalog-driven, never arbitrary paths or unsigned manifests.
+- Hardware-aware defaults, not user-managed model configuration. Qwen3.8 27B Q4 is the default generation model; physical Mac verification is pending and Qwen3-Embedding-0.6B the managed encoder ([ADR 0019](docs/adr/0019-qwen38-private-server.md)). Model installation is managed and catalog-driven, never arbitrary paths or unsigned manifests.
 - The model never gets host authority. Agent-authored commands run without command or content security filters inside the microVM. Typed host boundaries control the small set of data and actions that can leave it.
 - Hostile document processing and agent-authored Python, Node.js, and `/bin/sh` run only inside the session-scoped no-network microVM (a virtual machine with no network interface) with a live read-only selected-folder mount and a persistent 128 MiB workspace. Command, URL, or address matching is never network isolation.
 - Host filesystem authority stays in Core. The guest gets `/source` read-only and `/workspace` writable. Destructive or consequential host actions are approval-gated. Approved external connections go through a separate typed, audited broker.

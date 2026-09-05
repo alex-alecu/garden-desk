@@ -4,6 +4,8 @@ Date: 2026-07-11
 
 ## Status
 
+The current model, runtime, and memory profile is defined in [ADR 0019](0019-qwen38-private-server.md). This document preserves the prior decision and its remaining contracts.
+
 Accepted as first certification target
 
 ## Context

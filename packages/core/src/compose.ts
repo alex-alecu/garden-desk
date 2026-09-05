@@ -14,7 +14,6 @@ import { ConversationStore } from "./conversations/store.js";
 import { createFacade, type GardenDeskCore, type GardenDeskCorePorts } from "./facade.js";
 import { JobStore } from "./jobs/jobs.js";
 import { createInferenceService, unavailableInference } from "./runtime/compose.js";
-import { configurePromptDirectory } from "./runtime/prompt-instructions.js";
 import type { InferenceSupervisor } from "./runtime/supervisor.js";
 import { ArtifactStore } from "./workspace/artifacts.js";
 import { openWorkspaceCatalog } from "./workspace/catalog.js";
@@ -224,7 +223,6 @@ export async function createGardenDeskCore(
   options: GardenDeskCoreOptions,
 ): Promise<GardenDeskCore> {
   const promptDirectory = resolve(options.promptDirectory ?? "prompts");
-  configurePromptDirectory(promptDirectory);
   const scope = await WorkspaceScope.create(resolve(options.workspaceDir));
   const workspaceRoot = scope.root;
   const catalog = openWorkspaceCatalog(workspaceRoot, {
