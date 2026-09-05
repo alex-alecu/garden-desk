@@ -2,6 +2,7 @@ import { setTimeout as delay } from "node:timers/promises";
 import { INFERENCE_PROFILE } from "@gardendesk/shared";
 import type { NativeWorkerHandle, NativeWorkerLauncher } from "../native/launcher.js";
 import { ServerError, serverFailure, serverRequest } from "./server-http.js";
+import { observeServerMemory, type ServerAllocations } from "./server-memory.js";
 
 // biome-ignore lint/complexity/noExcessiveLinesPerFunction: keep the fixed runtime arguments together.
 export function serverArguments(input: {
@@ -77,7 +78,7 @@ export async function startServer(
     projectorPath?: string;
   },
   signal: AbortSignal,
-): Promise<NativeWorkerHandle> {
+): Promise<NativeWorkerHandle & { memory(): ServerAllocations }> {
   const handle = await launcher.launch({
     workerEntryPath: entryPath,
     memoryBudgetBytes: input.memoryBudgetBytes,
@@ -87,6 +88,7 @@ export async function startServer(
     ],
     serverArguments: serverArguments({ ...input, backend: launcher.gpu?.backend ?? "metal" }),
   });
+  const memory = observeServerMemory(handle);
   let ready = false;
   let stopped = false;
   let failure = new ServerError("worker_crash");
@@ -112,7 +114,7 @@ export async function startServer(
       await delay(25, undefined, { signal });
     }
     await serverRequest(handle, "/health", undefined, { signal });
-    return handle;
+    return Object.assign(handle, { memory });
   } catch (error) {
     await handle.dispose();
     throw error;

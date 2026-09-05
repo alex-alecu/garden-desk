@@ -35,7 +35,7 @@ function boundedFailure(error: unknown): Error {
   return new ServerError("malformed_worker_message");
 }
 interface ResidentServer {
-  handle: NativeWorkerHandle;
+  handle: Awaited<ReturnType<typeof startServer>>;
   modelPath: string;
   contextTokens: number;
   embedding: boolean;
@@ -196,7 +196,7 @@ export class InferenceWorkerClient {
       requestId: request.requestId,
       status: "ok",
       operation: request.operation,
-      memory: this.memory(contextTokens, execution.memoryBudgetBytes),
+      memory: { ...this.memory(contextTokens, execution.memoryBudgetBytes), ...handle.memory() },
     };
     if (request.operation === "embed")
       return InferenceWorkerResponseSchema.parse({
@@ -204,6 +204,7 @@ export class InferenceWorkerClient {
         vector: await embedding(handle, request.input, signal),
       });
     const result = await completeChat(handle, chatBody(request, execution), signal, execution);
+    Object.assign(base.memory, handle.memory());
     if (request.operation === "chat")
       return InferenceWorkerResponseSchema.parse({ ...base, ...result });
     if (result.stopReason === "maxTokens") throw new Error("generation_token_limit");

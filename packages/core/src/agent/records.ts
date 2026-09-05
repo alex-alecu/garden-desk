@@ -36,6 +36,8 @@ export interface RunRow {
   response: string | null;
   error: string | null;
   performance_json: string | null;
+  context_used_tokens: number | null;
+  context_allocated_tokens: number | null;
   created_at: string;
   updated_at: string;
 }

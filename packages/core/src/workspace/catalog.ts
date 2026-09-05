@@ -15,7 +15,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { type DatabasePort, GardenDeskDatabase } from "./database.js";
 
-const LATEST_SCHEMA_VERSION = 13;
+const LATEST_SCHEMA_VERSION = 14;
 
 const MIGRATION_NAMES = [
   "initial",
@@ -31,6 +31,7 @@ const MIGRATION_NAMES = [
   "agent-unbacked-response-traces",
   "agent-session-summaries",
   "agent-tool-calling",
+  "agent-context-usage",
 ] as const;
 
 export interface WorkspaceCatalog {

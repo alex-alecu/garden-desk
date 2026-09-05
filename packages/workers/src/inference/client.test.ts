@@ -56,6 +56,71 @@ const largeGeneration = InferenceWorkerRequestSchema.parse({
   maxTokens: 8,
 });
 
+function completionServer() {
+  return createServer((req, res) => {
+    if (req.url === "/health") {
+      res.end("{}");
+      return;
+    }
+    req.resume();
+    req.on("end", () => {
+      res.writeHead(200, { "Content-Type": "text/event-stream" });
+      res.end(
+        `data: ${JSON.stringify({ choices: [{ delta: { content: "{}" }, finish_reason: "stop" }], usage: { prompt_tokens: 100, completion_tokens: 4 }, timings: { prompt_n: 10, prompt_ms: 5, predicted_n: 4, predicted_ms: 8 } })}\n\ndata: [DONE]\n\n`,
+      );
+    });
+  });
+}
+
+it("reports the server allocation measurements with the inference result", async () => {
+  const socket =
+    process.platform === "win32"
+      ? `\\\\.\\pipe\\garden-desk-memory-${process.pid}`
+      : join(tmpdir(), `garden-desk-memory-${process.pid}.sock`);
+  const server = completionServer();
+  await new Promise<void>((accept) => server.listen(socket, accept));
+  const client = new InferenceWorkerClient(
+    {
+      gpu: { backend: "cuda", memoryKind: "dedicated" },
+      async launch() {
+        const child = Object.assign(new EventEmitter(), {
+          stdout: new PassThrough(),
+          stderr: new PassThrough(),
+          stdin: new PassThrough(),
+        });
+        setTimeout(() => {
+          child.stderr.write(
+            "load_tensors: CUDA0 model buffer size = 12000.00 MiB\nllama_kv_cache: CUDA0 KV buffer size = 256.00 MiB\nllama_memory_recurrent: CUDA0 RS buffer size = 128.00 MiB\ngraph_reserve: CUDA0 compute buffer size = 64.00 MiB\nllama_context: CUDA_Host output buffer size = 2.00 MiB\n",
+          );
+          child.stdout.write("listening on unix://private");
+        }, 0);
+        return {
+          process: child as unknown as NativeWorkerHandle["process"],
+          connect: () => createConnection(socket),
+          async dispose() {
+            child.emit("close", 0);
+          },
+        };
+      },
+    },
+    "unused",
+  );
+  try {
+    const result = await client.execute({
+      request: largeGeneration,
+      modelPath: "model.gguf",
+      memoryBudgetBytes: 16 * 1024 ** 3,
+      timeoutMs: 2_000,
+    });
+    expect(result).toMatchObject({
+      memory: { gpuMemoryBytes: 12448 * 1024 ** 2, cpuRamBytes: 2 * 1024 ** 2 },
+    });
+  } finally {
+    await client.unload();
+    await new Promise<void>((accept) => server.close(() => accept()));
+  }
+});
+
 function execute(script: string, timeoutMs = 500, signal?: AbortSignal, request = probe) {
   return new InferenceWorkerClient(new ScriptLauncher(script), "unused").execute({
     request,
