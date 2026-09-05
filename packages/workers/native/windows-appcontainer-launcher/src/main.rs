@@ -5,12 +5,14 @@ mod gpu;
 #[cfg(windows)]
 mod process;
 #[cfg(windows)]
+mod relay;
+#[cfg(windows)]
 mod sandbox;
 #[cfg(windows)]
 mod win32;
 
 #[cfg(windows)]
-use cli::{Command, RunArguments, VisionArguments};
+use cli::{Command, RunArguments, ServerArguments, VisionArguments};
 #[cfg(windows)]
 use std::error::Error;
 
@@ -134,6 +136,29 @@ fn run_vision(arguments: VisionArguments) -> Result<i32, Box<dyn Error>> {
 }
 
 #[cfg(windows)]
+fn run_server(arguments: ServerArguments) -> Result<i32, Box<dyn Error>> {
+    let container = sandbox::AppContainer::open(PROFILE_NAME)?;
+    let executable = arguments.executable.canonicalize()?;
+    let scratch = arguments.scratch.canonicalize()?;
+    container.grant_scratch(&scratch)?;
+    for path in arguments.read_paths {
+        container.grant_file_read(&path.canonicalize()?)?;
+    }
+    process::run_sandboxed(
+        &executable,
+        &arguments.arguments,
+        &scratch,
+        arguments.memory_bytes,
+        container.sid(),
+        &container.profile_path()?,
+        process::GpuEnvironment {
+            backend: arguments.gpu.backend,
+            device_index: arguments.gpu.device_index,
+        },
+    )
+}
+
+#[cfg(windows)]
 fn run() -> Result<i32, Box<dyn Error>> {
     match cli::parse()? {
         Command::GpuInfo => {
@@ -149,6 +174,8 @@ fn run() -> Result<i32, Box<dyn Error>> {
         }
         Command::Run(arguments) => run_worker(arguments),
         Command::RunVision(arguments) => run_vision(arguments),
+        Command::RunServer(arguments) => run_server(arguments),
+        Command::Connect { socket } => relay::connect(&socket).map(|()| 0),
     }
 }
 

@@ -126,6 +126,8 @@ Extend the platform launchers to start an `agent` guest role in addition to the 
 
 The guest image contains Python, Node.js, `/bin/sh`, BusyBox commands, the reviewed fixed library set, and the guest entrypoint. It contains no runtime package installation or network configuration. Generated images remain ignored artifacts.
 
+The Windows AppContainer helper also supports `run-server` and `connect` for the Qwen3.8 migration. It launches the runtime in the existing one-process job and relays private Unix-socket bytes. TypeScript owns the arguments and HTTP requests. The application replacement requires the approved Q4 measurements first.
+
 ### `packages/desktop`
 
 Create the product package when its reviewed dependencies are pinned:

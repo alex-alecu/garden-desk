@@ -53,7 +53,7 @@ Garden Desk Core, the harness, and orchestration code are TypeScript on Node.js.
 - `packages/core/native/windows-pipe-guard/`: the current-user-only Windows named pipe, owner and DACL checks, opaque byte relay. TypeScript keeps endpoint naming, RPC parsing, limits, dispatch, and policy.
 - `packages/workers/native/macos-vz-helper/` and `packages/workers/native/windows-hcs-helper/`: microVM launch.
 - `packages/desktop/native/windows-hyper-v-setup/`: one elevated step that adds only the requesting user to the Hyper-V Administrators group. Desktop and Core stay non-elevated; macOS has no administrator setup.
-- `packages/workers/native/windows-appcontainer-launcher/`: the fixed no-capability AppContainer, job limits, scoped read access, and worker launch.
+- `packages/workers/native/windows-appcontainer-launcher/`: the fixed no-capability AppContainer, job limits, scoped read access, worker or runtime launch, and opaque private Unix-socket relay. TypeScript owns runtime arguments and HTTP parsing.
 
 Follow the architecture and gates in [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) and the folder map in [docs/IMPLEMENTATION_STRUCTURE.md](docs/IMPLEMENTATION_STRUCTURE.md). Start from the product architecture and security boundaries, not framework defaults. Keep source small and hand-editable. Install only dependencies pinned in the lockfiles; commit no generated binaries, models, images, build output, or dependency directories. Do not introduce employer-owned, confidential, or third-party proprietary content. Mark carried-forward research claims as research-derived until validated.
 
