@@ -18,6 +18,7 @@ const routeFiles = [
   "sitemap.xml",
   "assets/social-card.png",
   "assets/fonts/IBM-Plex-OFL.txt",
+  "assets/three-LICENSE.txt",
 ];
 
 async function text(path: string): Promise<string> {
