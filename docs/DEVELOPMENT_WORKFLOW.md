@@ -77,6 +77,8 @@ Real-model reproduction is a last-resort diagnostic method, not a standard agent
 
 Raw development inference diagnostics are private and must not enter reports, product records, debug snapshots, user-interface data, or Git.
 
+Run `pnpm start` from the repository root after cloning. It installs locked dependencies with cache reuse, then runs `pnpm desktop:dev`. Development preparation downloads missing model and runtime files and builds a missing guest image before Tauri starts. Complete local assets are reused. The required platform tools are listed in the [README](../README.md#run-locally-with-one-command). Packaged applications still require no download at first launch.
+
 During `pnpm desktop:dev`, the terminal shows WebView console output, unhandled WebView errors, and Garden Desk Core process output. This development-only stream is not stored and must not include prompts, messages, tool payloads, hidden reasoning, or file contents.
 
 - With explicit approval, run `pnpm test:m3:macos` on physical Apple silicon for the canonical headless M3 gate. It verifies the pinned Qwen3.8 Q4 model, real multi-step Python tasks, artifacts, guest isolation, timeout, and output limits without the desktop UI; guest Node.js coverage is the direct-source probe only.
