@@ -1,7 +1,8 @@
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { copyFile, mkdir, readFile, rm } from "node:fs/promises";
-import { join, resolve } from "node:path";
+import { existsSync } from "node:fs";
+import { copyFile, mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
+import { dirname, join, resolve } from "node:path";
 import { generateGuestCapabilities } from "./capabilities.js";
 
 type GuestArchitecture = "aarch64" | "x86_64";
@@ -16,6 +17,7 @@ interface Manifest {
     containerImage: string;
     sourceInputs: Array<{ file: string; sha256: string }>;
     sourceSha256: string;
+    sourceUrl: string;
     sourceDateEpoch: number;
     version: string;
     config?: string;
@@ -156,12 +158,25 @@ async function install(selected: GuestArchitecture, source: string): Promise<voi
   }
 }
 
-const archiveValue = process.env.GARDEN_DESK_BUILDROOT_ARCHIVE;
-if (archiveValue === undefined)
-  throw new Error("Set GARDEN_DESK_BUILDROOT_ARCHIVE to the pinned Buildroot archive.");
-const archive = resolve(archiveValue);
-if ((await sha256(archive)) !== manifest.builder.sourceSha256)
+const archive = resolve(
+  process.env.GARDEN_DESK_BUILDROOT_ARCHIVE ??
+    join(downloadRoot, `buildroot-${manifest.builder.version}.tar.xz`),
+);
+if (!existsSync(archive)) {
+  console.log("Downloading the pinned Buildroot source archive.");
+  const response = await fetch(manifest.builder.sourceUrl, {
+    signal: AbortSignal.timeout(600_000),
+  });
+  if (!response.ok) throw new Error(`Buildroot download failed: ${response.status}`);
+  const bytes = Buffer.from(await response.arrayBuffer());
+  if (createHash("sha256").update(bytes).digest("hex") !== manifest.builder.sourceSha256)
+    throw new Error("Buildroot source SHA-256 mismatch.");
+  await mkdir(dirname(archive), { recursive: true });
+  await writeFile(`${archive}.tmp`, bytes);
+  await rename(`${archive}.tmp`, archive);
+} else if ((await sha256(archive)) !== manifest.builder.sourceSha256) {
   throw new Error("Buildroot source SHA-256 mismatch.");
+}
 const selected = architecture();
 const volumes: [string, string] = [
   `garden-desk-${agentBuild ? "m3-agent" : "m1"}-${selected}-${process.pid}-first`,

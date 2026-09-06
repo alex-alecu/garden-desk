@@ -1912,6 +1912,47 @@ body {
   opacity: 0.85;
 }
 
+.garden .garden-start {
+  display: grid;
+  gap: 10px;
+  width: 100%;
+  max-width: 380px;
+  padding: 20px;
+  border: 1px solid rgb(240 237 227 / 25%);
+  border-radius: 12px;
+  background: rgb(12 35 23 / 90%);
+  color: var(--bone);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.garden-start h2,
+.garden-start p,
+.garden-start pre {
+  margin: 0;
+}
+
+.garden-start h2 {
+  font-size: 1rem;
+}
+
+.garden-start pre {
+  padding: 10px 14px;
+  border-radius: 6px;
+  background: var(--shade);
+  color: var(--brass);
+  font-size: 1.4rem;
+}
+
+.garden-start code {
+  font-family: "IBM Plex Mono", monospace;
+}
+
+.garden-start a {
+  color: var(--bone);
+  text-underline-offset: 3px;
+}
+
 .garden .availability::before {
   background: var(--brass);
 }
