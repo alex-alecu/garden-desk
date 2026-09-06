@@ -1,5 +1,6 @@
 import { StructuredGenerationRequestSchema } from "@gardendesk/shared";
 import { describe, expect, it } from "vitest";
+import { serverArguments } from "./server-runtime.js";
 
 const request = {
   protocolVersion: 2,
@@ -27,4 +28,9 @@ describe("generation context contract", () => {
       StructuredGenerationRequestSchema.safeParse({ ...request, contextSize: 32_769 }).success,
     ).toBe(false);
   });
+});
+
+it("uses the Metal buffer name accepted by the pinned server", () => {
+  const args = serverArguments({ backend: "metal", modelPath: "model.gguf", contextTokens: 32768 });
+  expect(args[args.indexOf("--override-tensor") + 1]).toBe(".*=MTL0");
 });
