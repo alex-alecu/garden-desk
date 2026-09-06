@@ -77,6 +77,7 @@
     },
     { "name": "@types/node", "version": "24.13.3", "license": "MIT", "use": "development" },
     { "name": "@types/tar-stream", "version": "3.1.4", "license": "MIT", "use": "development" },
+    { "name": "@types/three", "version": "0.185.4", "license": "MIT", "use": "development" },
     {
       "name": "better-sqlite3",
       "version": "12.11.1",
@@ -131,6 +132,7 @@
       "use": "desktop_assistant_gfm_tables_and_lists"
     },
     { "name": "tar-stream", "version": "3.2.0", "license": "MIT", "use": "development_validation" },
+    { "name": "three", "version": "0.185.1", "license": "MIT", "use": "public_site_3d_hero" },
     { "name": "tsx", "version": "4.23.1", "license": "MIT", "use": "development" },
     { "name": "tuf-js", "version": "6.0.0", "license": "MIT", "use": "development_validation" },
     { "name": "typescript", "version": "7.0.2", "license": "Apache-2.0", "use": "development" },

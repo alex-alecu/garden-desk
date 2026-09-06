@@ -1844,18 +1844,8 @@ body {
   content: "";
 }
 
-.garden-poster [data-dapple] {
-  opacity: 0.18;
-}
-.garden-poster [data-beam] {
-  opacity: 0.4;
-}
 .garden-poster [data-steam] {
   opacity: 0.4;
-}
-.garden-poster [data-fall],
-.garden-poster [data-mote] {
-  display: none;
 }
 
 .garden-pause {
