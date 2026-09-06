@@ -174,9 +174,9 @@ if (!existsSync(archive)) {
   await mkdir(dirname(archive), { recursive: true });
   await writeFile(`${archive}.tmp`, bytes);
   await rename(`${archive}.tmp`, archive);
-}
-if ((await sha256(archive)) !== manifest.builder.sourceSha256)
+} else if ((await sha256(archive)) !== manifest.builder.sourceSha256) {
   throw new Error("Buildroot source SHA-256 mismatch.");
+}
 const selected = architecture();
 const volumes: [string, string] = [
   `garden-desk-${agentBuild ? "m3-agent" : "m1"}-${selected}-${process.pid}-first`,

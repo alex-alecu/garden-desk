@@ -88,6 +88,12 @@
       "use": "development"
     },
     {
+      "name": "@types/three",
+      "version": "0.185.4",
+      "license": "MIT",
+      "use": "development"
+    },
+    {
       "name": "better-sqlite3",
       "version": "12.11.1",
       "license": "MIT",
@@ -158,6 +164,12 @@
       "version": "3.2.0",
       "license": "MIT",
       "use": "development_validation"
+    },
+    {
+      "name": "three",
+      "version": "0.185.1",
+      "license": "MIT",
+      "use": "public_site_3d_hero"
     },
     {
       "name": "tsx",
