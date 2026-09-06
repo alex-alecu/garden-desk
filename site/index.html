@@ -75,10 +75,12 @@
             <h2>Run the Gemma 4 app locally</h2>
             <p>Clone the repository:</p>
             <pre><code>git clone git@github.com:alex-alecu/garden-desk.git</code></pre>
-            <p>Open a terminal in the <code>garden-desk</code> folder and start the app:</p>
-            <pre><code>pnpm start</code></pre>
-            <p>Installs dependencies and prepares missing files. Later starts reuse your downloads.</p>
-            <a href="https://github.com/alex-alecu/garden-desk#run-locally-with-one-command">Build tools and setup requirements &#8599;</a>
+            <p>Open a terminal in the <code>garden-desk</code> folder. On macOS:</p>
+            <pre><code>bash setup.sh</code></pre>
+            <p>On Windows, use standard PowerShell:</p>
+            <pre><code>powershell -NoProfile -ExecutionPolicy Bypass -File .\setup.ps1</code></pre>
+            <p>Setup asks before it installs missing tools and downloads. Then it starts the app. For later starts, use <code>pnpm start</code>.</p>
+            <a href="https://github.com/alex-alecu/garden-desk#run-locally-with-one-command">Setup and platform requirements &#8599;</a>
           </div>
           <div class="garden-actions">
             <a class="button button-primary" href="./demo/">

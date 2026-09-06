@@ -28,7 +28,7 @@ function prepareModels(): void {
   for (const model of packagedModelFiles) {
     const destination = canonicalModelPath(repositoryRoot, model.fileName);
     if (existsSync(destination)) continue;
-    console.log(`[Garden Desk startup] Downloading ${model.id}.`);
+    console.log(`[Garden Desk setup] Downloading ${model.id}.`);
     run("packages/eval/src/gates/fetch-model.ts", ["--id", model.id, "--destination", destination]);
   }
 }
@@ -41,7 +41,7 @@ async function prepareRuntimes(): Promise<void> {
   const directory = join(repositoryRoot, "packages/eval/.generated/vision", platform);
   if (visionResourceNames(manifest, platform).every((name) => existsSync(join(directory, name))))
     return;
-  console.log(`[Garden Desk startup] Downloading the ${platform} image runtime.`);
+  console.log(`[Garden Desk setup] Downloading the ${platform} image runtime.`);
   run("packages/eval/src/gates/fetch-vision-runtime.ts", ["--platform", platform]);
 }
 
@@ -59,12 +59,10 @@ async function prepareGuestImage(): Promise<void> {
     existsSync(join(directory, output.initramfsFile))
   )
     return;
-  console.log("[Garden Desk startup] Building the missing guest image. This can take a long time.");
+  console.log("[Garden Desk setup] Building the missing guest image. This can take a long time.");
   run("packages/workers/images/build.ts", ["--agent", "--arch", architecture]);
 }
 
-export async function prepareDevelopmentAssets(): Promise<void> {
-  await prepareRuntimes();
-  prepareModels();
-  await prepareGuestImage();
-}
+await prepareRuntimes();
+prepareModels();
+await prepareGuestImage();
