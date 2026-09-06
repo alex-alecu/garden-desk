@@ -6,7 +6,13 @@ Garden Desk is a local-first desktop agent for working with private files and fo
 
 ## Run locally with one command
 
-After you clone the repository, run this command from the `garden-desk` folder:
+Clone the repository:
+
+```sh
+git clone git@github.com:alex-alecu/garden-desk.git
+```
+
+Open a terminal in the `garden-desk` folder and start the app:
 
 ```sh
 pnpm start

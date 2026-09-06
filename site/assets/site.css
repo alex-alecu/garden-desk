@@ -1942,6 +1942,8 @@ body {
   background: var(--shade);
   color: var(--brass);
   font-size: 1.4rem;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 
 .garden-start code {
