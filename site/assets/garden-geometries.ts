@@ -14,38 +14,8 @@ export function gableGeometry(): BufferGeometry {
     e = [0.5, 0, -0.5],
     f = [0, 1, -0.5];
   const geometry = new BufferGeometry();
-  geometry.setAttribute(
-    "position",
-    new Float32BufferAttribute(
-      [
-        ...a,
-        ...b,
-        ...c,
-        ...e,
-        ...d,
-        ...f,
-        ...a,
-        ...c,
-        ...f,
-        ...a,
-        ...f,
-        ...d,
-        ...b,
-        ...e,
-        ...f,
-        ...b,
-        ...f,
-        ...c,
-        ...a,
-        ...d,
-        ...e,
-        ...a,
-        ...e,
-        ...b,
-      ],
-      3,
-    ),
-  );
+  const vertices = [a, b, c, e, d, f, a, c, f, a, f, d, b, e, f, b, f, c, a, d, e, a, e, b];
+  geometry.setAttribute("position", new Float32BufferAttribute(vertices.flat(), 3));
   geometry.computeVertexNormals();
   return geometry;
 }
