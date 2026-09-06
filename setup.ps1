@@ -13,8 +13,8 @@ if ($edition -notmatch '^(Professional|Enterprise)' -or -not (Get-Service vmms -
 }
 
 $package = Get-Content package.json -Raw | ConvertFrom-Json
-$nodeVersion = $package.engines.node
-$pnpmVersion = $package.engines.pnpm
+$nodeVersion = (Get-Content .node-version -Raw).Trim()
+$pnpmVersion = $package.packageManager -replace '^pnpm@', ''
 $rustVersion = [regex]::Match((Get-Content rust-toolchain.toml -Raw), 'channel = "([^"]+)"').Groups[1].Value
 $cargoRoot = if ($env:CARGO_HOME) { $env:CARGO_HOME } else { Join-Path $env:USERPROFILE '.cargo' }
 $dockerRoot = Join-Path $env:ProgramFiles 'Docker\Docker'
@@ -97,7 +97,7 @@ function Get-Installer([string]$Url, [string]$Name) {
 function Install-Program([string]$File, [string[]]$Arguments) {
     if ((Get-AuthenticodeSignature $File).Status -ne 'Valid') { throw "Invalid installer signature: $File" }
     if ([IO.Path]::GetExtension($File) -eq '.msi') {
-        $Arguments = @('/i', "`"$File`"", '/norestart')
+        $Arguments = @('/i', "`"$File`"") + $Arguments
         $File = 'msiexec.exe'
     }
     $process = Start-Process $File -ArgumentList $Arguments -Verb RunAs -Wait -PassThru
@@ -120,7 +120,7 @@ try {
     }
     if ($needNode) {
         $file = Get-Installer "https://nodejs.org/dist/v$nodeVersion/node-v$nodeVersion-x64.msi" 'node.msi'
-        Install-Program $file @()
+        Install-Program $file @('/norestart')
         $env:PATH = "$env:ProgramFiles\nodejs;$env:PATH"
     }
     if ($needPnpm) { Invoke-Tool 'npm.cmd' @('install', '--global', "pnpm@$pnpmVersion") }

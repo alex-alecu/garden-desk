@@ -28,7 +28,7 @@ Run this in standard PowerShell:
 powershell -NoProfile -ExecutionPolicy Bypass -File .\setup.ps1
 ```
 
-Setup checks Node.js **24.18.0**, pnpm **11.13.1**, Rust **1.97.0**, the [Tauri platform tools](https://v2.tauri.app/start/prerequisites/), and Docker. It lists missing tools and asks before it installs or updates them. Official installers can request administrator approval. Complete their prompts. If an installer requires a restart, restart the computer and run setup again.
+Setup uses the Node.js version in [.node-version](.node-version), pnpm in [package.json](package.json), and Rust in [rust-toolchain.toml](rust-toolchain.toml). It also checks the [Tauri platform tools](https://v2.tauri.app/start/prerequisites/) and Docker. It lists missing tools and asks before it installs or updates them. Official installers can request administrator approval. Complete their prompts. If an installer requires a restart, restart the computer and run setup again.
 
 After the tools are ready, setup asks before it installs locked project packages, downloads missing Gemma 4 model and image runtime files, builds the guest image, and starts the app. Docker must run Linux containers. The first setup needs an internet connection and can take a long time. Complete local assets are reused.
 
