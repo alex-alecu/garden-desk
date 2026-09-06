@@ -15,6 +15,12 @@ import type {
 import { WindowsNativeWorkerLauncher } from "../native/windows.js";
 import { InferenceWorkerClient, InferenceWorkerError } from "./client.js";
 import { serverRequest } from "./server-http.js";
+import { serverArguments } from "./server-runtime.js";
+
+it("uses the Metal buffer name accepted by the pinned server", () => {
+  const args = serverArguments({ backend: "metal", modelPath: "model.gguf", contextTokens: 32768 });
+  expect(args[args.indexOf("--override-tensor") + 1]).toBe(".*=MTL0");
+});
 
 class ScriptLauncher implements NativeWorkerLauncher {
   launches = 0;

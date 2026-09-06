@@ -12,7 +12,7 @@ export function serverArguments(input: {
   embedding?: boolean;
   projectorPath?: string;
 }): string[] {
-  const device = { metal: "Metal", cuda: "CUDA0", vulkan: "Vulkan0" }[input.backend];
+  const device = { metal: "MTL0", cuda: "CUDA0", vulkan: "Vulkan0" }[input.backend];
   return [
     "--model",
     input.modelPath,
