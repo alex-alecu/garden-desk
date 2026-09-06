@@ -31,7 +31,6 @@ export interface WindowsGpuProfile {
   memoryBudgetBytes: number;
   hostMemoryReservationBytes: number;
   selection: Required<WindowsGpuLaunch>;
-  visionSelection: { deviceIndex: number; expectedName: string };
 }
 
 interface Candidate {
@@ -240,10 +239,6 @@ async function resolveCandidate(
         expectedName: generation.expectedName,
         installedMemoryBytes,
         memoryKind: candidate.adapter.integrated ? "unified" : "dedicated",
-      },
-      visionSelection: {
-        deviceIndex: generation.deviceIndex,
-        expectedName: generation.expectedName,
       },
     };
   }

@@ -6,7 +6,6 @@ export interface WindowsInferencePaths {
   inferenceHelperPath: string;
   inferenceRuntimePath: string;
   workerEntryPath: string;
-  visionRuntimePath: string;
 }
 
 /**
@@ -32,7 +31,6 @@ export async function windowsInferencePaths(): Promise<WindowsInferencePaths> {
         workerEntryPath: "",
         inferenceHelperPath: join(root, "garden-desk-appcontainer-launcher.exe"),
         inferenceRuntimePath: join(root, "windows-cuda-x64", "llama-server.exe"),
-        visionRuntimePath: join(root, "windows-cuda-x64", "llama-server.exe"),
       };
     } catch {
       // Try the next staged inference root.

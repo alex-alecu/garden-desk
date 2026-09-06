@@ -95,7 +95,7 @@ export class InferenceWorkerClient {
     ]);
     if (signal.aborted) throw interruption(signal);
     const request = execution.request;
-    if (request.operation === "probe") return await this.probe(execution, signal);
+    if (request.operation === "probe") return await this.probe(execution, request, signal);
     if (this.busy) throw new InferenceWorkerError("worker_crash", "Inference worker is busy.");
     this.busy = true;
     try {
@@ -113,15 +113,19 @@ export class InferenceWorkerClient {
     }
   }
 
-  private async probe(execution: InferenceExecution, signal: AbortSignal) {
+  private async probe(
+    execution: InferenceExecution,
+    request: Extract<InferenceWorkerRequest, { operation: "probe" }>,
+    signal: AbortSignal,
+  ) {
     const handle = await this.launcher.launch({
       workerEntryPath: this.workerEntryPath,
       memoryBudgetBytes: execution.memoryBudgetBytes,
     });
-    const worker = new ResidentWorker(handle, undefined, execution.memoryBudgetBytes, () => {});
+    const worker = new ResidentWorker(handle);
     try {
       if (signal.aborted) throw interruption(signal);
-      return await worker.execute({ ...execution, signal });
+      return await worker.execute(request, signal);
     } finally {
       await worker.dispose();
     }

@@ -191,14 +191,3 @@ export async function assertWindowsInferenceSelection(
 ): Promise<void> {
   await assertWindowsGpuSelection(input, profile, profile.selection);
 }
-
-export async function assertWindowsVisionSelection(
-  input: ResolveWindowsGpuProfileOptions,
-  profile: WindowsGpuProfile,
-): Promise<void> {
-  await assertWindowsGpuSelection(input, profile, {
-    backend: profile.selection.backend,
-    deviceIndex: profile.visionSelection.deviceIndex,
-    expectedName: profile.visionSelection.expectedName,
-  });
-}

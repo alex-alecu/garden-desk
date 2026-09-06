@@ -22,7 +22,6 @@ interface InferenceCompositionOptions {
   workerEntryPath?: string;
   inferenceHelperPath?: string;
   inferenceRuntimePath?: string;
-  visionRuntimePath?: string;
 }
 
 type WindowsRuntime = Awaited<ReturnType<typeof createWindowsInferenceRuntime>>;
@@ -44,8 +43,6 @@ function windowsRuntimeOptions(options: InferenceCompositionOptions) {
   if (options.inferenceRuntimePath !== undefined) {
     configured.inferenceRuntimePath = options.inferenceRuntimePath;
   }
-  if (options.visionRuntimePath !== undefined)
-    configured.visionRuntimePath = options.visionRuntimePath;
   return configured;
 }
 

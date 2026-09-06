@@ -1,9 +1,7 @@
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { hostileWorkerResponse } from "./development-diagnostics-test-containment.js";
 import {
   bundledDiagnostics,
-  bundledHostileWorker,
   bundledProductionCore,
   bundledWorker,
   cleanTemporaryDirectories,
@@ -29,17 +27,6 @@ describe("development inference worker stderr ready record", () => {
 });
 
 describe("development inference diagnostic containment", () => {
-  it("contains hostile diagnostics and still writes the fixed inference response", async () => {
-    const directory = await temporaryDirectory();
-    const development = await bundledDiagnostics(true, directory);
-    await expect(development.hostileDiagnostics()).resolves.toBe(true);
-
-    const responses = await hostileWorkerResponse(await bundledHostileWorker());
-    expect(responses).toMatchObject([
-      { status: "error", error: { code: "internal", message: "Inference failed." } },
-    ]);
-  });
-
   it("removes diagnostic writes and paths from production artifacts", async () => {
     const directory = await temporaryDirectory();
     const root = join(directory, "inference-diagnostics");
@@ -58,7 +45,6 @@ describe("development inference diagnostic containment", () => {
     expect(worker).not.toContain("writeDevelopmentWorkerStderrReady");
     expect(worker).not.toContain("waitForDevelopmentHostRecord");
     expect(worker).not.toContain("writeDevelopmentLlamaLog");
-    expect(worker).not.toContain("writeDevelopmentOperationFailure");
     expect(worker).not.toContain("[garden-desk-inference] worker-stderr-ready");
     expect(worker).not.toContain("[node-llama-cpp]");
     expect(core).not.toContain("inference-diagnostics");

@@ -187,13 +187,14 @@ export class WindowsNativeWorkerLauncher implements NativeWorkerLauncher {
       throw new NativeWorkerLaunchError("unsupported", "unsupported_native_worker_platform");
     }
     const server = request.serverArguments !== undefined;
+    const bindsSocket = server && !request.serverArguments?.includes("--list-devices");
     await prepareWindowsRuntime(
       this.helperPath,
       resolve(server ? this.runtimePath : request.workerEntryPath),
       server,
     );
     const temporaryRoot = await mkdtemp(join(tmpdir(), "gd-"));
-    if (server)
+    if (bindsSocket)
       await protectSocketDirectory(temporaryRoot).catch(async (error: unknown) => {
         await rm(temporaryRoot, { recursive: true, force: true });
         throw error;
@@ -220,7 +221,7 @@ export class WindowsNativeWorkerLauncher implements NativeWorkerLauncher {
     let disposed = false;
     return {
       process: child,
-      ...(server
+      ...(bindsSocket
         ? { connect: () => connectWindowsSocket(this.helperPath, join(temporaryRoot, "s.sock")) }
         : {}),
       async dispose() {

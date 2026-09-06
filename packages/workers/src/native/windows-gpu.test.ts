@@ -82,7 +82,6 @@ describe("Windows dedicated GPU preference", () => {
       memoryKind: "dedicated",
     });
     expect(selected.adapterId).toBe("nvidia");
-    expect(selected.visionSelection).toEqual({ deviceIndex: 0, expectedName: "NVIDIA GPU" });
   });
 });
 
@@ -173,7 +172,6 @@ describe("Windows GPU candidate ranking", () => {
       }),
     );
     expect(selected.selection.backend).toBe("cuda");
-    expect(selected.visionSelection).toEqual({ deviceIndex: 0, expectedName: "GPU" });
   });
 
   it("does not use CUDA to break an equal-memory adapter tie", async () => {

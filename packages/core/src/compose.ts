@@ -29,7 +29,6 @@ export interface GardenDeskCoreOptions {
   workerEntryPath?: string;
   inferenceHelperPath?: string;
   inferenceRuntimePath?: string;
-  visionRuntimePath?: string;
   agentHelperPath?: string;
   agentImageRoot?: string;
   promptDirectory?: string;

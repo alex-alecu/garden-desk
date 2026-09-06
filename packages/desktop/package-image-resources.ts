@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import { reportDevelopmentResourceStage } from "./src/dev-resource-progress.js";
 import * as model from "./src/package-model-contract.js";
 import type { ResourceHashes } from "./src/resource-hashes.js";
+import { nativeRuntimePackages } from "./src/runtime-package-contract.js";
 
 type HashFile = (path: string) => Promise<string>;
 interface InferenceRuntimeManifest {
@@ -19,13 +20,6 @@ interface InferenceRuntimeManifest {
 const desktopRoot = fileURLToPath(new URL(".", import.meta.url));
 const repositoryRoot = resolve(desktopRoot, "../..");
 const resourcesRoot = join(desktopRoot, "src-tauri", "resources", "core");
-
-function runtimePlatforms(): string[] {
-  if (process.platform === "darwin" && process.arch === "arm64") return ["macos-arm64"];
-  if (process.platform === "win32" && process.arch === "x64")
-    return ["windows-cuda-x64", "windows-vulkan-x64"];
-  throw new Error("Unsupported inference package target.");
-}
 
 export function runtimeResourceNames(
   manifest: InferenceRuntimeManifest,
@@ -66,7 +60,7 @@ export async function installRuntimeResources(
     await readFile(join(repositoryRoot, "assets/inference-runtime.json"), "utf8"),
   ) as InferenceRuntimeManifest;
   const hashes: Record<string, string> = {};
-  for (const platform of runtimePlatforms()) {
+  for (const platform of nativeRuntimePackages()) {
     const source = join(repositoryRoot, "packages/eval/.generated/inference", platform);
     await requireFetchedAsset(source, `pnpm inference:fetch --platform ${platform}`);
     const destination = join(destinationRoot, platform);

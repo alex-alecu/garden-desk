@@ -164,14 +164,6 @@ export function writeDevelopmentWorkerStderrReady(): void {
   writeDiagnosticRecord("[garden-desk-inference] worker-stderr-ready\n");
 }
 
-export function writeDevelopmentOperationFailure(
-  operation: InferenceDiagnosticOperation,
-  error: unknown,
-): void {
-  if (globalThis.__GARDEN_DESK_DEVELOPMENT_BUILD__ !== true) return;
-  writeDiagnosticErrorRecord(`[garden-desk-inference] operation=${operation} failed`, error);
-}
-
 export async function recordDevelopmentHostFailure(
   stage: InferenceDiagnosticHostStage,
   operation: InferenceDiagnosticOperation,
