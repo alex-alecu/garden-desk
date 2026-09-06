@@ -96,13 +96,18 @@ if $need_rust; then
   if command -v rustup >/dev/null; then
     rustup toolchain install "$rust_version" --profile minimal --component clippy --component rustfmt
   else
-    download https://sh.rustup.rs "$setup_temp/rustup.sh"
-    sh "$setup_temp/rustup.sh" -y --default-toolchain "$rust_version" --profile minimal --component clippy --component rustfmt
+    rustup_url=https://static.rust-lang.org/rustup/dist/aarch64-apple-darwin/rustup-init
+    download "$rustup_url" "$setup_temp/rustup-init"
+    download "$rustup_url.sha256" "$setup_temp/rustup.sha256"
+    (cd "$setup_temp"; shasum -a 256 --check rustup.sha256)
+    chmod +x "$setup_temp/rustup-init"
+    "$setup_temp/rustup-init" -y --default-toolchain "$rust_version" --profile minimal --component clippy --component rustfmt
   fi
 fi
 if $need_docker; then
   download https://desktop.docker.com/mac/main/arm64/Docker.dmg "$setup_temp/Docker.dmg"
   hdiutil attach "$setup_temp/Docker.dmg" -nobrowse -mountpoint "$setup_temp/Docker"
+  spctl --assess --type execute "$setup_temp/Docker/Docker.app"
   sudo "$setup_temp/Docker/Docker.app/Contents/MacOS/install"
   hdiutil detach "$setup_temp/Docker"
 fi

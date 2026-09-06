@@ -31,6 +31,7 @@ function Confirm-Setup([string]$Message) {
 }
 
 function Read-Tool([string]$Command, [string[]]$Arguments) {
+    $ErrorActionPreference = 'Continue'
     try {
         if (-not (Get-Command $Command -ErrorAction SilentlyContinue)) { return '' }
         $output = & $Command @Arguments 2>$null
