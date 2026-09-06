@@ -14,4 +14,6 @@ Keep reasoning only in memory during one user task. Clear it at completion, canc
 
 Keep `auto` and `local16`. Mac requires 24 GiB installed memory: 16 GiB for inference, 4 GiB for one microVM, and 4 GiB for the host. Windows retains the 16 billion byte dedicated-GPU threshold, CUDA preference on the same device, Vulkan, and device identity checks. An integrated GPU requires 24 GiB installed memory and 16 GiB usable runtime allocation. On Windows with a dedicated GPU, use a separate 20 GiB process memory limit and host reservation; image processing exceeds the 16 GiB GPU budget in total process memory. For unified memory, retain the 16 GiB inference reservation. Reserve a further 4 GiB for the host before admitting 4 GiB microVMs.
 
+The app returns an unsupported outcome if the remaining memory cannot hold one microVM. A Windows host with a dedicated GPU thus requires at least 28 GiB installed memory.
+
 These settings are certification targets. Keep the migration PR in draft until bounded Windows and Mac checks pass. Do not change Q4, reduce context, or add automatic retries to make a check pass.

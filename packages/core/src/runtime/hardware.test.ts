@@ -53,10 +53,10 @@ describe("agent VM memory policy", () => {
   });
 
   it.each([
-    [32, 3],
-    [64, 11],
-    [128, 27],
-  ])("keeps discrete GPU VRAM outside the %d GiB Windows host RAM pool", (memory, sessions) => {
-    expect(resolveAgentSessionCapacity(16 * GiB, memory * GiB)).toBe(sessions);
+    [32, 2],
+    [64, 10],
+    [128, 26],
+  ])("reserves 20 GiB for inference on a %d GiB Windows host", (memory, sessions) => {
+    expect(resolveAgentSessionCapacity(20 * GiB, memory * GiB)).toBe(sessions);
   });
 });

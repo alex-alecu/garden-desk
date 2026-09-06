@@ -56,7 +56,7 @@ async function readResponse(res: IncomingMessage, onEvent?: EventHandler): Promi
   res.setEncoding("utf8");
   for await (const chunk of res) {
     bytes += Buffer.byteLength(chunk);
-    if (bytes > 4 * 1024 ** 2) throw new ServerError("malformed_worker_message");
+    if (bytes > 8 * 1024 ** 2) throw new ServerError("malformed_worker_message");
     pending += chunk;
     if (!streaming) continue;
     const events = pending.split("\n\n");

@@ -112,8 +112,13 @@ export async function createInferenceService(
   const policy = resolveInferenceHardwarePolicy(profile);
   if (!policy.supported && selectedWindowsRuntime === undefined)
     return unavailableResult(policy.message);
-  const modelResolver = await ModelResolver.open(options.modelStoreDir);
   const selectedHardware = hardwareProfile(selectedWindowsRuntime, policy);
+  const agentSessionCapacity = resolveAgentSessionCapacity(
+    selectedHardware.hostMemoryReservationBytes,
+  );
+  if (agentSessionCapacity === 0)
+    return unavailableResult("This computer does not have enough memory to run Garden Desk.");
+  const modelResolver = await ModelResolver.open(options.modelStoreDir);
   const workerEntryPath =
     selectedWindowsRuntime?.workerEntryPath ??
     options.workerEntryPath ??
@@ -132,6 +137,6 @@ export async function createInferenceService(
       vision,
     ),
     available: true,
-    agentSessionCapacity: resolveAgentSessionCapacity(selectedHardware.hostMemoryReservationBytes),
+    agentSessionCapacity,
   } as const;
 }

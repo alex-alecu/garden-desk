@@ -23,7 +23,7 @@ Conversations, files, generated work, audit records, and diagnostic traces stay 
 - **Model runtime:** pinned `llama.cpp b10816` for text, images, and embeddings through a private socket. Model files are Apache-2.0 licensed; llama.cpp is MIT licensed.
 - **Desktop and control plane:** a [Tauri v2](https://tauri.app/) and React interface over a TypeScript and Node.js core that owns permissions, sessions, model requests, limits, audit, and recovery.
 
-The model does not run as a server on an exposed port. It runs in a separate, supervised process and communicates with Garden Desk Core through fixed, typed stdin and stdout. This preserves local GPU acceleration while denying the model network access, credentials, a host shell, unrestricted files, or approval authority. It also lets the operating system reclaim the complete model runtime when the worker stops.
+The model uses no exposed network port. It runs in a separate, supervised process. Garden Desk Core communicates with it through HTTP over a private Unix socket. Core validates each result. Windows uses a native relay for the private connection. The process keeps local GPU acceleration. It has no network access, credentials, host shell, unrestricted file access, or approval authority. The operating system reclaims its memory when it stops.
 
 To run the desktop locally:
 

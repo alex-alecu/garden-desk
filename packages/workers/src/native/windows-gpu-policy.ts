@@ -88,25 +88,6 @@ function validateAdapter(value: unknown): asserts value is WindowsGpuAdapterInfo
   }
 }
 
-export function parseWindowsRuntimeProbe(output: string): WindowsRuntimeProbeResult | undefined {
-  const value = JSON.parse(output) as Partial<WindowsRuntimeProbeResult> & { available?: boolean };
-  if (value.schemaVersion !== 1) throw new Error("invalid_windows_runtime_probe");
-  if (value.available === false) return undefined;
-  if (
-    (value.backend !== "cuda" && value.backend !== "vulkan") ||
-    !Array.isArray(value.deviceNames) ||
-    value.deviceNames.length === 0 ||
-    value.deviceNames.length > MAX_GPU_DEVICES ||
-    value.deviceNames.some(
-      (name) => typeof name !== "string" || name.length === 0 || name.length > 512,
-    ) ||
-    !safeInteger(value.totalMemoryBytes, false)
-  ) {
-    throw new Error("invalid_windows_runtime_probe");
-  }
-  return value as WindowsRuntimeProbeResult;
-}
-
 export function normalizeGpuName(value: string): string {
   return value
     .normalize("NFKD")

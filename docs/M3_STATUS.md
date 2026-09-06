@@ -1,6 +1,6 @@
 # Milestone M3 Status
 
-Updated: 2026-09-03
+Updated: 2026-09-06
 
 M3 Offline Dev-Agent Desktop V1 is active. The desktop runs one general-purpose local agent per conversation: a system prompt plus a fixed tool set, executing every file read and every command inside a no-network microVM (a virtual machine with no network interface).
 
@@ -34,7 +34,7 @@ The run used physical Windows x64 after `git fetch origin main`. The checked bas
 - `pnpm desktop:build-sidecar` passed and recorded the same two image hashes.
 - `pnpm test:m3:windows` passed the guest boundary checks and all four golden tasks: XLSX extraction, DOCX extraction, PDF extraction, and the mixed-folder report. It printed `golden: 4/4 passed`.
 
-This result passes the current Windows headless M3 gate. Packaged application checks and the other open release items remain separate.
+This result passed the Windows headless M3 gate for the checked revision. It does not cover the Qwen3.8 migration in [ADR 0019](adr/0019-qwen38-private-server.md). Mac and signed application package checks for that migration remain unverified. The other open release items remain separate.
 
 ## Running The Golden Tasks
 

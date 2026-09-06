@@ -14,6 +14,7 @@ import type {
 } from "../native/launcher.js";
 import { WindowsNativeWorkerLauncher } from "../native/windows.js";
 import { InferenceWorkerClient, InferenceWorkerError } from "./client.js";
+import { serverRequest } from "./server-http.js";
 
 class ScriptLauncher implements NativeWorkerLauncher {
   launches = 0;
@@ -71,6 +72,51 @@ function completionServer() {
     });
   });
 }
+
+it("accepts 16384 tool tokens with the pinned server event metadata", async () => {
+  const socket =
+    process.platform === "win32"
+      ? `\\\\.\\pipe\\garden-desk-stream-${process.pid}`
+      : join(tmpdir(), `garden-desk-stream-${process.pid}.sock`);
+  const event = `data: ${JSON.stringify({
+    choices: [
+      {
+        finish_reason: null,
+        index: 0,
+        delta: {
+          tool_calls: [{ index: 0, function: { arguments: " code" } }],
+        },
+      },
+    ],
+    created: 1788681600,
+    id: `chatcmpl-${"x".repeat(32)}`,
+    model: "qwen3.8-27b-ud-iq4_xs.gguf",
+    system_fingerprint: "b10816",
+    object: "chat.completion.chunk",
+  })}\n\n`;
+  const server = createServer((_req, res) => {
+    res.writeHead(200, { "Content-Type": "text/event-stream" });
+    res.end(`${event.repeat(16_384)}data: [DONE]\n\n`);
+  });
+  await new Promise<void>((accept) => server.listen(socket, accept));
+  let events = 0;
+  try {
+    await serverRequest(
+      { connect: () => createConnection(socket) } as unknown as NativeWorkerHandle,
+      "/v1/chat/completions",
+      undefined,
+      {
+        signal: AbortSignal.timeout(2_000),
+        onEvent: () => {
+          events += 1;
+        },
+      },
+    );
+    expect(events).toBe(16_384);
+  } finally {
+    await new Promise<void>((accept) => server.close(() => accept()));
+  }
+});
 
 it("reports the server allocation measurements with the inference result", async () => {
   const socket =

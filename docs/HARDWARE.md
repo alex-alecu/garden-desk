@@ -42,7 +42,8 @@ May work for technical users. No guarantee and limited support.
 Current community targets follow [ADR 0019](adr/0019-qwen38-private-server.md).
 
 - Mac: at least 24 GiB installed memory, with a 16 GiB inference budget, 4 GiB for the host, and 4 GiB per microVM.
-- Windows: one dedicated GPU with at least 16 billion bytes, or one integrated GPU with 16 GiB usable allocation and at least 24 GiB installed memory. Reserve host memory before admitting microVMs. CUDA and Vulkan retain device identity and isolation checks.
+- Windows with a dedicated GPU: at least 16 billion bytes of GPU memory and 28 GiB installed memory. Reserve 20 GiB for inference, 4 GiB for the host, and 4 GiB per microVM.
+- Windows with an integrated GPU: at least 16 GiB usable GPU allocation and 24 GiB installed memory. CUDA and Vulkan retain device identity and isolation checks.
 - Generation: Qwen3.8 27B Q4, fixed 32K context, all weights and context state on one GPU. No automatic fitting or CPU fallback.
 - Windows agent execution requires Pro or Enterprise with Hyper-V enabled. The setup helper only adds the requesting user to Hyper-V Administrators.
 
