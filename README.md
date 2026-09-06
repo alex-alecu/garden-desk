@@ -4,6 +4,22 @@
 
 Garden Desk is a local-first desktop agent for working with private files and folders. It is built for people who want useful AI assistance without uploading their work, managing model infrastructure, or becoming an AI developer.
 
+## Run locally with one command
+
+After you clone the repository, run this command from the `garden-desk` folder:
+
+```sh
+pnpm start
+```
+
+This command installs the locked project dependencies and downloads missing Gemma 4 model and image runtime files. It builds the missing guest image and starts the full desktop app. Later starts reuse installed packages and complete local assets. The first start needs an internet connection and can take a long time.
+
+Install Node.js **24.18.0**, pnpm **11.13.1**, Rust **1.97.0**, and the [Tauri platform build tools](https://v2.tauri.app/start/prerequisites/) first. Docker must be running with Linux containers when the guest image is missing.
+
+Use Apple silicon macOS or Windows x64 Pro or Enterprise with Hyper-V enabled. On Windows, use a standard PowerShell terminal. The first launch can request administrator approval to add your account to Hyper-V Administrators. Sign out and back in after that change, then run `pnpm start` again. macOS needs no administrator setup.
+
+For source changes and platform notes, see the [development workflow](docs/DEVELOPMENT_WORKFLOW.md).
+
 ## Why Garden Desk exists
 
 Most AI tools ask people to accept one of three compromises: use a cloud-only service, use a hybrid product that still treats the cloud as its default, or configure a local stack designed primarily for developers.
@@ -24,31 +40,6 @@ Conversations, files, generated work, audit records, and diagnostic traces stay 
 - **Desktop and control plane:** a [Tauri v2](https://tauri.app/) and React interface over a TypeScript and Node.js core that owns permissions, sessions, model requests, limits, audit, and recovery.
 
 The model does not run as a server on an exposed port. It runs in a separate, supervised process and communicates with Garden Desk Core through fixed, typed stdin and stdout. This preserves local GPU acceleration while denying the model network access, credentials, a host shell, unrestricted files, or approval authority. It also lets the operating system reclaim the complete model runtime when the worker stops.
-
-To run the desktop locally:
-
-1. Clone the repository.
-
-   ```sh
-   git clone https://github.com/alex-alecu/garden-desk.git
-   cd garden-desk
-   ```
-
-2. Install the packages.
-
-   ```sh
-   pnpm install
-   ```
-
-3. Start the desktop app.
-
-   ```sh
-   pnpm desktop:dev
-   ```
-
-   On Windows Pro or Enterprise, Hyper-V must already be enabled. The first launch explains and requests one administrator-approved change that adds the current user to Hyper-V Administrators; sign out and back in once afterward. Garden Desk and later development launches remain non-elevated. macOS requires no administrator setup and continues to launch as the current user.
-
-   On Windows, Vite continues to reload frontend changes while `desktop:dev` disables Tauri's Rust file watcher. Some Windows filesystems report source-file reads as access changes, which Tauri can mistake for edits and restart forever. Restart `desktop:dev` after changing Rust desktop-host code. macOS keeps Tauri's normal Rust watcher.
 
 ## What we learned running Gemma 4
 

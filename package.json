@@ -8,6 +8,7 @@
     "pnpm": "11.13.1"
   },
   "scripts": {
+    "start": "pnpm install --frozen-lockfile --prefer-offline && pnpm desktop:dev",
     "build": "pnpm --filter @gardendesk/desktop build",
     "check:source": "node --import tsx scripts/check-source-limits.ts",
     "lint": "biome check .",

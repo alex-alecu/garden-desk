@@ -20,7 +20,7 @@ const desktopRoot = fileURLToPath(new URL(".", import.meta.url));
 const repositoryRoot = resolve(desktopRoot, "../..");
 const resourcesRoot = join(desktopRoot, "src-tauri", "resources", "core");
 
-function visionPlatform(): "macos-arm64" | "windows-vulkan-x64" {
+export function visionPlatform(): "macos-arm64" | "windows-vulkan-x64" {
   if (process.platform === "darwin" && process.arch === "arm64") return "macos-arm64";
   if (process.platform === "win32" && process.arch === "x64") return "windows-vulkan-x64";
   throw new Error("Unsupported image inspection package target.");

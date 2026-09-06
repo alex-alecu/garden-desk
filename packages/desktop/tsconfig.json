@@ -18,6 +18,7 @@
     "package-compliance.ts",
     "package-image-resources.ts",
     "package-output-cleanup.ts",
+    "prepare-dev-assets.ts",
     "vite.config.ts",
     "site.vite.config.ts"
   ]

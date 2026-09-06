@@ -35,8 +35,25 @@ function cargoDirectory(currentPath: string): string {
 const pathName = pathVariable();
 const currentPath = process.env[pathName] ?? "";
 const rustBin = cargoDirectory(currentPath);
+const environment = {
+  ...process.env,
+  [pathName]: [rustBin, currentPath].filter(Boolean).join(delimiter),
+};
 const tauriCli = createRequire(import.meta.url).resolve("@tauri-apps/cli/tauri.js");
 const tauriArguments = process.argv.slice(2);
+if (tauriArguments[0] === "dev") {
+  const preparation = spawnSync(
+    process.execPath,
+    ["--import", "tsx", join(desktopRoot, "prepare-dev.ts")],
+    {
+      cwd: desktopRoot,
+      env: environment,
+      stdio: "inherit",
+    },
+  );
+  if (preparation.error !== undefined) throw preparation.error;
+  if (preparation.status !== 0) throw new Error("Desktop preparation failed.");
+}
 if (tauriArguments[0] === "dev" || tauriArguments[0] === "build") {
   tauriArguments.push("--config", join(desktopRoot, "src-tauri", "tauri.package-model.conf.json"));
 }
@@ -56,7 +73,7 @@ const packageTarget = packageBuildTarget(
 const packageBackupCreated =
   packageTarget === undefined ? false : await preparePackageBuild(packageTarget);
 const result = spawnSync(process.execPath, [tauriCli, ...tauriArguments], {
-  env: { ...process.env, [pathName]: [rustBin, currentPath].filter(Boolean).join(delimiter) },
+  env: environment,
   stdio: "inherit",
 });
 if (tauriArguments[0] === "dev") await cleanupDevelopmentModelOutput(desktopRoot);
