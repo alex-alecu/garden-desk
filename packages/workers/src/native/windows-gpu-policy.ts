@@ -115,7 +115,7 @@ export function resolveWindowsGpuMemoryProfile(
   const memoryBudgetBytes = integrated
     ? resolveIntegratedGpuBudget(installedMemoryBytes, availableMemoryBytes)
     : detectedMemoryBytes >= INFERENCE_PROFILE.minimumDedicatedMemoryBytes
-      ? Math.min(detectedMemoryBytes, INFERENCE_PROFILE.memoryBudgetBytes)
+      ? detectedMemoryBytes
       : undefined;
   if (memoryBudgetBytes === undefined || detectedMemoryBytes < memoryBudgetBytes) return undefined;
   return {

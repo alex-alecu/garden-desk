@@ -53,18 +53,8 @@ export function serverArguments(input: {
     "0",
     "--log-verbosity",
     "4",
-    ...(input.backend === "cuda" && !input.embedding && input.projectorPath === undefined
-      ? [
-          "--spec-type",
-          "draft-mtp",
-          "--spec-draft-n-max",
-          "1",
-          "--spec-draft-type-k",
-          cacheType,
-          "--spec-draft-type-v",
-          cacheType,
-        ]
-      : []),
+    "--spec-type",
+    "none",
     ...(input.embedding ? ["--embedding", "--pooling", "last"] : []),
     ...(input.projectorPath === undefined
       ? []

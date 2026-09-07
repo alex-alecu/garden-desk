@@ -18,6 +18,7 @@ import {
   ResidentWorker,
 } from "./resident-worker.js";
 import { chatBody, completeChat } from "./server-chat.js";
+import { generationContextTokens } from "./server-context.js";
 import { ServerError, serverRequest } from "./server-http.js";
 import { startServer } from "./server-runtime.js";
 
@@ -140,7 +141,9 @@ export class InferenceWorkerClient {
     const modelPath = execution.modelPath;
     if (modelPath === undefined) throw new ServerError("invalid_argument");
     const contextTokens =
-      request.contextSize === "auto" ? INFERENCE_PROFILE.contextTokens : request.contextSize;
+      request.operation === "embed"
+        ? request.contextSize
+        : generationContextTokens(request.contextSize, this.launcher.gpu);
     const embedding = request.operation === "embed";
     if (
       this.resident &&

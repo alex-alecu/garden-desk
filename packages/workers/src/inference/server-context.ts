@@ -1,6 +1,23 @@
 import { setTimeout as delay } from "node:timers/promises";
-import type { NativeWorkerHandle } from "../native/launcher.js";
+import { INFERENCE_PROFILE } from "@gardendesk/shared";
+import type { NativeWorkerHandle, NativeWorkerLauncher } from "../native/launcher.js";
 import { ServerError, serverFailure, serverRequest } from "./server-http.js";
+
+export function generationContextTokens(
+  requested: number | "auto",
+  gpu: NativeWorkerLauncher["gpu"],
+): number {
+  const maximum =
+    gpu?.memoryKind === "dedicated"
+      ? (gpu.detectedMemoryBytes ?? 0) > 24 * 1024 ** 3
+        ? 131_072
+        : 65_536
+      : INFERENCE_PROFILE.contextTokens;
+  if (requested === "auto") return maximum;
+  if (requested > maximum)
+    throw new ServerError("invalid_argument", "context_size_exceeds_hardware_cap");
+  return requested;
+}
 
 export function contextArguments(input: { contextTokens: number; fitContext?: boolean }): string[] {
   if (!input.fitContext) return ["--fit", "off", "--ctx-size", String(input.contextTokens)];
@@ -10,7 +27,7 @@ export function contextArguments(input: { contextTokens: number; fitContext?: bo
     "--fit",
     "on",
     "--fit-ctx",
-    String(Math.min(input.contextTokens, 4096)),
+    String(Math.min(input.contextTokens, 8192)),
     "--fit-target",
     "512",
     "--override-kv",

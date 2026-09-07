@@ -20,18 +20,18 @@ const request = {
 } as const;
 
 describe("generation context contract", () => {
-  it("accepts automatic context and the 32K product ceiling", () => {
+  it("accepts automatic context and the 128K product ceiling", () => {
     expect(
       StructuredGenerationRequestSchema.safeParse({ ...request, contextSize: "auto" }).success,
     ).toBe(true);
     expect(
-      StructuredGenerationRequestSchema.safeParse({ ...request, contextSize: 32_768 }).success,
+      StructuredGenerationRequestSchema.safeParse({ ...request, contextSize: 131_072 }).success,
     ).toBe(true);
   });
 
   it("rejects explicit generation context above the product ceiling", () => {
     expect(
-      StructuredGenerationRequestSchema.safeParse({ ...request, contextSize: 32_769 }).success,
+      StructuredGenerationRequestSchema.safeParse({ ...request, contextSize: 131_073 }).success,
     ).toBe(false);
   });
 });
@@ -73,7 +73,11 @@ it("includes target and MTP draft buffers in reported memory", () => {
 
 function fittingLauncher() {
   return {
-    gpu: { backend: "cuda" as const, memoryKind: "dedicated" as const },
+    gpu: {
+      backend: "cuda" as const,
+      memoryKind: "dedicated" as const,
+      detectedMemoryBytes: 16 * 1024 ** 3,
+    },
     launches: [] as NativeWorkerLaunchRequest[],
     cannotFit: false,
     async launch(input: NativeWorkerLaunchRequest) {
@@ -100,11 +104,11 @@ function fittingLauncher() {
   };
 }
 
-it("uses the fitted dedicated GPU context and stops when it cannot fit", async () => {
-  const transport = vi
+function fittingTransport(slot: { n_ctx: number }) {
+  return vi
     .spyOn(serverHttp, "serverRequest")
     .mockImplementation(async (_handle, path, _body, options) => {
-      if (path === "/slots") return [{ n_ctx: 8192 }];
+      if (path === "/slots") return [slot];
       if (path !== "/health")
         options.onEvent?.({
           choices: [{ delta: { content: "{}" }, finish_reason: "stop" }],
@@ -113,15 +117,21 @@ it("uses the fitted dedicated GPU context and stops when it cannot fit", async (
         });
       return {};
     });
+}
+
+const fittingRequest = StructuredGenerationRequestSchema.parse({
+  ...request,
+  contextSize: "auto",
+  maxTokens: 16,
+});
+
+it("uses the fitted dedicated GPU context and stops when it cannot fit", async () => {
+  const slot = { n_ctx: 8192 };
+  const transport = fittingTransport(slot);
   const launcher = fittingLauncher();
   const client = new InferenceWorkerClient(launcher, "unused");
   const input = {
-    request: StructuredGenerationRequestSchema.parse({
-      ...request,
-      contextSize: "auto" as const,
-      maxTokens: 16,
-      jsonSchema: { type: "object" },
-    }),
+    request: fittingRequest,
     modelPath: "model.gguf",
     memoryBudgetBytes: 16 * 1024 ** 3,
     timeoutMs: 2_000,
@@ -137,9 +147,23 @@ it("uses the fitted dedicated GPU context and stops when it cannot fit", async (
     await client.execute(input);
     expect(launcher.launches).toHaveLength(1);
     const args = launcher.launches[0]?.serverArguments ?? [];
+    expect(args[args.indexOf("--override-kv") + 1]).toBe("qwen35.context_length=int:65536");
     expect(args[args.indexOf("--fit") + 1]).toBe("on");
+    expect(args[args.indexOf("--fit-ctx") + 1]).toBe("8192");
+    expect(args[args.indexOf("--spec-type") + 1]).toBe("none");
     expect(args[args.indexOf("--gpu-layers") + 1]).toBe("all");
     expect(args[args.indexOf("--override-tensor") + 1]).toBe(".*=CUDA0");
+    await client.unload();
+    slot.n_ctx = 49_152;
+    launcher.gpu.detectedMemoryBytes = 32 * 1024 ** 3;
+    input.memoryBudgetBytes = launcher.gpu.detectedMemoryBytes;
+    expect(await client.execute(input)).toMatchObject({
+      memory: { contextSizeTokens: 49_152, contextLimitTokens: 49_152 },
+    });
+    const largerArgs = launcher.launches[1]?.serverArguments ?? [];
+    expect(largerArgs[largerArgs.indexOf("--override-kv") + 1]).toBe(
+      "qwen35.context_length=int:131072",
+    );
     await client.unload();
     launcher.cannotFit = true;
     await expect(client.execute(input)).rejects.toMatchObject({ code: "out_of_memory" });
