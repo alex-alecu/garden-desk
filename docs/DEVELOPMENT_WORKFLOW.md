@@ -77,7 +77,9 @@ Real-model reproduction is a last-resort diagnostic method, not a standard agent
 
 Raw development inference diagnostics are private and must not enter reports, product records, debug snapshots, user-interface data, or Git.
 
-Run `pnpm start` from the repository root after cloning. It installs locked dependencies with cache reuse, then runs `pnpm desktop:dev`. Development preparation downloads missing model and runtime files and builds a missing guest image before Tauri starts. Complete local assets are reused. The required platform tools are listed in the [README](../README.md#run-locally-with-one-command). Packaged applications still require no download at first launch.
+After cloning, run `bash setup.sh` on Apple silicon macOS or `powershell -NoProfile -ExecutionPolicy Bypass -File .\setup.ps1` in standard Windows PowerShell. Setup checks required tools and asks before it installs missing tools through official installers. It checks Docker with Linux containers before model downloads. After approval, it installs locked project packages, runs `pnpm setup:assets` to download missing model and runtime files and build a missing guest image, then runs `pnpm start`. Complete local assets are reused. See the [README](../README.md#run-locally-with-one-command) for platform requirements and restart steps.
+
+For later starts, `pnpm start` runs `pnpm desktop:dev` with the installed packages and assets. Development preparation rebuilds local application resources when needed. Run setup again when dependencies or required assets change. Packaged applications still require no download at first launch.
 
 During `pnpm desktop:dev`, the terminal shows WebView console output, unhandled WebView errors, and Garden Desk Core process output. This development-only stream is not stored and must not include prompts, messages, tool payloads, hidden reasoning, or file contents.
 
