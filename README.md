@@ -40,7 +40,7 @@ Conversations, files, generated work, audit records, and diagnostic traces stay 
 
 ## How we are building it
 
-- **Generation and image model:** Qwen3.8-27B `UD-IQ4_XS` GGUF and its F16 projector. Physical Mac verification is pending.
+- **Generation and image model:** Qwen3.8-27B `UD-IQ4_XS` GGUF and its F16 projector. Bounded Windows and Mac checks passed; see [current status](docs/M3_STATUS.md).
 - **Retrieval encoder:** the official `Qwen3-Embedding-0.6B Q8_0` GGUF for local semantic search. Document retrieval is part of the post-V1 document-intelligence work; the encoder's local runtime path is already validated.
 - **Model runtime:** pinned `llama.cpp b10816` for text, images, and embeddings through a private socket. Model files are Apache-2.0 licensed; llama.cpp is MIT licensed.
 - **Desktop and control plane:** a [Tauri v2](https://tauri.app/) and React interface over a TypeScript and Node.js core that owns permissions, sessions, model requests, limits, audit, and recovery.

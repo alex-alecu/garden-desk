@@ -1,6 +1,6 @@
 # Milestone M3 Status
 
-Updated: 2026-09-06
+Updated: 2026-09-07
 
 M3 Offline Dev-Agent Desktop V1 is active. The desktop runs one general-purpose local agent per conversation: a system prompt plus a fixed tool set, executing every file read and every command inside a no-network microVM (a virtual machine with no network interface).
 
@@ -34,7 +34,13 @@ The run used physical Windows x64 after `git fetch origin main`. The checked bas
 - `pnpm desktop:build-sidecar` passed and recorded the same two image hashes.
 - `pnpm test:m3:windows` passed the guest boundary checks and all four golden tasks: XLSX extraction, DOCX extraction, PDF extraction, and the mixed-folder report. It printed `golden: 4/4 passed`.
 
-This result passed the Windows headless M3 gate for the checked revision. It does not cover the Qwen3.8 migration in [ADR 0019](adr/0019-qwen38-private-server.md). Mac and signed application package checks for that migration remain unverified. The other open release items remain separate.
+This result passed the Windows headless M3 gate for the checked revision. It does not cover the Qwen3.8 migration in [ADR 0019](adr/0019-qwen38-private-server.md). The other open release items remain separate.
+
+## 2026-09-07 Qwen3.8 Migration Checks
+
+At `f6c7b6d`, bounded Mac checks passed on an M5 Pro with 48 GiB and macOS 26.6.2, using b10816 Metal, Q4 weights, 32K context, and Q8/Q8 context caches. The run processed 30,061 input tokens in 116.4 seconds and generated 154 tokens at 14.6 tokens/s. Cache reuse, cancellation, image inspection, and a physical microVM folder report passed. All run processes stopped. The highest sampled resident memory was 14.73 GiB; this is a sampled maximum, not proof of the absence of paging. The separate encoder check returned 1,024 values.
+
+[PR #110](https://github.com/alex-alecu/garden-desk/pull/110) contains the measurements and earlier bounded Windows results on an RTX 5070 Ti. These checks meet the migration requirement in ADR 0019. They do not certify other hardware, the full M3 gate, the desktop UI, or production signed packages for this migration.
 
 ## Running The Golden Tasks
 

@@ -1,6 +1,6 @@
 # Model Strategy
 
-The current desktop target is Qwen3.8 27B Q4 with its F16 image projector and the existing Qwen3 embedding encoder. [ADR 0019](adr/0019-qwen38-private-server.md) defines the fixed profile and private server transport. Physical Mac verification is pending.
+The current desktop target is Qwen3.8 27B Q4 with its F16 image projector and the existing Qwen3 embedding encoder. [ADR 0019](adr/0019-qwen38-private-server.md) defines the fixed profile and private server transport. Bounded Windows and Mac checks passed; see [current status](M3_STATUS.md).
 
 The managed [catalog](../assets/models.json) pins each immutable revision, file size, and SHA-256 hash. The [runtime manifest](../assets/inference-runtime.json) pins the CUDA, Vulkan, and Metal archives and their dependencies. A changed hash fails installation.
 

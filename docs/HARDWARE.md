@@ -47,7 +47,7 @@ Current community targets follow [ADR 0019](adr/0019-qwen38-private-server.md).
 - Generation: Qwen3.8 27B Q4, fixed 32K context, all weights and context state on one GPU. No automatic fitting or CPU fallback.
 - Windows agent execution requires Pro or Enterprise with Hyper-V enabled. The setup helper only adds the requesting user to Hyper-V Administrators.
 
-Memory admission is not certification. Exact hardware still needs physical evidence. Mac verification is pending.
+Memory admission is not certification. [Bounded Mac checks](M3_STATUS.md) passed on an M5 Pro with 48 GiB. Other Mac configurations remain unverified.
 
 ## Personal Computer Target
 
