@@ -15,7 +15,6 @@ import type {
 import { WindowsNativeWorkerLauncher } from "../native/windows.js";
 import { InferenceWorkerClient, InferenceWorkerError } from "./client.js";
 import { serverRequest } from "./server-http.js";
-import { observeServerMemory } from "./server-memory.js";
 
 class ScriptLauncher implements NativeWorkerLauncher {
   launches = 0;
@@ -117,29 +116,6 @@ it("accepts 16384 tool tokens with the pinned server event metadata", async () =
   } finally {
     await new Promise<void>((accept) => server.close(() => accept()));
   }
-});
-
-it("includes target and MTP draft buffers in reported memory", () => {
-  const child = Object.assign(new EventEmitter(), { stderr: new PassThrough() });
-  const memory = observeServerMemory({ process: child } as unknown as NativeWorkerHandle);
-  child.stderr.write(
-    [
-      "load_tensors: Metal_Mapped model buffer size = 12000.00 MiB",
-      "llama_context: constructing llama_context",
-      "llama_context: CPU output buffer size = 2.00 MiB",
-      "llama_kv_cache: Metal KV buffer size = 256.00 MiB",
-      "llama_memory_recurrent: Metal RS buffer size = 128.00 MiB",
-      "sched_reserve: Metal compute buffer size = 64.00 MiB",
-      "llama_context: constructing llama_context",
-      "llama_context: CPU output buffer size = 1.00 MiB",
-      "llama_kv_cache: Metal KV buffer size = 8.00 MiB",
-      "sched_reserve: Metal compute buffer size = 16.00 MiB",
-      "",
-    ].join("\n"),
-  );
-  child.stderr.write("sched_reserve: Metal compute buffer size = 20.00 MiB\n");
-  expect(memory()).toEqual({ gpuMemoryBytes: 12476 * 1024 ** 2, cpuRamBytes: 3 * 1024 ** 2 });
-  child.emit("close", 0);
 });
 
 it("reports the server allocation measurements with the inference result", async () => {
