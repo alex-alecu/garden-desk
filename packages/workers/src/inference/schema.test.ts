@@ -34,3 +34,8 @@ it("uses the Metal buffer name accepted by the pinned server", () => {
   const args = serverArguments({ backend: "metal", modelPath: "model.gguf", contextTokens: 32768 });
   expect(args[args.indexOf("--override-tensor") + 1]).toBe(".*=MTL0");
 });
+
+it("uses matching cache types for Metal Flash Attention", () => {
+  const args = serverArguments({ backend: "metal", modelPath: "model.gguf", contextTokens: 32768 });
+  expect(args[args.indexOf("--cache-type-k") + 1]).toBe(args[args.indexOf("--cache-type-v") + 1]);
+});

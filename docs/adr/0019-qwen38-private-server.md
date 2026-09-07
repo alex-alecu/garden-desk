@@ -6,7 +6,7 @@ Use Qwen3.8-27B `UD-IQ4_XS` and its F16 image projector on both platforms. Keep 
 
 Use a private Unix socket. Windows uses the existing no-capability AppContainer and one-process job, with an opaque native pipe relay. Mac permits only the exact socket in its native sandbox. TypeScript owns HTTP, arguments, limits, and parsing. Core retains model resolution, scheduling, tool authority, cancellation, and stored message formats.
 
-Use one slot, 32,768 context tokens, all weights and context state on one GPU, Flash Attention, and no automatic fitting or context shifting. Use a 512-token batch and 256-token microbatch. Windows uses Q4/Q4 context cache; Mac uses Q8/F16. Limit checkpoints to two and disable the saved RAM prompt cache. Keep the model's default reasoning effort and the existing per-request reasoning budget.
+Use one slot, 32,768 context tokens, all weights and context state on one GPU, Flash Attention, and no automatic fitting or context shifting. Use a 512-token batch and 256-token microbatch. Windows uses Q4/Q4 context cache; Mac uses Q8/Q8, as Metal Flash Attention requires matching cache types. Limit checkpoints to two and disable the saved RAM prompt cache. Keep the model's default reasoning effort and the existing per-request reasoning budget.
 
 Image inspection unloads generation first. It uses an 8K context, at most 2,048 image tokens and 2,048 output tokens, with thinking disabled. Core supplies inline image bytes. Embeddings use last-token pooling and normalized vectors; their batch and microbatch cover the accepted input context.
 

@@ -46,7 +46,7 @@ export function serverArguments(input: {
     "--cache-type-k",
     input.embedding ? "f16" : input.backend === "metal" ? "q8_0" : "q4_0",
     "--cache-type-v",
-    input.embedding || input.backend === "metal" ? "f16" : "q4_0",
+    input.embedding ? "f16" : input.backend === "metal" ? "q8_0" : "q4_0",
     "--ctx-checkpoints",
     "2",
     "--checkpoint-min-step",
