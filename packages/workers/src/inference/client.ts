@@ -106,8 +106,9 @@ export class InferenceWorkerClient {
         await this.cancel();
         throw interruption(signal);
       }
-      await this.dropResident();
-      throw boundedFailure(error);
+      const failure = boundedFailure(error);
+      if (failure.message !== "generation_token_limit") await this.dropResident();
+      throw failure;
     } finally {
       this.busy = false;
     }
