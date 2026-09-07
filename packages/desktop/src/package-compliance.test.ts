@@ -7,6 +7,14 @@ import { writePackageCompliance } from "../package-compliance.js";
 
 const roots: string[] = [];
 
+it("keeps the CUDA license free of remote scripts and images", async () => {
+  const notice = await readFile(
+    new URL("../../../assets/licenses/cuda-EULA.html", import.meta.url),
+    "utf8",
+  );
+  expect(notice.match(/<(?:script|img)\b[^>]*\bsrc=["'](?:https?:)?\/\//giu) ?? []).toEqual([]);
+});
+
 afterEach(async () => {
   await Promise.all(roots.splice(0).map((root) => rm(root, { force: true, recursive: true })));
 });
