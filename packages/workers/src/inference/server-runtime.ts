@@ -13,6 +13,7 @@ export function serverArguments(input: {
   projectorPath?: string;
 }): string[] {
   const device = { metal: "MTL0", cuda: "CUDA0", vulkan: "Vulkan0" }[input.backend];
+  const cacheType = input.embedding ? "f16" : input.backend === "metal" ? "q8_0" : "q4_0";
   return [
     "--model",
     input.modelPath,
@@ -44,9 +45,9 @@ export function serverArguments(input: {
     "--ubatch-size",
     String(input.embedding ? input.contextTokens : 256),
     "--cache-type-k",
-    input.embedding ? "f16" : input.backend === "metal" ? "q8_0" : "q4_0",
+    cacheType,
     "--cache-type-v",
-    input.embedding ? "f16" : input.backend === "metal" ? "q8_0" : "q4_0",
+    cacheType,
     "--ctx-checkpoints",
     "2",
     "--checkpoint-min-step",
@@ -55,6 +56,18 @@ export function serverArguments(input: {
     "0",
     "--log-verbosity",
     "3",
+    ...(input.backend === "metal" && !input.embedding && input.projectorPath === undefined
+      ? [
+          "--spec-type",
+          "draft-mtp",
+          "--spec-draft-n-max",
+          "3",
+          "--spec-draft-type-k",
+          "q8_0",
+          "--spec-draft-type-v",
+          "q8_0",
+        ]
+      : []),
     ...(input.embedding ? ["--embedding", "--pooling", "last"] : []),
     ...(input.projectorPath === undefined
       ? []

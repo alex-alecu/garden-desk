@@ -8,6 +8,8 @@ Use a private Unix socket. Windows uses the existing no-capability AppContainer 
 
 Use one slot, 32,768 context tokens, all weights and context state on one GPU, Flash Attention, and no automatic fitting or context shifting. Use a 512-token batch and 256-token microbatch. Windows uses Q4/Q4 context cache; Mac uses Q8/Q8, as Metal Flash Attention requires matching cache types. Limit checkpoints to two and disable the saved RAM prompt cache. Keep the model's default reasoning effort and the existing per-request reasoning budget.
 
+Mac text generation uses the model's built-in multi-token prediction (MTP), with at most three draft tokens and Q8/Q8 draft cache. Image inspection, embeddings, and Windows do not use MTP. This setting is pending full-context memory validation; the short Mac comparison showed no speed gain.
+
 Image inspection unloads generation first. It uses an 8K context, at most 2,048 image tokens and 2,048 output tokens, with thinking disabled. Core supplies inline image bytes. Embeddings use last-token pooling and normalized vectors; their batch and microbatch cover the accepted input context.
 
 Keep reasoning only in memory during one user task. Clear it at completion, cancellation, and compaction. Keep task time fixed across tool turns. Never store reasoning or raw server logs in traces or exports. Report total input usage for context and evaluated input tokens for performance. Read numeric CPU and GPU buffer allocations from the server's memory reports. Omit unavailable allocation measurements.
