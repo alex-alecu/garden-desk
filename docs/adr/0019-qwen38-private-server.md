@@ -6,9 +6,13 @@ Use Qwen3.8-27B `UD-IQ4_XS` and its F16 image projector on both platforms. Keep 
 
 Use a private Unix socket. Windows uses the existing no-capability AppContainer and one-process job, with an opaque native pipe relay. Mac permits only the exact socket in its native sandbox. TypeScript owns HTTP, arguments, limits, and parsing. Core retains model resolution, scheduling, tool authority, cancellation, and stored message formats.
 
-Use one slot, 32,768 context tokens, all weights and context state on one GPU, Flash Attention, and no automatic fitting or context shifting. Use a 512-token batch and 256-token microbatch. Windows uses Q4/Q4 context cache; Mac uses Q8/Q8, as Metal Flash Attention requires matching cache types. Limit checkpoints to two and disable the saved RAM prompt cache. Keep the model's default reasoning effort and the existing per-request reasoning budget.
+Use one slot and at most 32,768 context tokens. Keep all weights and context state on one GPU. Use Flash Attention and disable context shifting.
 
-Mac text generation uses the model's built-in multi-token prediction (MTP), with at most three draft tokens and Q8/Q8 draft cache. Image inspection, embeddings, and Windows do not use MTP. This setting is pending full-context memory validation; the short Mac comparison showed no speed gain.
+Text generation on a Windows dedicated GPU fits context to free device memory. Leave a 512 MiB margin. Use a 4K minimum, or the requested size if smaller. Keep the original position encoding and report the fitted context to Core and the desktop. Stop if fitting fails. Never move weights to CPU to fit.
+
+Other inference uses the requested fixed context. Use a 512-token batch and 256-token microbatch. Windows uses Q4/Q4 context cache; Mac uses Q8/Q8, as Metal Flash Attention requires matching cache types. Limit checkpoints to two and disable the saved RAM prompt cache. Keep the model's default reasoning effort and the existing per-request reasoning budget.
+
+CUDA text generation uses the model's built-in multi-token prediction (MTP). Use at most one draft token and Q4/Q4 draft cache. Image inspection, embeddings, Metal, and Vulkan do not use MTP.
 
 Image inspection unloads generation first. It uses an 8K context, at most 2,048 image tokens and 2,048 output tokens, with thinking disabled. Core supplies inline image bytes. Embeddings use last-token pooling and normalized vectors; their batch and microbatch cover the accepted input context.
 
@@ -18,4 +22,4 @@ Keep `auto` and `local16`. Mac requires 24 GiB installed memory: 16 GiB for infe
 
 The app returns an unsupported outcome if the remaining memory cannot hold one microVM. A Windows host with a dedicated GPU thus requires at least 28 GiB installed memory.
 
-These settings are certification targets. Keep the migration PR in draft until bounded Windows and Mac checks pass. Do not change Q4, reduce context, or add automatic retries to make a check pass.
+These settings are certification targets. Keep the migration PR in draft until bounded Windows and Mac checks pass. Do not change Q4 or add automatic retries to make a check pass.

@@ -59,8 +59,8 @@ const largeGeneration = InferenceWorkerRequestSchema.parse({
 
 function completionServer() {
   return createServer((req, res) => {
-    if (req.url === "/health") {
-      res.end("{}");
+    if (req.url === "/health" || req.url === "/slots") {
+      res.end(req.url === "/health" ? "{}" : '[{"n_ctx":512}]');
       return;
     }
     req.resume();

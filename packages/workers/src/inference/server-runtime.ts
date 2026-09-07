@@ -1,7 +1,6 @@
-import { setTimeout as delay } from "node:timers/promises";
 import { INFERENCE_PROFILE } from "@gardendesk/shared";
 import type { NativeWorkerHandle, NativeWorkerLauncher } from "../native/launcher.js";
-import { ServerError, serverFailure, serverRequest } from "./server-http.js";
+import { contextArguments, readServerContextTokens, waitForServer } from "./server-context.js";
 import { observeServerMemory, type ServerAllocations } from "./server-memory.js";
 
 // biome-ignore lint/complexity/noExcessiveLinesPerFunction: keep the fixed runtime arguments together.
@@ -11,6 +10,7 @@ export function serverArguments(input: {
   contextTokens: number;
   embedding?: boolean;
   projectorPath?: string;
+  fitContext?: boolean;
 }): string[] {
   const device = { metal: "MTL0", cuda: "CUDA0", vulkan: "Vulkan0" }[input.backend];
   const cacheType = input.embedding ? "f16" : input.backend === "metal" ? "q8_0" : "q4_0";
@@ -22,8 +22,7 @@ export function serverArguments(input: {
     "--no-ui-mcp-proxy",
     "--no-warmup",
     "--jinja",
-    "--fit",
-    "off",
+    ...contextArguments(input),
     "--gpu-layers",
     "all",
     "--override-tensor",
@@ -34,8 +33,6 @@ export function serverArguments(input: {
     "0",
     "--flash-attn",
     "on",
-    "--ctx-size",
-    String(input.contextTokens),
     "--parallel",
     "1",
     "--no-context-shift",
@@ -56,16 +53,16 @@ export function serverArguments(input: {
     "0",
     "--log-verbosity",
     "4",
-    ...(input.backend === "metal" && !input.embedding && input.projectorPath === undefined
+    ...(input.backend === "cuda" && !input.embedding && input.projectorPath === undefined
       ? [
           "--spec-type",
           "draft-mtp",
           "--spec-draft-n-max",
-          "3",
+          "1",
           "--spec-draft-type-k",
-          "q8_0",
+          cacheType,
           "--spec-draft-type-v",
-          "q8_0",
+          cacheType,
         ]
       : []),
     ...(input.embedding ? ["--embedding", "--pooling", "last"] : []),
@@ -91,7 +88,17 @@ export async function startServer(
     projectorPath?: string;
   },
   signal: AbortSignal,
-): Promise<NativeWorkerHandle & { memory(): ServerAllocations }> {
+): Promise<
+  NativeWorkerHandle & {
+    contextTokens: number;
+    contextFitted: boolean;
+    memory(): ServerAllocations;
+  }
+> {
+  const fitContext =
+    launcher.gpu?.memoryKind === "dedicated" &&
+    !input.embedding &&
+    input.projectorPath === undefined;
   const handle = await launcher.launch({
     workerEntryPath: entryPath,
     memoryBudgetBytes: input.memoryBudgetBytes,
@@ -99,43 +106,21 @@ export async function startServer(
       input.modelPath,
       ...(input.projectorPath === undefined ? [] : [input.projectorPath]),
     ],
-    serverArguments: serverArguments({ ...input, backend: launcher.gpu?.backend ?? "metal" }),
+    serverArguments: serverArguments({
+      ...input,
+      fitContext,
+      backend: launcher.gpu?.backend ?? "metal",
+    }),
   });
   const memory = observeServerMemory(handle);
-  let ready = false;
-  let stopped = false;
-  let failure = new ServerError("worker_crash");
-  let pending = "";
-  const output = (chunk: Buffer) => {
-    pending = (pending + chunk.toString()).slice(-65_536);
-    ready ||= pending.includes("listening on unix://");
-    failure = serverFailure(pending);
-    if (ready) pending = "";
-  };
-  handle.process.stdout.on("data", output);
-  handle.process.stderr.on("data", output);
-  handle.process.once("error", () => {
-    stopped = true;
-  });
-  handle.process.once("close", () => {
-    stopped = true;
-  });
   try {
-    while (!ready) {
-      signal.throwIfAborted();
-      if (stopped) throw failure;
-      await delay(25, undefined, { signal });
-    }
-    await serverRequest(handle, "/health", undefined, { signal });
-    return Object.assign(handle, { memory });
+    await waitForServer(handle, fitContext, signal);
+    const contextTokens = fitContext
+      ? await readServerContextTokens(handle, input.contextTokens, signal)
+      : input.contextTokens;
+    return Object.assign(handle, { memory, contextTokens, contextFitted: fitContext });
   } catch (error) {
     await handle.dispose();
     throw error;
-  } finally {
-    pending = "";
-    handle.process.stdout.off("data", output);
-    handle.process.stderr.off("data", output);
-    handle.process.stdout.resume();
-    handle.process.stderr.resume();
   }
 }

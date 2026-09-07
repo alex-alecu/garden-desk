@@ -1,8 +1,10 @@
 import { EventEmitter } from "node:events";
 import { PassThrough } from "node:stream";
 import { StructuredGenerationRequestSchema } from "@gardendesk/shared";
-import { describe, expect, it } from "vitest";
-import type { NativeWorkerHandle } from "../native/launcher.js";
+import { describe, expect, it, vi } from "vitest";
+import type { NativeWorkerHandle, NativeWorkerLaunchRequest } from "../native/launcher.js";
+import { InferenceWorkerClient } from "./client.js";
+import * as serverHttp from "./server-http.js";
 import { observeServerMemory } from "./server-memory.js";
 import { serverArguments } from "./server-runtime.js";
 
@@ -67,4 +69,82 @@ it("includes target and MTP draft buffers in reported memory", () => {
   child.stderr.write("sched_reserve: Metal compute buffer size = 20.00 MiB\n");
   expect(memory()).toEqual({ gpuMemoryBytes: 12476 * 1024 ** 2, cpuRamBytes: 3 * 1024 ** 2 });
   child.emit("close", 0);
+});
+
+function fittingLauncher() {
+  return {
+    gpu: { backend: "cuda" as const, memoryKind: "dedicated" as const },
+    launches: [] as NativeWorkerLaunchRequest[],
+    cannotFit: false,
+    async launch(input: NativeWorkerLaunchRequest) {
+      this.launches.push(input);
+      const child = Object.assign(new EventEmitter(), {
+        stdout: new PassThrough(),
+        stderr: new PassThrough(),
+      });
+      setTimeout(() => {
+        child.stderr.write(
+          this.cannotFit
+            ? "common_fit_params: failed to fit params to free device memory: n_gpu_layers already set by user\n"
+            : "common_fit_params: successfully fit params to free device memory\n",
+        );
+        child.stdout.write("listening on unix://private");
+      }, 0);
+      return {
+        process: child as unknown as NativeWorkerHandle["process"],
+        async dispose() {
+          child.emit("close", 0);
+        },
+      };
+    },
+  };
+}
+
+it("uses the fitted dedicated GPU context and stops when it cannot fit", async () => {
+  const transport = vi
+    .spyOn(serverHttp, "serverRequest")
+    .mockImplementation(async (_handle, path, _body, options) => {
+      if (path === "/slots") return [{ n_ctx: 8192 }];
+      if (path !== "/health")
+        options.onEvent?.({
+          choices: [{ delta: { content: "{}" }, finish_reason: "stop" }],
+          usage: { prompt_tokens: 100, completion_tokens: 4 },
+          timings: { prompt_n: 100, prompt_ms: 5, predicted_n: 4, predicted_ms: 8 },
+        });
+      return {};
+    });
+  const launcher = fittingLauncher();
+  const client = new InferenceWorkerClient(launcher, "unused");
+  const input = {
+    request: StructuredGenerationRequestSchema.parse({
+      ...request,
+      contextSize: "auto" as const,
+      maxTokens: 16,
+      jsonSchema: { type: "object" },
+    }),
+    modelPath: "model.gguf",
+    memoryBudgetBytes: 16 * 1024 ** 3,
+    timeoutMs: 2_000,
+  };
+  try {
+    expect(await client.execute(input)).toMatchObject({
+      memory: {
+        contextSizeTokens: 8192,
+        contextLimitTokens: 8192,
+        contextLimitReason: "available_dedicated_memory",
+      },
+    });
+    await client.execute(input);
+    expect(launcher.launches).toHaveLength(1);
+    const args = launcher.launches[0]?.serverArguments ?? [];
+    expect(args[args.indexOf("--fit") + 1]).toBe("on");
+    expect(args[args.indexOf("--gpu-layers") + 1]).toBe("all");
+    expect(args[args.indexOf("--override-tensor") + 1]).toBe(".*=CUDA0");
+    await client.unload();
+    launcher.cannotFit = true;
+    await expect(client.execute(input)).rejects.toMatchObject({ code: "out_of_memory" });
+  } finally {
+    await client.unload();
+    transport.mockRestore();
+  }
 });

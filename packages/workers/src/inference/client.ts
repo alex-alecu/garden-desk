@@ -172,7 +172,7 @@ export class InferenceWorkerClient {
     return this.resident;
   }
 
-  private memory(contextTokens: number, budgetBytes: number) {
+  private memory(contextTokens: number, budgetBytes: number, fitted: boolean) {
     const gpu = this.launcher.gpu;
     return {
       budgetBytes,
@@ -183,8 +183,8 @@ export class InferenceWorkerClient {
         ? {}
         : { detectedGpuMemoryBytes: gpu.detectedMemoryBytes }),
       contextSizeTokens: contextTokens,
-      contextLimitTokens: INFERENCE_PROFILE.contextTokens,
-      contextLimitReason: "certified_standard",
+      contextLimitTokens: fitted ? contextTokens : INFERENCE_PROFILE.contextTokens,
+      contextLimitReason: fitted ? "available_dedicated_memory" : "certified_standard",
       sequenceCount: 1,
     };
   }
@@ -195,13 +195,16 @@ export class InferenceWorkerClient {
     resident: ResidentServer,
     signal: AbortSignal,
   ) {
-    const { handle, contextTokens } = resident;
+    const { handle } = resident;
     const base = {
       protocolVersion: 2,
       requestId: request.requestId,
       status: "ok",
       operation: request.operation,
-      memory: { ...this.memory(contextTokens, execution.memoryBudgetBytes), ...handle.memory() },
+      memory: {
+        ...this.memory(handle.contextTokens, execution.memoryBudgetBytes, handle.contextFitted),
+        ...handle.memory(),
+      },
     };
     if (request.operation === "embed")
       return InferenceWorkerResponseSchema.parse({
