@@ -55,7 +55,7 @@ export function serverArguments(input: {
     "--cache-ram",
     "0",
     "--log-verbosity",
-    "3",
+    "4",
     ...(input.backend === "metal" && !input.embedding && input.projectorPath === undefined
       ? [
           "--spec-type",

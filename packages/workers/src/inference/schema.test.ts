@@ -45,6 +45,8 @@ it("uses matching cache types for Metal Flash Attention", () => {
 });
 
 it("includes target and MTP draft buffers in reported memory", () => {
+  const args = serverArguments({ backend: "cuda", modelPath: "model.gguf", contextTokens: 32768 });
+  expect(Number(args[args.indexOf("--log-verbosity") + 1])).toBeGreaterThanOrEqual(4);
   const child = Object.assign(new EventEmitter(), { stderr: new PassThrough() });
   const memory = observeServerMemory({ process: child } as unknown as NativeWorkerHandle);
   child.stderr.write(
