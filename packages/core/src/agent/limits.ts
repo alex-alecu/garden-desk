@@ -1,7 +1,7 @@
-import type { WorkerLimits } from "@gardendesk/shared";
+import { INFERENCE_PROFILE, type WorkerLimits } from "@gardendesk/shared";
 
-export const AGENT_MODEL_ID = "gemma-4-12b-it-qat-q4_0";
-export const AGENT_PROJECTOR_MODEL_ID = "gemma-4-12b-it-qat-q4_0-mmproj";
+export const AGENT_MODEL_ID = INFERENCE_PROFILE.modelId;
+export const AGENT_PROJECTOR_MODEL_ID = INFERENCE_PROFILE.projectorId;
 
 export const AGENT_WORKER_LIMITS: WorkerLimits = {
   wallTimeMs: 120_000,

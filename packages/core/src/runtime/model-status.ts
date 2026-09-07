@@ -4,8 +4,9 @@ import type {
   ModelRuntimeStatus,
   StructuredGenerationResult,
 } from "@gardendesk/shared";
+import { INFERENCE_PROFILE } from "@gardendesk/shared";
 
-export const DEFAULT_MODEL_ID = "gemma-4-12b-it-qat-q4_0";
+export const DEFAULT_MODEL_ID = INFERENCE_PROFILE.modelId;
 
 export interface ModelRuntimeMeasurements {
   memoryBudgetBytes?: number;
@@ -23,8 +24,8 @@ export function generationMeasurements(
 ): ModelRuntimeMeasurements {
   return {
     memoryBudgetBytes: memory.budgetBytes,
-    cpuRamBytes: memory.cpuRamBytes,
-    gpuMemoryBytes: memory.gpuMemoryBytes,
+    ...(memory.cpuRamBytes === undefined ? {} : { cpuRamBytes: memory.cpuRamBytes }),
+    ...(memory.gpuMemoryBytes === undefined ? {} : { gpuMemoryBytes: memory.gpuMemoryBytes }),
     gpuMemoryKind: memory.gpuMemoryKind,
     ...(memory.contextSizeTokens === undefined
       ? {}
@@ -67,7 +68,7 @@ export function modelRuntimeStatus(
   // unloaded model as holding memory.
   return {
     modelId: DEFAULT_MODEL_ID,
-    name: "Gemma 4 12B QAT",
+    name: INFERENCE_PROFILE.name,
     state: busy ? "busy" : resident ? "ready" : "unloaded",
     thinkingSupported: true,
     ...measurements,

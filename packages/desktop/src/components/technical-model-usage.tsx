@@ -8,7 +8,9 @@ function formatTokens(tokens: number): string {
 
 function GpuMemoryLine({ usage }: { usage: ReturnType<typeof gpuMemoryUsage> }) {
   const memory =
-    usage === undefined ? "Not available" : `${usage.used} of ${usage.budget ?? "Not available"}`;
+    usage === undefined
+      ? "Not available"
+      : `${usage.used ?? "Not available"} of ${usage.budget ?? "Not available"}`;
   const sequences =
     usage?.sequences !== undefined && usage.sequences > 1
       ? ` · ${usage.sequences} parallel sequences`

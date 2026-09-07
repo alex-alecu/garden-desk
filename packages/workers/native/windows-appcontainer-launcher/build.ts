@@ -65,9 +65,7 @@ function deployRuntime(root: string): void {
   const runtime = join(root, "packages/workers/.generated/windows-runtime");
   const marker = join(runtime, ".garden-desk-dependencies");
   const fingerprint = dependencyFingerprint(root);
-  const dependencyReady =
-    existsSync(join(runtime, "node_modules/node-llama-cpp")) &&
-    existsSync(join(runtime, "node_modules/@gardendesk/shared"));
+  const dependencyReady = existsSync(join(runtime, "node_modules/@gardendesk/shared"));
   if (!dependencyReady || !existsSync(marker) || readFileSync(marker, "utf8") !== fingerprint) {
     const pnpmCli = process.env.npm_execpath;
     if (pnpmCli === undefined) throw new Error("pnpm must invoke the Windows runtime build.");

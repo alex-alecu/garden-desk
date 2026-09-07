@@ -4,6 +4,8 @@ Date: 2026-07-15
 
 ## Status
 
+The current model, runtime, and memory profile is defined in [ADR 0019](0019-qwen38-private-server.md). This document preserves the prior decision and its remaining contracts.
+
 Accepted. Partially supersedes [ADR 0007](0007-gemma-family-standard.md) and amends [ADR 0013](0013-first-desktop-runtime.md).
 
 ## Context

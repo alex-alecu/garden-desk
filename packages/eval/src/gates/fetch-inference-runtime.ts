@@ -30,7 +30,7 @@ interface PlatformRuntime extends RuntimeArchive {
   executable: string;
 }
 
-interface VisionManifest {
+interface InferenceManifest {
   platforms: Record<string, PlatformRuntime>;
   revision: string;
 }
@@ -44,8 +44,8 @@ function platformKey(): string {
   const explicit = argument("--platform");
   if (explicit !== undefined) return explicit;
   if (process.platform === "darwin" && process.arch === "arm64") return "macos-arm64";
-  if (process.platform === "win32" && process.arch === "x64") return "windows-vulkan-x64";
-  throw new Error("unsupported_vision_platform");
+  if (process.platform === "win32" && process.arch === "x64") return "windows-cuda-x64";
+  throw new Error("unsupported_inference_platform");
 }
 
 async function sha256(path: string): Promise<string> {
@@ -61,14 +61,14 @@ function archivePath(path: string): string {
     normalize(path) !== path ||
     path.split(/[\\/]/u).includes("..")
   ) {
-    throw new Error("vision_archive_path_invalid");
+    throw new Error("inference_archive_path_invalid");
   }
   return path;
 }
 
 function targetName(path: string): string {
   if (path.includes("\0") || path !== basename(path)) {
-    throw new Error("vision_target_name_invalid");
+    throw new Error("inference_target_name_invalid");
   }
   return path;
 }
@@ -77,21 +77,26 @@ function extract(archive: string, destination: string, files: string[]): void {
   const result = spawnSync("tar", ["-xf", archive, "-C", destination, "--", ...files], {
     encoding: "utf8",
     stdio: "pipe",
+    windowsHide: true,
+    timeout: 60_000,
   });
-  if (result.status !== 0) throw new Error(result.stderr || "vision_archive_extract_failed");
+  if (result.status !== 0) throw new Error(result.stderr || "inference_archive_extract_failed");
 }
 
 async function fetchArchive(asset: RuntimeArchive, destination: string): Promise<void> {
-  const response = await fetch(asset.url, { redirect: "follow" });
+  const response = await fetch(asset.url, {
+    redirect: "follow",
+    signal: AbortSignal.timeout(600_000),
+  });
   if (!response.ok || response.body === null)
-    throw new Error(`vision_download_failed_${response.status}`);
+    throw new Error(`inference_download_failed_${response.status}`);
   await pipeline(
     Readable.from(response.body as unknown as AsyncIterable<Uint8Array>),
     (await import("node:fs")).createWriteStream(destination, { mode: 0o600 }),
   );
   const metadata = await stat(destination);
   if (metadata.size !== asset.byteLength || (await sha256(destination)) !== asset.sha256) {
-    throw new Error("vision_archive_integrity_failed");
+    throw new Error("inference_archive_integrity_failed");
   }
 }
 
@@ -107,7 +112,7 @@ async function stageArchive(input: {
     ([source, target]) => [archivePath(source), targetName(target)] as const,
   );
   for (const [, target] of entries) {
-    if (installed.has(target)) throw new Error("vision_target_name_duplicate");
+    if (installed.has(target)) throw new Error("inference_target_name_duplicate");
     installed.add(target);
   }
   await mkdir(extracted);
@@ -121,7 +126,7 @@ async function stageArchive(input: {
     const fromRoot = relative(extracted, path);
     const metadata = await lstat(path);
     if (isAbsolute(fromRoot) || fromRoot.startsWith("..") || !metadata.isFile()) {
-      throw new Error("vision_archive_entry_invalid");
+      throw new Error("inference_archive_entry_invalid");
     }
     await copyFile(path, join(staged, target));
   }
@@ -129,13 +134,13 @@ async function stageArchive(input: {
 
 const repositoryRoot = resolve(import.meta.dirname, "../../../..");
 const manifest = JSON.parse(
-  await readFile(join(repositoryRoot, "assets/vision-runtime.json"), "utf8"),
-) as VisionManifest;
+  await readFile(join(repositoryRoot, "assets/inference-runtime.json"), "utf8"),
+) as InferenceManifest;
 const key = platformKey();
 const runtime = manifest.platforms[key];
-if (runtime === undefined) throw new Error(`Unknown vision platform: ${key}`);
-const destination = join(repositoryRoot, "packages/eval/.generated/vision", key);
-const temporaryRoot = await mkdtemp(join(tmpdir(), "garden-desk-vision-fetch-"));
+if (runtime === undefined) throw new Error(`Unknown inference platform: ${key}`);
+const destination = join(repositoryRoot, "packages/eval/.generated/inference", key);
+const temporaryRoot = await mkdtemp(join(tmpdir(), "garden-desk-inference-fetch-"));
 const staged = join(dirname(destination), `.${key}-${process.pid}`);
 try {
   await rm(staged, { recursive: true, force: true });

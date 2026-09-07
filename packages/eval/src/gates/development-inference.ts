@@ -3,7 +3,6 @@ import { cp, mkdir, rm, stat } from "node:fs/promises";
 import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { build } from "esbuild";
-import { developmentInferenceWorkerEntryPath } from "./development-inference-path.js";
 
 type HeadlessFailureStage = "fixture" | "environment_setup" | "runtime_startup";
 
@@ -26,48 +25,6 @@ const migrationSource = join(repositoryRoot, "packages", "core", "src", "workspa
 const migrationDestination = join(headlessRoot, "migrations");
 let diagnosticPreparation: Promise<void> | undefined;
 let migrationPreparation: Promise<void> | undefined;
-
-async function windowsInferenceRoot(): Promise<string> {
-  const { windowsInferencePaths } = await import("./windows-inference.js");
-  const production = await windowsInferencePaths();
-  return dirname(production.workerEntryPath);
-}
-
-async function developmentWorkerEntries(): Promise<[string, string]> {
-  const root = process.platform === "win32" ? await windowsInferenceRoot() : undefined;
-  const worker = developmentInferenceWorkerEntryPath(process.platform, root);
-  return [worker, join(dirname(worker), "hardware-worker.mjs")];
-}
-
-export async function prepareDevelopmentInferenceWorker(onBuild?: () => void): Promise<void> {
-  const [worker, hardwareWorker] = await developmentWorkerEntries();
-  onBuild?.();
-  await mkdir(dirname(worker), { recursive: true });
-  const entries = [
-    ["packages/workers/src/inference/worker.ts", worker],
-    ["packages/workers/src/inference/hardware-worker.ts", hardwareWorker],
-  ] as const;
-  await Promise.all(
-    entries.map(async ([entryPoint, outfile]) => {
-      await build({
-        absWorkingDir: repositoryRoot,
-        bundle: true,
-        define: {
-          "globalThis.__GARDEN_DESK_DEVELOPMENT_BUILD__": "true",
-          "globalThis.__GARDEN_DESK_DEVELOPMENT_DIAGNOSTIC_ROOT__": '""',
-        },
-        entryPoints: [entryPoint],
-        external: ["node-llama-cpp"],
-        format: "esm",
-        logLevel: "silent",
-        minifySyntax: true,
-        outfile,
-        platform: "node",
-        target: "node24",
-      });
-    }),
-  );
-}
 
 function headlessOutput(entry: URL): string {
   const name = fileURLToPath(entry).split(/[\\/]/u).at(-1)?.replace(".ts", ".mjs");
@@ -127,7 +84,7 @@ export async function buildDevelopmentHeadlessEntry(entry: URL): Promise<string>
       "globalThis.__GARDEN_DESK_DEVELOPMENT_DIAGNOSTIC_ROOT__": JSON.stringify(diagnosticRoot),
     },
     entryPoints: [fileURLToPath(entry)],
-    external: ["better-sqlite3", "node-llama-cpp", "tar-stream"],
+    external: ["better-sqlite3", "tar-stream"],
     format: "esm",
     logLevel: "silent",
     minifySyntax: true,
@@ -148,9 +105,6 @@ export async function runDevelopmentHeadlessEntry(
     stage = "fixture";
     const output = await buildDevelopmentHeadlessEntry(entry);
     stage = "environment_setup";
-    await prepareDevelopmentInferenceWorker(() => {
-      stage = "fixture";
-    });
     stage = "runtime_startup";
     runHeadlessEntry(output);
   } catch {

@@ -2,7 +2,6 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   assertInferenceSelection: vi.fn(),
-  assertVisionSelection: vi.fn(),
   inspect: vi.fn(),
   launch: vi.fn(),
   launcherArguments: [] as unknown[][],
@@ -11,8 +10,8 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock("./windows-gpu.js", () => ({
+  windowsServerPath: (path: string) => path,
   assertWindowsInferenceSelection: mocks.assertInferenceSelection,
-  assertWindowsVisionSelection: mocks.assertVisionSelection,
   resolveWindowsGpuProfile: mocks.resolveProfile,
 }));
 
@@ -55,7 +54,6 @@ const profile = {
     installedMemoryBytes: 32,
     memoryKind: "dedicated" as const,
   },
-  visionSelection: { deviceIndex: 2, expectedName: "Selected GPU" },
 };
 
 const execution = {
@@ -74,7 +72,6 @@ beforeEach(() => {
   mocks.launcherArguments.length = 0;
   mocks.visionArguments.length = 0;
   mocks.assertInferenceSelection.mockResolvedValue(undefined);
-  mocks.assertVisionSelection.mockResolvedValue(undefined);
   mocks.launch.mockResolvedValue({ result: "worker" });
   mocks.resolveProfile.mockResolvedValue(profile);
   mocks.inspect.mockResolvedValue({ text: "ready" });
@@ -85,7 +82,6 @@ describe("Windows inference runtime composition", () => {
     const runtime = await createWindowsInferenceRuntime({
       inferenceHelperPath: "helper.exe",
       inferenceRuntimePath: "node.exe",
-      visionRuntimePath: "vision.exe",
       workerEntryPath: "worker.mjs",
     });
 
@@ -98,16 +94,9 @@ describe("Windows inference runtime composition", () => {
     expect(mocks.launcherArguments).toEqual([
       ["helper.exe", "node.exe", { gpu: profile.selection }],
     ]);
-    expect(mocks.visionArguments).toEqual([["vision.exe", "helper.exe", 2]]);
+    expect(mocks.visionArguments).toEqual([[runtime.workerLauncher, "worker.mjs"]]);
 
     await expect(runtime.visionClient?.inspect(execution)).resolves.toEqual({ text: "ready" });
-    expect(mocks.assertVisionSelection).toHaveBeenCalledWith(
-      { helperPath: "helper.exe", runtimePath: "node.exe", workerEntryPath: "worker.mjs" },
-      profile,
-    );
-    expect(mocks.assertVisionSelection.mock.invocationCallOrder[0]).toBeLessThan(
-      mocks.inspect.mock.invocationCallOrder[0] as number,
-    );
   });
 });
 

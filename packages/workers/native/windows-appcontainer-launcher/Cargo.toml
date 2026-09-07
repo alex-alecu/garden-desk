@@ -8,6 +8,7 @@ publish = false
 windows = { version = "=0.61.3", features = [
   "Win32_Foundation",
   "Win32_Graphics_DXCore",
+  "Win32_Networking_WinSock",
   "Win32_System_SystemInformation",
 ] }
 

@@ -1,8 +1,7 @@
 import { totalmem } from "node:os";
-import type { InferenceProfile } from "@gardendesk/shared";
+import { INFERENCE_PROFILE, type InferenceProfile } from "@gardendesk/shared";
 
 const GiB = 1024 * 1024 * 1024;
-const PROFILE_BUDGETS = { local12: 12 * GiB, local16: 16 * GiB } as const;
 const AGENT_GUEST_MEMORY_BYTES = 4 * GiB;
 const MINIMUM_HOST_RESERVE_BYTES = 4 * GiB;
 
@@ -11,30 +10,21 @@ export type InferenceHardwarePolicy =
   | { supported: false; message: string };
 
 export function resolveInferenceHardwarePolicy(
-  profile: InferenceProfile,
+  _profile: InferenceProfile,
   platform: NodeJS.Platform = process.platform,
   totalMemoryBytes: number = totalmem(),
 ): InferenceHardwarePolicy {
-  if (profile !== "auto") {
-    return { supported: true, memoryBudgetBytes: PROFILE_BUDGETS[profile] };
-  }
   if (platform === "win32") {
-    return { supported: true, memoryBudgetBytes: totalMemoryBytes };
+    return { supported: true, memoryBudgetBytes: INFERENCE_PROFILE.memoryBudgetBytes };
   }
   if (platform !== "darwin") {
     return { supported: false, message: "This operating system is not supported." };
   }
-  if (totalMemoryBytes <= 8 * GiB) {
+  if (totalMemoryBytes < INFERENCE_PROFILE.minimumUnifiedMemoryBytes) {
     return {
       supported: false,
-      message: "This Mac has 8 GB of memory. Garden Desk requires more memory to run locally.",
+      message: "Garden Desk requires a Mac with at least 24 GB of memory.",
     };
-  }
-  if (totalMemoryBytes <= 16 * GiB) {
-    return { supported: true, memoryBudgetBytes: 10 * GiB };
-  }
-  if (totalMemoryBytes <= 24 * GiB) {
-    return { supported: true, memoryBudgetBytes: 12 * GiB };
   }
   return { supported: true, memoryBudgetBytes: 16 * GiB };
 }
@@ -43,7 +33,7 @@ export function resolveAgentSessionCapacity(
   inferenceHostMemoryBytes: number,
   totalMemoryBytes: number = totalmem(),
 ): number {
-  const hostReserveBytes = Math.max(MINIMUM_HOST_RESERVE_BYTES, totalMemoryBytes * 0.2);
+  const hostReserveBytes = MINIMUM_HOST_RESERVE_BYTES;
   const guestBudgetBytes = totalMemoryBytes - inferenceHostMemoryBytes - hostReserveBytes;
-  return Math.max(1, Math.floor(guestBudgetBytes / AGENT_GUEST_MEMORY_BYTES));
+  return Math.max(0, Math.floor(guestBudgetBytes / AGENT_GUEST_MEMORY_BYTES));
 }

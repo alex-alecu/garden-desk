@@ -126,6 +126,8 @@ Extend the platform launchers to start an `agent` guest role in addition to the 
 
 The guest image contains Python, Node.js, `/bin/sh`, BusyBox commands, the reviewed fixed library set, and the guest entrypoint. It contains no runtime package installation or network configuration. Generated images remain ignored artifacts.
 
+The Windows AppContainer helper supports `run-server` and `connect`. It launches the runtime in the existing one-process job and relays private Unix-socket bytes. TypeScript owns the arguments and HTTP requests.
+
 ### `packages/desktop`
 
 Create the product package when its reviewed dependencies are pinned:
@@ -156,8 +158,7 @@ clean-model-copies.ts      release-preserving manual model cleanup
 clean-development-model.ts manual transient development model cleanup
 native/windows-hyper-v-setup/ fixed Windows-only one-time group membership helper
 prepare-dev.ts             cached development-resource readiness before Vite starts
-runtime-packages.ts        recursive packaged node-llama-cpp dependency copy
-windows-runtime-assets.ts  pinned NVIDIA redistributable verification and staging
+package-image-resources.ts pinned inference runtime and model resources
 stage-windows-application.ts signed copy-installed Windows application directory
 src-tauri/Cargo.toml
 src-tauri/Cargo.lock

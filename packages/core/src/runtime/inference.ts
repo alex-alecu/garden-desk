@@ -14,7 +14,6 @@ import type {
   StructuredGenerationResult,
 } from "@gardendesk/shared";
 import { JobIdSchema } from "@gardendesk/shared";
-import { gemmaFunctionCallSuffix } from "./prompt-instructions.js";
 
 export type GenerationInput = Omit<
   StructuredGenerationRequest,
@@ -35,15 +34,6 @@ export interface GenerationRequestIdentity {
   priority?: "primary" | "secondary";
 }
 
-export function effectiveGenerationInput(input: GenerationInput): GenerationInput {
-  if (!input.modelId.startsWith("gemma-4")) {
-    return input;
-  }
-  const suffix = gemmaFunctionCallSuffix();
-  if (input.prompt.endsWith(suffix)) return input;
-  return { ...input, prompt: `${input.prompt}${suffix}` };
-}
-
 export function createGenerationRequest(
   input: GenerationInput,
   identity?: GenerationRequestIdentity,
@@ -52,12 +42,13 @@ export function createGenerationRequest(
   identity: GenerationRequestIdentity;
 } {
   return {
-    input: effectiveGenerationInput(input),
+    input,
     identity: identity ?? { requestId: randomUUID(), jobId: JobIdSchema.parse(randomUUID()) },
   };
 }
 
 export interface InferenceExecution {
+  reasoning?: Map<string, string>;
   request: InferenceWorkerRequest;
   modelPath?: string;
   memoryBudgetBytes: number;
@@ -94,6 +85,7 @@ export interface ImageInferencePort {
 }
 
 export interface InferenceStreamCallbacks {
+  reasoning?: Map<string, string>;
   onThinkingDelta?(text: string): void;
   onResponseDelta?(text: string): void;
 }

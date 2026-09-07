@@ -9,7 +9,6 @@
     "@gardendesk/shared": "workspace:*",
     "@gardendesk/workers": "workspace:*",
     "better-sqlite3": "12.11.1",
-    "node-llama-cpp": "3.19.0",
     "tar-stream": "3.2.0",
     "tuf-js": "6.0.0"
   },

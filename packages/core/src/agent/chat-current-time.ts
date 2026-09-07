@@ -29,15 +29,15 @@ export function currentTimeContext(
     "Current host date and time:",
     `- Local: ${localIsoTimestamp(now, timeZone)} [${timeZone}]`,
     `- UTC: ${now.toISOString()}`,
-    "This clock snapshot was made when this model request was prepared. For a value with a time zone, compare the exact instants. For a date without a time or time zone, compare it with the local date above. The same local date is today, not past or future.",
+    "This clock snapshot was made when this user task started. For a value with a time zone, compare the exact instants. For a date without a time or time zone, compare it with the local date above. The same local date is today, not past or future.",
   ].join("\n");
 }
 
-export function withCurrentTimeContext(messages: readonly ChatMessage[]): ChatMessage[] {
+export function withCurrentTimeContext(
+  messages: readonly ChatMessage[],
+  clock = currentTimeContext(),
+): ChatMessage[] {
   const first = messages[0];
   if (first?.role !== "system") throw new Error("agent_system_prompt_missing");
-  return [
-    { role: "system", text: `${first.text}\n\n${currentTimeContext()}` },
-    ...messages.slice(1),
-  ];
+  return [{ role: "system", text: `${first.text}\n\n${clock}` }, ...messages.slice(1)];
 }

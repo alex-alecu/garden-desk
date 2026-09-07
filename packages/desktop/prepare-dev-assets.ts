@@ -5,8 +5,9 @@ import { existsSync } from "node:fs";
 // biome-ignore lint/style/noRestrictedImports: Development setup reads the pinned asset manifests.
 import { readFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
-import { visionPlatform, visionResourceNames } from "./package-image-resources.js";
+import { runtimeResourceNames } from "./package-image-resources.js";
 import { canonicalModelPath, packagedModelFiles } from "./src/package-model-contract.js";
+import { nativeRuntimePackages } from "./src/runtime-package-contract.js";
 
 const repositoryRoot = resolve(import.meta.dirname, "../..");
 
@@ -34,15 +35,16 @@ function prepareModels(): void {
 }
 
 async function prepareRuntimes(): Promise<void> {
-  const platform = visionPlatform();
   const manifest = JSON.parse(
-    await readFile(join(repositoryRoot, "assets/vision-runtime.json"), "utf8"),
-  ) as Parameters<typeof visionResourceNames>[0];
-  const directory = join(repositoryRoot, "packages/eval/.generated/vision", platform);
-  if (visionResourceNames(manifest, platform).every((name) => existsSync(join(directory, name))))
-    return;
-  console.log(`[Garden Desk startup] Downloading the ${platform} image runtime.`);
-  run("packages/eval/src/gates/fetch-vision-runtime.ts", ["--platform", platform]);
+    await readFile(join(repositoryRoot, "assets/inference-runtime.json"), "utf8"),
+  ) as Parameters<typeof runtimeResourceNames>[0];
+  for (const platform of nativeRuntimePackages()) {
+    const directory = join(repositoryRoot, "packages/eval/.generated/inference", platform);
+    if (runtimeResourceNames(manifest, platform).every((name) => existsSync(join(directory, name))))
+      continue;
+    console.log(`[Garden Desk startup] Downloading the ${platform} runtime.`);
+    run("packages/eval/src/gates/fetch-inference-runtime.ts", ["--platform", platform]);
+  }
 }
 
 async function prepareGuestImage(): Promise<void> {

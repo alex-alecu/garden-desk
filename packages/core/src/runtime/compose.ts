@@ -1,5 +1,9 @@
 import { fileURLToPath } from "node:url";
-import { type InferenceProfile, InferenceProfileSchema } from "@gardendesk/shared";
+import {
+  INFERENCE_PROFILE,
+  type InferenceProfile,
+  InferenceProfileSchema,
+} from "@gardendesk/shared";
 import {
   createWindowsInferenceRuntime,
   InferenceWorkerClient,
@@ -18,7 +22,6 @@ interface InferenceCompositionOptions {
   workerEntryPath?: string;
   inferenceHelperPath?: string;
   inferenceRuntimePath?: string;
-  visionRuntimePath?: string;
 }
 
 type WindowsRuntime = Awaited<ReturnType<typeof createWindowsInferenceRuntime>>;
@@ -40,8 +43,6 @@ function windowsRuntimeOptions(options: InferenceCompositionOptions) {
   if (options.inferenceRuntimePath !== undefined) {
     configured.inferenceRuntimePath = options.inferenceRuntimePath;
   }
-  if (options.visionRuntimePath !== undefined)
-    configured.visionRuntimePath = options.visionRuntimePath;
   return configured;
 }
 
@@ -84,8 +85,8 @@ export function unavailableInference(message?: string) {
     inspectImage: unsupported,
     async modelStatus() {
       return {
-        modelId: "gemma-4-12b-it-qat-q4_0",
-        name: "Gemma 4 12B QAT",
+        modelId: INFERENCE_PROFILE.modelId,
+        name: INFERENCE_PROFILE.name,
         state: message === undefined ? ("unloaded" as const) : ("unsupported" as const),
         thinkingSupported: true,
         ...(message === undefined ? {} : { message }),
@@ -111,8 +112,13 @@ export async function createInferenceService(
   const policy = resolveInferenceHardwarePolicy(profile);
   if (!policy.supported && selectedWindowsRuntime === undefined)
     return unavailableResult(policy.message);
-  const modelResolver = await ModelResolver.open(options.modelStoreDir);
   const selectedHardware = hardwareProfile(selectedWindowsRuntime, policy);
+  const agentSessionCapacity = resolveAgentSessionCapacity(
+    selectedHardware.hostMemoryReservationBytes,
+  );
+  if (agentSessionCapacity === 0)
+    return unavailableResult("This computer does not have enough memory to run Garden Desk.");
+  const modelResolver = await ModelResolver.open(options.modelStoreDir);
   const workerEntryPath =
     selectedWindowsRuntime?.workerEntryPath ??
     options.workerEntryPath ??
@@ -121,10 +127,7 @@ export async function createInferenceService(
     selectedWindowsRuntime?.workerLauncher ??
     new MacOsNativeWorkerLauncher([workspaceRoot], options.inferenceRuntimePath);
   const vision =
-    selectedWindowsRuntime?.visionClient ??
-    (options.visionRuntimePath === undefined
-      ? undefined
-      : new LlamaVisionClient(options.visionRuntimePath, options.inferenceHelperPath));
+    selectedWindowsRuntime?.visionClient ?? new LlamaVisionClient(launcher, workerEntryPath);
   return {
     service: new InferenceSupervisor(
       new InferenceWorkerClient(launcher, workerEntryPath),
@@ -134,6 +137,6 @@ export async function createInferenceService(
       vision,
     ),
     available: true,
-    agentSessionCapacity: resolveAgentSessionCapacity(selectedHardware.hostMemoryReservationBytes),
+    agentSessionCapacity,
   } as const;
 }

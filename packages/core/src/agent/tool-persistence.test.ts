@@ -54,7 +54,7 @@ describe("agent tool persistence", () => {
       toolCallId: "call-1",
     });
 
-    expect(catalog.schemaVersion).toBe(13);
+    expect(catalog.schemaVersion).toBe(14);
     expect(store.snapshot(child.id)).toMatchObject({
       run: { parentRunId: parent.id },
       events: [{ type: "tool.started", toolName: "read", toolCallId: "call-1" }],

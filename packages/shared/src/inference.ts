@@ -2,7 +2,7 @@ import { z } from "zod";
 import { GardenDeskErrorSchema } from "./errors.js";
 import { JobIdSchema, RequestIdSchema } from "./ids.js";
 
-export const InferenceProfileSchema = z.enum(["auto", "local12", "local16"]);
+export const InferenceProfileSchema = z.enum(["auto", "local16"]);
 export const InferenceOperationSchema = z.enum(["generate", "chat", "embed", "probe", "vision"]);
 export const GpuMemoryKindSchema = z.enum(["dedicated", "unified"]);
 export const InferenceBackendSchema = z.enum(["metal", "cuda", "vulkan"]);
@@ -28,7 +28,7 @@ export const StructuredGenerationRequestSchema = RequestBaseSchema.extend({
   modelId: z.string().min(1),
   prompt: z.string().min(1).max(MAX_EFFECTIVE_GENERATION_PROMPT_CHARACTERS),
   jsonSchema: JsonSchemaSchema,
-  contextSize: z.union([z.literal("auto"), z.number().int().min(512).max(131_072)]),
+  contextSize: z.union([z.literal("auto"), z.number().int().min(512).max(32_768)]),
   maxTokens: z.number().int().positive().max(MAX_GENERATION_TOKENS),
 });
 
@@ -80,7 +80,7 @@ export const ChatGenerationRequestSchema = RequestBaseSchema.extend({
   modelId: z.string().min(1),
   messages: z.array(ChatMessageSchema).min(1).max(MAX_CHAT_MESSAGES),
   tools: z.array(ChatToolDefinitionSchema).max(MAX_CHAT_TOOLS).default([]),
-  contextSize: z.union([z.literal("auto"), z.number().int().min(512).max(131_072)]),
+  contextSize: z.union([z.literal("auto"), z.number().int().min(512).max(32_768)]),
   maxTokens: z.number().int().positive().max(MAX_GENERATION_TOKENS),
   temperature: z.number().min(0).max(2),
 });
@@ -122,10 +122,10 @@ export const InferenceWorkerFrameSchema = z.discriminatedUnion("operation", [
 ]);
 
 export const InferenceMemoryReportSchema = z.object({
-  cpuRamBytes: z.number().int().nonnegative(),
-  gpuMemoryBytes: z.number().int().nonnegative(),
+  cpuRamBytes: z.number().int().nonnegative().optional(),
+  gpuMemoryBytes: z.number().int().nonnegative().optional(),
   budgetBytes: z.number().int().positive(),
-  detectedGpuMemoryBytes: z.number().int().nonnegative(),
+  detectedGpuMemoryBytes: z.number().int().nonnegative().optional(),
   gpuMemoryKind: GpuMemoryKindSchema,
   backend: InferenceBackendSchema,
   selectedDeviceCount: z.literal(1),
