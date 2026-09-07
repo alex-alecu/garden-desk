@@ -67,6 +67,25 @@ function completedAuditExecutionCounts(database: DatabasePort) {
 afterEach(cleanServiceFixtures);
 
 describe("persisted chat agent success", () => {
+  it("retains measured context after a completed run leaves active state", async () => {
+    const { catalog, conversations, service } = await fixture(
+      { chat: async () => chatResult("Done.", []) },
+      artifactExecution,
+    );
+    try {
+      const run = service.start(conversations.createSession(null).id, "Say hello");
+      await terminal(service, run.id);
+      await service.close();
+      expect(service.snapshot(run.id)).toMatchObject({
+        contextUsedTokens: 10,
+        contextAllocatedTokens: 16_384,
+      });
+    } finally {
+      await service.close();
+      catalog.close();
+    }
+  });
+
   it("commits tool evidence, a response, and a generated artifact", async () => {
     const { catalog, conversations, service } = await fixture(
       successfulInference(),

@@ -13,7 +13,6 @@
     }
   },
   "dependencies": {
-    "@gardendesk/shared": "workspace:*",
-    "node-llama-cpp": "3.19.0"
+    "@gardendesk/shared": "workspace:*"
   }
 }

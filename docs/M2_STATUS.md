@@ -1,8 +1,10 @@
 # Milestone M2 Status
 
-Updated: 2026-07-20
+Updated: 2026-09-06
 
 M2 is complete across macOS and Windows. The repository owner subsequently activated M3 Offline Dev-Agent Desktop V1.
+
+The evidence below records the completed M2 implementation. [ADR 0019](adr/0019-qwen38-private-server.md) replaces its Gemma runtime, Local 12 profile, and stdio transport for inference. Current M2 model checks use Qwen3.8 under Local 16 and do not reproduce the historical Gemma results. The earlier code remains in the [`v1.0.0` snapshot](https://github.com/alex-alecu/garden-desk/tree/v1.0.0). This evidence does not certify the new runtime.
 
 ## Change Brief
 

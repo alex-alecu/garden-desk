@@ -10,7 +10,7 @@ import {
 import type { InferenceService } from "../runtime/inference.js";
 import { artifactCandidateNames } from "./artifact-results.js";
 import { compactChatHistory } from "./chat-compaction.js";
-import { withCurrentTimeContext } from "./chat-current-time.js";
+import { currentTimeContext, withCurrentTimeContext } from "./chat-current-time.js";
 import { generateWithInferenceRecovery } from "./chat-inference-recovery.js";
 import { initialChatMessages } from "./chat-initial-messages.js";
 import type { ChatAgentInput, ChatRecoveryState, ChatTurnOptions } from "./chat-loop-input.js";
@@ -31,6 +31,8 @@ function inferenceStepSummary(turn: number, modelNeedsLoad: boolean | undefined)
   return modelNeedsLoad ? "Loading the local model into memory." : "Understanding the task.";
 }
 export class ChatAgentLoop {
+  private readonly reasoning = new Map<string, string>();
+  private clock = "";
   private contextTokens = 8_192;
   private requestedContextSize: number | "auto" = "auto";
   constructor(private readonly inference: Pick<InferenceService, "chat">) {}
@@ -55,7 +57,7 @@ export class ChatAgentLoop {
     };
     const request = {
       modelId: input.modelId,
-      messages: withCurrentTimeContext(messages),
+      messages: withCurrentTimeContext(messages, this.clock),
       tools,
       contextSize: this.requestedContextSize,
       maxTokens: chatOutputTokens(this.contextTokens, phase === "compaction"),
@@ -69,7 +71,10 @@ export class ChatAgentLoop {
       const result = await this.inference.chat(
         request,
         input.signal,
-        streamCallbacks(input, phase),
+        {
+          ...streamCallbacks(input, phase),
+          ...(phase === "chat" ? { reasoning: this.reasoning } : {}),
+        },
         identity,
       );
       await input.trace?.store.captureResponse(
@@ -97,6 +102,7 @@ export class ChatAgentLoop {
     keepTurns: number,
     performance: ReturnType<typeof emptyPerformance>,
   ): Promise<ChatMessage[]> {
+    this.reasoning.clear();
     const compacted = await compactChatHistory(
       state.messages,
       input.systemPrompt("session-summary"),
@@ -202,6 +208,15 @@ export class ChatAgentLoop {
     return undefined;
   }
   async run(input: ChatAgentInput): Promise<AgentRunResult> {
+    this.clock = currentTimeContext();
+    this.reasoning.clear();
+    try {
+      return await this.runTask(input);
+    } finally {
+      this.reasoning.clear();
+    }
+  }
+  private async runTask(input: ChatAgentInput): Promise<AgentRunResult> {
     this.requestedContextSize = input.contextTokens;
     this.contextTokens =
       input.knownContextTokens ??

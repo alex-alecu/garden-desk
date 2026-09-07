@@ -28,7 +28,7 @@ describe("desktop window layout", () => {
   it("keeps model identity and runtime controls in the chat header", () => {
     const markup = renderToStaticMarkup(createElement(App, props));
 
-    expect(markup).toContain("Gemma 4 12B QAT");
+    expect(markup).toContain("Qwen3.8 27B Q4");
     expect(markup).not.toContain("Thinking on");
     expect(markup).not.toContain(">G4<");
     expect(markup).toMatch(

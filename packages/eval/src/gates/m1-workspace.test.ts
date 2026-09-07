@@ -21,7 +21,7 @@ async function createTestCore(workspaceDir: string) {
     join(modelStoreDir, "installed-models.json"),
     JSON.stringify({ schemaVersion: 1, models: [] }),
   );
-  return createGardenDeskCore({ workspaceDir, modelStoreDir, profile: "local12" });
+  return createGardenDeskCore({ workspaceDir, modelStoreDir, profile: "local16" });
 }
 
 async function temporaryRoot(): Promise<string> {
@@ -207,7 +207,7 @@ describe("M1 workspace migration", () => {
     );
     database.close();
     const migrated = await createTestCore(root);
-    expect((await migrated.status()).catalogSchemaVersion).toBe(13);
+    expect((await migrated.status()).catalogSchemaVersion).toBe(14);
     expect(await migrated.verifyAudit()).toBe(true);
     await migrated.close();
   });
@@ -222,7 +222,7 @@ describe("M1 workspace migration", () => {
     legacy.prepare("INSERT INTO legacy_marker VALUES (?)").run("before-migration");
     legacy.close();
     const core = await createTestCore(root);
-    expect((await core.status()).catalogSchemaVersion).toBe(13);
+    expect((await core.status()).catalogSchemaVersion).toBe(14);
     await core.close();
     const backupName = (await readdir(internalRoot)).find((name) =>
       name.startsWith("catalog.sqlite.pre-migration-v0-"),

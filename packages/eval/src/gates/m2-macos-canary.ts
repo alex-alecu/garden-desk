@@ -8,8 +8,7 @@ import { readCanonicalModelManifest, verifyModelFile } from "../models.js";
 const modelRoot = join(process.cwd(), "packages/eval/.generated/models");
 const modelFiles = new Map([
   ["qwen3-embedding-0.6b-q8_0", join(modelRoot, "qwen3-embedding-0.6b-q8_0.gguf")],
-  ["gemma-4-e2b-it-qat-q4_0", join(modelRoot, "gemma-4-e2b-it-qat-q4_0.gguf")],
-  ["gemma-4-12b-it-qat-q4_0", join(modelRoot, "gemma-4-12b-it-qat-q4_0.gguf")],
+  ["qwen3.8-27b-ud-iq4_xs", join(modelRoot, "qwen3.8-27b-ud-iq4_xs.gguf")],
 ]);
 
 async function prepareModelStore(): Promise<void> {
@@ -23,7 +22,7 @@ async function prepareModelStore(): Promise<void> {
       modelId,
       sha256: asset.sha256,
       byteLength: asset.byteLength,
-      runtimeBuild: "node-llama-cpp@3.19.0",
+      runtimeBuild: "llama.cpp@b10816",
       storeKey: basename(path),
       installedAt: new Date().toISOString(),
     });
@@ -67,7 +66,7 @@ try {
   const core = await createGardenDeskCore({
     workspaceDir,
     modelStoreDir: modelRoot,
-    profile: "local12",
+    profile: "local16",
   });
   try {
     embedding = await core.embed({
@@ -82,21 +81,14 @@ try {
   await rm(workspaceDir, { recursive: true, force: true });
 }
 
-console.log("M2 macOS: running Gemma 4 E2B Local 12 canary.");
-const e2b = await generate("local12", "gemma-4-e2b-it-qat-q4_0");
-console.log("M2 macOS: running Gemma 4 12B Local 12 canary.");
-const local12 = await generate("local12", "gemma-4-12b-it-qat-q4_0");
-console.log("M2 macOS: running Gemma 4 12B Local 16 canary.");
-const local16 = await generate("local16", "gemma-4-12b-it-qat-q4_0");
+const local16 = await generate("local16", "qwen3.8-27b-ud-iq4_xs");
 const report = {
   schemaVersion: 1,
   platform: process.platform,
   architecture: process.arch,
   totalMemoryBytes: totalmem(),
-  runtimeBuild: "node-llama-cpp@3.19.0",
+  runtimeBuild: "llama.cpp@b10816",
   embedding: { dimensions: embedding.vector.length, memory: embedding.memory },
-  e2b: { value: e2b.value, memory: e2b.memory },
-  local12: { value: local12.value, memory: local12.memory },
   local16: { value: local16.value, memory: local16.memory },
   cleanShutdown: true,
 };

@@ -8,37 +8,7 @@ Research claims in this document are research-derived until validated on target 
 
 ## Decision
 
-The implemented product policy is:
-
-| Hardware | Model-plus-context budget | Context cap | Main model | Required behavior |
-|---|---:|---:|---|---|
-| 8 GB Mac | None | None | None | Do not start inference and explain the hardware requirement |
-| More than 8 GB through 16 GB Mac | 10 GiB | 64K | Gemma 4 12B QAT | Automatically fit the largest context inside the budget and cap |
-| More than 16 GB through 24 GB Mac | 12 GiB | 64K | Gemma 4 12B QAT | Automatically fit the largest context inside the budget and cap |
-| More than 24 GB through 32 GB Mac | 16 GiB | 64K | Gemma 4 12B QAT | Preserve shared memory for the host and agent guests |
-| More than 32 GB Mac | 16 GiB | 128K | Gemma 4 12B QAT | Automatically fit the largest context inside the budget and cap |
-| Windows dedicated GPU, 8 GiB through 24 GiB | One isolated device's complete memory | 64K | Gemma 4 12B QAT | Use one device and reject aggregates |
-| Windows dedicated GPU, more than 24 GiB | One isolated device's complete memory | 128K | Gemma 4 12B QAT | Use one device and reject aggregates |
-| Windows integrated GPU, less than 16 GiB installed RAM | None | None | None | Explain the hardware requirement |
-| Windows integrated GPU, exactly 16 GiB installed RAM | Up to 8 GiB | 64K | Gemma 4 12B QAT | Use the highest fixed tier within isolated capacity |
-| Windows integrated GPU, more than 16 GiB through 24 GiB installed RAM | Up to 12 GiB | 64K | Gemma 4 12B QAT | Use the highest fixed tier within isolated capacity |
-| Windows integrated GPU, more than 24 GiB through 32 GiB installed RAM | Up to 16 GiB | 64K | Gemma 4 12B QAT | Use the highest fixed tier within isolated capacity |
-| Windows integrated GPU, more than 32 GiB installed RAM | Up to 16 GiB | 128K | Gemma 4 12B QAT | Use the highest fixed tier within isolated capacity |
-
-Hardware tiers differ only in the memory available to model weights, runtime overhead, and active context. Do not create a lower-quality product by changing the model, weakening verification, skipping citations, disabling compaction, or reducing supported workflows.
-
-## Why This Changes The Previous Plan
-
-The earlier architecture treated 16 GB and 64 GB as the main validation pair. That is too broad for the first product and encourages speculative larger-model work before the document engine has proven itself.
-
-The revised strategy is narrower:
-
-- Prove Gemma 4 12B QAT under every automatic macOS and Windows memory budget.
-- Keep model behavior identical across those profiles.
-- Use retrieval, summaries, citation verification, and compaction to handle large folders.
-- Treat 64 GB, 26B A4B, and 31B dense as later appliance research, not MVP architecture.
-
-This makes the product easier to certify, easier to explain, and harder to accidentally overbuild.
+[ADR 0019](adr/0019-qwen38-private-server.md) defines the current Qwen3.8 Q4 target: 32,768 context tokens, one slot, all weights and active context state on one GPU, and a 16 GiB inference budget. Mac requires 24 GiB installed memory. Windows retains the 16 billion byte dedicated-GPU threshold; integrated GPUs need 16 GiB usable allocation and host memory for one microVM.
 
 ## Performance Thesis
 
@@ -57,40 +27,13 @@ Primary performance levers, in order:
 
 Post-V1 document intelligence adds parsing, retrieval, evidence-pack, citation, and cache metrics when those capabilities exist.
 
-## Active Context Targets
+## Active Context And Memory
 
-The advertised Gemma 4 12B context window is a trained capability, not the product ceiling.
+Generation uses a fixed 32K context. Core keeps its existing compaction policy. Image inspection uses an 8K context after generation unload. Embedding context and input limits stay unchanged.
 
-The runtime now fits context automatically after applying the hardware budget:
+Report load time, first-token delay, evaluated prompt rate, generation rate including reasoning, and peak memory separately. Count cached input in context usage. Omit unavailable allocation measurements. Do not add CPU and GPU views of shared physical pages. Full GPU layer offload alone does not prove that all weights are in physical VRAM.
 
-| Minimum | Maximum | Rule |
-|---:|---:|---|
-| 8K active tokens | 64K active tokens | Shared-memory systems through 32 GiB installed RAM and Windows dedicated GPUs through 24 GiB |
-| 8K active tokens | 128K active tokens | Shared-memory systems above 32 GiB installed RAM and Windows dedicated GPUs above 24 GiB |
-
-On macOS and Windows integrated GPUs, the worker searches the pinned runtime's CPU and GPU context estimates for the largest aligned context whose combined model-plus-context allocation fits both the tier budget and hardware cap. It then checks the measured allocation after creation. An over-budget allocation is rejected. For a Windows integrated GPU, installed RAM sets the maximum shared-pool tier and isolated runtime capacity selects the highest fixed tier that fits. Shared-memory systems need more than 32 GiB installed RAM for 128K. On a Windows dedicated GPU, the runtime fits context against one isolated device's complete memory; more than 24 GiB enables 128K. The worker never adds memory across devices. The terminal response records the measured allocations, memory kind, backend, one selected device, actual context, cap, and rule. Automatic selection does not make a public stability claim. Each exact configuration still needs the full workload suite.
-
-## Memory Budget Rules
-
-Official Gemma 4 documentation lists the 12B Q4_0 load estimate at 6.7 GB before context and runtime overhead. Garden Desk applies the macOS budget, one isolated Windows dedicated device's complete memory, or the Windows integrated 8/12/16 GiB shared-pool tier. The pinned runtime uses the remainder for:
-
-- KV cache for prompt and generated tokens.
-- Runtime allocator overhead and graph buffers.
-- Multimodal tokenization and visual inputs when used.
-- Prompt or prefix cache when supported.
-- GPU-side embedding or reranking work only if it does not steal the generation budget.
-
-Certification must record:
-
-- Static model load.
-- Peak prefill VRAM.
-- Peak decode VRAM.
-- Peak VRAM after a 30-minute session.
-- Peak VRAM during multimodal page-region inspection.
-- Peak VRAM during recovery after cancellation or failure.
-- CPU RAM pressure from parser, OCR, indexing, and cache workers.
-
-If a runtime requires lowering active context to remain stable, lower context first. Do not switch models, weaken verification, or silently fall back to cloud processing.
+The Windows target is at least 20 generated tokens per second near the context limit. Mac physical memory must remain within 16 GiB. Fixed profile changes or retries require owner approval.
 
 ## Runtime Optimization Policy
 

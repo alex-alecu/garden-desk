@@ -26,20 +26,4 @@ describe("development inference diagnostic records", () => {
     expect(output.length).toBe(1024 * 1024);
     await assertPrivateDiagnosticTree(root);
   });
-
-  it("records raw Error details and library logs within one record limit", async () => {
-    const directory = await temporaryDirectory();
-    const development = await bundledDiagnostics(true, directory);
-    const [failure = "", llama = ""] = development.records();
-
-    expect(failure).toContain("[garden-desk-inference] operation=chat failed");
-    expect(failure).toContain("name=TypeError");
-    expect(failure).toContain("message=private operation failure");
-    expect(failure).toContain("stack=stack=");
-    expect(failure).toContain("cause=reason=native failure nested=[object]");
-    expect(failure).not.toContain("not recorded");
-    expect(llama).toContain("[node-llama-cpp] level=debug\nraw llama log ");
-    expect(Buffer.byteLength(failure)).toBeLessThanOrEqual(64 * 1024);
-    expect(Buffer.byteLength(llama)).toBeLessThanOrEqual(64 * 1024);
-  });
 });

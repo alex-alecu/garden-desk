@@ -2,14 +2,14 @@ import { writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { readCanonicalModelManifest, verifyModelFile } from "../models.js";
 
-export const generationModelId = "gemma-4-12b-it-qat-q4_0";
-export const projectorModelId = "gemma-4-12b-it-qat-q4_0-mmproj";
+export const generationModelId = "qwen3.8-27b-ud-iq4_xs";
+export const projectorModelId = "qwen3.8-27b-mmproj-f16";
 
 export async function prepareAgentModelStore(modelRoot: string): Promise<void> {
   const manifest = await readCanonicalModelManifest();
   const requested = [
-    { id: generationModelId, runtimeBuild: "node-llama-cpp@3.19.0" },
-    { id: projectorModelId, runtimeBuild: "llama.cpp@b9842" },
+    { id: generationModelId, runtimeBuild: "llama.cpp@b10816" },
+    { id: projectorModelId, runtimeBuild: "llama.cpp@b10816" },
   ] as const;
   const installed = await Promise.all(
     requested.map(async (request) => {

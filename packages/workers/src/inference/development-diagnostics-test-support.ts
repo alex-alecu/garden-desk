@@ -38,55 +38,15 @@ export async function cleanTemporaryDirectories(): Promise<void> {
   );
 }
 
-function diagnosticEntrySource(): string {
-  return [diagnosticCaptureSource(), hostileDiagnosticSource()].join("\n");
-}
-
 function diagnosticCaptureSource(): string {
   return [
-    'import { createDevelopmentDiagnosticSink, writeDevelopmentLlamaLog, writeDevelopmentOperationFailure } from "./development-diagnostics.js";',
+    'import { createDevelopmentDiagnosticSink } from "./development-diagnostics.js";',
     "export async function capture(chunks) {",
     "  const sink = createDevelopmentDiagnosticSink();",
     "  if (sink === undefined) return false;",
     "  for (const chunk of chunks) sink.append(Buffer.from(chunk));",
     "  await sink.close();",
     "  return true;",
-    "}",
-    "export function records() {",
-    "  const records = [];",
-    "  const write = process.stderr.write;",
-    "  try {",
-    "    process.stderr.write = (chunk) => { records.push(Buffer.from(chunk).toString('utf8')); return true; };",
-    "    const error = new TypeError('private operation failure');",
-    "    error.stack = 'stack=' + 's'.repeat(1024 * 1024);",
-    "    error.cause = { reason: 'native failure', nested: { private: 'not recorded' } };",
-    "    writeDevelopmentOperationFailure('chat', error);",
-    "    writeDevelopmentLlamaLog('debug', 'raw llama log ' + 'l'.repeat(1024 * 1024));",
-    "  } finally {",
-    "    process.stderr.write = write;",
-    "  }",
-    "  return records;",
-    "}",
-  ].join("\n");
-}
-
-function hostileDiagnosticSource(): string {
-  return [
-    "export async function hostileDiagnostics() {",
-    "  const sink = createDevelopmentDiagnosticSink();",
-    "  if (sink === undefined) return false;",
-    "  const write = process.stderr.write;",
-    "  try {",
-    "    process.stderr.write = () => true;",
-    "    const hostile = new Proxy(new Error('private'), { get() { throw new Error('hostile getter'); }, getPrototypeOf() { throw new Error('hostile prototype'); } });",
-    "    writeDevelopmentOperationFailure('chat', hostile);",
-    "    writeDevelopmentLlamaLog(new Proxy({}, { get() { throw new Error('hostile level'); } }), new Proxy({}, { get() { throw new Error('hostile message'); } }));",
-    "    sink.append(new Proxy(Buffer.from('private'), { get() { throw new Error('hostile chunk'); } }));",
-    "    await sink.close();",
-    "    return true;",
-    "  } finally {",
-    "    process.stderr.write = write;",
-    "  }",
     "}",
   ].join("\n");
 }
@@ -109,7 +69,7 @@ export async function bundledDiagnostics(developmentBuild: boolean, root: string
     outfile: output,
     platform: "node",
     stdin: {
-      contents: diagnosticEntrySource(),
+      contents: diagnosticCaptureSource(),
       resolveDir: fileURLToPath(new URL(".", diagnosticSource)),
       sourcefile: "development-diagnostics-entry.ts",
     },
@@ -118,8 +78,6 @@ export async function bundledDiagnostics(developmentBuild: boolean, root: string
   const diagnostics = await loadBundledDiagnostics(output);
   return {
     capture: diagnostics.capture as (chunks: string[]) => Promise<boolean>,
-    hostileDiagnostics: diagnostics.hostileDiagnostics as () => Promise<boolean>,
-    records: diagnostics.records as () => string[],
     source: await readFile(output, "utf8"),
   };
 }
@@ -133,7 +91,6 @@ export async function bundledWorker(developmentBuild: boolean, output?: string):
       "globalThis.__GARDEN_DESK_DEVELOPMENT_DIAGNOSTIC_ROOT__": '""',
     },
     entryPoints: [fileURLToPath(workerSource)],
-    external: ["node-llama-cpp"],
     format: "esm",
     minifySyntax: true,
     platform: "node",
@@ -181,60 +138,4 @@ export async function bundledProductionCore(): Promise<string> {
     write: false,
   });
   return result.outputFiles[0]?.text ?? "";
-}
-
-interface EsbuildPluginBuild {
-  onLoad(
-    options: { filter: RegExp; namespace: string },
-    callback: () => { contents: string; loader: "ts" },
-  ): void;
-  onResolve(options: { filter: RegExp }, callback: () => { path: string; namespace: string }): void;
-}
-
-const hostileRuntimePlugin = {
-  name: "hostile-runtime",
-  setup(pluginBuild: EsbuildPluginBuild) {
-    pluginBuild.onResolve({ filter: /^\.\/worker-runtime\.js$/ }, () => ({
-      path: "hostile-runtime",
-      namespace: "diagnostic-test",
-    }));
-    pluginBuild.onLoad({ filter: /.*/, namespace: "diagnostic-test" }, () => ({
-      loader: "ts",
-      contents: [
-        "function hostileError() {",
-        "  return new Proxy(new Error('private worker failure'), {",
-        "    get() { throw new Error('hostile getter'); },",
-        "    getPrototypeOf() { throw new Error('hostile prototype'); },",
-        "  });",
-        "}",
-        "export async function runtime() {",
-        "  throw hostileError();",
-        "}",
-        "export function chatSession() { throw hostileError(); }",
-        "export function generationSession() { throw hostileError(); }",
-      ].join("\n"),
-    }));
-  },
-};
-
-export async function bundledHostileWorker(): Promise<string> {
-  const directory = await temporaryDirectory();
-  const output = join(directory, "hostile-worker.mjs");
-  await build({
-    absWorkingDir: process.cwd(),
-    bundle: true,
-    define: {
-      "globalThis.__GARDEN_DESK_DEVELOPMENT_BUILD__": "true",
-      "globalThis.__GARDEN_DESK_DEVELOPMENT_DIAGNOSTIC_ROOT__": '""',
-    },
-    entryPoints: [fileURLToPath(workerSource)],
-    external: ["node-llama-cpp"],
-    format: "esm",
-    minifySyntax: true,
-    platform: "node",
-    plugins: [hostileRuntimePlugin],
-    target: "node24",
-    outfile: output,
-  });
-  return output;
 }

@@ -9,8 +9,6 @@ export interface ActiveRun {
   sessionId: string;
   thinking: string | null;
   response: string | null;
-  contextUsedTokens?: number | null;
-  contextAllocatedTokens?: number | null;
   question?: PendingQuestion | null;
 }
 
@@ -19,8 +17,6 @@ export function withActiveRun(snapshot: AgentRunSnapshot, active: ActiveRun | un
     ...snapshot,
     run: active === undefined ? snapshot.run : { ...snapshot.run, response: active.response },
     thinking: active?.thinking ?? null,
-    contextUsedTokens: active?.contextUsedTokens ?? snapshot.contextUsedTokens,
-    contextAllocatedTokens: active?.contextAllocatedTokens ?? snapshot.contextAllocatedTokens,
     question: active?.question?.request ?? null,
   };
 }

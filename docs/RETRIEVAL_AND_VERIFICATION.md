@@ -31,7 +31,7 @@ Qwen3-Embedding-0.6B is the product-managed dense encoder, per [ADR 0016](adr/00
 Reasons:
 
 - Apache 2.0 with an official GGUF release, keeping the shipped stack fully Apache 2.0 and the development fetch ungated.
-- Designed for local retrieval and served by the same node-llama-cpp runtime as generation.
+- Designed for local retrieval and served by the same pinned llama.cpp server as generation.
 - Small enough (roughly 0.4 to 1.2 GB depending on quantization) to run alongside generation profiles.
 - Strong multilingual retrieval over 100+ languages for professional document sets, with verified MTEB multilingual results at or above the prior default.
 - 32K input context removes the encoder-side chunk-length ceiling; chunk sizing remains governed by recall tests.

@@ -1,18 +1,8 @@
-import type {
-  InferenceWorkerMessage,
-  InferenceWorkerRequest,
-  InferenceWorkerResponse,
-  RequestId,
-} from "@gardendesk/shared";
+import type { InferenceWorkerRequest, InferenceWorkerResponse } from "@gardendesk/shared";
 import type { NativeWorkerHandle } from "../native/launcher.js";
 import { createDevelopmentDiagnosticSink } from "./development-diagnostics.js";
-import {
-  encodeInferenceCancel,
-  encodeInferenceRequest,
-  InferenceResponseDecoder,
-} from "./frames.js";
+import { encodeInferenceRequest, InferenceResponseDecoder } from "./frames.js";
 
-const CANCELLATION_GRACE_MS = 1_000;
 const WORKER_CRASH_MESSAGE = "Inference worker stopped.";
 
 export interface InferenceExecution {
@@ -21,6 +11,7 @@ export interface InferenceExecution {
   memoryBudgetBytes: number;
   timeoutMs: number;
   signal?: AbortSignal;
+  reasoning?: Map<string, string>;
   onThinkingDelta?(text: string): void;
   onResponseDelta?(text: string): void;
 }
@@ -47,28 +38,20 @@ function abortCode(signal?: AbortSignal): "cancelled" | "timeout" {
 }
 
 interface PendingExchange {
-  execution: InferenceExecution;
+  request: Extract<InferenceWorkerRequest, { operation: "probe" }>;
+  signal: AbortSignal;
   accept(response: InferenceWorkerResponse): void;
   reject(error: Error): void;
-  timer: NodeJS.Timeout;
-  cancellationTimer: NodeJS.Timeout | undefined;
-  cancelling: boolean;
   cancelled(): void;
 }
 
-/** Multiplexes framed requests over one resident worker process, keyed by request ID. */
 export class ResidentWorker {
   private readonly decoder = new InferenceResponseDecoder();
   private readonly diagnostics = createDevelopmentDiagnosticSink();
-  private readonly pending = new Map<RequestId, PendingExchange>();
+  private pending: PendingExchange | undefined;
   private stopped = false;
 
-  constructor(
-    private readonly handle: NativeWorkerHandle,
-    readonly modelPath: string | undefined,
-    readonly memoryBudgetBytes: number,
-    private readonly onStopped: () => void,
-  ) {
+  constructor(private readonly handle: NativeWorkerHandle) {
     handle.process.stderr.on("data", this.errorOutput);
     handle.process.stdout.on("data", this.responseOutput);
     handle.process.stdin.on("error", this.inputError);
@@ -76,36 +59,30 @@ export class ResidentWorker {
     handle.process.once("close", this.closed);
   }
 
-  get busy(): boolean {
-    return this.pending.size > 0;
-  }
-
-  execute(execution: InferenceExecution): Promise<InferenceWorkerResponse> {
-    const requestId = execution.request.requestId;
-    if (this.pending.has(requestId)) {
-      return Promise.reject(
-        new InferenceWorkerError("malformed_worker_message", "Duplicate inference request ID."),
-      );
-    }
+  execute(
+    request: PendingExchange["request"],
+    signal: AbortSignal,
+  ): Promise<InferenceWorkerResponse> {
     let frame: Buffer;
     try {
-      frame = encodeInferenceRequest(execution.request);
+      frame = encodeInferenceRequest(request);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Malformed inference request.";
       return Promise.reject(new InferenceWorkerError("malformed_worker_message", message));
     }
     return new Promise((accept, reject) => {
-      const cancelled = () => this.cancel(requestId, abortCode(execution.signal));
-      this.pending.set(requestId, {
-        execution,
+      const cancelled = () => {
+        const code = abortCode(signal);
+        this.fail(code, code === "timeout" ? "Inference timed out." : "Inference cancelled.");
+      };
+      this.pending = {
+        request,
+        signal,
         accept,
         reject,
         cancelled,
-        timer: setTimeout(() => this.cancel(requestId, "timeout"), execution.timeoutMs),
-        cancellationTimer: undefined,
-        cancelling: false,
-      });
-      execution.signal?.addEventListener("abort", cancelled, { once: true });
+      };
+      signal.addEventListener("abort", cancelled, { once: true });
       this.handle.process.stdin.write(frame, (error) => {
         if (error != null) this.fail("worker_crash", WORKER_CRASH_MESSAGE);
       });
@@ -113,14 +90,9 @@ export class ResidentWorker {
   }
 
   async dispose(): Promise<void> {
-    if (this.stopped) {
-      await this.diagnostics?.close();
-      return;
-    }
     this.stopped = true;
     await this.handle.dispose();
     await this.diagnostics?.close();
-    this.onStopped();
   }
 
   private readonly errorOutput = (chunk: Buffer): void => this.diagnostics?.append(chunk);
@@ -130,7 +102,11 @@ export class ResidentWorker {
     this.fail("worker_crash", WORKER_CRASH_MESSAGE);
   private readonly responseOutput = (chunk: Buffer): void => {
     try {
-      for (const message of this.decoder.push(chunk)) this.message(message);
+      for (const message of this.decoder.push(chunk)) {
+        const pending = this.pending;
+        if (message.requestId === pending?.request.requestId && message.status !== "stream")
+          this.finish(() => pending.accept(message));
+      }
     } catch (error) {
       this.fail(
         "malformed_worker_message",
@@ -138,17 +114,6 @@ export class ResidentWorker {
       );
     }
   };
-
-  private message(message: InferenceWorkerMessage): void {
-    const pending = this.pending.get(message.requestId);
-    if (pending === undefined) return;
-    if (message.status === "stream") {
-      if (message.event === "thinking.delta") pending.execution.onThinkingDelta?.(message.text);
-      else pending.execution.onResponseDelta?.(message.text);
-      return;
-    }
-    this.finish(message.requestId, () => pending.accept(message));
-  }
 
   private readonly closed = (_code: number | null): void => {
     if (this.stopped) return;
@@ -163,69 +128,21 @@ export class ResidentWorker {
       );
       return;
     }
-    if (this.pending.size > 0) this.fail("worker_crash", WORKER_CRASH_MESSAGE);
-    this.onStopped();
+    this.fail("worker_crash", WORKER_CRASH_MESSAGE);
   };
 
   private fail(code: InferenceWorkerError["code"], message: string): void {
     if (!this.stopped) this.handle.process.kill("SIGKILL");
-    for (const requestId of [...this.pending.keys()]) {
-      const pending = this.pending.get(requestId);
-      if (pending !== undefined)
-        this.finish(requestId, () => pending.reject(new InferenceWorkerError(code, message)));
-    }
+    const pending = this.pending;
+    if (pending !== undefined)
+      this.finish(() => pending.reject(new InferenceWorkerError(code, message)));
   }
 
-  private cancel(requestId: RequestId, code: "cancelled" | "timeout"): void {
-    const pending = this.pending.get(requestId);
-    if (pending === undefined || pending.cancelling) return;
-    const supportsRequestInterruption =
-      pending.execution.request.operation === "chat" ||
-      pending.execution.request.operation === "generate";
-    if (this.pending.size === 1 && !supportsRequestInterruption) {
-      this.failOne(
-        requestId,
-        code,
-        code === "timeout" ? "Inference timed out." : "Inference cancelled.",
-      );
-      return;
-    }
-    pending.cancelling = true;
-    clearTimeout(pending.timer);
-    pending.execution.signal?.removeEventListener("abort", pending.cancelled);
-    try {
-      this.handle.process.stdin.write(encodeInferenceCancel(requestId, code), (error) => {
-        if (error != null) this.fail("worker_crash", WORKER_CRASH_MESSAGE);
-      });
-    } catch {
-      this.fail("worker_crash", WORKER_CRASH_MESSAGE);
-      return;
-    }
-    pending.cancellationTimer = setTimeout(
-      () => this.failUnacknowledged(requestId),
-      CANCELLATION_GRACE_MS,
-    );
-  }
-
-  private failUnacknowledged(requestId: RequestId): void {
-    if (!this.pending.has(requestId)) return;
-    this.fail("worker_crash", WORKER_CRASH_MESSAGE);
-  }
-
-  private failOne(requestId: RequestId, code: InferenceWorkerError["code"], message: string): void {
-    const pending = this.pending.get(requestId);
+  private finish(callback: () => void): void {
+    const pending = this.pending;
     if (pending === undefined) return;
-    if (!this.stopped) this.handle.process.kill("SIGKILL");
-    this.finish(requestId, () => pending.reject(new InferenceWorkerError(code, message)));
-  }
-
-  private finish(requestId: RequestId, callback: () => void): void {
-    const pending = this.pending.get(requestId);
-    if (pending === undefined) return;
-    this.pending.delete(requestId);
-    clearTimeout(pending.timer);
-    if (pending.cancellationTimer !== undefined) clearTimeout(pending.cancellationTimer);
-    pending.execution.signal?.removeEventListener("abort", pending.cancelled);
+    this.pending = undefined;
+    pending.signal.removeEventListener("abort", pending.cancelled);
     callback();
   }
 }

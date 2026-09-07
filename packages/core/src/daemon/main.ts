@@ -11,7 +11,7 @@ function argument(args: string[], name: string, required = true): string | undef
   const value = index === -1 ? undefined : args[index + 1];
   if (required && value === undefined) {
     throw new Error(
-      "Usage: garden-desk-cored --workspace <directory> --model-store <directory> --profile <auto|local12|local16>",
+      "Usage: garden-desk-cored --workspace <directory> --model-store <directory> --profile <auto|local16>",
     );
   }
   return value;
@@ -30,13 +30,12 @@ interface LaunchOptions {
   agentImageRoot: string | undefined;
   inferenceHelperPath: string | undefined;
   inferenceRuntimePath: string | undefined;
-  visionRuntimePath: string | undefined;
   migrationDirectory: string | undefined;
   modelStoreDir: string;
   packagedModelStore: boolean;
   parentPid: number | undefined;
   promptDirectory: string | undefined;
-  profile: "auto" | "local12" | "local16";
+  profile: "auto" | "local16";
   readyFile: string | undefined;
   sessionsOnly: boolean;
   windowsPipeGuardPath: string | undefined;
@@ -49,7 +48,7 @@ function launchOptions(args: string[]): LaunchOptions {
   const modelStoreDir = argument(args, "--model-store");
   const profile = argument(args, "--profile");
   if (workspaceDir === undefined || modelStoreDir === undefined) throw new Error("Missing paths.");
-  if (profile !== "auto" && profile !== "local12" && profile !== "local16") {
+  if (profile !== "auto" && profile !== "local16") {
     throw new Error("Invalid profile.");
   }
   return {
@@ -57,7 +56,6 @@ function launchOptions(args: string[]): LaunchOptions {
     agentImageRoot: argument(args, "--agent-image-root", false),
     inferenceHelperPath: argument(args, "--inference-helper", false),
     inferenceRuntimePath: argument(args, "--inference-runtime", false),
-    visionRuntimePath: argument(args, "--vision-runtime", false),
     migrationDirectory: argument(args, "--migration-directory", false),
     modelStoreDir,
     packagedModelStore: args.includes("--packaged-model-store"),
@@ -90,8 +88,6 @@ function coreOptions(options: LaunchOptions): GardenDeskCoreOptions {
   if (options.inferenceHelperPath !== undefined) {
     configured.inferenceHelperPath = options.inferenceHelperPath;
   }
-  if (options.visionRuntimePath !== undefined)
-    configured.visionRuntimePath = options.visionRuntimePath;
   if (options.agentHelperPath !== undefined) configured.agentHelperPath = options.agentHelperPath;
   if (options.agentImageRoot !== undefined) configured.agentImageRoot = options.agentImageRoot;
   return configured;

@@ -65,6 +65,7 @@ async function launchFailure(): Promise<unknown> {
   try {
     await new InferenceWorkerClient(new FailingLauncher(), "unused").execute({
       request,
+      modelPath: "unused-model",
       memoryBudgetBytes: 1_024,
       timeoutMs: 1_000,
     });
