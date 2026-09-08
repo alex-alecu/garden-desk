@@ -47,6 +47,7 @@ export interface ChatAgentInput {
   onEvent?(type: AgentEventType, summary: string, detail?: Partial<AgentEventDetail>): void;
   onThinking?(text: string | null): void;
   onResponse?(text: string | null): void;
+  onSessionTitle?(title: string): void;
   onContext?(used: number, allocated: number, measured?: boolean): void;
   signal?: AbortSignal;
   skills: SkillReader;

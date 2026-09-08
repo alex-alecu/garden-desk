@@ -165,6 +165,44 @@ it("uses the model review heading for a new chat and preserves it on later revie
   }
 });
 
+it("retains a complete streamed review title when the answer hits the output limit", async () => {
+  let partialTitle: string | undefined;
+  let streamedTitle: string | undefined;
+  const { catalog, conversations, service } = await fixture(
+    {
+      async chat(_request, _signal, streams) {
+        streams?.onResponseDelta?.("# Review Apartment");
+        partialTitle = conversations.listSessions(null).items[0]?.title;
+        streams?.onResponseDelta?.(" sale agreement\n\nUnfinished review");
+        streamedTitle = conversations.listSessions(null).items[0]?.title;
+        return {
+          ...chatResult("# Review Apartment sale agreement\n\nUnfinished review", []),
+          stopReason: "maxTokens",
+        };
+      },
+    },
+    async (request) => outputExecution(request, "1: Apartment sale agreement."),
+  );
+  try {
+    const session = conversations.createSession(null);
+    await service.addAttachment(
+      session.id,
+      fileURLToPath(new URL("../../../../prompts/commands/review.md", import.meta.url)),
+    );
+    const run = service.start(session.id, "/review");
+    await terminal(service, run.id);
+    expect(partialTitle).toBe("/review");
+    expect(streamedTitle).toBe("Review Apartment sale agreement");
+    expect(service.snapshot(run.id)).toMatchObject({
+      sessionTitle: "Review Apartment sale agreement",
+      run: { state: "failed", error: "agent_generation_limit", response: null },
+    });
+  } finally {
+    await service.close();
+    catalog.close();
+  }
+});
+
 describe("persisted chat agent success", () => {
   it("retains measured context after a completed run leaves active state", async () => {
     const { catalog, conversations, service } = await fixture(

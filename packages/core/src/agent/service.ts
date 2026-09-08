@@ -252,6 +252,7 @@ export class AgentService {
         ...inferenceRun,
         onThinking: (thinking) => this.updateActive(run.jobId, { thinking }),
         onResponse: (response) => this.updateActive(run.jobId, { response }),
+        onSessionTitle: (title) => this.conversations.setInitialTitle(run.sessionId, title),
         onContext: (contextUsedTokens, contextAllocatedTokens, measured) => {
           if (measured) measuredContextTokens = contextAllocatedTokens;
           this.store.setContext(run.id, contextUsedTokens, contextAllocatedTokens);
@@ -274,9 +275,6 @@ export class AgentService {
       );
       this.database.transaction(() => {
         this.conversations.appendMessage(run.sessionId, "assistant", result.response, run.id);
-        if (result.sessionTitle !== undefined) {
-          this.conversations.setInitialTitle(run.sessionId, result.sessionTitle);
-        }
         for (const deliverable of deliverables) this.store.addArtifact(run.id, deliverable);
         this.store.transitionRun(run.id, {
           state: "succeeded",

@@ -41,6 +41,7 @@ interface PrimaryRunInput {
   modelNeedsLoad: boolean;
   onThinking(thinking: string | null): void;
   onResponse(response: string | null): void;
+  onSessionTitle(title: string): void;
   onContext(used: number, allocated: number, measured?: boolean): void;
   askQuestion(questions: AgentQuestion[]): Promise<AgentQuestionOutcome>;
 }
@@ -77,6 +78,7 @@ function thinkingCallbacks(input: PrimaryRunInput) {
   };
 }
 
+// biome-ignore lint/complexity/noExcessiveLinesPerFunction: keep the primary agent input mapping together.
 export async function runPrimaryAgent(input: PrimaryRunInput): Promise<AgentRunResult> {
   const { definitions, run, store } = input;
   const thinking = thinkingCallbacks(input);
@@ -105,6 +107,7 @@ export async function runPrimaryAgent(input: PrimaryRunInput): Promise<AgentRunR
     onEvent: thinking.onEvent,
     onThinking: thinking.onThinking,
     onResponse: thinking.onResponse,
+    onSessionTitle: input.onSessionTitle,
     onContext: input.onContext,
     askQuestion: input.askQuestion,
     signal: input.signal,

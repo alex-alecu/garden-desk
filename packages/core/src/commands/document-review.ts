@@ -41,6 +41,30 @@ function reviewResponse(result: ChatGenerationResult): string {
   return response;
 }
 
+function reviewStreams(input: ChatAgentInput) {
+  let titleHandled = false;
+  let prefix = "";
+  const finishTitle = (text: string) => {
+    if (titleHandled) return;
+    titleHandled = true;
+    const title = /^# (Review [^\r\n]+)/u.exec(text.trimStart())?.[1]?.trim().slice(0, 60);
+    if (title !== undefined) input.onSessionTitle?.(title);
+  };
+  const streams = streamCallbacks(input, "chat");
+  return {
+    finishTitle,
+    streams: {
+      ...streams,
+      onResponseDelta(delta: string) {
+        streams.onResponseDelta?.(delta);
+        if (titleHandled) return;
+        prefix += delta;
+        if (prefix.trimStart().includes("\n")) finishTitle(prefix);
+      },
+    },
+  };
+}
+
 // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: keep one inference call paired with its trace outcome and cleanup.
 async function generateReview(
   input: ChatAgentInput,
@@ -54,10 +78,12 @@ async function generateReview(
     ...identity,
   });
   let received = false;
+  const stream = reviewStreams(input);
   try {
-    const result = await chat(request, input.signal, streamCallbacks(input, "chat"), identity);
+    const result = await chat(request, input.signal, stream.streams, identity);
     received = true;
     input.signal?.throwIfAborted();
+    stream.finishTitle(result.text);
     if (turnId !== undefined) {
       await trace?.store.captureResponse(
         turnId,
@@ -120,10 +146,8 @@ export async function runDocumentReview(
   if (allocated !== undefined) input.onContext?.(result.contextUsedTokens, allocated, true);
   input.onResponse?.(response);
   input.onEvent?.("assistant.completed", "Review completed.");
-  const sessionTitle = /^# (Review [^\r\n]+)/u.exec(response)?.[1]?.trim().slice(0, 60);
   return {
     response,
-    ...(sessionTitle === undefined ? {} : { sessionTitle }),
     artifacts: [],
     executions: [extracted.result],
     guestExecutions: 1,
