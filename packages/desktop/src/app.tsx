@@ -211,7 +211,7 @@ export function App({ api, capabilities }: { api: DesktopApi; capabilities: Desk
           />
         ) : (
           <Composer
-            key={state.activeSessionId ?? "new"}
+            key={`composer:${state.activeSessionId ?? "new"}`}
             commands={state.commands}
             attachments={state.attachments.filter((attachment) =>
               state.removableAttachmentIds.includes(attachment.id),

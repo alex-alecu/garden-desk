@@ -1,8 +1,9 @@
-import { createElement } from "react";
+import { createElement, isValidElement, type ReactElement, type ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import type { DesktopApi } from "./api.js";
 import { App } from "./app.js";
+import { initialDesktopState } from "./state.js";
 
 const props = {
   api: {} as DesktopApi,
@@ -10,6 +11,28 @@ const props = {
 };
 
 describe("desktop window layout", () => {
+  it("keeps distinct chat section keys after attaching a file creates a session", () => {
+    const previousSession = initialDesktopState.activeSessionId;
+    initialDesktopState.activeSessionId = "attached-file-session";
+    function InspectLayout() {
+      const tree = App(props);
+      const children = tree.props.children as ReactElement<{ children: ReactNode[] }>[];
+      const main = children.find((child) => child.type === "main");
+      const keys = main?.props.children
+        .filter(isValidElement)
+        .map((child) => child.key)
+        .filter((key) => key !== null);
+      expect(keys).toBeDefined();
+      expect(new Set(keys).size).toBe(keys?.length);
+      return tree;
+    }
+    try {
+      renderToStaticMarkup(createElement(InspectLayout));
+    } finally {
+      initialDesktopState.activeSessionId = previousSession;
+    }
+  });
+
   it("keeps the title-bar spans and visible chat header draggable", () => {
     const markup = renderToStaticMarkup(createElement(App, props));
 
