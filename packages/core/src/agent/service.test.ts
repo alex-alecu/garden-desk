@@ -133,6 +133,38 @@ it("dispatches a Markdown review with one extraction and no tool authority or su
   }
 });
 
+it("uses the model review heading for a new chat and preserves it on later reviews", async () => {
+  const chat = vi
+    .fn()
+    .mockResolvedValueOnce(chatResult("# Review Apartment sale agreement\n\nReview text.", []))
+    .mockResolvedValueOnce(chatResult("# Review A different title\n\nFollow-up review.", []));
+  const { catalog, conversations, service } = await fixture({ chat }, async (request) =>
+    outputExecution(request, "1: Agreement for an apartment sale."),
+  );
+  try {
+    const session = conversations.createSession(null);
+    await service.addAttachment(
+      session.id,
+      fileURLToPath(new URL("../../../../prompts/commands/review.md", import.meta.url)),
+    );
+    for (let turn = 0; turn < 2; turn += 1) {
+      const run = service.start(session.id, "/review");
+      await terminal(service, run.id);
+      expect(conversations.listSessions(null).items[0]?.title).toBe(
+        "Review Apartment sale agreement",
+      );
+      expect(service.snapshot(run.id)).toMatchObject({
+        sessionTitle: "Review Apartment sale agreement",
+      });
+    }
+    await service.close();
+    expect(chat).toHaveBeenCalledTimes(2);
+  } finally {
+    await service.close();
+    catalog.close();
+  }
+});
+
 describe("persisted chat agent success", () => {
   it("retains measured context after a completed run leaves active state", async () => {
     const { catalog, conversations, service } = await fixture(

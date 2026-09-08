@@ -1,4 +1,4 @@
-import { type ConversationMessage, conversationTitle } from "@gardendesk/shared";
+import type { ConversationMessage } from "@gardendesk/shared";
 import { applyAgentSnapshot } from "./agent-state.js";
 import type { DesktopAction, DesktopState } from "./state.js";
 import { emptyConversation } from "./state-initial.js";
@@ -9,11 +9,10 @@ export function loadMessages(
   messages: ConversationMessage[],
 ): DesktopState {
   if (state.activeSessionId !== sessionId) return state;
-  const firstMessage = messages.find((message) => message.role === "user");
-  const title =
-    firstMessage === undefined
-      ? undefined
-      : conversationTitle(firstMessage.content, state.attachments[0]?.name);
+  const title = messages
+    .find((message) => message.role === "user")
+    ?.content.replaceAll(/\s+/gu, " ")
+    .slice(0, 60);
   return {
     ...state,
     timeline: [
@@ -27,12 +26,16 @@ export function loadMessages(
       ...state.timeline.filter((item) => item.kind === "activity"),
     ],
     globalSessions: state.globalSessions.map((session) =>
-      session.id === sessionId && title !== undefined ? { ...session, title } : session,
+      session.id === sessionId && session.title === "New chat" && title !== undefined
+        ? { ...session, title }
+        : session,
     ),
     folders: state.folders.map((folder) => ({
       ...folder,
       sessions: folder.sessions.map((session) =>
-        session.id === sessionId && title !== undefined ? { ...session, title } : session,
+        session.id === sessionId && session.title === "New chat" && title !== undefined
+          ? { ...session, title }
+          : session,
       ),
     })),
   };

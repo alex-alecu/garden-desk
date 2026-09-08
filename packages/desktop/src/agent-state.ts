@@ -1,4 +1,4 @@
-import type { AgentRunSnapshot } from "@gardendesk/shared";
+import type { AgentRunSnapshot, SessionSummary } from "@gardendesk/shared";
 import type { DesktopState } from "./state.js";
 import { eventItems } from "./timeline.js";
 
@@ -30,19 +30,32 @@ function runTimeline(state: DesktopState, snapshot: AgentRunSnapshot, working: b
   ];
 }
 
+function applySessionTitle(state: DesktopState, snapshot: AgentRunSnapshot): DesktopState {
+  const title = snapshot.sessionTitle;
+  if (title === undefined) return state;
+  const update = (session: SessionSummary) =>
+    session.id === snapshot.run.sessionId ? { ...session, title } : session;
+  return {
+    ...state,
+    globalSessions: state.globalSessions.map(update),
+    folders: state.folders.map((folder) => ({ ...folder, sessions: folder.sessions.map(update) })),
+  };
+}
+
 export function applyAgentSnapshot(state: DesktopState, snapshot: AgentRunSnapshot): DesktopState {
+  const titledState = applySessionTitle(state, snapshot);
   const working = snapshot.run.state === "queued" || snapshot.run.state === "running";
   const workingSessionIds = working
     ? [...new Set([...state.workingSessionIds, snapshot.run.sessionId])]
     : state.workingSessionIds.filter((id) => id !== snapshot.run.sessionId);
   const thinkingBySession = retainThinking(state, snapshot);
   if (snapshot.run.sessionId !== state.activeSessionId) {
-    return { ...state, workingSessionIds, thinkingBySession };
+    return { ...titledState, workingSessionIds, thinkingBySession };
   }
   const knownArtifacts = new Set(state.artifacts.map((item) => item.id));
   const otherExecutions = state.executions.filter((item) => item.runId !== snapshot.run.id);
   return {
-    ...state,
+    ...titledState,
     workingSessionIds,
     activeRun: snapshot.run,
     thinking: snapshot.thinking,

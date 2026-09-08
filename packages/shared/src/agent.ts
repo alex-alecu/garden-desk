@@ -73,6 +73,7 @@ export const AgentExecutionResultSchema = z.union([
 
 export const AgentRunResultSchema = z.object({
   response: z.string().min(1),
+  sessionTitle: z.string().min(1).max(60).optional(),
   artifacts: z.array(AgentWorkspacePathSchema).max(16).default([]),
   // Ceiling: 40 turns x 32 tool calls per turn (HARD_TURN_LIMIT x MAX_CHAT_TOOLS).
   executions: z.array(AgentExecutionResultSchema).max(1_280),
@@ -246,6 +247,7 @@ export const AgentQuestionAnswerSchema = z.array(z.string().min(1).max(300)).max
 
 export const AgentRunSnapshotSchema = z.object({
   run: AgentRunSummarySchema,
+  sessionTitle: z.string().min(1).optional(),
   events: z.array(AgentEventSchema).max(1_000),
   executions: z.array(AgentExecutionSnapshotSchema).max(1_280).default([]),
   artifacts: z.array(AgentArtifactSummarySchema).max(100),

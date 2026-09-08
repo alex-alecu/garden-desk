@@ -120,8 +120,10 @@ export async function runDocumentReview(
   if (allocated !== undefined) input.onContext?.(result.contextUsedTokens, allocated, true);
   input.onResponse?.(response);
   input.onEvent?.("assistant.completed", "Review completed.");
+  const sessionTitle = /^# (Review [^\r\n]+)/u.exec(response)?.[1]?.trim().slice(0, 60);
   return {
     response,
+    ...(sessionTitle === undefined ? {} : { sessionTitle }),
     artifacts: [],
     executions: [extracted.result],
     guestExecutions: 1,

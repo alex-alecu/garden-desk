@@ -157,7 +157,8 @@ export class AgentService {
     return run;
   }
   snapshot(runId: string): AgentRunSnapshot {
-    return activeRunSnapshot(this.store, this.active.values(), runId);
+    const snapshot = activeRunSnapshot(this.store, this.active.values(), runId);
+    return { ...snapshot, sessionTitle: this.conversations.getTitle(snapshot.run.sessionId) };
   }
   settleQuestion = (runId: string, questionId: string, answers?: string[][]): boolean =>
     settleActiveQuestion(this.active, runId, questionId, answers);
@@ -273,6 +274,9 @@ export class AgentService {
       );
       this.database.transaction(() => {
         this.conversations.appendMessage(run.sessionId, "assistant", result.response, run.id);
+        if (result.sessionTitle !== undefined) {
+          this.conversations.setInitialTitle(run.sessionId, result.sessionTitle);
+        }
         for (const deliverable of deliverables) this.store.addArtifact(run.id, deliverable);
         this.store.transitionRun(run.id, {
           state: "succeeded",
