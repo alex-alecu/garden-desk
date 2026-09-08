@@ -163,9 +163,7 @@ async function removeAttachment(core: GardenDeskCore, request: RpcRequest): Prom
   const sessionId = sessionIdParam(request);
   const attachmentId = AttachmentIdSchema.safeParse(request.params.attachmentId);
   if (!attachmentId.success) return failure(request, "invalid_request", "Invalid attachment id.");
-  return success(request, {
-    removed: await core.removeAttachment(sessionId, attachmentId.data),
-  });
+  return success(request, { removed: await core.removeAttachment(sessionId, attachmentId.data) });
 }
 
 async function startAgent(core: GardenDeskCore, request: RpcRequest): Promise<RpcResponse> {

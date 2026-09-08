@@ -1,7 +1,19 @@
-import type { AgentRunPerformance, AgentRunResult } from "@gardendesk/shared";
+import type {
+  AgentRunPerformance,
+  AgentRunResult,
+  AgentSessionSummary,
+  ConversationMessage,
+} from "@gardendesk/shared";
 import { commandFailureSummary } from "../commands/failures.js";
 import type { InferenceService } from "../runtime/inference.js";
 import { inferenceFailureCode } from "../runtime/inference-errors.js";
+
+export function agentHistory(messages: ConversationMessage[], summary?: AgentSessionSummary) {
+  return {
+    messages: messages.slice(summary?.coveredMessageCount ?? 0, -1),
+    ...(summary === undefined ? {} : { summary: summary.text }),
+  };
+}
 
 export async function inferenceRunContext(
   inference: Partial<Pick<InferenceService, "modelStatus">>,

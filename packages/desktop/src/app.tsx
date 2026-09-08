@@ -43,9 +43,8 @@ export function App({ api, capabilities }: { api: DesktopApi; capabilities: Desk
       .then((snapshot) => {
         if (!active) return;
         setModel(snapshot.model);
-        if (snapshot.model.state === "unsupported" && snapshot.model.message !== undefined) {
+        if (snapshot.model.state === "unsupported" && snapshot.model.message !== undefined)
           setDesktopError(snapshot.model.message);
-        }
         dispatch({ type: "desktop.hydrate", snapshot });
         if (snapshot.initialSessionId !== undefined) {
           void selectSession(api, snapshot.initialSessionId, dispatch, setDesktopError);
@@ -242,9 +241,8 @@ export function App({ api, capabilities }: { api: DesktopApi; capabilities: Desk
               draftPersistence.schedule(state.activeSessionId, draft);
             }}
             onOpenAttachment={(attachmentId) => {
-              if (state.activeSessionId !== undefined) {
+              if (state.activeSessionId !== undefined)
                 void openAttachment(api, state.activeSessionId, attachmentId, setDesktopError);
-              }
             }}
             onRemoveAttachment={(attachmentId) => {
               if (state.activeSessionId !== undefined) {

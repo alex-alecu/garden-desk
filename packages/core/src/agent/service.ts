@@ -30,6 +30,7 @@ import { AgentImageInspector } from "./service-image.js";
 import {
   agentFailureEvent,
   agentFailureText,
+  agentHistory,
   inferenceRunContext,
   runPerformance,
 } from "./service-results.js";
@@ -231,25 +232,17 @@ export class AgentService {
       const command = this.commands.resolve(task);
       const messages = this.conversations.listMessages(run.sessionId);
       const anchored = this.summaries.load(run.sessionId);
-      const history = {
-        messages:
-          anchored === undefined
-            ? messages.slice(0, -1)
-            : messages.slice(anchored.coveredMessageCount, -1),
-        ...(anchored === undefined ? {} : { summary: anchored.text }),
-      };
       if (this.inference.chat === undefined) throw new Error("agent_chat_unavailable");
-      const inferenceRun = await inferenceRunContext(this.inference);
       const result = await runPrimaryAgent({
         ...(command === undefined ? {} : { command }),
         chat: this.inference.chat.bind(this.inference),
         contextTokens: "auto",
         database: this.database,
         definitions: this.definitions,
-        history,
+        history: agentHistory(messages, anchored),
         inspectImage: this.images.forRun(run.sessionId, signal),
         jobs: this.jobs,
-        ...inferenceRun,
+        ...(await inferenceRunContext(this.inference)),
         onThinking: (thinking) => this.updateActive(run.jobId, { thinking }),
         onResponse: (response) => this.updateActive(run.jobId, { response }),
         onSessionTitle: (title) => this.conversations.setInitialTitle(run.sessionId, title),

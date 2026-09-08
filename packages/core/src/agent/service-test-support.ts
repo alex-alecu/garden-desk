@@ -239,15 +239,22 @@ export function successfulInference() {
   };
 }
 
-export function pathOnlyInference() {
-  let turn = 0;
+export function outputExecution(
+  request: AgentSessionExecution,
+  stdout: string,
+): AgentExecutionResult {
+  if (request.language === "shell") throw new Error("unexpected_shell");
   return {
-    async chat(_input: ChatInput) {
-      turn += 1;
-      return turn === 1
-        ? chatResult("", [{ id: "call-path", name: "python", params: { path: "steps/saved.py" } }])
-        : chatResult("Reran the committed script.", []);
-    },
+    language: request.language,
+    path: request.path,
+    source: request.path.startsWith("/source/") ? null : (request.source ?? "print('resolved')"),
+    command: null,
+    exitCode: 0,
+    stdout,
+    stderr: "",
+    durationMs: 1,
+    termination: "completed",
+    artifacts: [],
   };
 }
 

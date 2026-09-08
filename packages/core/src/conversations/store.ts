@@ -22,10 +22,6 @@ interface FolderRow {
   revoked_at: string | null;
 }
 
-interface FolderPathRow {
-  root_path: string;
-}
-
 interface SessionRow {
   id: string;
   folder_id: string | null;
@@ -172,7 +168,7 @@ export class ConversationStore {
   resolveFolderPath(folderId: string): string {
     const row = this.database
       .prepare("SELECT root_path FROM folder_grants WHERE id = ? AND revoked_at IS NULL")
-      .get(folderId) as FolderPathRow | undefined;
+      .get(folderId) as { root_path: string } | undefined;
     if (row === undefined) throw new Error("folder_not_found");
     return inspectFolderGrant(row.root_path).canonicalPath;
   }
@@ -275,10 +271,7 @@ export class ConversationStore {
       createdAt,
     });
     this.database.transaction(() => {
-      const session = this.database
-        .prepare("SELECT title FROM sessions WHERE id = ?")
-        .get(sessionId) as { title: string } | undefined;
-      if (session === undefined) throw new Error("session_not_found");
+      this.getTitle(sessionId);
       this.database
         .prepare(
           "INSERT INTO conversation_messages (id, session_id, role, content, created_at, run_id) VALUES (?, ?, ?, ?, ?, ?)",

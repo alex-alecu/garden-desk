@@ -2,10 +2,8 @@ import { lstat, readdir, readFile, stat } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { buildSidecar } from "./build-sidecar.js";
-import {
-  prepareDevelopmentModelOutput,
-  prepareDevelopmentRuntimeOutput,
-} from "./package-output-cleanup.js";
+import { prepareDevelopmentModelOutput } from "./package-output-cleanup.js";
+import { prepareDevelopmentRuntimeOutput } from "./prepare-dev-runtime.js";
 import { developmentResourceContract } from "./src/dev-resource-contract.js";
 
 const desktopRoot = fileURLToPath(new URL(".", import.meta.url));

@@ -232,9 +232,7 @@ export function desktopReducer(state: DesktopState, action: DesktopAction): Desk
       ...(state.pendingSessionId === action.sessionId ? { pendingSessionId: undefined } : {}),
     };
   }
-  if (action.type === "session.new") {
-    return { ...state, ...emptyConversation(action.folderId) };
-  }
+  if (action.type === "session.new") return { ...state, ...emptyConversation(action.folderId) };
   if (action.type === "session.select") {
     return { ...state, pendingSessionId: action.sessionId };
   }

@@ -9,10 +9,10 @@ import {
   type PackageBuildTarget,
   packageBuildTarget,
   prepareDevelopmentModelOutput,
-  prepareDevelopmentRuntimeOutput,
   preparePackageBuild,
   rollbackPackageBuild,
 } from "../package-output-cleanup.js";
+import { prepareDevelopmentRuntimeOutput } from "../prepare-dev-runtime.js";
 import { generationModelFileName, projectorModelFileName } from "./package-model-contract.js";
 
 const roots: string[] = [];
