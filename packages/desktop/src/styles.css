@@ -1377,6 +1377,7 @@ textarea:focus-visible {
 }
 
 .composer {
+  position: relative;
   width: min(var(--chat-content-width), calc(100% - var(--chat-content-gutter)));
   margin: 0 auto 24px;
   padding: 13px 14px 10px;
@@ -1389,6 +1390,73 @@ textarea:focus-visible {
   transition:
     border-color 160ms ease,
     box-shadow 160ms ease;
+}
+
+.command-menu {
+  position: absolute;
+  z-index: 10;
+  bottom: calc(100% + 10px);
+  left: 0;
+  width: 100%;
+  padding: 8px;
+  border: 1px solid var(--border-color);
+  border-radius: 14px;
+  background: var(--reading-raised);
+  box-shadow: var(--surface-shadow);
+}
+
+.command-menu-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 10px 10px;
+  color: var(--ink-soft);
+  font-size: 12px;
+}
+
+.command-menu-list {
+  max-height: min(320px, 40vh);
+  overflow-y: auto;
+}
+
+.command-menu-option {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  padding: 12px 10px;
+  border: 0;
+  border-radius: 8px;
+  color: var(--ink);
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.command-menu-option[aria-selected="true"],
+.command-menu-option:hover {
+  background: var(--navigation-hover);
+}
+
+.command-menu-name {
+  flex-shrink: 0;
+  font-weight: 600;
+}
+
+.command-menu-description {
+  color: var(--ink-soft);
+  font-size: 13px;
+}
+
+.command-menu-enter {
+  margin-left: auto;
+  color: var(--ink-soft);
+}
+
+.command-menu-empty {
+  padding: 8px 10px;
+  color: var(--ink-soft);
+  font-size: 13px;
 }
 
 .composer:focus-within {

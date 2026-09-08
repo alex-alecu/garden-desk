@@ -7,10 +7,13 @@ import type {
   AgentRunSummary,
   ConversationMessage,
 } from "@gardendesk/shared";
+import type { CommandInvocation } from "../commands/library.js";
+import { runCommand } from "../commands/run.js";
 import type { JobStore } from "../jobs/jobs.js";
 import type { InferenceService } from "../runtime/inference.js";
 import type { DatabasePort } from "../workspace/database.js";
 import { ChatAgentLoop } from "./chat-loop.js";
+import type { ChatAgentInput } from "./chat-loop-input.js";
 import type { AgentQuestionOutcome } from "./generic-tool-support.js";
 import { guestAttachmentName } from "./inputs.js";
 import { AGENT_MODEL_ID } from "./limits.js";
@@ -21,6 +24,7 @@ import type { AgentStore } from "./store.js";
 import { runSubagent } from "./subagent-run.js";
 
 interface PrimaryRunInput {
+  command?: CommandInvocation;
   contextTokens: number | "auto";
   knownContextTokens?: number;
   database: DatabasePort;
@@ -81,7 +85,7 @@ export async function runPrimaryAgent(input: PrimaryRunInput): Promise<AgentRunR
     displayName: item.name,
     mediaType: item.mediaType,
   }));
-  return await new ChatAgentLoop({ chat: input.chat }).run({
+  const agentInput: ChatAgentInput = {
     agent: definitions.agent("primary"),
     contextTokens: input.contextTokens,
     ...(input.knownContextTokens === undefined
@@ -112,7 +116,12 @@ export async function runPrimaryAgent(input: PrimaryRunInput): Promise<AgentRunR
     systemPrompt: (name) => definitions.system(name),
     task: input.task,
     trace: { runId: run.id, store: store.trace },
-  });
+  };
+  const runAgent = (request: ChatAgentInput) =>
+    new ChatAgentLoop({ chat: input.chat }).run(request);
+  return input.command === undefined
+    ? runAgent(agentInput)
+    : runCommand(input.command, agentInput, input.chat, runAgent);
 }
 
 async function runPrimarySubagent(

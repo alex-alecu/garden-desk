@@ -1,4 +1,5 @@
 import type { AgentRunPerformance, AgentRunResult } from "@gardendesk/shared";
+import { commandFailureSummary } from "../commands/failures.js";
 import type { InferenceService } from "../runtime/inference.js";
 import { inferenceFailureCode } from "../runtime/inference-errors.js";
 
@@ -51,6 +52,8 @@ export function agentFailureText(error: unknown): string {
 }
 
 function failureSummary(detail: string): string {
+  const commandFailure = commandFailureSummary(detail);
+  if (commandFailure !== undefined) return commandFailure;
   if (detail === "agent_context_exhausted") {
     return "The required conversation and repair context no longer fits in the local model window.";
   }

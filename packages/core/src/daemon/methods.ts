@@ -217,6 +217,8 @@ async function cancelJob(core: GardenDeskCore, request: RpcRequest): Promise<Rpc
 // biome-ignore lint/complexity/noExcessiveLinesPerFunction: the exhaustive protocol switch keeps routing explicit.
 async function dispatchMethod(core: GardenDeskCore, request: RpcRequest): Promise<RpcResponse> {
   switch (request.method) {
+    case "commands.list":
+      return success(request, await core.listCommands());
     case "status":
       return success(request, await core.status());
     case "folders.add":

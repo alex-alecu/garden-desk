@@ -9,6 +9,7 @@ import type {
 } from "@gardendesk/shared";
 import type { CodeAgentLauncher } from "@gardendesk/workers";
 import type { AuditLog } from "../audit/log.js";
+import { CommandLibrary } from "../commands/library.js";
 import type { ConversationStore } from "../conversations/store.js";
 import type { JobStore } from "../jobs/jobs.js";
 import type { InferenceService } from "../runtime/inference.js";
@@ -61,6 +62,7 @@ export class AgentService {
     private readonly audit: AuditLog,
     maximumConcurrentRuns = 1,
     private readonly definitions = new MarkdownDefinitionLibrary(resolve(process.cwd(), "prompts")),
+    private readonly commands = new CommandLibrary(resolve(process.cwd(), "prompts/commands")),
   ) {
     this.artifactMaterializer = new ArtifactMaterializer(database, artifacts, audit);
     this.images = new AgentImageInspector(database, store, inference);
@@ -213,6 +215,7 @@ export class AgentService {
     let releaseCapacity: (() => void) | undefined;
     let measuredContextTokens: number | undefined;
     try {
+      const command = this.commands.resolve(task);
       await this.summaryQueue.waitFor(run.sessionId, signal);
       releaseCapacity = await this.runCapacity.acquire(signal);
       signal.throwIfAborted();
@@ -222,7 +225,7 @@ export class AgentService {
         this.store.appendEvent(
           run.id,
           "run.started",
-          "Offline limits: live read-only source, 40 model turns, 120 seconds per guest execution, 4 CPUs, 4 GiB memory, and a persistent 128 MiB workspace.",
+          "Offline limits: live read-only source, 120 seconds per guest execution, 4 CPUs, 4 GiB memory, and a persistent 128 MiB workspace.",
         );
       })();
       const messages = this.conversations.listMessages(run.sessionId);
@@ -237,6 +240,7 @@ export class AgentService {
       if (this.inference.chat === undefined) throw new Error("agent_chat_unavailable");
       const inferenceRun = await inferenceRunContext(this.inference);
       const result = await runPrimaryAgent({
+        ...(command === undefined ? {} : { command }),
         chat: this.inference.chat.bind(this.inference),
         contextTokens: "auto",
         database: this.database,
@@ -281,7 +285,8 @@ export class AgentService {
         executions: this.store.execution.list(run.id).length,
         guestExecutions: result.guestExecutions,
       });
-      this.summaryQueue.enqueue(run, signal, measuredContextTokens);
+      if (command === undefined || command.workflow === "agent")
+        this.summaryQueue.enqueue(run, signal, measuredContextTokens);
     } catch (error) {
       this.failRun(run, signal, error);
     } finally {

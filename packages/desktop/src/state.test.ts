@@ -36,6 +36,7 @@ describe("desktop navigation state", () => {
       type: "desktop.hydrate",
       snapshot: {
         catalogPath: "/tmp/state/.garden-desk/catalog.sqlite",
+        commands: [],
         folders: [folder],
         globalSessions: { items: [], nextCursor: null },
         folderSessions: [

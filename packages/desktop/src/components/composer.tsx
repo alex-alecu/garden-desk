@@ -1,9 +1,11 @@
-import type { AttachmentSummary } from "@gardendesk/shared";
+import type { AttachmentSummary, CommandSummary } from "@gardendesk/shared";
 import { type FormEvent, type KeyboardEvent, useEffect, useLayoutEffect, useRef } from "react";
 import { AttachmentChip } from "./attachment-chip.js";
+import { CommandMenu, useCommandMenu } from "./command-menu.js";
 import { Icon } from "./icons.js";
 
 interface ComposerProps {
+  commands: CommandSummary[];
   attachments: AttachmentSummary[];
   disabled: boolean;
   dropActive?: boolean;
@@ -84,6 +86,7 @@ function AttachmentList({
 
 // biome-ignore lint/complexity/noExcessiveLinesPerFunction: one compact form keeps composer state and accessibility relationships visible.
 export function Composer({
+  commands,
   attachments,
   disabled,
   dropActive = false,
@@ -99,6 +102,13 @@ export function Composer({
   onSend,
 }: ComposerProps) {
   const textarea = useRef<HTMLTextAreaElement>(null);
+  const menu = useCommandMenu({
+    commands,
+    draft,
+    enabled: !disabled && !running,
+    textarea,
+    onChange,
+  });
   useLayoutEffect(() => {
     if (textarea.current !== null) resizeComposerTextarea(textarea.current);
   });
@@ -124,6 +134,7 @@ export function Composer({
       data-drop-target="files"
       onSubmit={submit}
     >
+      <CommandMenu menu={menu} />
       <AttachmentList
         attachments={attachments}
         nativeActionMessage={nativeActionMessage}
@@ -135,9 +146,19 @@ export function Composer({
         aria-keyshortcuts="Meta+Enter"
         aria-label="Message"
         disabled={disabled}
-        onChange={(event) => onChange(event.target.value)}
-        onKeyDown={(event) => handleComposerKeyDown(event, canSend)}
-        placeholder="Ask Garden Desk to do anything"
+        aria-autocomplete="list"
+        aria-controls={menu.open ? menu.id : undefined}
+        aria-activedescendant={
+          menu.open && menu.matches.length > 0 ? `${menu.id}-${menu.selected}` : undefined
+        }
+        onFocus={menu.onFocus}
+        onBlur={menu.onBlur}
+        onSelect={(event) => menu.onSelect(event.currentTarget.selectionStart)}
+        onChange={(event) => menu.onChange(event.target.value, event.target.selectionStart)}
+        onKeyDown={(event) => {
+          if (!menu.onKeyDown(event)) handleComposerKeyDown(event, canSend);
+        }}
+        placeholder="Ask Garden Desk to do anything, or type / for commands"
         ref={textarea}
         rows={2}
         value={draft}

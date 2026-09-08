@@ -3,6 +3,7 @@ import {
   AgentRunSummarySchema,
   AgentTraceSchema,
   AttachmentSummarySchema,
+  CommandSummarySchema,
   ConversationMessageSchema,
   FolderSummarySchema,
   ModelRuntimeStatusSchema,
@@ -53,6 +54,7 @@ function parseBootstrap(value: unknown): DesktopBootstrap {
   if (typeof input.catalogPath !== "string") throw new Error("Invalid catalog path.");
   return {
     catalogPath: input.catalogPath,
+    commands: CommandSummarySchema.array().parse(input.commands),
     folders: FolderSummarySchema.array().parse(input.folders),
     globalSessions: SessionPageSchema.parse(input.globalSessions),
     folderSessions,
