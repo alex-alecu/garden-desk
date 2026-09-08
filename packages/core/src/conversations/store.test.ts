@@ -248,6 +248,36 @@ describe("ConversationStore active session deletion", () => {
 });
 
 describe("ConversationStore message validation", () => {
+  it("uses the document name for new and existing review session titles", () => {
+    const catalog = openWorkspaceCatalog(temporaryRoot("review-title"));
+    const store = new ConversationStore(catalog.database);
+    const session = store.createSession(null);
+    try {
+      catalog.database
+        .prepare("INSERT INTO session_attachments VALUES (?, ?, ?, ?, ?, ?, ?)")
+        .run(
+          "attachment",
+          session.id,
+          "Rental_agreement.docx",
+          "application/octet-stream",
+          1,
+          "a".repeat(64),
+          session.createdAt,
+        );
+      store.appendMessage(session.id, "user", "/review");
+      expect(
+        catalog.database.prepare("SELECT title FROM sessions WHERE id = ?").get(session.id),
+      ).toEqual({ title: "Review Rental agreement" });
+      catalog.database
+        .prepare("UPDATE sessions SET title = '/review' WHERE id = ?")
+        .run(session.id);
+      expect(store.listSessions(null).items[0]?.title).toBe("Review Rental agreement");
+      expect(store.listMessages(session.id)[0]?.content).toBe("/review");
+    } finally {
+      catalog.close();
+    }
+  });
+
   it("rejects whitespace without corrupting the session title", () => {
     const catalog = openWorkspaceCatalog(temporaryRoot("message"));
     const store = new ConversationStore(catalog.database);

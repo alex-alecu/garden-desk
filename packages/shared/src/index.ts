@@ -4,6 +4,7 @@ export * from "./agent-summary.js";
 export * from "./agent-trace.js";
 export * from "./audit.js";
 export * from "./commands.js";
+export * from "./conversation-title.js";
 export * from "./conversations.js";
 export * from "./errors.js";
 export * from "./ids.js";

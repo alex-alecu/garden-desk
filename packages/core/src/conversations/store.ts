@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import {
   type ConversationMessage,
   ConversationMessageSchema,
+  conversationTitle,
   type FolderSummary,
   FolderSummarySchema,
   type MessageRole,
@@ -100,6 +101,17 @@ function encodeCursor(session: SessionSummary): string {
 
 export class ConversationStore {
   constructor(private readonly database: DatabasePort) {}
+
+  private titleFor(sessionId: string, content: string): string {
+    const attachment = content.trim().startsWith("/")
+      ? (this.database
+          .prepare(
+            "SELECT display_name FROM session_attachments WHERE session_id = ? ORDER BY created_at, id LIMIT 1",
+          )
+          .get(sessionId) as { display_name: string } | undefined)
+      : undefined;
+    return conversationTitle(content, attachment?.display_name);
+  }
 
   addFolder(rootPath: string): FolderSummary {
     const { canonicalPath, displayName } = inspectFolderGrant(rootPath);
@@ -235,7 +247,9 @@ export class ConversationStore {
         `SELECT id, folder_id, title, created_at, updated_at FROM sessions WHERE ${where} ORDER BY updated_at DESC, id DESC LIMIT ?`,
       )
       .all(...values) as SessionRow[];
-    const items = rows.slice(0, limit).map(sessionSummary);
+    const items = rows
+      .slice(0, limit)
+      .map((row) => sessionSummary({ ...row, title: this.titleFor(row.id, row.title) }));
     const last = items.at(-1);
     return SessionPageSchema.parse({
       items,
@@ -268,7 +282,7 @@ export class ConversationStore {
           "INSERT INTO conversation_messages (id, session_id, role, content, created_at, run_id) VALUES (?, ?, ?, ?, ?, ?)",
         )
         .run(entry.id, entry.sessionId, entry.role, entry.content, entry.createdAt, runId ?? null);
-      const title = entry.content.replaceAll(/\s+/gu, " ").trim().slice(0, 60);
+      const title = this.titleFor(sessionId, entry.content);
       this.database
         .prepare(
           "UPDATE sessions SET title = CASE WHEN title = 'New chat' AND ? = 'user' THEN ? ELSE title END, updated_at = ? WHERE id = ?",

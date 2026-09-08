@@ -1,4 +1,4 @@
-import type { ConversationMessage } from "@gardendesk/shared";
+import { type ConversationMessage, conversationTitle } from "@gardendesk/shared";
 import { applyAgentSnapshot } from "./agent-state.js";
 import type { DesktopAction, DesktopState } from "./state.js";
 import { emptyConversation } from "./state-initial.js";
@@ -9,10 +9,11 @@ export function loadMessages(
   messages: ConversationMessage[],
 ): DesktopState {
   if (state.activeSessionId !== sessionId) return state;
-  const title = messages
-    .find((message) => message.role === "user")
-    ?.content.replaceAll(/\s+/gu, " ")
-    .slice(0, 60);
+  const firstMessage = messages.find((message) => message.role === "user");
+  const title =
+    firstMessage === undefined
+      ? undefined
+      : conversationTitle(firstMessage.content, state.attachments[0]?.name);
   return {
     ...state,
     timeline: [

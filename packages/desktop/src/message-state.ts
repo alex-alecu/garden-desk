@@ -1,4 +1,4 @@
-import type { ConversationMessage } from "@gardendesk/shared";
+import { type ConversationMessage, conversationTitle } from "@gardendesk/shared";
 import type { DesktopState, TimelineItem } from "./state.js";
 
 export function appendMessage(state: DesktopState, message: ConversationMessage): DesktopState {
@@ -13,7 +13,9 @@ export function appendMessage(state: DesktopState, message: ConversationMessage)
     } satisfies TimelineItem,
   ];
   const title =
-    message.role === "user" ? message.content.replaceAll(/\s+/gu, " ").slice(0, 60) : undefined;
+    message.role === "user"
+      ? conversationTitle(message.content, state.attachments[0]?.name)
+      : undefined;
   return {
     ...state,
     draft: "",
