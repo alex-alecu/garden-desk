@@ -36,6 +36,8 @@ workbook.save(path)
 
 Reopen every workbook you write and assert its row count matches what you intended to write. Print the count as evidence before you report the deliverable done.
 
+Check reported totals against the source rows and calculation rules. Use those rows to verify names and descriptions in the final answer. A matching row count does not verify the values.
+
 ## Gotchas
 
 - Check `len(row)` before indexing into it; a short row raises `IndexError`.
