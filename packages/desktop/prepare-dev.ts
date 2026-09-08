@@ -3,7 +3,6 @@ import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { buildSidecar } from "./build-sidecar.js";
 import { prepareDevelopmentModelOutput } from "./package-output-cleanup.js";
-import { prepareDevelopmentAssets } from "./prepare-dev-assets.js";
 import { developmentResourceContract } from "./src/dev-resource-contract.js";
 
 const desktopRoot = fileURLToPath(new URL(".", import.meta.url));
@@ -38,7 +37,6 @@ async function resourcesAreCurrent(): Promise<boolean> {
   }
 }
 
-await prepareDevelopmentAssets();
 const resourcesCurrent = await resourcesAreCurrent();
 if (!resourcesCurrent) {
   console.log(

@@ -12,17 +12,35 @@ Clone the repository:
 git clone git@github.com:alex-alecu/garden-desk.git
 ```
 
-Open a terminal in the `garden-desk` folder and start the app:
+Open a terminal in the `garden-desk` folder. Run the setup command for your platform.
+
+**macOS (Apple silicon):**
+
+```sh
+bash setup.sh
+```
+
+**Windows x64 Pro or Enterprise with Hyper-V enabled:**
+
+Run this in standard PowerShell:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\setup.ps1
+```
+
+Setup uses the Node.js version in [.node-version](.node-version), pnpm in [package.json](package.json), and Rust in [rust-toolchain.toml](rust-toolchain.toml). It also checks the [Tauri platform tools](https://v2.tauri.app/start/prerequisites/) and Docker. It lists missing tools and asks before it installs or updates them. Official installers can request administrator approval. Complete their prompts. If an installer requires a restart, restart the computer and run setup again.
+
+After the tools are ready, setup asks before it installs locked project packages, downloads missing model and runtime files, builds the guest image, and starts the app. Docker must run Linux containers. The first setup needs an internet connection and can take a long time. Complete local assets are reused.
+
+For later starts, run:
 
 ```sh
 pnpm start
 ```
 
-This command installs the locked project dependencies, downloads missing model and runtime files, builds the missing guest image, and starts the full desktop app. Later starts reuse installed packages and complete local assets. The first start needs an internet connection and can take a long time.
+`pnpm start` uses the installed packages and assets. It rebuilds local application code when needed. Run setup again when dependencies or required assets change.
 
-Install Node.js **24.18.0**, pnpm **11.13.1**, Rust **1.97.0**, and the [Tauri platform build tools](https://v2.tauri.app/start/prerequisites/) first. Docker must be running with Linux containers when the guest image is missing.
-
-Use Apple silicon macOS or Windows x64 Pro or Enterprise with Hyper-V enabled. On Windows, use a standard PowerShell terminal. The first launch can request administrator approval to add your account to Hyper-V Administrators. Sign out and back in after that change, then run `pnpm start` again. macOS needs no administrator setup.
+On Windows, the first app launch can request administrator approval to add your account to Hyper-V Administrators. Sign out and back in after that change, then run `pnpm start` again. The desktop app runs as your normal user on both platforms.
 
 For source changes and platform notes, see the [development workflow](docs/DEVELOPMENT_WORKFLOW.md).
 
