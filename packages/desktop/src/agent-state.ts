@@ -33,6 +33,13 @@ function runTimeline(state: DesktopState, snapshot: AgentRunSnapshot, working: b
 function applySessionTitle(state: DesktopState, snapshot: AgentRunSnapshot): DesktopState {
   const title = snapshot.sessionTitle;
   if (title === undefined) return state;
+  const changesTitle = (session: SessionSummary) =>
+    session.id === snapshot.run.sessionId && session.title !== title;
+  if (
+    !state.globalSessions.some(changesTitle) &&
+    !state.folders.some((folder) => folder.sessions.some(changesTitle))
+  )
+    return state;
   const update = (session: SessionSummary) =>
     session.id === snapshot.run.sessionId ? { ...session, title } : session;
   return {
