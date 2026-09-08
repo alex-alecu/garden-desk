@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { constants, createReadStream } from "node:fs";
-import { copyFile, lstat, mkdir, readdir, readFile, rename, rm, stat } from "node:fs/promises";
+import { copyFile, cp, lstat, mkdir, readdir, readFile, rename, rm, stat } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import {
   canonicalModelPath,
@@ -134,6 +134,22 @@ async function modelFiles(root: string): Promise<string[]> {
 
 function developmentModelRoot(desktopRoot: string): string {
   return join(desktopRoot, "src-tauri", "target", "debug", "resources", "core", "models");
+}
+
+export async function prepareDevelopmentRuntimeOutput(desktopRoot: string): Promise<void> {
+  const source = join(desktopRoot, "src-tauri", "resources", "core", "inference");
+  const destination = join(
+    desktopRoot,
+    "src-tauri",
+    "target",
+    "debug",
+    "resources",
+    "core",
+    "inference",
+  );
+  // Replace the files to discard macOS signature state cached for the old executables.
+  await rm(destination, { recursive: true, force: true });
+  await cp(source, destination, { recursive: true });
 }
 
 async function outputIsCurrent(source: string, destination: string): Promise<boolean> {
