@@ -152,6 +152,41 @@ it("dispatches a Markdown review with one extraction and no tool authority or su
   }
 });
 
+it("gives a recovery step when a review chat has multiple documents", async () => {
+  const { catalog, conversations, service } = await fixture(
+    { chat: async () => chatResult("Review text.", []) },
+    async (request) => outputExecution(request, "1: Document text."),
+  );
+  try {
+    const session = conversations.createSession(null);
+    await service.addAttachment(
+      session.id,
+      fileURLToPath(new URL("../../../../prompts/commands/review.md", import.meta.url)),
+    );
+    await terminal(service, service.start(session.id, "/review").id);
+    await service.addAttachment(
+      session.id,
+      fileURLToPath(new URL("../../../../prompts/agents/primary.md", import.meta.url)),
+    );
+    const snapshot = await terminal(service, service.start(session.id, "/review").id);
+    expect(snapshot.run).toMatchObject({
+      state: "failed",
+      error: "agent_review_attachment_required",
+    });
+    expect(snapshot.events.at(-1)?.summary).toContain("start a new chat");
+    const newSession = conversations.createSession(null);
+    await service.addAttachment(
+      newSession.id,
+      fileURLToPath(new URL("../../../../prompts/agents/primary.md", import.meta.url)),
+    );
+    const recovered = await terminal(service, service.start(newSession.id, "/review").id);
+    expect(recovered.run.state).toBe("succeeded");
+  } finally {
+    await service.close();
+    catalog.close();
+  }
+});
+
 it("uses the model review heading for a new chat and preserves it on later reviews", async () => {
   const chat = vi
     .fn()
