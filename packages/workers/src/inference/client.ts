@@ -187,7 +187,11 @@ export class InferenceWorkerClient {
         : { detectedGpuMemoryBytes: gpu.detectedMemoryBytes }),
       contextSizeTokens: contextTokens,
       contextLimitTokens: fitted ? contextTokens : INFERENCE_PROFILE.contextTokens,
-      contextLimitReason: fitted ? "available_dedicated_memory" : "certified_standard",
+      contextLimitReason: fitted
+        ? gpu?.memoryKind === "unified"
+          ? "available_unified_memory"
+          : "available_dedicated_memory"
+        : "certified_standard",
       sequenceCount: 1,
     };
   }

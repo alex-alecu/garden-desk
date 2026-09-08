@@ -5,7 +5,7 @@ const GiB = 1024 * 1024 * 1024;
 
 describe("automatic inference hardware policy", () => {
   it.each([
-    [48, 16],
+    [48, 24],
     [32, 16],
     [24, 16],
   ])("uses a %d GiB Mac with a %d GiB model and context budget", (memory, budget) => {
@@ -32,7 +32,7 @@ describe("automatic inference hardware policy", () => {
   it("checks hardware before an explicit profile", () => {
     expect(resolveInferenceHardwarePolicy("local16", "darwin", 48 * GiB)).toEqual({
       supported: true,
-      memoryBudgetBytes: 16 * GiB,
+      memoryBudgetBytes: 24 * GiB,
     });
     expect(resolveInferenceHardwarePolicy("local16", "darwin", 16 * GiB).supported).toBe(false);
     expect(resolveInferenceHardwarePolicy("local16", "win32", 64 * GiB)).toEqual({

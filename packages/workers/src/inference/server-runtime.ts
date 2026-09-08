@@ -1,6 +1,8 @@
 import { INFERENCE_PROFILE } from "@gardendesk/shared";
 import type { NativeWorkerHandle, NativeWorkerLauncher } from "../native/launcher.js";
 import { contextArguments, readServerContextTokens, waitForServer } from "./server-context.js";
+import { unifiedFitMarginMiB } from "./server-device-memory.js";
+import { ServerError } from "./server-http.js";
 import { observeServerMemory, type ServerAllocations } from "./server-memory.js";
 
 // biome-ignore lint/complexity/noExcessiveLinesPerFunction: keep the fixed runtime arguments together.
@@ -11,6 +13,7 @@ export function serverArguments(input: {
   embedding?: boolean;
   projectorPath?: string;
   fitContext?: boolean;
+  fitMarginMiB?: number;
 }): string[] {
   const device = { metal: "MTL0", cuda: "CUDA0", vulkan: "Vulkan0" }[input.backend];
   const cacheType = input.embedding ? "f16" : input.backend === "metal" ? "q8_0" : "q4_0";
@@ -86,9 +89,11 @@ export async function startServer(
   }
 > {
   const fitContext =
-    launcher.gpu?.memoryKind === "dedicated" &&
-    !input.embedding &&
-    input.projectorPath === undefined;
+    launcher.gpu?.memoryKind !== undefined && !input.embedding && input.projectorPath === undefined;
+  const fitMarginMiB =
+    fitContext && launcher.gpu?.memoryKind === "unified"
+      ? await unifiedFitMarginMiB(launcher, entryPath, input.memoryBudgetBytes, signal)
+      : 512;
   const handle = await launcher.launch({
     workerEntryPath: entryPath,
     memoryBudgetBytes: input.memoryBudgetBytes,
@@ -99,6 +104,7 @@ export async function startServer(
     serverArguments: serverArguments({
       ...input,
       fitContext,
+      fitMarginMiB,
       backend: launcher.gpu?.backend ?? "metal",
     }),
   });
@@ -108,6 +114,12 @@ export async function startServer(
     const contextTokens = fitContext
       ? await readServerContextTokens(handle, input.contextTokens, signal)
       : input.contextTokens;
+    if (
+      fitContext &&
+      launcher.gpu?.memoryKind === "unified" &&
+      Object.values(memory()).reduce((sum, bytes) => sum + bytes, 0) > input.memoryBudgetBytes
+    )
+      throw new ServerError("out_of_memory");
     return Object.assign(handle, { memory, contextTokens, contextFitted: fitContext });
   } catch (error) {
     await handle.dispose();

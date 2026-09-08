@@ -13,6 +13,7 @@ export const GenerationContextLimitReasonSchema = z.enum([
   "dedicated_memory_above_24_gib",
   "certified_standard",
   "available_dedicated_memory",
+  "available_unified_memory",
 ]);
 
 const JsonSchemaSchema = z.record(z.string(), z.unknown());

@@ -1,9 +1,11 @@
 import { EventEmitter } from "node:events";
 import { PassThrough } from "node:stream";
-import { StructuredGenerationRequestSchema } from "@gardendesk/shared";
+import { StructuredGenerationRequestSchema, unifiedInferenceBudget } from "@gardendesk/shared";
 import { describe, expect, it, vi } from "vitest";
 import type { NativeWorkerHandle, NativeWorkerLaunchRequest } from "../native/launcher.js";
+import { resolveIntegratedGpuBudget } from "../native/windows-gpu-policy.js";
 import { InferenceWorkerClient } from "./client.js";
+import { generationContextTokens } from "./server-context.js";
 import * as serverHttp from "./server-http.js";
 import { observeServerMemory } from "./server-memory.js";
 import { serverArguments } from "./server-runtime.js";
@@ -123,6 +125,24 @@ const fittingRequest = StructuredGenerationRequestSchema.parse({
   ...request,
   contextSize: "auto",
   maxTokens: 16,
+});
+
+it("uses the shared RAM tiers and a 64K ceiling on Metal and Vulkan", () => {
+  for (const [ram, budget] of [
+    [16, undefined],
+    [24, 16],
+    [32, 16],
+    [36, 24],
+  ] as const) {
+    const bytes = budget === undefined ? undefined : budget * 1024 ** 3;
+    expect(unifiedInferenceBudget(ram * 1024 ** 3)).toBe(bytes);
+    expect(resolveIntegratedGpuBudget(ram * 1024 ** 3, 48 * 1024 ** 3)).toBe(bytes);
+  }
+  for (const backend of ["metal", "vulkan"] as const) {
+    const gpu = { backend, memoryKind: "unified", detectedMemoryBytes: 128 * 1024 ** 3 } as const;
+    expect(generationContextTokens("auto", gpu)).toBe(65_536);
+    expect(() => generationContextTokens(65_537, gpu)).toThrow("context_size_exceeds_hardware_cap");
+  }
 });
 
 it("uses the fitted dedicated GPU context and stops when it cannot fit", async () => {

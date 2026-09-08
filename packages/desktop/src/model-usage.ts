@@ -28,6 +28,8 @@ function contextLimitExplanation(reason: GenerationContextLimitReason): string {
       return "This platform uses the certified standard context cap.";
     case "available_dedicated_memory":
       return "The context fits the available dedicated GPU memory.";
+    case "available_unified_memory":
+      return "The context fits the shared memory budget and available RAM and GPU memory.";
   }
 }
 

@@ -12,14 +12,20 @@ export function generationContextTokens(
       ? (gpu.detectedMemoryBytes ?? 0) > 24 * 1024 ** 3
         ? 131_072
         : 65_536
-      : INFERENCE_PROFILE.contextTokens;
+      : gpu?.memoryKind === "unified"
+        ? 65_536
+        : INFERENCE_PROFILE.contextTokens;
   if (requested === "auto") return maximum;
   if (requested > maximum)
     throw new ServerError("invalid_argument", "context_size_exceeds_hardware_cap");
   return requested;
 }
 
-export function contextArguments(input: { contextTokens: number; fitContext?: boolean }): string[] {
+export function contextArguments(input: {
+  contextTokens: number;
+  fitContext?: boolean;
+  fitMarginMiB?: number;
+}): string[] {
   if (!input.fitContext) return ["--fit", "off", "--ctx-size", String(input.contextTokens)];
   return [
     "--ctx-size",
@@ -29,7 +35,7 @@ export function contextArguments(input: { contextTokens: number; fitContext?: bo
     "--fit-ctx",
     String(Math.min(input.contextTokens, 8192)),
     "--fit-target",
-    "512",
+    String(input.fitMarginMiB ?? 512),
     "--override-kv",
     `qwen35.context_length=int:${input.contextTokens}`,
     "--yarn-orig-ctx",

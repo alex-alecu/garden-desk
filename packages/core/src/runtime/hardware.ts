@@ -1,5 +1,9 @@
 import { totalmem } from "node:os";
-import { INFERENCE_PROFILE, type InferenceProfile } from "@gardendesk/shared";
+import {
+  INFERENCE_PROFILE,
+  type InferenceProfile,
+  unifiedInferenceBudget,
+} from "@gardendesk/shared";
 
 const GiB = 1024 * 1024 * 1024;
 const AGENT_GUEST_MEMORY_BYTES = 4 * GiB;
@@ -20,13 +24,14 @@ export function resolveInferenceHardwarePolicy(
   if (platform !== "darwin") {
     return { supported: false, message: "This operating system is not supported." };
   }
-  if (totalMemoryBytes < INFERENCE_PROFILE.minimumUnifiedMemoryBytes) {
+  const memoryBudgetBytes = unifiedInferenceBudget(totalMemoryBytes);
+  if (memoryBudgetBytes === undefined) {
     return {
       supported: false,
       message: "Garden Desk requires a Mac with at least 24 GB of memory.",
     };
   }
-  return { supported: true, memoryBudgetBytes: 16 * GiB };
+  return { supported: true, memoryBudgetBytes };
 }
 
 export function resolveAgentSessionCapacity(

@@ -1,4 +1,4 @@
-import { INFERENCE_PROFILE } from "@gardendesk/shared";
+import { INFERENCE_PROFILE, unifiedInferenceBudget } from "@gardendesk/shared";
 import type { WindowsGpuLaunch } from "./windows.js";
 
 const MAX_GPU_DEVICES = 64;
@@ -101,9 +101,9 @@ export function resolveIntegratedGpuBudget(
   installedMemoryBytes: number,
   detectedMemoryBytes: number,
 ): number | undefined {
-  return installedMemoryBytes >= INFERENCE_PROFILE.minimumUnifiedMemoryBytes &&
-    detectedMemoryBytes >= INFERENCE_PROFILE.memoryBudgetBytes
-    ? INFERENCE_PROFILE.memoryBudgetBytes
+  const budget = unifiedInferenceBudget(installedMemoryBytes);
+  return budget !== undefined && detectedMemoryBytes >= INFERENCE_PROFILE.memoryBudgetBytes
+    ? Math.min(budget, detectedMemoryBytes)
     : undefined;
 }
 export function resolveWindowsGpuMemoryProfile(
@@ -112,8 +112,9 @@ export function resolveWindowsGpuMemoryProfile(
   installedMemoryBytes: number,
   availableMemoryBytes = detectedMemoryBytes,
 ): { hostMemoryReservationBytes: number; memoryBudgetBytes: number } | undefined {
+  if (integrated && availableMemoryBytes < INFERENCE_PROFILE.memoryBudgetBytes) return undefined;
   const memoryBudgetBytes = integrated
-    ? resolveIntegratedGpuBudget(installedMemoryBytes, availableMemoryBytes)
+    ? resolveIntegratedGpuBudget(installedMemoryBytes, detectedMemoryBytes)
     : detectedMemoryBytes >= INFERENCE_PROFILE.minimumDedicatedMemoryBytes
       ? detectedMemoryBytes
       : undefined;
@@ -121,7 +122,7 @@ export function resolveWindowsGpuMemoryProfile(
   return {
     memoryBudgetBytes,
     hostMemoryReservationBytes: integrated
-      ? INFERENCE_PROFILE.memoryBudgetBytes
+      ? memoryBudgetBytes
       : INFERENCE_PROFILE.windowsDedicatedHostMemoryBytes,
   };
 }

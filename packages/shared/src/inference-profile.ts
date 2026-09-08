@@ -11,3 +11,8 @@ export const INFERENCE_PROFILE = {
   minimumDedicatedMemoryBytes: 16_000_000_000,
   runtimeBuild: "llama.cpp@b10816",
 } as const;
+
+export function unifiedInferenceBudget(installedMemoryBytes: number): number | undefined {
+  if (installedMemoryBytes < INFERENCE_PROFILE.minimumUnifiedMemoryBytes) return undefined;
+  return (installedMemoryBytes >= 36 * 1024 ** 3 ? 24 : 16) * 1024 ** 3;
+}
