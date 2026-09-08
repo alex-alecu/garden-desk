@@ -216,7 +216,6 @@ export class AgentService {
     let releaseCapacity: (() => void) | undefined;
     let measuredContextTokens: number | undefined;
     try {
-      const command = this.commands.resolve(task);
       await this.summaryQueue.waitFor(run.sessionId, signal);
       releaseCapacity = await this.runCapacity.acquire(signal);
       signal.throwIfAborted();
@@ -229,6 +228,7 @@ export class AgentService {
           "Offline limits: live read-only source, 120 seconds per guest execution, 4 CPUs, 4 GiB memory, and a persistent 128 MiB workspace.",
         );
       })();
+      const command = this.commands.resolve(task);
       const messages = this.conversations.listMessages(run.sessionId);
       const anchored = this.summaries.load(run.sessionId);
       const history = {

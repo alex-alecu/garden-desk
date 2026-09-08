@@ -68,6 +68,25 @@ function completedAuditExecutionCounts(database: DatabasePort) {
 
 afterEach(cleanServiceFixtures);
 
+it("ends an unknown command with a recorded failure", async () => {
+  const { catalog, conversations, service } = await fixture({}, artifactExecution);
+  try {
+    const run = service.start(conversations.createSession(null).id, "/missing");
+    const snapshot = await terminal(service, run.id);
+    expect(snapshot.run).toMatchObject({ state: "failed", error: "command_not_found" });
+    expect(snapshot.events.at(-1)).toMatchObject({
+      type: "run.failed",
+      summary: "This command is not available. Type / to see the command list.",
+    });
+    expect(
+      catalog.database.prepare("SELECT state FROM jobs WHERE id = ?").get(run.jobId),
+    ).toMatchObject({ state: "failed" });
+  } finally {
+    await service.close();
+    catalog.close();
+  }
+});
+
 // biome-ignore lint/complexity/noExcessiveLinesPerFunction: one boundary test covers completion and a rejected tool call.
 it("dispatches a Markdown review with one extraction and no tool authority or summary", async () => {
   const commands = new CommandLibrary(
