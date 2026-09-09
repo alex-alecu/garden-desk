@@ -3,6 +3,7 @@ import type {
   AgentRunSummary,
   AgentTrace,
   AttachmentSummary,
+  CommandSummary,
   ConversationMessage,
   FolderSummary,
   ModelRuntimeStatus,
@@ -18,6 +19,7 @@ export interface FolderSessionPage {
 
 export interface DesktopBootstrap {
   catalogPath: string;
+  commands: CommandSummary[];
   folders: FolderSummary[];
   globalSessions: SessionPage;
   folderSessions: FolderSessionPage[];

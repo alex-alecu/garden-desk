@@ -36,6 +36,7 @@ describe("desktop navigation state", () => {
       type: "desktop.hydrate",
       snapshot: {
         catalogPath: "/tmp/state/.garden-desk/catalog.sqlite",
+        commands: [],
         folders: [folder],
         globalSessions: { items: [], nextCursor: null },
         folderSessions: [
@@ -141,6 +142,34 @@ describe("global desktop sessions", () => {
     });
     expect(state.globalSessions[0]?.title).toBe("Restore this conversation");
   });
+});
+
+it("retains session lists when a polled title is unchanged", () => {
+  const state = {
+    ...initialDesktopState,
+    globalSessions: [{ ...secondSession, folderId: null }],
+    folders: [{ ...folder, sessions: [firstSession], expanded: true, nextCursor: null }],
+  };
+  const snapshot = AgentRunSnapshotSchema.parse({
+    run: {
+      id: "77ff5b22-555d-4ef2-9170-fdd7118738f1",
+      sessionId: firstSession.id,
+      jobId: "ea31a359-3b01-4d54-9950-e3d46e807381",
+      state: "running",
+      response: null,
+      error: null,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    },
+    sessionTitle: "Review Agreement",
+    events: [],
+    artifacts: [],
+  });
+  const titled = desktopReducer(state, { type: "agent.snapshot", snapshot });
+  expect(titled.folders[0]?.sessions[0]?.title).toBe("Review Agreement");
+  const polled = desktopReducer(titled, { type: "agent.snapshot", snapshot });
+  expect(polled.globalSessions).toBe(titled.globalSessions);
+  expect(polled.folders).toBe(titled.folders);
 });
 
 describe("background agent updates", () => {

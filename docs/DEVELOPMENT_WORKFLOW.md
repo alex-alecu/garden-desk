@@ -109,3 +109,9 @@ The workflow review was informed by [Everything Claude Code](https://github.com/
 ## Contribution Activation
 
 External implementation contributions stay closed through the M3 V1 launch unless the owner activates them separately. Pull-request CI runs on pull request activity; direct pushes to `main` do not run it. Activation is described in [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md#v1-launch-and-contribution-activation). Private vulnerability reporting may be enabled before v1.
+
+## Commands
+
+Type `/` in the message box to see command names and descriptions. Filter with text, use Up/Down to select, and press Enter or Tab to insert. Escape closes the list. `/review` requires exactly one attachment and returns a text review in chat. Restart desktop development after a command or Core change so the packaged resources and desktop use the same version.
+
+To add a prompt command, create `prompts/commands/<name>.md` with a short, unquoted `description:` in `---` frontmatter and instructions in the body. The filename supplies the command name. `$ARGUMENTS` inserts the user's remaining request; without it, the request follows the body. Commands use the normal agent by default. A fixed workflow needs a handler under `packages/core/src/commands/`; `review.md` shows `workflow: document-review`. Commands load at Core startup. Do not load command definitions from selected folders or attachments.

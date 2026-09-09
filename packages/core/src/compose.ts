@@ -5,6 +5,7 @@ import { MarkdownDefinitionLibrary } from "./agent/markdown-definition-library.j
 import { AgentService } from "./agent/service.js";
 import { AgentStore } from "./agent/store.js";
 import { AuditLog } from "./audit/log.js";
+import { CommandLibrary } from "./commands/library.js";
 import {
   addFolderGrant,
   deleteConversationSession,
@@ -118,6 +119,7 @@ function createConversationPorts(
 }
 
 interface CoreServices {
+  commands: CommandLibrary;
   catalog: ReturnType<typeof openWorkspaceCatalog>;
   workspace: WorkspaceStatus["workspace"];
   audit: AuditLog;
@@ -136,6 +138,7 @@ function assembleGardenDeskCore(services: CoreServices): GardenDeskCore {
   };
   audit.append({ type: "core.opened", outcome: "succeeded", metadata: {} });
   return createFacade({
+    listCommands: async () => services.commands.list(),
     status: async () => ({
       workspace,
       catalogSchemaVersion: catalog.schemaVersion,
@@ -222,6 +225,7 @@ export async function createGardenDeskCore(
   options: GardenDeskCoreOptions,
 ): Promise<GardenDeskCore> {
   const promptDirectory = resolve(options.promptDirectory ?? "prompts");
+  const commands = new CommandLibrary(resolve(promptDirectory, "commands"));
   const scope = await WorkspaceScope.create(resolve(options.workspaceDir));
   const workspaceRoot = scope.root;
   const catalog = openWorkspaceCatalog(workspaceRoot, {
@@ -269,12 +273,14 @@ export async function createGardenDeskCore(
           audit,
           agentSessionCapacity,
           new MarkdownDefinitionLibrary(promptDirectory),
+          commands,
         );
   const restoredSessionId = conversations.mostRecentSessionId();
   if (agent !== undefined && restoredSessionId !== undefined) {
     warmConversationSession(agent, audit, restoredSessionId);
   }
   return assembleGardenDeskCore({
+    commands,
     catalog,
     workspace,
     audit,

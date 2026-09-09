@@ -3,6 +3,7 @@ import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { buildSidecar } from "./build-sidecar.js";
 import { prepareDevelopmentModelOutput } from "./package-output-cleanup.js";
+import { prepareDevelopmentRuntimeOutput } from "./prepare-dev-runtime.js";
 import { developmentResourceContract } from "./src/dev-resource-contract.js";
 
 const desktopRoot = fileURLToPath(new URL(".", import.meta.url));
@@ -44,6 +45,7 @@ if (!resourcesCurrent) {
   );
   await buildSidecar("development");
 }
+if (process.platform === "darwin") await prepareDevelopmentRuntimeOutput(desktopRoot);
 await prepareDevelopmentModelOutput(desktopRoot, repositoryRoot);
 console.log(
   resourcesCurrent

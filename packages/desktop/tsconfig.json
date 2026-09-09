@@ -19,6 +19,7 @@
     "package-image-resources.ts",
     "package-output-cleanup.ts",
     "prepare-dev-assets.ts",
+    "prepare-dev-runtime.ts",
     "vite.config.ts",
     "site.vite.config.ts"
   ]

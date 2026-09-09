@@ -6,6 +6,7 @@ import type {
   AgentRunSummary,
   AgentTrace,
   AttachmentSummary,
+  CommandSummary,
   ConversationMessage,
   FolderSummary,
   SessionPage,
@@ -23,6 +24,7 @@ export type { FolderGroup, TimelineItem } from "./state-types.js";
 
 export interface DesktopState {
   catalogPath: string;
+  commands: CommandSummary[];
   folders: FolderGroup[];
   globalSessions: SessionSummary[];
   activeSessionId: string | undefined;
@@ -90,6 +92,7 @@ function hydrate(state: DesktopState, snapshot: DesktopBootstrap): DesktopState 
   return {
     ...state,
     catalogPath: snapshot.catalogPath,
+    commands: snapshot.commands,
     loaded: true,
     folders: snapshot.folders.map((folder) => {
       const page = pages.get(folder.id);
@@ -229,9 +232,7 @@ export function desktopReducer(state: DesktopState, action: DesktopAction): Desk
       ...(state.pendingSessionId === action.sessionId ? { pendingSessionId: undefined } : {}),
     };
   }
-  if (action.type === "session.new") {
-    return { ...state, ...emptyConversation(action.folderId) };
-  }
+  if (action.type === "session.new") return { ...state, ...emptyConversation(action.folderId) };
   if (action.type === "session.select") {
     return { ...state, pendingSessionId: action.sessionId };
   }
