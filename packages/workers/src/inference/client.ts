@@ -18,6 +18,7 @@ import {
   ResidentWorker,
 } from "./resident-worker.js";
 import { chatBody, completeChat } from "./server-chat.js";
+import { generationContextTokens } from "./server-context.js";
 import { ServerError, serverRequest } from "./server-http.js";
 import { startServer } from "./server-runtime.js";
 
@@ -140,7 +141,9 @@ export class InferenceWorkerClient {
     const modelPath = execution.modelPath;
     if (modelPath === undefined) throw new ServerError("invalid_argument");
     const contextTokens =
-      request.contextSize === "auto" ? INFERENCE_PROFILE.contextTokens : request.contextSize;
+      request.operation === "embed"
+        ? request.contextSize
+        : generationContextTokens(request.contextSize, this.launcher.gpu);
     const embedding = request.operation === "embed";
     if (
       this.resident &&
@@ -172,7 +175,7 @@ export class InferenceWorkerClient {
     return this.resident;
   }
 
-  private memory(contextTokens: number, budgetBytes: number) {
+  private memory(contextTokens: number, budgetBytes: number, fitted: boolean) {
     const gpu = this.launcher.gpu;
     return {
       budgetBytes,
@@ -183,8 +186,12 @@ export class InferenceWorkerClient {
         ? {}
         : { detectedGpuMemoryBytes: gpu.detectedMemoryBytes }),
       contextSizeTokens: contextTokens,
-      contextLimitTokens: INFERENCE_PROFILE.contextTokens,
-      contextLimitReason: "certified_standard",
+      contextLimitTokens: fitted ? contextTokens : INFERENCE_PROFILE.contextTokens,
+      contextLimitReason: fitted
+        ? gpu?.memoryKind === "unified"
+          ? "available_unified_memory"
+          : "available_dedicated_memory"
+        : "certified_standard",
       sequenceCount: 1,
     };
   }
@@ -195,13 +202,16 @@ export class InferenceWorkerClient {
     resident: ResidentServer,
     signal: AbortSignal,
   ) {
-    const { handle, contextTokens } = resident;
+    const { handle } = resident;
     const base = {
       protocolVersion: 2,
       requestId: request.requestId,
       status: "ok",
       operation: request.operation,
-      memory: { ...this.memory(contextTokens, execution.memoryBudgetBytes), ...handle.memory() },
+      memory: {
+        ...this.memory(handle.contextTokens, execution.memoryBudgetBytes, handle.contextFitted),
+        ...handle.memory(),
+      },
     };
     if (request.operation === "embed")
       return InferenceWorkerResponseSchema.parse({

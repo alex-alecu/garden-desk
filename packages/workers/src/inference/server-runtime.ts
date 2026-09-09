@@ -1,7 +1,8 @@
-import { setTimeout as delay } from "node:timers/promises";
 import { INFERENCE_PROFILE } from "@gardendesk/shared";
 import type { NativeWorkerHandle, NativeWorkerLauncher } from "../native/launcher.js";
-import { ServerError, serverFailure, serverRequest } from "./server-http.js";
+import { contextArguments, readServerContextTokens, waitForServer } from "./server-context.js";
+import { unifiedFitMarginMiB } from "./server-device-memory.js";
+import { ServerError } from "./server-http.js";
 import { observeServerMemory, type ServerAllocations } from "./server-memory.js";
 
 // biome-ignore lint/complexity/noExcessiveLinesPerFunction: keep the fixed runtime arguments together.
@@ -11,8 +12,11 @@ export function serverArguments(input: {
   contextTokens: number;
   embedding?: boolean;
   projectorPath?: string;
+  fitContext?: boolean;
+  fitMarginMiB?: number;
 }): string[] {
   const device = { metal: "MTL0", cuda: "CUDA0", vulkan: "Vulkan0" }[input.backend];
+  const cacheType = input.embedding ? "f16" : input.backend === "metal" ? "q8_0" : "q4_0";
   return [
     "--model",
     input.modelPath,
@@ -21,8 +25,7 @@ export function serverArguments(input: {
     "--no-ui-mcp-proxy",
     "--no-warmup",
     "--jinja",
-    "--fit",
-    "off",
+    ...contextArguments(input),
     "--gpu-layers",
     "all",
     "--override-tensor",
@@ -33,8 +36,6 @@ export function serverArguments(input: {
     "0",
     "--flash-attn",
     "on",
-    "--ctx-size",
-    String(input.contextTokens),
     "--parallel",
     "1",
     "--no-context-shift",
@@ -44,9 +45,9 @@ export function serverArguments(input: {
     "--ubatch-size",
     String(input.embedding ? input.contextTokens : 256),
     "--cache-type-k",
-    input.embedding ? "f16" : input.backend === "metal" ? "q8_0" : "q4_0",
+    cacheType,
     "--cache-type-v",
-    input.embedding ? "f16" : input.backend === "metal" ? "q8_0" : "q4_0",
+    cacheType,
     "--ctx-checkpoints",
     "2",
     "--checkpoint-min-step",
@@ -54,7 +55,9 @@ export function serverArguments(input: {
     "--cache-ram",
     "0",
     "--log-verbosity",
-    "3",
+    "4",
+    "--spec-type",
+    "none",
     ...(input.embedding ? ["--embedding", "--pooling", "last"] : []),
     ...(input.projectorPath === undefined
       ? []
@@ -78,7 +81,19 @@ export async function startServer(
     projectorPath?: string;
   },
   signal: AbortSignal,
-): Promise<NativeWorkerHandle & { memory(): ServerAllocations }> {
+): Promise<
+  NativeWorkerHandle & {
+    contextTokens: number;
+    contextFitted: boolean;
+    memory(): ServerAllocations;
+  }
+> {
+  const fitContext =
+    launcher.gpu?.memoryKind !== undefined && !input.embedding && input.projectorPath === undefined;
+  const fitMarginMiB =
+    fitContext && launcher.gpu?.memoryKind === "unified"
+      ? await unifiedFitMarginMiB(launcher, entryPath, input.memoryBudgetBytes, signal)
+      : 512;
   const handle = await launcher.launch({
     workerEntryPath: entryPath,
     memoryBudgetBytes: input.memoryBudgetBytes,
@@ -86,43 +101,28 @@ export async function startServer(
       input.modelPath,
       ...(input.projectorPath === undefined ? [] : [input.projectorPath]),
     ],
-    serverArguments: serverArguments({ ...input, backend: launcher.gpu?.backend ?? "metal" }),
+    serverArguments: serverArguments({
+      ...input,
+      fitContext,
+      fitMarginMiB,
+      backend: launcher.gpu?.backend ?? "metal",
+    }),
   });
   const memory = observeServerMemory(handle);
-  let ready = false;
-  let stopped = false;
-  let failure = new ServerError("worker_crash");
-  let pending = "";
-  const output = (chunk: Buffer) => {
-    pending = (pending + chunk.toString()).slice(-65_536);
-    ready ||= pending.includes("listening on unix://");
-    failure = serverFailure(pending);
-    if (ready) pending = "";
-  };
-  handle.process.stdout.on("data", output);
-  handle.process.stderr.on("data", output);
-  handle.process.once("error", () => {
-    stopped = true;
-  });
-  handle.process.once("close", () => {
-    stopped = true;
-  });
   try {
-    while (!ready) {
-      signal.throwIfAborted();
-      if (stopped) throw failure;
-      await delay(25, undefined, { signal });
-    }
-    await serverRequest(handle, "/health", undefined, { signal });
-    return Object.assign(handle, { memory });
+    await waitForServer(handle, fitContext, signal);
+    const contextTokens = fitContext
+      ? await readServerContextTokens(handle, input.contextTokens, signal)
+      : input.contextTokens;
+    if (
+      fitContext &&
+      launcher.gpu?.memoryKind === "unified" &&
+      Object.values(memory()).reduce((sum, bytes) => sum + bytes, 0) > input.memoryBudgetBytes
+    )
+      throw new ServerError("out_of_memory");
+    return Object.assign(handle, { memory, contextTokens, contextFitted: fitContext });
   } catch (error) {
     await handle.dispose();
     throw error;
-  } finally {
-    pending = "";
-    handle.process.stdout.off("data", output);
-    handle.process.stderr.off("data", output);
-    handle.process.stdout.resume();
-    handle.process.stderr.resume();
   }
 }
