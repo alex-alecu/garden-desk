@@ -29,6 +29,7 @@ interface IconProps {
     | "subagent"
     | "terminal"
     | "thinking"
+    | "timeline"
     | "trash"
     | "unmount";
 }
@@ -65,6 +66,7 @@ const paths: Record<IconProps["name"], string> = {
   terminal: "M4 5h16v14H4zM7 9l3 3-3 3M13 15h4",
   thinking:
     "M9 18h6M10 21h4M12 3a6 6 0 0 1 4 10.5c-.6.6-1 1.4-1 2.5H9c0-1.1-.4-1.9-1-2.5A6 6 0 0 1 12 3z",
+  timeline: "M6 3v18M4 5h4v4H4zM4 15h4v4H4zM11 7h9M11 17h9",
   trash: "M5 7h14M9 7V4h6v3m-8 0 1 13h8l1-13M10 10v7m4-7v7",
   unmount: "M12 5 5 15h14L12 5zM5 19h14",
 };

@@ -937,6 +937,10 @@ textarea:focus-visible {
   color: light-dark(#2866a3, #8ebdf4);
 }
 
+.specialist-gold {
+  color: light-dark(#916400, #e2bd62);
+}
+
 .specialist-run-text {
   display: grid;
   flex: 1;
