@@ -9,6 +9,7 @@ import type {
 } from "@gardendesk/shared";
 import type { CodeAgentLauncher } from "@gardendesk/workers";
 import type { AuditLog } from "../audit/log.js";
+import { CommandLibrary } from "../commands/library.js";
 import type { ConversationStore } from "../conversations/store.js";
 import type { JobStore } from "../jobs/jobs.js";
 import type { InferenceService } from "../runtime/inference.js";
@@ -29,6 +30,7 @@ import { AgentImageInspector } from "./service-image.js";
 import {
   agentFailureEvent,
   agentFailureText,
+  agentHistory,
   inferenceRunContext,
   runPerformance,
 } from "./service-results.js";
@@ -61,6 +63,7 @@ export class AgentService {
     private readonly audit: AuditLog,
     maximumConcurrentRuns = 1,
     private readonly definitions = new MarkdownDefinitionLibrary(resolve(process.cwd(), "prompts")),
+    private readonly commands = new CommandLibrary(resolve(process.cwd(), "prompts/commands")),
   ) {
     this.artifactMaterializer = new ArtifactMaterializer(database, artifacts, audit);
     this.images = new AgentImageInspector(database, store, inference);
@@ -155,7 +158,8 @@ export class AgentService {
     return run;
   }
   snapshot(runId: string): AgentRunSnapshot {
-    return activeRunSnapshot(this.store, this.active.values(), runId);
+    const snapshot = activeRunSnapshot(this.store, this.active.values(), runId);
+    return { ...snapshot, sessionTitle: this.conversations.getTitle(snapshot.run.sessionId) };
   }
   settleQuestion = (runId: string, questionId: string, answers?: string[][]): boolean =>
     settleActiveQuestion(this.active, runId, questionId, answers);
@@ -222,31 +226,26 @@ export class AgentService {
         this.store.appendEvent(
           run.id,
           "run.started",
-          "Offline limits: live read-only source, 40 model turns, 120 seconds per guest execution, 4 CPUs, 4 GiB memory, and a persistent 128 MiB workspace.",
+          "Offline limits: live read-only source, at most 40 model turns, 120 seconds per guest execution, 4 CPUs, 4 GiB memory, and a persistent 128 MiB workspace.",
         );
       })();
+      const command = this.commands.resolve(task);
       const messages = this.conversations.listMessages(run.sessionId);
       const anchored = this.summaries.load(run.sessionId);
-      const history = {
-        messages:
-          anchored === undefined
-            ? messages.slice(0, -1)
-            : messages.slice(anchored.coveredMessageCount, -1),
-        ...(anchored === undefined ? {} : { summary: anchored.text }),
-      };
       if (this.inference.chat === undefined) throw new Error("agent_chat_unavailable");
-      const inferenceRun = await inferenceRunContext(this.inference);
       const result = await runPrimaryAgent({
+        ...(command === undefined ? {} : { command }),
         chat: this.inference.chat.bind(this.inference),
         contextTokens: "auto",
         database: this.database,
         definitions: this.definitions,
-        history,
+        history: agentHistory(messages, anchored),
         inspectImage: this.images.forRun(run.sessionId, signal),
         jobs: this.jobs,
-        ...inferenceRun,
+        ...(await inferenceRunContext(this.inference)),
         onThinking: (thinking) => this.updateActive(run.jobId, { thinking }),
         onResponse: (response) => this.updateActive(run.jobId, { response }),
+        onSessionTitle: (title) => this.conversations.setInitialTitle(run.sessionId, title),
         onContext: (contextUsedTokens, contextAllocatedTokens, measured) => {
           if (measured) measuredContextTokens = contextAllocatedTokens;
           this.updateActive(run.jobId, { contextUsedTokens, contextAllocatedTokens });
@@ -281,7 +280,8 @@ export class AgentService {
         executions: this.store.execution.list(run.id).length,
         guestExecutions: result.guestExecutions,
       });
-      this.summaryQueue.enqueue(run, signal, measuredContextTokens);
+      if (command === undefined || command.workflow === "agent")
+        this.summaryQueue.enqueue(run, signal, measuredContextTokens);
     } catch (error) {
       this.failRun(run, signal, error);
     } finally {

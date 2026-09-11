@@ -33,6 +33,7 @@ pub(crate) async fn desktop_bootstrap(core: State<'_, CoreBridge>) -> Result<Val
     }
     Ok(json!({
         "catalogPath": catalog_path,
+        "commands": core.call("commands.list", json!({}))?,
         "folders": folders,
         "globalSessions": global_sessions,
         "folderSessions": folder_sessions,

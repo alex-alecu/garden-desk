@@ -1,4 +1,4 @@
-import type { AgentExecutionResult, ChatGenerationResult } from "@gardendesk/shared";
+import type { ChatGenerationResult } from "@gardendesk/shared";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { ChatInput } from "../runtime/inference.js";
 import type { DatabasePort } from "../workspace/database.js";
@@ -10,30 +10,12 @@ import {
   chatResult,
   cleanServiceFixtures,
   fixture,
+  outputExecution,
   pendingQuestion,
   questionInference,
   successfulInference,
   terminal,
 } from "./service-test-support.js";
-
-function outputExecution(
-  request: Parameters<typeof artifactExecution>[0],
-  stdout: string,
-): AgentExecutionResult {
-  if (request.language === "shell") throw new Error("unexpected_shell");
-  return {
-    language: request.language,
-    path: request.path,
-    source: request.path.startsWith("/source/") ? null : (request.source ?? "print('resolved')"),
-    command: null,
-    exitCode: 0,
-    stdout,
-    stderr: "",
-    durationMs: 1,
-    termination: "completed",
-    artifacts: [],
-  };
-}
 
 function largeOutputInference() {
   let turn = 0;
@@ -65,6 +47,20 @@ function completedAuditExecutionCounts(database: DatabasePort) {
 }
 
 afterEach(cleanServiceFixtures);
+
+it("records the model-turn cap in the run limits", async () => {
+  const { catalog, conversations, service } = await fixture(
+    { chat: async () => chatResult("Done.", []) },
+    artifactExecution,
+  );
+  const run = service.start(conversations.createSession(null).id, "Read the document");
+  const snapshot = await terminal(service, run.id);
+  await service.close();
+  catalog.close();
+  expect(snapshot.events.find((event) => event.type === "run.started")?.summary).toContain(
+    "at most 40 model turns",
+  );
+});
 
 describe("persisted chat agent success", () => {
   it("commits tool evidence, a response, and a generated artifact", async () => {

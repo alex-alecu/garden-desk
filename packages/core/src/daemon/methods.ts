@@ -163,9 +163,7 @@ async function removeAttachment(core: GardenDeskCore, request: RpcRequest): Prom
   const sessionId = sessionIdParam(request);
   const attachmentId = AttachmentIdSchema.safeParse(request.params.attachmentId);
   if (!attachmentId.success) return failure(request, "invalid_request", "Invalid attachment id.");
-  return success(request, {
-    removed: await core.removeAttachment(sessionId, attachmentId.data),
-  });
+  return success(request, { removed: await core.removeAttachment(sessionId, attachmentId.data) });
 }
 
 async function startAgent(core: GardenDeskCore, request: RpcRequest): Promise<RpcResponse> {
@@ -217,6 +215,8 @@ async function cancelJob(core: GardenDeskCore, request: RpcRequest): Promise<Rpc
 // biome-ignore lint/complexity/noExcessiveLinesPerFunction: the exhaustive protocol switch keeps routing explicit.
 async function dispatchMethod(core: GardenDeskCore, request: RpcRequest): Promise<RpcResponse> {
   switch (request.method) {
+    case "commands.list":
+      return success(request, await core.listCommands());
     case "status":
       return success(request, await core.status());
     case "folders.add":

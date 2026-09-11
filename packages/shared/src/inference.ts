@@ -80,6 +80,7 @@ export const ChatGenerationRequestSchema = RequestBaseSchema.extend({
   modelId: z.string().min(1),
   messages: z.array(ChatMessageSchema).min(1).max(MAX_CHAT_MESSAGES),
   tools: z.array(ChatToolDefinitionSchema).max(MAX_CHAT_TOOLS).default([]),
+  fullPrompt: z.boolean().optional(),
   contextSize: z.union([z.literal("auto"), z.number().int().min(512).max(131_072)]),
   maxTokens: z.number().int().positive().max(MAX_GENERATION_TOKENS),
   temperature: z.number().min(0).max(2),

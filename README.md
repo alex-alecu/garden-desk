@@ -4,12 +4,21 @@
 
 Garden Desk is a local-first desktop agent for working with private files and folders. It is built for people who want useful AI assistance without uploading their work, managing model infrastructure, or becoming an AI developer.
 
+## Maintained versions
+
+| Branch | Generation model |
+| --- | --- |
+| [`v1`](https://github.com/alex-alecu/garden-desk/tree/v1) | Gemma 4 12B QAT |
+| [`v2`](https://github.com/alex-alecu/garden-desk/tree/v2) | Qwen3.8-27B |
+
+Create a fix or feature branch from the required version. Open its pull request against that version branch. Use a separate pull request to transfer a shared change to the other version. Release tags stay fixed.
+
 ## Run locally with one command
 
 Clone the repository:
 
 ```sh
-git clone git@github.com:alex-alecu/garden-desk.git
+git clone --branch v1 git@github.com:alex-alecu/garden-desk.git
 ```
 
 Open a terminal in the `garden-desk` folder and start the app:

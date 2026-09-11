@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { mkdir, mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, open, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -12,6 +12,7 @@ import {
   preparePackageBuild,
   rollbackPackageBuild,
 } from "../package-output-cleanup.js";
+import { prepareDevelopmentRuntimeOutput } from "../prepare-dev-runtime.js";
 import { generationModelFileName, projectorModelFileName } from "./package-model-contract.js";
 
 const roots: string[] = [];
@@ -107,6 +108,25 @@ describe("package output retention", () => {
       await expect(stat(join(intermediateRoot, name))).rejects.toMatchObject({ code: "ENOENT" });
     }
   });
+});
+
+it("replaces the development runtime without overwriting a loaded executable", async () => {
+  const target = await macTarget("debug");
+  const relative = join("resources", "core", "inference");
+  const source = join(target.tauriRoot, relative);
+  const destination = join(target.tauriRoot, "target", "debug", relative);
+  await mkdir(source, { recursive: true });
+  await mkdir(destination, { recursive: true });
+  await writeFile(join(source, "node"), "new runtime");
+  await writeFile(join(destination, "node"), "loaded runtime");
+  const loaded = await open(join(destination, "node"), "r");
+  try {
+    await prepareDevelopmentRuntimeOutput(target.desktopRoot);
+    expect(await readFile(join(destination, "node"), "utf8")).toBe("new runtime");
+    expect(await loaded.readFile("utf8")).toBe("loaded runtime");
+  } finally {
+    await loaded.close();
+  }
 });
 
 describe("development model cleanup", () => {

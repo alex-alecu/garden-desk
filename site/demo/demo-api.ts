@@ -42,6 +42,7 @@ export class DemoDesktopApi implements DesktopApi {
   async bootstrapDesktop() {
     return {
       catalogPath: "browser-memory://synthetic-demo",
+      commands: [],
       folders: [folder],
       globalSessions: { items: [], nextCursor: null },
       folderSessions: [
