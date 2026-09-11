@@ -48,6 +48,20 @@ function completedAuditExecutionCounts(database: DatabasePort) {
 
 afterEach(cleanServiceFixtures);
 
+it("records the model-turn cap in the run limits", async () => {
+  const { catalog, conversations, service } = await fixture(
+    { chat: async () => chatResult("Done.", []) },
+    artifactExecution,
+  );
+  const run = service.start(conversations.createSession(null).id, "Read the document");
+  const snapshot = await terminal(service, run.id);
+  await service.close();
+  catalog.close();
+  expect(snapshot.events.find((event) => event.type === "run.started")?.summary).toContain(
+    "at most 40 model turns",
+  );
+});
+
 describe("persisted chat agent success", () => {
   it("commits tool evidence, a response, and a generated artifact", async () => {
     const { catalog, conversations, service } = await fixture(
