@@ -30,6 +30,7 @@ interface IconProps {
     | "skill"
     | "subagent"
     | "terminal"
+    | "table-extract"
     | "thinking"
     | "timeline"
     | "trash"
@@ -68,6 +69,7 @@ const paths: Record<IconProps["name"], string> = {
   skill: "M12 3l2.3 5.5 5.9.5-4.5 3.8 1.4 5.7L12 15.8 6.5 18.5l1.4-5.7L3.4 9l5.9-.5z",
   subagent: "M6 4v6a4 4 0 0 0 4 4h8m0 0-3-3m3 3-3 3",
   terminal: "M4 5h16v14H4zM7 9l3 3-3 3M13 15h4",
+  "table-extract": "M3 4h18v9H3zM3 8h18M9 4v9M12 15v6m-3-3 3 3 3-3",
   thinking:
     "M9 18h6M10 21h4M12 3a6 6 0 0 1 4 10.5c-.6.6-1 1.4-1 2.5H9c0-1.1-.4-1.9-1-2.5A6 6 0 0 1 12 3z",
   timeline: "M6 3v18M4 5h4v4H4zM4 15h4v4H4zM11 7h9M11 17h9",
