@@ -2,6 +2,7 @@ import type { AgentRunSummary } from "@gardendesk/shared";
 import { Icon } from "./icons.js";
 
 const identities = {
+  "evidence-brief": { name: "Evidence brief", icon: "evidence", color: "indigo" },
   "invoice-expense-review": {
     name: "Invoice and expense review",
     icon: "receipt",
