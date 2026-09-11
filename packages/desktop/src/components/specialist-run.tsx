@@ -6,6 +6,11 @@ const identities = {
   "matter-chronology": { name: "Matter chronology", icon: "timeline", color: "gold" },
   "contract-obligations": { name: "Contract obligations", icon: "document-check", color: "violet" },
   "document-comparison": { name: "Document comparison", icon: "compare", color: "rose" },
+  "financial-record-extraction": {
+    name: "Financial record extraction",
+    icon: "table-extract",
+    color: "cyan",
+  },
 } as const;
 
 export function specialistIdentity(agentId: string | null | undefined) {
