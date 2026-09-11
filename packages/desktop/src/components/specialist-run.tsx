@@ -2,6 +2,11 @@ import type { AgentRunSummary } from "@gardendesk/shared";
 import { Icon } from "./icons.js";
 
 const identities = {
+  "financial-reconciliation": {
+    name: "Financial reconciliation",
+    icon: "reconcile",
+    color: "teal",
+  },
   "folder-intake": { name: "Folder intake", icon: "folder-tree", color: "blue" },
   "matter-chronology": { name: "Matter chronology", icon: "timeline", color: "gold" },
   "contract-obligations": { name: "Contract obligations", icon: "document-check", color: "violet" },
