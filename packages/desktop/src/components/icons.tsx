@@ -25,6 +25,7 @@ interface IconProps {
     | "pencil"
     | "power"
     | "read"
+    | "receipt"
     | "reconcile"
     | "search"
     | "send"
@@ -65,6 +66,7 @@ const paths: Record<IconProps["name"], string> = {
   pencil: "M4 20h4L18.5 9.5a2 2 0 0 0-3-3L5 17v3zM14 6l3 3",
   power: "M12 3v9m5.7-6.7a8 8 0 1 1-11.4 0",
   read: "M4 5h7v14H4zM13 5h7v14h-7M11 5v14",
+  receipt: "M5 3l2 2 2-2 3 2 3-2 2 2 2-2v18l-2-2-2 2-3-2-3 2-2-2-2 2zM8 9h8M8 13h8M8 17h4",
   reconcile: "M4 7h16m-4-4 4 4-4 4M20 17H4m4-4-4 4 4 4",
   search: "M10 4a6 6 0 1 0 0 12 6 6 0 0 0 0-12zM20 20l-5.6-5.6",
   send: "m5 12 14-7-4 14-3-6z",
