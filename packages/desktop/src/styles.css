@@ -978,6 +978,7 @@ textarea:focus-visible {
 .specialist-view-header h2 {
   flex: 1;
   margin: 0;
+  color: var(--ink);
   font-size: 16px;
 }
 
