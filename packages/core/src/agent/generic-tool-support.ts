@@ -23,7 +23,8 @@ export interface SkillReader {
 export interface SubagentRequest {
   description: string;
   prompt: string;
-  subagentType: "explore" | "general";
+  subagentType: string;
+  parentToolCallId?: string;
 }
 export type AgentQuestionOutcome = { dismissed: false; answers: string[][] } | { dismissed: true };
 export interface AgentToolResult {
@@ -41,6 +42,8 @@ export interface ToolExecutionResult extends AgentToolResult {
 export interface ToolContext {
   executor: AgentExecutor;
   skills: SkillReader;
+  subagents?: readonly { name: string; description: string }[];
+  toolCallId?: string;
   inspectImage?(path: string, prompt: string): Promise<string>;
   spawnTask?(request: SubagentRequest): Promise<Pick<AgentRunResult, "response" | "executions">>;
   askQuestion?(questions: AgentQuestion[]): Promise<AgentQuestionOutcome>;

@@ -35,6 +35,7 @@ export interface DesktopState {
   attachments: AttachmentSummary[];
   removableAttachmentIds: string[];
   activeRun: AgentRunSummary | undefined;
+  childRuns: AgentRunSummary[];
   workingSessionIds: string[];
   artifacts: AgentArtifactSummary[];
   executions: AgentExecutionSnapshot[];

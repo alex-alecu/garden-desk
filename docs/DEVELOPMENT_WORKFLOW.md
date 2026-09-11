@@ -10,9 +10,9 @@ This is the implementation and contribution workflow for Garden Desk. [AGENTS.md
 - Search the repository and maintained dependencies before writing custom infrastructure.
 - Prefer deterministic checks and primary-source evidence.
 - Report commands and results exactly; never imply that an unrun check passed.
-- Keep agent workflows in development tooling. They are not Garden Desk Core modules or shipped product behavior.
+- Keep repository development skills in development tooling. Packaged specialist workflows live in prompt files and use the shared child-run system.
 
-There is no coverage percentage, no test-driven development except for bug fixes, no proactive delegation, and no generic application architecture. The Test Rule in [AGENTS.md](../AGENTS.md) and the milestone gates define what is required.
+There is no coverage percentage, no test-driven development except for bug fixes, and no generic application architecture. The Test Rule in [AGENTS.md](../AGENTS.md) and the milestone gates define what is required.
 
 ## 1. Confirm The Scope
 

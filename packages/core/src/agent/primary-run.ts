@@ -111,6 +111,7 @@ export async function runPrimaryAgent(input: PrimaryRunInput): Promise<AgentRunR
     onContext: input.onContext,
     askQuestion: input.askQuestion,
     signal: input.signal,
+    subagents: definitions.agents.filter((agent) => agent.mode === "subagent"),
     skills: {
       metadata: () => [...definitions.skills],
       read: (name) => definitions.skill(name).body,
@@ -122,6 +123,20 @@ export async function runPrimaryAgent(input: PrimaryRunInput): Promise<AgentRunR
   };
   const runAgent = (request: ChatAgentInput) =>
     new ChatAgentLoop({ chat: input.chat }).run(request);
+  if (input.command?.agent !== undefined) {
+    const agent = definitions.agent(input.command.agent);
+    if (agent.mode !== "subagent") throw new Error("command_agent_invalid");
+    return runPrimarySubagent(
+      input,
+      {
+        subagentType: agent.name,
+        description: input.command.description,
+        prompt: input.command.arguments || input.command.description,
+        parentToolCallId: `command:${run.id}`,
+      },
+      "user",
+    );
+  }
   return input.command === undefined
     ? runAgent(agentInput)
     : runCommand(input.command, agentInput, input.chat, runAgent);
@@ -130,7 +145,8 @@ export async function runPrimaryAgent(input: PrimaryRunInput): Promise<AgentRunR
 async function runPrimarySubagent(
   input: PrimaryRunInput,
   request: Parameters<typeof runSubagent>[1],
-): Promise<Pick<AgentRunResult, "response" | "executions">> {
+  outputOwner: "parent" | "user" = "parent",
+): Promise<AgentRunResult> {
   return await runSubagent(
     {
       contextTokens: input.contextTokens,
@@ -148,6 +164,14 @@ async function runPrimarySubagent(
       sessions: input.sessions,
       signal: input.signal,
       store: input.store,
+      outputOwner,
+      ...(outputOwner === "parent"
+        ? {}
+        : {
+            onResponse: input.onResponse,
+            onContext: input.onContext,
+            modelNeedsLoad: input.modelNeedsLoad,
+          }),
     },
     request,
   );

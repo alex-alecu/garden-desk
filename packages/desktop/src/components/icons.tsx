@@ -16,6 +16,7 @@ interface IconProps {
     | "drag"
     | "error"
     | "folder"
+    | "folder-tree"
     | "glob"
     | "list"
     | "message"
@@ -50,6 +51,7 @@ const paths: Record<IconProps["name"], string> = {
   drag: "M7 7h10M7 12h10M7 17h10",
   error: "M12 3l9 16H3zM12 10v4m0 3v.5",
   folder: "M3 7h6l2 2h10v10H3z",
+  "folder-tree": "M3 3h5l2 2h11v7H3zM6 12v8h4m-4-4h4m3-1h8v3h-8zM13 20h8v2h-8z",
   glob: "M5 6h14M5 12h14M5 18h9",
   list: "M4 6h16M4 12h16M4 18h16",
   message: "M4 5h16v11H8l-4 4z",

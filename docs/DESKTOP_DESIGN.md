@@ -64,6 +64,8 @@ Switching sessions restores conversation turns, agent activity summaries, genera
 
 ## Conversation
 
+Each specialist has a fixed color and icon. Its activity row shows the role, assignment, and written state. Selecting the row opens that child's observable work and findings, with **Go back** in place of the composer. The parent keeps receiving updates. Going back restores its draft, scroll position, and focus. **Stop task** cancels the parent and its child. Technical details opens the selected child's steps only on request. Child rows remain available after restart; child runs do not appear as separate chats.
+
 The conversation timeline supports:
 
 - User and assistant messages.

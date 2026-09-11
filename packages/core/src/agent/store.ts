@@ -12,7 +12,6 @@ import {
   AgentRunSnapshotSchema,
   type AgentRunState,
   type AgentRunSummary,
-  AgentRunSummarySchema,
   type AttachmentSummary,
   AttachmentSummarySchema,
   type SessionDraft,
@@ -35,6 +34,7 @@ import {
   runFromRow,
 } from "./records.js";
 import { recoverInterruptedRuns } from "./recovery.js";
+import { createRunRecord } from "./run-record.js";
 import { AgentTraceStore, type TraceAuditAppender } from "./trace-store.js";
 
 interface RunTransition {
@@ -45,6 +45,7 @@ interface RunTransition {
 }
 
 export class AgentStore {
+  private readonly liveResponses = new Map<string, string | null>();
   readonly execution: AgentExecutionStore;
   readonly trace: AgentTraceStore;
 
@@ -134,36 +135,20 @@ export class AgentStore {
   async materializeAttachment(sessionId: string, attachmentId: string): Promise<string> {
     return await materializeAttachment(this.database, this.artifacts, sessionId, attachmentId);
   }
-  createRun(sessionId: string, jobId: string, parentRunId?: string): AgentRunSummary {
-    const now = new Date().toISOString();
-    const result = AgentRunSummarySchema.parse({
-      id: randomUUID(),
+  createRun(
+    sessionId: string,
+    jobId: string,
+    parentRunId?: string,
+    identity: Pick<AgentRunSummary, "agentId" | "assignment" | "parentToolCallId"> = {},
+  ): AgentRunSummary {
+    return createRunRecord(this.database, {
       sessionId,
       parentRunId: parentRunId ?? null,
+      agentId: identity.agentId ?? null,
+      assignment: identity.assignment ?? null,
+      parentToolCallId: identity.parentToolCallId ?? null,
       jobId,
-      state: "queued",
-      response: null,
-      error: null,
-      createdAt: now,
-      updatedAt: now,
     });
-    this.database
-      .prepare(
-        "INSERT INTO agent_runs (id, session_id, parent_run_id, job_id, state, response, error, created_at, updated_at, performance_json, trace_version) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)",
-      )
-      .run(
-        result.id,
-        result.sessionId,
-        result.parentRunId,
-        result.jobId,
-        result.state,
-        null,
-        null,
-        result.createdAt,
-        result.updatedAt,
-        null,
-      );
-    return result;
   }
   transitionRun(id: string, transition: RunTransition): void {
     const updatedAt = new Date().toISOString();
@@ -180,6 +165,11 @@ export class AgentStore {
         id,
       );
     if (update.changes !== 1) throw new Error("run_not_found");
+    if (transition.state !== "queued" && transition.state !== "running")
+      this.liveResponses.delete(id);
+  }
+  setLiveResponse(runId: string, response: string | null): void {
+    this.liveResponses.set(runId, response);
   }
   appendEvent(
     runId: string,
@@ -272,7 +262,15 @@ export class AgentStore {
         .all(runId) as ArtifactRow[]
     ).map(artifactFromRow);
     return AgentRunSnapshotSchema.parse({
-      run: runFromRow(runRow),
+      run: {
+        ...runFromRow(runRow),
+        response: this.liveResponses.has(runId) ? this.liveResponses.get(runId) : runRow.response,
+      },
+      childRuns: (
+        this.database
+          .prepare("SELECT * FROM agent_runs WHERE parent_run_id = ? ORDER BY created_at, id")
+          .all(runId) as RunRow[]
+      ).map(runFromRow),
       contextUsedTokens: runRow.context_used_tokens,
       contextAllocatedTokens: runRow.context_allocated_tokens,
       events,

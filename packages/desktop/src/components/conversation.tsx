@@ -1,6 +1,7 @@
 import type {
   AgentArtifactSummary,
   AgentRunPerformance,
+  AgentRunSummary,
   AttachmentSummary,
 } from "@gardendesk/shared";
 import { useLayoutEffect, useRef } from "react";
@@ -28,6 +29,9 @@ interface ConversationProps {
   thinkingByStep?: Readonly<Record<string, string>> | undefined;
   working?: boolean | undefined;
   activeRunState?: string | undefined;
+  childRuns?: AgentRunSummary[];
+  onOpenChild?: ((run: AgentRunSummary) => void) | undefined;
+  hidden?: boolean;
 }
 
 const HIDDEN_CONVERSATION_EVENTS = new Set([
@@ -77,13 +81,29 @@ export function Conversation({
   thinkingByStep = {},
   working = false,
   activeRunState,
+  childRuns = [],
+  onOpenChild,
+  hidden = false,
 }: ConversationProps) {
   const entries = conversationEntries(timeline);
   const scrollContainer = useRef<HTMLElement>(null);
   const followsLatest = useRef(true);
+  const savedScroll = useRef(0);
+  const wasHidden = useRef(false);
   useLayoutEffect(() => {
+    if (hidden) {
+      wasHidden.current = true;
+      return;
+    }
     const container = scrollContainer.current;
-    if (container !== null && followsLatest.current) container.scrollTop = container.scrollHeight;
+    if (container === null) return;
+    if (wasHidden.current) {
+      container.scrollTop = savedScroll.current;
+      wasHidden.current = false;
+      return;
+    }
+    if (followsLatest.current) container.scrollTop = container.scrollHeight;
+    savedScroll.current = container.scrollTop;
   });
   if (entries.length === 0) {
     return <EmptyConversation folderName={folderName} onSuggestion={onSuggestion} ready={ready} />;
@@ -94,8 +114,11 @@ export function Conversation({
       aria-label="Conversation"
       aria-live="polite"
       className="conversation-scroll"
+      hidden={hidden}
       onScroll={(event) => {
+        if (hidden) return;
         const container = event.currentTarget;
+        savedScroll.current = container.scrollTop;
         followsLatest.current = isNearConversationBottom(
           container.scrollTop,
           container.clientHeight,
@@ -107,6 +130,8 @@ export function Conversation({
       <div className="timeline">
         <TimelineEntries
           artifacts={artifacts}
+          childRuns={childRuns}
+          onOpenChild={onOpenChild}
           attachmentsByMessage={attachmentsByUserMessage(timeline, attachments)}
           entries={entries}
           lastAssistantId={lastAssistantId}
