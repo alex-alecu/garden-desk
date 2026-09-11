@@ -9,6 +9,7 @@ interface IconProps {
     | "check"
     | "close"
     | "code"
+    | "compare"
     | "copy"
     | "copy-check"
     | "chevron-left"
@@ -46,6 +47,7 @@ const paths: Record<IconProps["name"], string> = {
   check: "M5 13l4 4L19 7",
   close: "M6 6l12 12M18 6 6 18",
   code: "M9 8l-4 4 4 4m6-8 4 4-4 4",
+  compare: "M3 4h7v16H3zM14 4h7v16h-7zM6 8h1M6 12h1M17 8h1M17 12h1M10 16h4m-2-2 2 2-2 2",
   copy: "M9 9h10v10H9zM5 5h10v4M5 5v10h4",
   "copy-check": "M9 9h10v10H9zM5 5h10v4M5 5v10h4M12 14l2 2 4-4",
   "chevron-left": "M15 6l-6 6 6 6",
