@@ -14,6 +14,7 @@ interface IconProps {
     | "chevron-left"
     | "chevron-right"
     | "drag"
+    | "document-check"
     | "error"
     | "folder"
     | "folder-tree"
@@ -50,6 +51,7 @@ const paths: Record<IconProps["name"], string> = {
   "chevron-left": "M15 6l-6 6 6 6",
   "chevron-right": "M9 6l6 6-6 6",
   drag: "M7 7h10M7 12h10M7 17h10",
+  "document-check": "M5 3h9l5 5v13H5zM14 3v5h5M8 14l3 3 5-6",
   error: "M12 3l9 16H3zM12 10v4m0 3v.5",
   folder: "M3 7h6l2 2h10v10H3z",
   "folder-tree": "M3 3h5l2 2h11v7H3zM6 12v8h4m-4-4h4m3-1h8v3h-8zM13 20h8v2h-8z",

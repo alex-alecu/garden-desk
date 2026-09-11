@@ -941,6 +941,10 @@ textarea:focus-visible {
   color: light-dark(#916400, #e2bd62);
 }
 
+.specialist-violet {
+  color: light-dark(#7650a0, #bd9ae8);
+}
+
 .specialist-run-text {
   display: grid;
   flex: 1;
