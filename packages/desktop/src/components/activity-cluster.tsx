@@ -1,7 +1,9 @@
+import type { AgentRunSummary } from "@gardendesk/shared";
 import { useEffect, useRef, useState } from "react";
 import type { ActivityRow } from "../activity-rows.js";
 import { ActivityRowView } from "./activity-row.js";
 import { Icon } from "./icons.js";
+import { SpecialistRunRows } from "./specialist-run.js";
 
 const VISIBLE_ROWS = 5;
 
@@ -15,6 +17,8 @@ export interface ClusterProps {
   finishedDurationMs: number | undefined;
   onOpenDetails(row: ActivityRow): void;
   forceExpandedRowId: string | undefined;
+  childRuns?: AgentRunSummary[] | undefined;
+  onOpenChild?: ((run: AgentRunSummary) => void) | undefined;
 }
 
 function formatDuration(ms: number): string {
@@ -111,16 +115,21 @@ export function ActivityCluster(props: ClusterProps) {
           {display.hiddenCount > 0 ? (
             <p className="activity-cluster-earlier">{display.hiddenCount} earlier steps</p>
           ) : null}
-          {display.visible.map((row, index) => (
-            <ActivityRowView
-              key={row.id}
-              live={props.working && index === display.visible.length - 1}
-              onOpenDetails={props.onOpenDetails}
-              row={row}
-            />
-          ))}
+          {display.visible
+            .filter(
+              (row) => !props.childRuns?.some((run) => run.parentToolCallId === row.toolCallId),
+            )
+            .map((row, index) => (
+              <ActivityRowView
+                key={row.id}
+                live={props.working && index === display.visible.length - 1}
+                onOpenDetails={props.onOpenDetails}
+                row={row}
+              />
+            ))}
         </div>
       ) : null}
+      <SpecialistRunRows runs={props.childRuns} onOpen={props.onOpenChild} />
     </section>
   );
 }

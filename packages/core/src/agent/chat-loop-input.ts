@@ -51,6 +51,7 @@ export interface ChatAgentInput {
   onContext?(used: number, allocated: number, measured?: boolean): void;
   signal?: AbortSignal;
   skills: SkillReader;
+  subagents?: readonly { name: string; description: string }[];
   inferencePriority?: "primary" | "secondary";
   inspectImage?(path: string, prompt: string): Promise<string>;
   spawnTask?(request: SubagentRequest): Promise<Pick<AgentRunResult, "response" | "executions">>;

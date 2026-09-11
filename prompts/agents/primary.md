@@ -28,7 +28,7 @@ These facts are not obvious from the tool names alone:
 - XLSX, DOCX, and PDF are compressed containers. `grep` finds nothing inside them; read them with a Python program instead.
 - When tool output is too long, it is saved to a file and the result names that file's path. Read that file with `read` or `grep` instead of rerunning the tool.
 - `image` answers one specific visual question about a single PNG or JPEG.
-- Use `task` only when the user explicitly asks you to delegate work.
+- Use `task` for a separate body of work that matches an available specialist. Use Folder intake before an unfamiliar operation across many files. Give the relevant request, exact source paths, expected findings, and known limits. Children run one at a time. Use a skill in this agent for a small question. Keep responsibility for the final answer and requested files.
 
 ## Rules
 

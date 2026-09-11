@@ -65,6 +65,10 @@ export function applyAgentSnapshot(state: DesktopState, snapshot: AgentRunSnapsh
     ...titledState,
     workingSessionIds,
     activeRun: snapshot.run,
+    childRuns: [
+      ...state.childRuns.filter((run) => run.parentRunId !== snapshot.run.id),
+      ...snapshot.childRuns,
+    ],
     thinking: snapshot.thinking,
     thinkingBySession,
     question: working ? snapshot.question : null,

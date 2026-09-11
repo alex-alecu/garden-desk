@@ -11,7 +11,7 @@ M3 Offline Dev-Agent Desktop V1 is active. The desktop runs one general-purpose 
 - In-run clarifying questions, cancellation, and session restoration after a restart.
 - Concurrent conversations share one resident inference worker inside a RAM-bounded pool of reusable microVMs. Stop and generation timeouts keep a healthy model resident.
 - A private, owner-only debugging snapshot for one session, for local troubleshooting.
-- A `task` tool for delegating to a child agent, used only when the user explicitly asks for delegation or parallel work.
+- A `task` tool that selects a child from packaged definitions. The Folder intake specialist maps current file groups and structures before work across files. Children run one at a time and have separate activity views.
 
 ## Security Boundary
 

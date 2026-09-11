@@ -1,6 +1,7 @@
 import type {
   AgentArtifactSummary,
   AgentRunPerformance,
+  AgentRunSummary,
   AttachmentSummary,
 } from "@gardendesk/shared";
 import { useEffect, useRef, useState } from "react";
@@ -96,6 +97,8 @@ interface TimelineEntriesProps {
   activeRunState: string | undefined;
   activeRunDurationMs: number | undefined;
   thinkingByStep: Readonly<Record<string, string>>;
+  childRuns?: AgentRunSummary[] | undefined;
+  onOpenChild?: ((run: AgentRunSummary) => void) | undefined;
 }
 
 function ResponseCopyButton({ text }: { text: string }) {
@@ -188,6 +191,8 @@ export function TimelineEntries({
   activeRunState,
   activeRunDurationMs,
   thinkingByStep,
+  childRuns,
+  onOpenChild,
 }: TimelineEntriesProps) {
   return clusterEntries(
     entries.map((entry) => entry.item),
@@ -212,6 +217,8 @@ export function TimelineEntries({
         activeRunState,
         activeRunDurationMs,
         thinkingByStep,
+        childRuns,
+        onOpenChild,
       }}
     />
   ));
@@ -233,15 +240,30 @@ function ActivityClusterEntry({
   runId,
   selectedStepId,
   working,
+  childRuns,
+  onOpenChild,
 }: Pick<
   TimelineEntriesProps,
-  "activeRunDurationMs" | "activeRunState" | "onSelectStep" | "runId" | "selectedStepId" | "working"
+  | "activeRunDurationMs"
+  | "activeRunState"
+  | "onSelectStep"
+  | "runId"
+  | "selectedStepId"
+  | "working"
+  | "childRuns"
+  | "onOpenChild"
 > & { entry: Extract<ReturnType<typeof clusterEntries>[number], { kind: "cluster" }> }) {
   const active = entry.runId === runId;
   const failed = active && (activeRunState === "failed" || activeRunState === "cancelled");
   const selected = entry.rows.find((row) => row.stepId === selectedStepId)?.id;
   return (
     <ActivityCluster
+      childRuns={childRuns?.filter(
+        (run) =>
+          run.parentRunId === entry.runId &&
+          entry.rows.some((row) => row.toolCallId === run.parentToolCallId),
+      )}
+      onOpenChild={onOpenChild}
       failed={failed}
       finishedDurationMs={active && !working ? activeRunDurationMs : undefined}
       forceExpandedRowId={selected}

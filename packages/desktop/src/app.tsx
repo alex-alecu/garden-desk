@@ -1,3 +1,4 @@
+import type { AgentRunSummary } from "@gardendesk/shared";
 import { useEffect, useReducer, useRef, useState } from "react";
 import type { DesktopApi } from "./api.js";
 import { useAppearance } from "./appearance.js";
@@ -12,6 +13,7 @@ import { DropOverlay } from "./components/drop-overlay.js";
 import { GuidedExamples } from "./components/guided-examples.js";
 import { PendingQuestion } from "./components/pending-question.js";
 import { SecureWorkspaceBanner } from "./components/secure-workspace-banner.js";
+import { SpecialistActions, SpecialistView } from "./components/specialist-view.js";
 import { TechnicalDetails } from "./components/technical-details.js";
 import { attach, openAttachment, remove, selectSession, send } from "./desktop-actions.js";
 import { type DropIntent, useNativeDrop } from "./desktop-drop.js";
@@ -22,6 +24,7 @@ import { type DesktopBootstrapRequest, desktopBootstrapRequest } from "./startup
 import { desktopReducer, initialDesktopState } from "./state.js";
 import { selectStep } from "./step-selection.js";
 import { agentSteps, desktopThinking } from "./steps.js";
+import { useChildRun } from "./use-child-run.js";
 import { useSecureWorkspace } from "./use-secure-workspace.js";
 // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: single desktop composition boundary.
 // biome-ignore lint/complexity/noExcessiveLinesPerFunction: single desktop composition boundary.
@@ -31,6 +34,15 @@ export function App({ api, capabilities }: { api: DesktopApi; capabilities: Desk
   const [desktopError, setDesktopError] = useState<string>();
   const [submitting, setSubmitting] = useState(false);
   const [technicalDetailsOpen, setTechnicalDetailsOpen] = useState(false);
+  const [selectedChild, setSelectedChild] = useState<AgentRunSummary>();
+  useEffect(() => {
+    setSelectedChild((current) =>
+      current?.sessionId === state.activeSessionId ? current : undefined,
+    );
+  }, [state.activeSessionId]);
+  const childOpen =
+    selectedChild !== undefined && selectedChild.sessionId === state.activeSessionId;
+  const child = useChildRun(api, childOpen ? selectedChild : undefined);
   const [confirmation, setConfirmation] = useState<ConfirmationRequest>();
   const [dropIntent, setDropIntent] = useState<DropIntent>();
   const [model, setModel] = useState(initialModelStatus);
@@ -82,7 +94,7 @@ export function App({ api, capabilities }: { api: DesktopApi; capabilities: Desk
       running: running || sessionLoading,
     },
     dispatch,
-    enabled: capabilities.nativeActions,
+    enabled: capabilities.nativeActions && !childOpen,
     setDropIntent,
     setError: setDesktopError,
   });
@@ -102,13 +114,30 @@ export function App({ api, capabilities }: { api: DesktopApi; capabilities: Desk
       setSubmitting,
     });
   };
-  const steps = agentSteps(state.timeline, state.executions, state.traces);
-  const { thinkingByStep, thinkingStepId } = desktopThinking(state);
+  const detailState = childOpen ? child.state : state;
+  const detailDispatch = childOpen ? child.dispatch : dispatch;
+  const steps = agentSteps(detailState.timeline, detailState.executions, detailState.traces);
+  const { thinkingByStep, thinkingStepId } = desktopThinking(detailState);
+  const cancelTask = () => {
+    if (state.activeRun !== undefined) {
+      void api
+        .cancelAgent(state.activeRun.jobId)
+        .catch(() => setDesktopError("The task could not be cancelled."));
+    }
+  };
+  const closeChild = () => {
+    const id = selectedChild?.id;
+    setSelectedChild(undefined);
+    setTechnicalDetailsOpen(false);
+    requestAnimationFrame(() =>
+      document.getElementById(`specialist-run-${id}`)?.focus({ preventScroll: true }),
+    );
+  };
   const onSelectStep = (stepId: string | undefined) =>
     selectStep(
       {
         api,
-        dispatch,
+        dispatch: detailDispatch,
         openDetails: () => setTechnicalDetailsOpen(true),
         setError: setDesktopError,
         steps,
@@ -139,7 +168,7 @@ export function App({ api, capabilities }: { api: DesktopApi; capabilities: Desk
           nativeActionMessage={nativeUnavailable}
           onAppearanceChange={appearance.cycle}
           onTechnicalDetailsOpen={() => {
-            dispatch({ type: "step.select", stepId: undefined });
+            detailDispatch({ type: "step.select", stepId: undefined });
             setTechnicalDetailsOpen(true);
           }}
           onUnload={() => {
@@ -176,6 +205,12 @@ export function App({ api, capabilities }: { api: DesktopApi; capabilities: Desk
           </div>
         )}
         <Conversation
+          hidden={childOpen}
+          childRuns={state.childRuns}
+          onOpenChild={(run) => {
+            setSelectedChild(run);
+            setTechnicalDetailsOpen(false);
+          }}
           artifacts={state.artifacts}
           attachments={state.attachments}
           folderName={folderName}
@@ -197,11 +232,27 @@ export function App({ api, capabilities }: { api: DesktopApi; capabilities: Desk
           timeline={state.timeline}
           performance={state.activeRun?.performance ?? null}
           runId={state.activeRun?.id}
-          thinkingByStep={thinkingByStep}
+          thinkingByStep={desktopThinking(state).thinkingByStep}
           working={state.activeRun?.state === "queued" || state.activeRun?.state === "running"}
           activeRunState={state.activeRun?.state}
         />
-        {state.question !== null ? (
+        {childOpen ? (
+          <SpecialistView
+            key={selectedChild.id}
+            run={selectedChild}
+            state={child.state}
+            unavailable={child.unavailable}
+            onSelectStep={onSelectStep}
+          />
+        ) : null}
+        {childOpen ? (
+          <SpecialistActions
+            needsAnswer={state.question !== null}
+            running={running}
+            onBack={closeChild}
+            onCancel={cancelTask}
+          />
+        ) : state.question !== null ? (
           <PendingQuestion
             api={api}
             request={state.question}
@@ -229,13 +280,7 @@ export function App({ api, capabilities }: { api: DesktopApi; capabilities: Desk
                 setError: setDesktopError,
               })
             }
-            onCancel={() => {
-              if (state.activeRun !== undefined) {
-                void api
-                  .cancelAgent(state.activeRun.jobId)
-                  .catch(() => setDesktopError("The task could not be cancelled."));
-              }
-            }}
+            onCancel={cancelTask}
             onChange={(draft) => {
               dispatch({ type: "draft.change", draft });
               draftPersistence.schedule(state.activeSessionId, draft);
@@ -273,24 +318,24 @@ export function App({ api, capabilities }: { api: DesktopApi; capabilities: Desk
         )}
       </main>
       <TechnicalDetails
-        artifacts={state.artifacts}
+        artifacts={detailState.artifacts}
         catalogPath={state.catalogPath}
-        executions={state.executions}
-        key={`${state.activeSessionId ?? `new:${state.newSessionFolderId ?? "global"}`}:${technicalDetailsOpen ? "open" : "closed"}`}
+        executions={detailState.executions}
+        key={`${childOpen ? selectedChild.id : (state.activeSessionId ?? `new:${state.newSessionFolderId ?? "global"}`)}:${technicalDetailsOpen ? "open" : "closed"}`}
         api={api}
         model={model}
         nativeActionMessage={nativeUnavailable}
         onClose={() => setTechnicalDetailsOpen(false)}
         open={technicalDetailsOpen}
         onSelectStep={onSelectStep}
-        contextUsedTokens={state.contextUsedTokens}
-        contextAllocatedTokens={state.contextAllocatedTokens}
-        selectedStepId={state.selectedStepId}
+        contextUsedTokens={detailState.contextUsedTokens}
+        contextAllocatedTokens={detailState.contextAllocatedTokens}
+        selectedStepId={detailState.selectedStepId}
         sessionId={state.activeSessionId}
         steps={steps}
         thinkingByStep={thinkingByStep}
         thinkingStepId={thinkingStepId}
-        timeline={state.timeline}
+        timeline={detailState.timeline}
       />
       <ActiveConfirmation clear={() => setConfirmation(undefined)} request={confirmation} />
       <DropOverlay intent={dropIntent} />

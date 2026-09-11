@@ -902,6 +902,129 @@ textarea:focus-visible {
   overflow-y: auto;
 }
 
+.conversation-scroll[hidden] {
+  display: none;
+}
+
+.specialist-run-row {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  color: var(--ink);
+  background: transparent;
+  text-align: left;
+}
+
+.specialist-run-row:hover {
+  background: var(--accent-soft);
+}
+
+.specialist-icon {
+  display: inline-flex;
+  flex: 0 0 auto;
+  padding: 7px;
+  border-radius: 10px;
+  color: var(--ink-soft);
+  background: color-mix(in srgb, currentColor 12%, transparent);
+}
+
+.specialist-blue {
+  color: light-dark(#2866a3, #8ebdf4);
+}
+
+.specialist-run-text {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+  gap: 3px;
+  font-size: 13px;
+}
+
+.specialist-run-text > span {
+  overflow: hidden;
+  color: var(--ink-soft);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.specialist-run-status {
+  flex-shrink: 0;
+  color: var(--ink-soft);
+  font-size: 12px;
+}
+
+.specialist-view {
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+}
+
+.specialist-view-header {
+  display: flex;
+  width: min(var(--chat-content-width), calc(100% - var(--chat-content-gutter)));
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin: 16px auto 0;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.specialist-view-header h2 {
+  flex: 1;
+  margin: 0;
+  font-size: 16px;
+}
+
+.specialist-view-header p {
+  width: 100%;
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 13px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.specialist-loading {
+  padding: 24px;
+  color: var(--ink-soft);
+  text-align: center;
+}
+
+.specialist-actions {
+  display: flex;
+  width: min(var(--chat-content-width), calc(100% - var(--chat-content-gutter)));
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 0 auto 24px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border-color);
+}
+
+.specialist-actions button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  color: var(--ink);
+  background: transparent;
+}
+
+.specialist-actions .specialist-stop {
+  margin-left: auto;
+}
+
+.specialist-actions .specialist-answer {
+  background: var(--accent-soft);
+}
+
 .timeline {
   width: min(var(--chat-content-width), calc(100% - var(--chat-content-gutter)));
   margin: 0 auto;

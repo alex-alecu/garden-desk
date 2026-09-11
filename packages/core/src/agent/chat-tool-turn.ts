@@ -66,8 +66,11 @@ async function executeToolCall(input: ToolTurnInput, call: ChatToolCall): Promis
   const result =
     validation.status === "invalid"
       ? validation.result
-      : await input.registry.execute(call.name, call.params, validation, () => {
-          input.state.guestExecutionsStarted += 1;
+      : await input.registry.execute(call.name, call.params, validation, {
+          onGuestExecutionStarted: () => {
+            input.state.guestExecutionsStarted += 1;
+          },
+          toolCallId: call.id,
         });
   finalizeToolCall(input, evidenceCall, result);
 }
