@@ -1,6 +1,7 @@
 import { type ChatGenerationRequest, JobIdSchema } from "@gardendesk/shared";
-import { describe, expect, it } from "vitest";
-import { chatFunctions, toChatHistory } from "./chat.js";
+import type { LlamaChat } from "node-llama-cpp";
+import { describe, expect, it, vi } from "vitest";
+import { chatFunctions, generateChatTurn, toChatHistory } from "./chat.js";
 
 describe("native chat history", () => {
   it("folds tool results into the originating assistant function call", () => {
@@ -51,5 +52,50 @@ describe("native chat history", () => {
     expect(chatFunctions(request)).toMatchObject({
       list: { description: "List paths.", params: { type: "object", properties: {} } },
     });
+  });
+});
+
+describe("full prompt context", () => {
+  it("rejects a full prompt that cannot fit with its output reserve", async () => {
+    const generateResponse = vi.fn(async () => ({
+      response: "",
+      metadata: { stopReason: "eogToken" },
+    }));
+    const tokenize = vi.fn(() => [1, 2, 3, 4, 5, 6, 7]);
+    const chat = {
+      model: { tokenizer: vi.fn(), tokenize: vi.fn(() => [1]), detokenize: vi.fn(() => "") },
+      sequence: { contextSize: 10 },
+      chatWrapper: {
+        generateContextState: vi.fn(() => ({ contextText: { tokenize } })),
+      },
+      generateResponse,
+    } as unknown as LlamaChat;
+    const request = {
+      protocolVersion: 2,
+      requestId: "test",
+      jobId: JobIdSchema.parse("00000000-0000-4000-8000-000000000001"),
+      operation: "chat",
+      modelId: "test",
+      messages: [{ role: "user", text: "Review" }],
+      tools: [],
+      contextSize: 8_192,
+      maxTokens: 4,
+      temperature: 0,
+      fullPrompt: true,
+    } as ChatGenerationRequest;
+
+    await expect(
+      generateChatTurn(request, chat, { onResponseChunk: vi.fn(), onToken: vi.fn() }),
+    ).rejects.toThrow("full_prompt_context_limit");
+    expect(generateResponse).not.toHaveBeenCalled();
+    expect(chat.chatWrapper.generateContextState).toHaveBeenCalledWith({
+      chatHistory: [
+        { type: "user", text: "Review" },
+        { type: "model", response: [] },
+      ],
+      availableFunctions: {},
+      documentFunctionParams: true,
+    });
+    expect(tokenize).toHaveBeenCalledWith(chat.model.tokenizer);
   });
 });

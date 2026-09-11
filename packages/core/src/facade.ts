@@ -3,6 +3,7 @@ import type {
   AgentRunSummary,
   AgentTrace,
   AttachmentSummary,
+  CommandSummary,
   ConversationMessage,
   FolderSummary,
   MessageRole,
@@ -21,6 +22,7 @@ import type {
 
 export interface GardenDeskCorePorts extends InferenceService {
   status(): Promise<WorkspaceStatus>;
+  listCommands(): Promise<CommandSummary[]>;
   addFolder(rootPath: string): Promise<FolderSummary>;
   listFolders(): Promise<FolderSummary[]>;
   reorderFolders(folderIds: string[]): Promise<FolderSummary[]>;
@@ -98,6 +100,7 @@ function inferencePorts(ports: GardenDeskCorePorts) {
 export function createFacade(ports: GardenDeskCorePorts): GardenDeskCore {
   return {
     status: () => ports.status(),
+    listCommands: () => ports.listCommands(),
     addFolder: (rootPath) => ports.addFolder(rootPath),
     listFolders: () => ports.listFolders(),
     reorderFolders: (folderIds) => ports.reorderFolders(folderIds),

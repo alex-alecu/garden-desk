@@ -103,9 +103,23 @@ export async function generateChatTurn(
   callbacks: ChatGenerationCallbacks,
   signal?: AbortSignal,
 ): Promise<ChatTurn> {
+  const history = toChatHistory(request.messages);
+  const functions = chatFunctions(request);
+  if (request.fullPrompt) {
+    const context = chat.chatWrapper.generateContextState({
+      chatHistory: [...history, { type: "model", response: [] }],
+      availableFunctions: functions,
+      documentFunctionParams: true,
+    });
+    if (
+      context.contextText.tokenize(chat.model.tokenizer).length + request.maxTokens >=
+      chat.sequence.contextSize
+    )
+      throw new Error("full_prompt_context_limit");
+  }
   const collector = new NativeToolCallCollector(chat.model);
-  const result = await chat.generateResponse(toChatHistory(request.messages), {
-    functions: chatFunctions(request),
+  const result = await chat.generateResponse(history, {
+    functions,
     documentFunctionParams: true,
     maxTokens: request.maxTokens,
     budgets: { thoughtTokens: Math.min(1_024, Math.floor(request.maxTokens / 2)) },

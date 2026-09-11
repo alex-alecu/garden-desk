@@ -26,12 +26,16 @@ export function loadMessages(
       ...state.timeline.filter((item) => item.kind === "activity"),
     ],
     globalSessions: state.globalSessions.map((session) =>
-      session.id === sessionId && title !== undefined ? { ...session, title } : session,
+      session.id === sessionId && session.title === "New chat" && title !== undefined
+        ? { ...session, title }
+        : session,
     ),
     folders: state.folders.map((folder) => ({
       ...folder,
       sessions: folder.sessions.map((session) =>
-        session.id === sessionId && title !== undefined ? { ...session, title } : session,
+        session.id === sessionId && session.title === "New chat" && title !== undefined
+          ? { ...session, title }
+          : session,
       ),
     })),
   };

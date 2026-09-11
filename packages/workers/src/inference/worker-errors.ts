@@ -37,6 +37,7 @@ function unsupported(text: string): boolean {
     "selected_gpu_changed",
     "selected_gpu_isolation_failed",
     "context_size_exceeds_hardware_cap",
+    "full_prompt_context_limit",
   ].includes(text);
 }
 

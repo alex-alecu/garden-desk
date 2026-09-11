@@ -17,7 +17,7 @@ A real run is any command or script that loads a real model or starts a physical
 
 ## Current Phase
 
-M0, M1, and M2 are complete. M3 Offline Dev-Agent Desktop V1 is active, including the owner-approved prompt-only professional review skill set. Current status lives in [docs/M3_STATUS.md](docs/M3_STATUS.md). Do not start post-V1 work (document intelligence and later) without a new explicit owner request. Preserve the completed M1 and M2 contracts, security primitives, transports, native helpers, guest images, and evidence.
+M0, M1, and M2 are complete. M3 Offline Dev-Agent Desktop V1 is active, including the owner-approved prompt-only professional review skill set and explicit Markdown commands. Current status lives in [docs/M3_STATUS.md](docs/M3_STATUS.md). Do not start post-V1 work (document intelligence and later) without a new explicit owner request. Preserve the completed M1 and M2 contracts, security primitives, transports, native helpers, guest images, and evidence.
 
 ## Test Rule
 

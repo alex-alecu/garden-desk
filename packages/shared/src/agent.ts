@@ -246,6 +246,7 @@ export const AgentQuestionAnswerSchema = z.array(z.string().min(1).max(300)).max
 
 export const AgentRunSnapshotSchema = z.object({
   run: AgentRunSummarySchema,
+  sessionTitle: z.string().min(1).optional(),
   events: z.array(AgentEventSchema).max(1_000),
   executions: z.array(AgentExecutionSnapshotSchema).max(1_280).default([]),
   artifacts: z.array(AgentArtifactSummarySchema).max(100),
