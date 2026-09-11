@@ -3,6 +3,7 @@ import { Icon } from "./icons.js";
 
 const identities = {
   "folder-intake": { name: "Folder intake", icon: "folder-tree", color: "blue" },
+  "matter-chronology": { name: "Matter chronology", icon: "timeline", color: "gold" },
 } as const;
 
 export function specialistIdentity(agentId: string | null | undefined) {
