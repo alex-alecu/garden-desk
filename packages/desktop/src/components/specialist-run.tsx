@@ -2,6 +2,11 @@ import type { AgentRunSummary } from "@gardendesk/shared";
 import { Icon } from "./icons.js";
 
 const identities = {
+  "invoice-expense-review": {
+    name: "Invoice and expense review",
+    icon: "receipt",
+    color: "orange",
+  },
   "financial-reconciliation": {
     name: "Financial reconciliation",
     icon: "reconcile",
