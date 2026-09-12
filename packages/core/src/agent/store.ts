@@ -250,6 +250,11 @@ export class AgentStore {
       );
     return item;
   }
+  setContext(id: string, used: number, allocated: number): void {
+    const sql =
+      "UPDATE agent_runs SET context_used_tokens = ?, context_allocated_tokens = ? WHERE id = ?";
+    this.database.prepare(sql).run(used, allocated, id);
+  }
   snapshot(runId: string): AgentRunSnapshot {
     const runRow = this.database.prepare("SELECT * FROM agent_runs WHERE id = ?").get(runId) as
       | RunRow
@@ -268,6 +273,8 @@ export class AgentStore {
     ).map(artifactFromRow);
     return AgentRunSnapshotSchema.parse({
       run: runFromRow(runRow),
+      contextUsedTokens: runRow.context_used_tokens,
+      contextAllocatedTokens: runRow.context_allocated_tokens,
       events,
       executions,
       artifacts,
