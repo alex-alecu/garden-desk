@@ -74,27 +74,25 @@ function displayState(props: ClusterProps, open: boolean) {
 
 /**
  * One agent run's activity, headed by a persistent timer line. While running it shows the last few
- * rows live; when finished it collapses to the timer line and expands on demand. A failed or
+ * rows live; when finished it collapses to the timer line unless a row is selected. A failed or
  * cancelled run stays expanded so the failing row is visible.
  */
 export function ActivityCluster(props: ClusterProps) {
-  const forcedOpen =
-    props.forceExpandedRowId !== undefined &&
-    props.rows.some((row) => row.id === props.forceExpandedRowId);
-  const [open, setOpen] = useState(props.failed || forcedOpen);
+  const selectedRowId = props.rows.find((row) => row.id === props.forceExpandedRowId)?.id;
+  const [open, setOpen] = useState(props.failed || selectedRowId !== undefined);
   useEffect(() => {
-    if (forcedOpen) setOpen(true);
-  }, [forcedOpen]);
+    if (selectedRowId !== undefined) setOpen(true);
+  }, [selectedRowId]);
   const wasWorking = useRef(props.working);
   useEffect(() => {
-    // Collapse to the timer line when a run finishes cleanly; a failed or cancelled run stays open.
-    if (wasWorking.current && !props.working) setOpen(openStateOnFinish(props.failed));
+    if (wasWorking.current && !props.working)
+      setOpen(openStateOnFinish(props.failed) || selectedRowId !== undefined);
     wasWorking.current = props.working;
-  }, [props.working, props.failed]);
+  }, [props.working, props.failed, selectedRowId]);
   const elapsedMs = useElapsedMs(props.startedAt, props.working);
   const display = displayState(
     { ...props, finishedDurationMs: props.working ? elapsedMs : props.finishedDurationMs },
-    open || forcedOpen,
+    open,
   );
   return (
     <section aria-label="Agent activity" className="activity-cluster">
