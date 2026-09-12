@@ -255,7 +255,6 @@ export class AgentStore {
         .prepare("SELECT * FROM agent_events WHERE run_id = ? ORDER BY sequence")
         .all(runId) as EventRow[]
     ).map(eventFromRow);
-    const executions = this.execution.list(runId);
     const artifacts = (
       this.database
         .prepare("SELECT * FROM agent_artifacts WHERE run_id = ? ORDER BY created_at, id")
@@ -274,7 +273,7 @@ export class AgentStore {
       contextUsedTokens: runRow.context_used_tokens,
       contextAllocatedTokens: runRow.context_allocated_tokens,
       events,
-      executions,
+      executions: this.execution.list(runId),
       artifacts,
     });
   }

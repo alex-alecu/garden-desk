@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { createGardenDeskCore, type GardenDeskCore } from "@gardendesk/core";
 import type { AgentRunSnapshot } from "@gardendesk/shared";
 import { prepareAgentModelStore } from "../gates/agent-model-store.js";
+import { developmentWindowsInferencePaths } from "../gates/windows-inference.js";
 import { cases as obligations } from "./specialist-contract-obligations.js";
 import { cases as comparison } from "./specialist-document-comparison.js";
 import { cases as brief } from "./specialist-evidence-brief.js";
@@ -35,15 +36,7 @@ async function openCore(root: string): Promise<GardenDeskCore> {
     profile: "auto",
     migrationDirectory: join(repository, "packages/core/src/workspace/migrations"),
     promptDirectory: join(repository, "prompts"),
-    workerEntryPath: "",
-    inferenceHelperPath: join(
-      repository,
-      "packages/workers/native/windows-appcontainer-launcher/.generated/garden-desk-appcontainer-launcher.exe",
-    ),
-    inferenceRuntimePath: join(
-      repository,
-      "packages/eval/.generated/inference/windows-cuda-x64/llama-server.exe",
-    ),
+    ...(await developmentWindowsInferencePaths()),
     agentHelperPath: join(
       repository,
       "packages/workers/native/windows-hcs-helper/.generated/garden-desk-hcs-helper.exe",
