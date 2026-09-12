@@ -62,31 +62,18 @@ export function SpecialistRunRow({
 }) {
   const identity = specialistIdentity(run.agentId);
   return (
-    <button
-      className="specialist-run-row"
-      id={`specialist-run-${run.id}`}
-      onClick={() => onOpen(run)}
-      type="button"
-    >
-      <SpecialistIcon agentId={run.agentId} />
-      <span className="specialist-run-text">
-        <strong>{identity.name}</strong>
-        <span>{run.assignment}</span>
+    <div className="activity-row" data-kind="specialist">
+      <span className="activity-row-icon">
+        <SpecialistIcon agentId={run.agentId} />
       </span>
-      <span className="specialist-run-status">{specialistStatus(run.state)}</span>
-      <Icon name="chevron-right" />
-    </button>
+      <button
+        className="activity-row-label"
+        id={`specialist-run-${run.id}`}
+        onClick={() => onOpen(run)}
+        type="button"
+      >
+        {identity.name} · {specialistStatus(run.state)}
+      </button>
+    </div>
   );
-}
-
-export function SpecialistRunRows({
-  runs,
-  onOpen,
-}: {
-  runs: AgentRunSummary[] | undefined;
-  onOpen: ((run: AgentRunSummary) => void) | undefined;
-}) {
-  return onOpen === undefined
-    ? null
-    : runs?.map((run) => <SpecialistRunRow key={run.id} run={run} onOpen={onOpen} />);
 }

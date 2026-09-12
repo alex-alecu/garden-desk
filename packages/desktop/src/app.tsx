@@ -208,6 +208,13 @@ export function App({ api, capabilities }: { api: DesktopApi; capabilities: Desk
           hidden={childOpen}
           childRuns={state.childRuns}
           onOpenChild={(run) => {
+            dispatch({
+              type: "step.select",
+              stepId: state.timeline.find(
+                (item) =>
+                  item.runId === run.parentRunId && item.toolCallId === run.parentToolCallId,
+              )?.id,
+            });
             setSelectedChild(run);
             setTechnicalDetailsOpen(false);
           }}
