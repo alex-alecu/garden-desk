@@ -33,18 +33,19 @@ interface SubagentPorts {
 }
 
 function createChild(ports: SubagentPorts, request: SubagentRequest) {
+  const assignment = `${request.description}\n\n${request.prompt}`;
   return ports.database.transaction(() => {
     const job = ports.jobs.create("agent", randomUUID());
     const run = ports.store.createRun(ports.sessionId, job.id, ports.parentRunId, {
       agentId: request.subagentType,
-      assignment: request.description,
+      assignment,
       parentToolCallId: request.parentToolCallId ?? null,
     });
     ports.jobs.transition(job.id, "running");
     ports.store.transitionRun(run.id, { state: "running" });
     ports.store.appendEvent(run.id, "run.started", request.description);
     commandEvent(ports, run, "subagent.started", request.description);
-    return run;
+    return { ...run, assignment };
   })();
 }
 
@@ -159,7 +160,7 @@ export async function runSubagent(
         read: (name) => ports.library.skill(name).body,
       },
       systemPrompt: (name) => ports.library.system(name),
-      task: `${request.description}\n\n${request.prompt}`,
+      task: child.assignment,
       trace: { runId: child.id, store: ports.store.trace },
     });
     completeChild(ports, child, result);

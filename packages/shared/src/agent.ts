@@ -161,7 +161,7 @@ export const AgentRunSummarySchema = z.object({
   sessionId: SessionIdSchema,
   parentRunId: AgentRunIdSchema.nullable().default(null),
   agentId: z.string().max(64).nullable().optional(),
-  assignment: z.string().max(1_000).nullable().optional(),
+  assignment: z.string().max(256_258).nullable().optional(),
   parentToolCallId: z.string().max(255).nullable().optional(),
   jobId: JobIdSchema,
   state: AgentRunStateSchema,
