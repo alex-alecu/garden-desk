@@ -4,18 +4,17 @@ import type { DesktopApi } from "./api.js";
 import { useAppearance } from "./appearance.js";
 import { artifactActions } from "./artifact-actions.js";
 import type { DesktopCapabilities } from "./capabilities.js";
+import { AppChatControls } from "./components/app-chat-controls.js";
 import { AppSidebar } from "./components/app-sidebar.js";
 import { ChatHeader } from "./components/chat-header.js";
-import { Composer } from "./components/composer.js";
 import { ActiveConfirmation, type ConfirmationRequest } from "./components/confirmation.js";
 import { Conversation } from "./components/conversation.js";
 import { DropOverlay } from "./components/drop-overlay.js";
 import { GuidedExamples } from "./components/guided-examples.js";
-import { PendingQuestion } from "./components/pending-question.js";
 import { SecureWorkspaceBanner } from "./components/secure-workspace-banner.js";
-import { SpecialistActions, SpecialistView } from "./components/specialist-view.js";
+import { SpecialistView } from "./components/specialist-view.js";
 import { TechnicalDetails } from "./components/technical-details.js";
-import { attach, openAttachment, remove, selectSession, send } from "./desktop-actions.js";
+import { openAttachment, selectSession, send } from "./desktop-actions.js";
 import { type DropIntent, useNativeDrop } from "./desktop-drop.js";
 import { initialModelStatus, useModelRefresh } from "./desktop-model.js";
 import { useDraftPersistence } from "./draft-persistence.js";
@@ -253,77 +252,25 @@ export function App({ api, capabilities }: { api: DesktopApi; capabilities: Desk
             onSelectStep={onSelectStep}
           />
         ) : null}
-        {childOpen ? (
-          <SpecialistActions
-            needsAnswer={state.question !== null}
-            running={running}
-            onBack={closeChild}
-            onCancel={cancelTask}
-          />
-        ) : state.question !== null ? (
-          <PendingQuestion
-            api={api}
-            request={state.question}
-            run={state.activeRun}
-            setError={setDesktopError}
-          />
-        ) : (
-          <Composer
-            key={`composer:${state.activeSessionId ?? "new"}`}
-            commands={state.commands}
-            attachments={state.attachments.filter((attachment) =>
-              state.removableAttachmentIds.includes(attachment.id),
-            )}
-            dropActive={dropIntent === "files" || dropIntent === "mixed"}
-            draft={state.draft}
-            disabled={!desktopReady || model.state === "unsupported" || !tasksAllowed}
-            nativeActionMessage={nativeUnavailable}
-            onAttach={() =>
-              void attach({
-                api,
-                activeSessionId: state.activeSessionId,
-                newSessionFolderId: state.newSessionFolderId,
-                dispatch,
-                draft: state.draft,
-                setError: setDesktopError,
-              })
-            }
-            onCancel={cancelTask}
-            onChange={(draft) => {
-              dispatch({ type: "draft.change", draft });
-              draftPersistence.schedule(state.activeSessionId, draft);
-            }}
-            onOpenAttachment={(attachmentId) => {
-              if (state.activeSessionId !== undefined)
-                void openAttachment(api, state.activeSessionId, attachmentId, setDesktopError);
-            }}
-            onRemoveAttachment={(attachmentId) => {
-              if (state.activeSessionId !== undefined) {
-                const attachmentName = state.attachments.find(
-                  (attachment) => attachment.id === attachmentId,
-                )?.name;
-                const sessionId = state.activeSessionId;
-                setConfirmation({
-                  title: `Remove “${attachmentName ?? "this attachment"}”?`,
-                  description:
-                    "This removes the attachment from the conversation. The original file on your computer is unchanged.",
-                  confirmLabel: "Remove attachment",
-                  onConfirm: () =>
-                    void remove({
-                      api,
-                      sessionId,
-                      attachmentId,
-                      dispatch,
-                      setError: setDesktopError,
-                    }),
-                });
-              }
-            }}
-            onSend={runTask}
-            removableAttachmentIds={state.removableAttachmentIds}
-            running={running}
-          />
-        )}
+        <AppChatControls
+          api={api}
+          childOpen={childOpen}
+          onBack={closeChild}
+          disabled={!desktopReady || model.state === "unsupported" || !tasksAllowed}
+          dispatch={dispatch}
+          dropIntent={dropIntent}
+          nativeActionMessage={nativeUnavailable}
+          onCancel={cancelTask}
+          onChange={(draft) => {
+            dispatch({ type: "draft.change", draft });
+            draftPersistence.schedule(state.activeSessionId, draft);
+          }}
+          onSend={runTask}
+          running={running}
+          setConfirmation={setConfirmation}
+          setError={setDesktopError}
+          state={state}
+        />
       </main>
       <TechnicalDetails
         artifacts={detailState.artifacts}
