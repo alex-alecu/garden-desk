@@ -902,6 +902,60 @@ textarea:focus-visible {
   overflow-y: auto;
 }
 
+.conversation-scroll[hidden] {
+  display: none;
+}
+
+.specialist-icon {
+  display: inline-flex;
+  color: var(--ink-soft);
+}
+
+.specialist-blue {
+  color: light-dark(#2866a3, #8ebdf4);
+}
+
+.specialist-gold {
+  color: light-dark(#916400, #e2bd62);
+}
+
+.specialist-violet {
+  color: light-dark(#7650a0, #bd9ae8);
+}
+
+.specialist-rose {
+  color: light-dark(#a34768, #ed9db8);
+}
+
+.specialist-cyan {
+  color: light-dark(#08768d, #78d0e0);
+}
+
+.specialist-teal {
+  color: light-dark(#22735b, #85caaa);
+}
+
+.specialist-orange {
+  color: light-dark(#a45d25, #eba96c);
+}
+
+.specialist-indigo {
+  color: light-dark(#575caa, #acaff0);
+}
+
+.specialist-actions {
+  width: min(var(--chat-content-width), calc(100% - var(--chat-content-gutter)));
+  flex-wrap: wrap;
+  margin: 0 auto 24px;
+}
+
+.specialist-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-right: auto;
+}
+
 .timeline {
   width: min(var(--chat-content-width), calc(100% - var(--chat-content-gutter)));
   margin: 0 auto;

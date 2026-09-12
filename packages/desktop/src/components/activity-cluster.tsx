@@ -1,7 +1,9 @@
+import type { AgentRunSummary } from "@gardendesk/shared";
 import { useEffect, useRef, useState } from "react";
 import type { ActivityRow } from "../activity-rows.js";
 import { ActivityRowView } from "./activity-row.js";
 import { Icon } from "./icons.js";
+import { SpecialistRunRow } from "./specialist-run.js";
 
 const VISIBLE_ROWS = 5;
 
@@ -15,6 +17,8 @@ export interface ClusterProps {
   finishedDurationMs: number | undefined;
   onOpenDetails(row: ActivityRow): void;
   forceExpandedRowId: string | undefined;
+  childRuns?: AgentRunSummary[] | undefined;
+  onOpenChild?: ((run: AgentRunSummary) => void) | undefined;
 }
 
 function formatDuration(ms: number): string {
@@ -54,7 +58,7 @@ function displayState(props: ClusterProps, open: boolean) {
   );
   const finishedDurationMs = props.finishedDurationMs ?? (props.working ? undefined : elapsedMs);
   const expanded = props.working || open;
-  const visible = clusterRows(props.rows, props.working, expanded);
+  const visible = clusterRows(props.rows, props.working && !open, expanded);
   return {
     expanded,
     hiddenCount: props.rows.length - visible.length,
@@ -70,23 +74,21 @@ function displayState(props: ClusterProps, open: boolean) {
 
 /**
  * One agent run's activity, headed by a persistent timer line. While running it shows the last few
- * rows live; when finished it collapses to the timer line and expands on demand. A failed or
+ * rows live; when finished it collapses to the timer line unless a row is selected. A failed or
  * cancelled run stays expanded so the failing row is visible.
  */
 export function ActivityCluster(props: ClusterProps) {
-  const forcedOpen =
-    props.forceExpandedRowId !== undefined &&
-    props.rows.some((row) => row.id === props.forceExpandedRowId);
-  const [open, setOpen] = useState(props.working || props.failed || forcedOpen);
+  const selectedRowId = props.rows.find((row) => row.id === props.forceExpandedRowId)?.id;
+  const [open, setOpen] = useState(props.failed || selectedRowId !== undefined);
   useEffect(() => {
-    if (forcedOpen) setOpen(true);
-  }, [forcedOpen]);
+    if (selectedRowId !== undefined) setOpen(true);
+  }, [selectedRowId]);
   const wasWorking = useRef(props.working);
   useEffect(() => {
-    // Collapse to the timer line when a run finishes cleanly; a failed or cancelled run stays open.
-    if (wasWorking.current && !props.working) setOpen(openStateOnFinish(props.failed));
+    if (wasWorking.current && !props.working)
+      setOpen(openStateOnFinish(props.failed) || selectedRowId !== undefined);
     wasWorking.current = props.working;
-  }, [props.working, props.failed]);
+  }, [props.working, props.failed, selectedRowId]);
   const elapsedMs = useElapsedMs(props.startedAt, props.working);
   const display = displayState(
     { ...props, finishedDurationMs: props.working ? elapsedMs : props.finishedDurationMs },
@@ -109,19 +111,29 @@ export function ActivityCluster(props: ClusterProps) {
             </p>
           ) : null}
           {display.hiddenCount > 0 ? (
-            <p className="activity-cluster-earlier">{display.hiddenCount} earlier steps</p>
+            <button
+              className="activity-row-label activity-cluster-earlier"
+              onClick={() => setOpen(true)}
+              type="button"
+            >
+              Show {display.hiddenCount} earlier steps
+            </button>
           ) : null}
-          {display.visible.map((row, index) => (
-            <ActivityRowView
-              key={row.id}
-              live={props.working && index === display.visible.length - 1}
-              onOpenDetails={props.onOpenDetails}
-              row={row}
-            />
-          ))}
+          {display.visible.map((row, index) =>
+            renderClusterRow(props, row, props.working && index === display.visible.length - 1),
+          )}
         </div>
       ) : null}
     </section>
+  );
+}
+
+function renderClusterRow(props: ClusterProps, row: ActivityRow, live: boolean) {
+  const child = props.childRuns?.find((run) => run.parentToolCallId === row.toolCallId);
+  return child !== undefined && props.onOpenChild !== undefined ? (
+    <SpecialistRunRow key={row.id} run={child} onOpen={props.onOpenChild} />
+  ) : (
+    <ActivityRowView key={row.id} live={live} onOpenDetails={props.onOpenDetails} row={row} />
   );
 }
 

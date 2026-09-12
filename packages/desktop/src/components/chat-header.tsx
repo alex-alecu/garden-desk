@@ -1,11 +1,13 @@
 import type { ModelRuntimeStatus } from "@gardendesk/shared";
 import { type AppearancePreference, nextAppearance } from "../appearance.js";
 import { Icon } from "./icons.js";
+import { SpecialistIcon, specialistIdentity } from "./specialist-run.js";
 
 interface ChatHeaderProps {
   appearance: AppearancePreference;
   technicalDetailsOpen: boolean;
   model: ModelRuntimeStatus;
+  specialistAgentId?: string | null | undefined;
   nativeActionMessage?: string | undefined;
   onAppearanceChange(): void;
   onTechnicalDetailsOpen(): void;
@@ -51,6 +53,7 @@ export function ChatHeader({
   appearance,
   technicalDetailsOpen,
   model,
+  specialistAgentId,
   nativeActionMessage,
   onAppearanceChange,
   onTechnicalDetailsOpen,
@@ -60,6 +63,11 @@ export function ChatHeader({
   return (
     <header className="chat-header" data-tauri-drag-region="">
       <div className="model-identity">
+        {specialistAgentId === undefined ? null : (
+          <span aria-label={specialistIdentity(specialistAgentId).name} role="img">
+            <SpecialistIcon agentId={specialistAgentId} />
+          </span>
+        )}
         <div className="model-copy">
           <div className="model-title-row">
             <strong>{model.name}</strong>

@@ -31,6 +31,9 @@ export interface RunRow {
   id: string;
   session_id: string;
   parent_run_id: string | null;
+  agent_id: string | null;
+  assignment: string | null;
+  parent_tool_call_id: string | null;
   job_id: string;
   state: string;
   response: string | null;
@@ -114,6 +117,9 @@ export function runFromRow(row: RunRow): AgentRunSummary {
     id: row.id,
     sessionId: row.session_id,
     parentRunId: row.parent_run_id,
+    agentId: row.agent_id,
+    assignment: row.assignment,
+    parentToolCallId: row.parent_tool_call_id,
     jobId: row.job_id,
     state: row.state,
     response: row.response,
