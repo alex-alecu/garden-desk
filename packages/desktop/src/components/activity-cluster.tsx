@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import type { ActivityRow } from "../activity-rows.js";
 import { ActivityRowView } from "./activity-row.js";
 import { Icon } from "./icons.js";
-import { SpecialistRunRows } from "./specialist-run.js";
+import { SpecialistRunRow } from "./specialist-run.js";
 
 const VISIBLE_ROWS = 5;
 
@@ -58,7 +58,7 @@ function displayState(props: ClusterProps, open: boolean) {
   );
   const finishedDurationMs = props.finishedDurationMs ?? (props.working ? undefined : elapsedMs);
   const expanded = props.working || open;
-  const visible = clusterRows(props.rows, props.working, expanded);
+  const visible = clusterRows(props.rows, props.working && !open, expanded);
   return {
     expanded,
     hiddenCount: props.rows.length - visible.length,
@@ -81,7 +81,7 @@ export function ActivityCluster(props: ClusterProps) {
   const forcedOpen =
     props.forceExpandedRowId !== undefined &&
     props.rows.some((row) => row.id === props.forceExpandedRowId);
-  const [open, setOpen] = useState(props.working || props.failed || forcedOpen);
+  const [open, setOpen] = useState(props.failed || forcedOpen);
   useEffect(() => {
     if (forcedOpen) setOpen(true);
   }, [forcedOpen]);
@@ -94,7 +94,7 @@ export function ActivityCluster(props: ClusterProps) {
   const elapsedMs = useElapsedMs(props.startedAt, props.working);
   const display = displayState(
     { ...props, finishedDurationMs: props.working ? elapsedMs : props.finishedDurationMs },
-    open,
+    open || forcedOpen,
   );
   return (
     <section aria-label="Agent activity" className="activity-cluster">
@@ -113,24 +113,29 @@ export function ActivityCluster(props: ClusterProps) {
             </p>
           ) : null}
           {display.hiddenCount > 0 ? (
-            <p className="activity-cluster-earlier">{display.hiddenCount} earlier steps</p>
+            <button
+              className="activity-row-label activity-cluster-earlier"
+              onClick={() => setOpen(true)}
+              type="button"
+            >
+              Show {display.hiddenCount} earlier steps
+            </button>
           ) : null}
-          {display.visible
-            .filter(
-              (row) => !props.childRuns?.some((run) => run.parentToolCallId === row.toolCallId),
-            )
-            .map((row, index) => (
-              <ActivityRowView
-                key={row.id}
-                live={props.working && index === display.visible.length - 1}
-                onOpenDetails={props.onOpenDetails}
-                row={row}
-              />
-            ))}
+          {display.visible.map((row, index) =>
+            renderClusterRow(props, row, props.working && index === display.visible.length - 1),
+          )}
         </div>
       ) : null}
-      <SpecialistRunRows runs={props.childRuns} onOpen={props.onOpenChild} />
     </section>
+  );
+}
+
+function renderClusterRow(props: ClusterProps, row: ActivityRow, live: boolean) {
+  const child = props.childRuns?.find((run) => run.parentToolCallId === row.toolCallId);
+  return child !== undefined && props.onOpenChild !== undefined ? (
+    <SpecialistRunRow key={row.id} run={child} onOpen={props.onOpenChild} />
+  ) : (
+    <ActivityRowView key={row.id} live={live} onOpenDetails={props.onOpenDetails} row={row} />
   );
 }
 

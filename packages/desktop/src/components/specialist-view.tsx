@@ -1,9 +1,9 @@
 import type { AgentRunSummary } from "@gardendesk/shared";
 import { useEffect, useRef } from "react";
-import type { DesktopState } from "../state.js";
+import type { DesktopState, TimelineItem } from "../state.js";
 import { Conversation } from "./conversation.js";
 import { Icon } from "./icons.js";
-import { SpecialistIcon, specialistIdentity, specialistStatus } from "./specialist-run.js";
+import { specialistIdentity } from "./specialist-run.js";
 
 export function SpecialistView({
   run,
@@ -16,41 +16,37 @@ export function SpecialistView({
   unavailable: boolean;
   onSelectStep(stepId: string | undefined): void;
 }) {
-  const title = useRef<HTMLHeadingElement>(null);
-  useEffect(() => title.current?.focus(), []);
   const current = state.activeRun ?? run;
-  const timeline = state.timeline.filter((item) => item.eventType !== "inference.started");
+  const timeline: TimelineItem[] = [
+    {
+      id: `assignment-${run.id}`,
+      createdAt: run.createdAt,
+      kind: "user",
+      text: run.assignment ?? specialistIdentity(run.agentId).name,
+      runId: run.id,
+    },
+    ...state.timeline.filter((item) => item.eventType !== "inference.started"),
+  ];
+  if (unavailable || state.activeRun === undefined)
+    timeline.push({
+      id: `status-${run.id}`,
+      createdAt: current.updatedAt,
+      kind: "assistant",
+      text: unavailable ? "Current status is unavailable." : "Loading activity…",
+    });
   return (
-    <div className="specialist-view">
-      <header className="specialist-view-header">
-        <SpecialistIcon agentId={run.agentId} />
-        <h2 ref={title} tabIndex={-1}>
-          {specialistIdentity(run.agentId).name}
-        </h2>
-        <span className="specialist-run-status" role="status">
-          {unavailable ? "Status unavailable" : specialistStatus(current.state)}
-        </span>
-        <p>{run.assignment}</p>
-      </header>
-      {timeline.some((item) => item.eventType !== "run.started") ? (
-        <Conversation
-          artifacts={[]}
-          timeline={timeline}
-          ready
-          onSuggestion={() => undefined}
-          onSelectStep={onSelectStep}
-          performance={current.performance}
-          runId={run.id}
-          selectedStepId={state.selectedStepId}
-          working={current.state === "queued" || current.state === "running"}
-          activeRunState={current.state}
-        />
-      ) : (
-        <p className="specialist-loading" role="status">
-          {unavailable ? "Work could not be loaded." : "Loading activity…"}
-        </p>
-      )}
-    </div>
+    <Conversation
+      artifacts={[]}
+      timeline={timeline}
+      ready
+      onSuggestion={() => undefined}
+      onSelectStep={onSelectStep}
+      performance={current.performance}
+      runId={run.id}
+      selectedStepId={state.selectedStepId}
+      working={current.state === "queued" || current.state === "running"}
+      activeRunState={current.state}
+    />
   );
 }
 
@@ -65,19 +61,26 @@ export function SpecialistActions({
   onBack(): void;
   onCancel(): void;
 }) {
+  const back = useRef<HTMLButtonElement>(null);
+  useEffect(() => back.current?.focus(), []);
   return (
-    <div className="specialist-actions">
-      <button onClick={onBack} type="button">
+    <div className="composer-actions specialist-actions">
+      <button
+        className="activity-row-label specialist-back"
+        onClick={onBack}
+        ref={back}
+        type="button"
+      >
         <Icon name="chevron-left" />
         Go back
       </button>
       {needsAnswer ? (
-        <button className="specialist-answer" onClick={onBack} type="button">
+        <button className="activity-row-label" onClick={onBack} type="button">
           Your answer is needed
         </button>
       ) : null}
       {running ? (
-        <button className="specialist-stop" onClick={onCancel} type="button">
+        <button className="stop-button" onClick={onCancel} type="button">
           Stop task
         </button>
       ) : null}
