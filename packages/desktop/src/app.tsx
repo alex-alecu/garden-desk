@@ -165,6 +165,7 @@ export function App({ api, capabilities }: { api: DesktopApi; capabilities: Desk
           appearance={appearance.preference}
           technicalDetailsOpen={technicalDetailsOpen}
           model={model}
+          specialistAgentId={childOpen ? selectedChild.agentId : undefined}
           nativeActionMessage={nativeUnavailable}
           onAppearanceChange={appearance.cycle}
           onTechnicalDetailsOpen={() => {
