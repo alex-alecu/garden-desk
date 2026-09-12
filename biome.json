@@ -137,6 +137,7 @@
         "packages/desktop/src/package-compliance.test.ts",
         "packages/desktop/src/package-image-resources.test.ts",
         "packages/desktop/src/package-output-cleanup.test.ts",
+        "packages/desktop/src/package-resource-contract.test.ts",
         "scripts/**/*.ts"
       ],
       "linter": {

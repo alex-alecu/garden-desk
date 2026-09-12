@@ -160,6 +160,9 @@ export const AgentRunSummarySchema = z.object({
   id: AgentRunIdSchema,
   sessionId: SessionIdSchema,
   parentRunId: AgentRunIdSchema.nullable().default(null),
+  agentId: z.string().max(64).nullable().optional(),
+  assignment: z.string().max(256_258).nullable().optional(),
+  parentToolCallId: z.string().max(255).nullable().optional(),
   jobId: JobIdSchema,
   state: AgentRunStateSchema,
   response: z.string().max(256_000).nullable(),
@@ -246,6 +249,7 @@ export const AgentQuestionAnswerSchema = z.array(z.string().min(1).max(300)).max
 
 export const AgentRunSnapshotSchema = z.object({
   run: AgentRunSummarySchema,
+  childRuns: z.array(AgentRunSummarySchema).max(1_280).default([]),
   sessionTitle: z.string().min(1).optional(),
   events: z.array(AgentEventSchema).max(1_000),
   executions: z.array(AgentExecutionSnapshotSchema).max(1_280).default([]),

@@ -5,6 +5,7 @@ export function createToolRegistry(input: ChatAgentInput): GenericToolRegistry {
   return new GenericToolRegistry({
     executor: input.executor,
     skills: input.skills,
+    ...(input.subagents === undefined ? {} : { subagents: input.subagents }),
     ...(input.inspectImage === undefined ? {} : { inspectImage: input.inspectImage }),
     ...(input.spawnTask === undefined ? {} : { spawnTask: input.spawnTask }),
     ...(input.askQuestion === undefined ? {} : { askQuestion: input.askQuestion }),

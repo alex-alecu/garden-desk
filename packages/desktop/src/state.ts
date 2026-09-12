@@ -35,6 +35,7 @@ export interface DesktopState {
   attachments: AttachmentSummary[];
   removableAttachmentIds: string[];
   activeRun: AgentRunSummary | undefined;
+  childRuns: AgentRunSummary[];
   workingSessionIds: string[];
   artifacts: AgentArtifactSummary[];
   executions: AgentExecutionSnapshot[];
@@ -133,13 +134,6 @@ function addSession(state: DesktopState, session: SessionSummary): DesktopState 
         ? { ...folder, expanded: true, sessions: [session, ...folder.sessions] }
         : folder,
     ),
-  };
-}
-
-function withTrace(state: DesktopState, trace: AgentTrace): DesktopState {
-  return {
-    ...state,
-    traces: [...state.traces.filter((item) => item.runId !== trace.runId), trace],
   };
 }
 
@@ -294,6 +288,11 @@ export function desktopReducer(state: DesktopState, action: DesktopAction): Desk
       : state;
   }
   if (action.type === "step.select") return { ...state, selectedStepId: action.stepId };
-  if (action.type === "trace.load") return withTrace(state, action.trace);
+  if (action.type === "trace.load") {
+    return {
+      ...state,
+      traces: [...state.traces.filter((item) => item.runId !== action.trace.runId), action.trace],
+    };
+  }
   return { ...state, draft: action.draft };
 }

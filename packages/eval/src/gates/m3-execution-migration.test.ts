@@ -73,7 +73,7 @@ function insertHistoricalRows(database: Database.Database): void {
 
 function downgradeToVersionSeven(database: Database.Database): void {
   database.exec(
-    "DROP TABLE agent_session_summaries; DROP INDEX folder_grants_active_order; ALTER TABLE folder_grants DROP COLUMN sort_order; DROP TABLE agent_inference_turns; ALTER TABLE agent_events DROP COLUMN tool_call_id; ALTER TABLE agent_events DROP COLUMN tool_name; ALTER TABLE agent_runs DROP COLUMN parent_run_id; ALTER TABLE agent_runs DROP COLUMN trace_version; PRAGMA user_version = 7",
+    "ALTER TABLE agent_runs DROP COLUMN agent_id; ALTER TABLE agent_runs DROP COLUMN assignment; ALTER TABLE agent_runs DROP COLUMN parent_tool_call_id; ALTER TABLE agent_runs DROP COLUMN context_used_tokens; ALTER TABLE agent_runs DROP COLUMN context_allocated_tokens; DROP TABLE agent_session_summaries; DROP INDEX folder_grants_active_order; ALTER TABLE folder_grants DROP COLUMN sort_order; DROP TABLE agent_inference_turns; ALTER TABLE agent_events DROP COLUMN tool_call_id; ALTER TABLE agent_events DROP COLUMN tool_name; DROP INDEX agent_runs_by_parent; ALTER TABLE agent_runs DROP COLUMN parent_run_id; ALTER TABLE agent_runs DROP COLUMN trace_version; PRAGMA user_version = 7",
   );
 }
 
@@ -84,7 +84,7 @@ async function seedVersionSixCatalog(root: string): Promise<string> {
   const database = new Database(databasePath);
   try {
     database.exec(
-      "DROP TABLE agent_session_summaries; DROP INDEX folder_grants_active_order; ALTER TABLE folder_grants DROP COLUMN sort_order; DROP TABLE agent_inference_turns; ALTER TABLE agent_events DROP COLUMN tool_call_id; ALTER TABLE agent_events DROP COLUMN tool_name; ALTER TABLE agent_runs DROP COLUMN parent_run_id; ALTER TABLE agent_runs DROP COLUMN trace_version; DROP TABLE agent_executions",
+      "ALTER TABLE agent_runs DROP COLUMN agent_id; ALTER TABLE agent_runs DROP COLUMN assignment; ALTER TABLE agent_runs DROP COLUMN parent_tool_call_id; ALTER TABLE agent_runs DROP COLUMN context_used_tokens; ALTER TABLE agent_runs DROP COLUMN context_allocated_tokens; DROP TABLE agent_session_summaries; DROP INDEX folder_grants_active_order; ALTER TABLE folder_grants DROP COLUMN sort_order; DROP TABLE agent_inference_turns; ALTER TABLE agent_events DROP COLUMN tool_call_id; ALTER TABLE agent_events DROP COLUMN tool_name; DROP INDEX agent_runs_by_parent; ALTER TABLE agent_runs DROP COLUMN parent_run_id; ALTER TABLE agent_runs DROP COLUMN trace_version; DROP TABLE agent_executions",
     );
     insertHistoricalRows(database);
   } finally {

@@ -121,14 +121,17 @@ function skillTool(skills: SkillReader, skillNames: string[]): ToolSpec {
   };
 }
 
-function taskParams(value: unknown): {
+function taskParams(
+  value: unknown,
+  names: readonly string[],
+): {
   description: string;
   prompt: string;
-  subagent_type: "explore" | "general";
+  subagent_type: string;
 } {
   const params = object(value);
-  const subagentType = textParam(params, "subagent_type", 16);
-  if (subagentType !== "explore" && subagentType !== "general") {
+  const subagentType = textParam(params, "subagent_type", 64);
+  if (!names.includes(subagentType)) {
     throw new Error("invalid_subagent_type");
   }
   return {
@@ -138,26 +141,27 @@ function taskParams(value: unknown): {
   };
 }
 
-function taskTool(): ToolSpec {
+function taskTool(agents: readonly { name: string; description: string }[]): ToolSpec {
+  const names = agents.map((agent) => agent.name);
   return {
     definition: {
       name: "task",
       description:
-        "Delegate a self-contained sub-task to a child agent. Use only when the user explicitly asks for delegation.",
+        "Delegate a separate body of work to the matching specialist. Give the request, exact source paths, expected findings, and known limits. Children run one at a time.",
       params: objectSchema(
         {
           description: { type: "string" },
           prompt: { type: "string" },
           subagent_type: {
             type: "string",
-            enum: ["explore", "general"],
-            description: "explore: read-only inspection; general: also runs code.",
+            enum: names,
+            description: agents.map((agent) => `${agent.name}: ${agent.description}`).join("\n"),
           },
         },
         ["description", "prompt", "subagent_type"],
       ),
     },
-    parse: taskParams,
+    parse: (value) => taskParams(value, names),
     execute: async (value, context) => {
       if (context.spawnTask === undefined) {
         return { content: "Sub-agents are unavailable from this agent.", failed: true };
@@ -167,6 +171,7 @@ function taskTool(): ToolSpec {
         description: params.description,
         prompt: params.prompt,
         subagentType: params.subagent_type,
+        ...(context.toolCallId === undefined ? {} : { parentToolCallId: context.toolCallId }),
       });
       return {
         content: `<task_result>\n${result.response}\n</task_result>`,
@@ -211,15 +216,15 @@ function imageTool(): ToolSpec {
   };
 }
 
-function specs(skills: SkillReader, skillNames: string[]): ToolSpec[] {
+function specs(context: ToolContext, skillNames: string[]): ToolSpec[] {
   return [
     codeTool("python"),
     codeTool("node"),
     bashTool(),
     ...guestFileTools(),
     imageTool(),
-    skillTool(skills, skillNames),
-    taskTool(),
+    skillTool(context.skills, skillNames),
+    taskTool(context.subagents ?? []),
     questionTool(),
   ];
 }
@@ -230,7 +235,7 @@ export class GenericToolRegistry {
   constructor(private readonly context: ToolContext) {
     this.skillNames = context.skills.metadata().map((item) => item.name);
     this.tools = new Map(
-      specs(context.skills, this.skillNames).map((tool) => [tool.definition.name, tool]),
+      specs(context, this.skillNames).map((tool) => [tool.definition.name, tool]),
     );
   }
   definitions(names: readonly string[]): ChatToolDefinition[] {
@@ -255,13 +260,17 @@ export class GenericToolRegistry {
     name: string,
     params: unknown,
     validation?: ToolValidation,
-    onGuestExecutionStarted?: () => void,
+    execution: { onGuestExecutionStarted?(): void; toolCallId?: string } = {},
   ): Promise<AgentToolResult> {
+    const { onGuestExecutionStarted, toolCallId } = execution;
     const checked = validation ?? this.validate(name, params);
     if (checked.status === "invalid") return checked.result;
     let completed: ToolExecutionResult | undefined;
     try {
-      const result = await checked.tool.execute(checked.parsed, this.context);
+      const result = await checked.tool.execute(checked.parsed, {
+        ...this.context,
+        ...(toolCallId === undefined ? {} : { toolCallId }),
+      });
       completed = result;
       if ((result.guestExecutionsStarted ?? 0) > 0) onGuestExecutionStarted?.();
       const content = await boundedToolOutput(
