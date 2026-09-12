@@ -18,6 +18,23 @@ import { AgentStore } from "./store.js";
 
 afterEach(cleanServiceFixtures);
 
+it("uses the parent index when loading child runs", async () => {
+  const { catalog, service } = await fixture({}, artifactExecution);
+  try {
+    const plan = catalog.database
+      .prepare(
+        "EXPLAIN QUERY PLAN SELECT * FROM agent_runs WHERE parent_run_id = ? ORDER BY created_at, id",
+      )
+      .all("parent-run");
+    expect(plan).toMatchObject([
+      { detail: "SEARCH agent_runs USING INDEX agent_runs_by_parent (parent_run_id=?)" },
+    ]);
+  } finally {
+    await service.close();
+    catalog.close();
+  }
+});
+
 // biome-ignore lint/complexity/noExcessiveLinesPerFunction: one case checks the shared delegation and command boundary through reopening.
 it("shares specialist routing and preserves child identity and findings", async () => {
   const requests: ChatInput[] = [];
