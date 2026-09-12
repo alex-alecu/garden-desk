@@ -23,6 +23,12 @@ afterEach(cleanServiceFixtures);
 // biome-ignore lint/complexity/noExcessiveLinesPerFunction: one case checks the shared delegation and command boundary through reopening.
 it("shares specialist routing and preserves child identity and findings", async () => {
   const requests: ChatInput[] = [];
+  const description = "Inspect source structure".padEnd(1_000, ".");
+  const prompt = "Inspect the selected files.".padEnd(128_000, ".");
+  const assignment = `${description}\n\n${prompt}`;
+  const commandDescription = description.slice(0, 256);
+  const commandArguments = prompt.padEnd(256_000 - "/intake ".length, ".");
+  const commandTask = `/intake ${commandArguments}`;
   let parentId = "";
   const { catalog, conversations, service } = await fixture(
     {
@@ -40,8 +46,8 @@ it("shares specialist routing and preserves child identity and findings", async 
               name: "task",
               params: {
                 subagent_type: "folder-intake",
-                description: "Inspect source structure",
-                prompt: "Inspect the selected files.",
+                description,
+                prompt,
               },
             },
           ]);
@@ -66,9 +72,9 @@ it("shares specialist routing and preserves child identity and findings", async 
   await mkdir(commandRoot);
   await writeFile(
     join(commandRoot, "intake.md"),
-    "---\ndescription: Inspect source structure\nagent: folder-intake\n---\n",
+    `---\ndescription: ${commandDescription}\nagent: folder-intake\n---\n`,
   );
-  const command = new CommandLibrary(commandRoot).resolve("/intake Inspect the selected files.");
+  const command = new CommandLibrary(commandRoot).resolve(commandTask);
   const resolveCommand = vi
     .spyOn(CommandLibrary.prototype, "resolve")
     .mockReturnValueOnce(undefined)
@@ -78,20 +84,27 @@ it("shares specialist routing and preserves child identity and findings", async 
     parentId = service.start(session.id, "Inspect source structure.").id;
     const delegated = await terminal(service, parentId);
     expect(delegated.run).toMatchObject({ state: "succeeded", error: null });
+    expect(delegated.childRuns[0]?.assignment).toHaveLength(assignment.length);
     expect(delegated.childRuns[0]).toMatchObject({
+      assignment,
       parentRunId: parentId,
       parentToolCallId: "intake-call",
       response: "Complete findings.",
     });
-    parentId = service.start(session.id, "/intake Inspect the selected files.").id;
+    parentId = service.start(session.id, commandTask).id;
     const direct = await terminal(service, parentId);
     expect(direct.run).toMatchObject({ state: "succeeded", response: "Complete findings." });
     expect(direct.childRuns[0]).toMatchObject({
+      assignment: `${commandDescription}\n\n${commandArguments}`,
       parentRunId: parentId,
       parentToolCallId: `command:${parentId}`,
       agentId: "folder-intake",
     });
     expect(requests).toHaveLength(4);
+    expect(requests[1]?.messages.find((message) => message.role === "user")?.text).toBe(assignment);
+    expect(requests[3]?.messages.find((message) => message.role === "user")?.text).toBe(
+      direct.childRuns[0]?.assignment,
+    );
     expect(service.listRuns(session.id).map((run) => run.id)).toEqual(
       expect.arrayContaining([delegated.run.id, direct.run.id]),
     );
