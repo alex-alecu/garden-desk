@@ -42,7 +42,7 @@ describe("M3 Windows portable package", () => {
       expect(staging).toContain(value);
     }
     const cuda = JSON.parse(assets).platforms["windows-cuda-x64"];
-    expect(cuda.archive).toBe("llama-b10816-bin-win-cuda-13.3-x64.zip");
+    expect(cuda.archive).toBe("llama-prism-b10685-7dffb15-bin-win-cuda-13.3-x64.zip");
     expect(Object.values(cuda.dependencies[0].files)).toEqual([
       "cublas64_13.dll",
       "cublasLt64_13.dll",
@@ -82,14 +82,14 @@ describe("M3 model package input", () => {
       bundle: { resources: Record<string, string> };
     };
     expect(base.bundle.resources).not.toHaveProperty(
-      "../../eval/.generated/models/qwen3.8-27b-ud-iq4_xs.gguf",
+      "../../eval/.generated/models/ternary-bonsai-2-27b-pq2_0.gguf",
     );
     expect(packageConfiguration.bundle.resources).toEqual({
       "resources/core/": "resources/core/",
-      "../../eval/.generated/models/qwen3.8-27b-ud-iq4_xs.gguf":
-        "resources/core/models/qwen3.8-27b-ud-iq4_xs.gguf",
-      "../../eval/.generated/models/qwen3.8-27b-mmproj-f16.gguf":
-        "resources/core/models/qwen3.8-27b-mmproj-f16.gguf",
+      "../../eval/.generated/models/ternary-bonsai-2-27b-pq2_0.gguf":
+        "resources/core/models/ternary-bonsai-2-27b-pq2_0.gguf",
+      "../../eval/.generated/models/ternary-bonsai-2-27b-mmproj-q8_0.gguf":
+        "resources/core/models/ternary-bonsai-2-27b-mmproj-q8_0.gguf",
       "../../../assets/fonts/LICENSE.txt": "assets/fonts/LICENSE.txt",
     });
     expect(launcher).toContain('tauriArguments[0] === "dev"');

@@ -51,6 +51,7 @@ export interface InferenceExecution {
   reasoning?: Map<string, string>;
   request: InferenceWorkerRequest;
   modelPath?: string;
+  modelByteLength?: number;
   memoryBudgetBytes: number;
   timeoutMs: number;
   signal?: AbortSignal;

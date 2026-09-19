@@ -100,7 +100,8 @@ function childReviewInput(
     ...(input.thinking === undefined ? {} : { thinking: input.thinking }),
     trace: { runId: child.id, store: ports.store.trace },
     onEvent: (type, summary, detail) => ports.store.appendEvent(child.id, type, summary, detail),
-    onResponse: (response) => ports.store.setLiveResponse(child.id, response),
+    onThinking: (thinking) => ports.store.live.setThinking(child.id, thinking),
+    onResponse: (response) => ports.store.live.setResponse(child.id, response),
     executor: {
       async execute(request, signal) {
         const result = await executor.execute(request, signal, () => {

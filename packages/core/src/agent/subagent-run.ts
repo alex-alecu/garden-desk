@@ -147,8 +147,9 @@ export async function runSubagent(
         mediaType: item.mediaType,
       })),
       onEvent: (type, summary, detail) => ports.store.appendEvent(child.id, type, summary, detail),
+      onThinking: (thinking) => ports.store.live.setThinking(child.id, thinking),
       onResponse: (response) => {
-        ports.store.setLiveResponse(child.id, response);
+        ports.store.live.setResponse(child.id, response);
         ports.onResponse?.(response);
       },
       onContext: (used, allocated, measured) => {

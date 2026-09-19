@@ -54,26 +54,39 @@ async function files(root: string, directory = root): Promise<string[]> {
 const hostPackages = [
   { name: "Node.js", version: "24.18.0", license: "MIT" },
   {
-    name: "llama.cpp",
-    version: "b10816",
+    name: "llama.cpp (PrismML fork)",
+    version: "prism-b10685-7dffb15",
     license: "MIT",
     notice: "License text: licenses/llama.cpp-LICENSE.txt",
     source: {
       file:
         process.platform === "win32"
-          ? "llama-b10816-bin-win-cuda-13.3-x64.zip"
-          : "llama-b10816-bin-macos-arm64.tar.gz",
+          ? "llama-prism-b10685-7dffb15-bin-win-cuda-13.3-x64.zip"
+          : "llama-prism-b10685-7dffb15-bin-macos-arm64.tar.gz",
       sha256:
         process.platform === "win32"
-          ? "f362882b139862e04714cce6ecb886ab82e256bdd0717c6010f24082fd340c57"
-          : "726ca8e7680203280b72029f92380aaf482e6a48ebe4a73fbe934ccc0bcf2de9",
+          ? "0b0e44045b0b55bb892c5afa8fd4c988194c47c02967ff1da55cd01c0c8eda69"
+          : "7fffa7a40c74f3e9bd78f3f2f9f12f9befb7b13af45d5a69c239cf3fd37b9045",
       url:
         process.platform === "win32"
-          ? "https://github.com/ggml-org/llama.cpp/releases/download/b10816/llama-b10816-bin-win-cuda-13.3-x64.zip"
-          : "https://github.com/ggml-org/llama.cpp/releases/download/b10816/llama-b10816-bin-macos-arm64.tar.gz",
+          ? "https://github.com/PrismML-Eng/llama.cpp/releases/download/prism-b10685-7dffb15/llama-prism-b10685-7dffb15-bin-win-cuda-13.3-x64.zip"
+          : "https://github.com/PrismML-Eng/llama.cpp/releases/download/prism-b10685-7dffb15/llama-prism-b10685-7dffb15-bin-macos-arm64.tar.gz",
     },
   },
-  { name: "Qwen3.8 27B GGUF", version: "UD-IQ4_XS", license: "Apache-2.0" },
+  {
+    name: "Ternary Bonsai 2 27B GGUF",
+    version: "PQ2_0",
+    license: "Apache-2.0",
+    notice:
+      "Copyright 2026-present Prism ML, Inc. Created using Bonsai by Prism ML. License text: licenses/ternary-bonsai-2-LICENSE.txt. Notice: licenses/ternary-bonsai-2-NOTICE.txt.",
+  },
+  {
+    name: "Qwen3.8-27B",
+    version: "base model of Ternary Bonsai 2",
+    license: "Apache-2.0",
+    notice:
+      "Copyright 2026 Alibaba Cloud. License text: licenses/qwen3.8-LICENSE.txt. https://huggingface.co/Qwen/Qwen3.8-27B",
+  },
   { name: "React", version: "19.2.7", license: "MIT" },
   { name: "Tauri", version: "2.11.5", license: "Apache-2.0 OR MIT" },
 ];
@@ -86,14 +99,6 @@ function platformPackages(): NoticePackage[] {
           version: "0.61.3",
           license: "MIT OR Apache-2.0",
           purpose: "DXCore GPU and installed-memory discovery in the Windows inference helper",
-        },
-        {
-          name: "LLVM OpenMP Runtime",
-          version: "b10816",
-          license: "Apache-2.0 WITH LLVM-exception",
-          purpose: "application-local Windows inference runtime dependency",
-          notice:
-            "License text: licenses/llvm-OpenMP-LICENSE.txt. The pinned b10816 archive supplies libomp.dll.",
         },
         {
           name: "Microsoft Visual C++ Desktop Runtime",
@@ -115,19 +120,19 @@ function platformPackages(): NoticePackage[] {
           source: {
             file: "cudart-llama-bin-win-cuda-13.3-x64.zip",
             sha256: "1462a050eb4c684921ba51dcc4cc488a036674c3e73e9945ee705b854808d03e",
-            url: "https://github.com/ggml-org/llama.cpp/releases/download/b10816/cudart-llama-bin-win-cuda-13.3-x64.zip",
+            url: "https://github.com/PrismML-Eng/llama.cpp/releases/download/prism-b10685-7dffb15/cudart-llama-bin-win-cuda-13.3-x64.zip",
           },
         },
         {
-          name: "llama.cpp Vulkan",
-          version: "b10816",
+          name: "llama.cpp (PrismML fork) Vulkan",
+          version: "prism-b10685-7dffb15",
           license: "MIT",
           purpose: "packaged Windows Vulkan inference runtime",
           notice: "License text: licenses/llama.cpp-LICENSE.txt",
           source: {
-            file: "llama-b10816-bin-win-vulkan-x64.zip",
-            sha256: "ea6704bd058cb37c3d960913638b37b766f66fb5baff37547d0fa95aa0ed7528",
-            url: "https://github.com/ggml-org/llama.cpp/releases/download/b10816/llama-b10816-bin-win-vulkan-x64.zip",
+            file: "llama-prism-b10685-7dffb15-bin-win-vulkan-x64.zip",
+            sha256: "f1e8090392390e5c26b184ff90f5350a5e6421bfdd74606f12c8c5de9c668b2b",
+            url: "https://github.com/PrismML-Eng/llama.cpp/releases/download/prism-b10685-7dffb15/llama-prism-b10685-7dffb15-bin-win-vulkan-x64.zip",
           },
         },
       ]

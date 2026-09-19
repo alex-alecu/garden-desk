@@ -17,6 +17,7 @@ import { InstalledModelStoreSchema } from "@gardendesk/shared";
 
 export interface StagedModel {
   path: string;
+  byteLength: number;
   dispose(): Promise<void>;
 }
 
@@ -105,6 +106,7 @@ export class ModelResolver {
       let disposed = false;
       return {
         path: resolvedStagedPath,
+        byteLength: model.byteLength,
         async dispose() {
           if (disposed) return;
           disposed = true;

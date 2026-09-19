@@ -24,7 +24,7 @@
     "windowsPackageIntegrityReview": "docs/research/m3-package-integrity-dependency-review.md",
     "visionRuntimeReview": "docs/research/m3-image-runtime-dependency-review.md",
     "inferenceRuntimeAssets": "assets/inference-runtime.json",
-    "inferenceRuntimeDecision": "docs/adr/0019-qwen38-private-server.md"
+    "inferenceRuntimeDecision": "docs/adr/0020-ternary-bonsai-2-prism-fork.md"
   },
   "directDependencies": [
     {
@@ -112,8 +112,8 @@
       "use": "packaged_windows_cuda_runtime"
     },
     {
-      "name": "llama.cpp",
-      "version": "b10816",
+      "name": "llama.cpp (PrismML fork)",
+      "version": "prism-b10685-7dffb15",
       "license": "MIT",
       "use": "packaged_private_inference_runtime"
     },
@@ -121,12 +121,6 @@
       "name": "Microsoft Visual C++ Desktop Runtime",
       "version": "14.0.33321.0",
       "license": "Microsoft Software License Terms",
-      "use": "packaged_windows_inference_runtime"
-    },
-    {
-      "name": "LLVM OpenMP Runtime",
-      "version": "b10816",
-      "license": "Apache-2.0 WITH LLVM-exception",
       "use": "packaged_windows_inference_runtime"
     },
     {

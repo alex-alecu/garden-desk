@@ -8,7 +8,7 @@ Research claims in this document are research-derived until validated on target 
 
 ## Decision
 
-[ADR 0019](adr/0019-qwen38-private-server.md) defines the current Qwen3.8 Q4 target: 32,768 context tokens, one slot, all weights and active context state on one GPU, and a 16 GiB inference budget. Mac requires 24 GiB installed memory. Windows retains the 16 billion byte dedicated-GPU threshold; integrated GPUs need 16 GiB usable allocation and host memory for one microVM.
+[ADR 0019](adr/0019-qwen38-private-server.md) and [ADR 0020](adr/0020-ternary-bonsai-2-prism-fork.md) define the current target for Ternary Bonsai 2 27B: a context fitted once to the memory budget (262,144 tokens on a 16 GiB Windows budget, 208,896 on Mac), one slot, all weights and active context state on one GPU, and a 16 GiB inference budget. Mac requires 24 GiB installed memory. Windows retains the 16 billion byte dedicated-GPU threshold; integrated GPUs need 16 GiB usable allocation and host memory for one microVM.
 
 ## Performance Thesis
 

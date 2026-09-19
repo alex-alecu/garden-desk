@@ -1,6 +1,6 @@
 # Milestone M3 Status
 
-Updated: 2026-09-17
+Updated: 2026-09-19
 
 M3 Offline Dev-Agent Desktop V1 is active. The desktop runs one general-purpose local agent per conversation: a system prompt plus a fixed tool set, executing every file read and every command inside a no-network microVM (a virtual machine with no network interface).
 
@@ -41,6 +41,25 @@ This result passed the Windows headless M3 gate for the checked revision. It doe
 At `f6c7b6d`, bounded Mac checks passed on an M5 Pro with 48 GiB and macOS 26.6.2, using b10816 Metal, Q4 weights, 32K context, and Q8/Q8 context caches. The run processed 30,061 input tokens in 116.4 seconds and generated 154 tokens at 14.6 tokens/s. Cache reuse, cancellation, image inspection, and a physical microVM folder report passed. All run processes stopped. The highest sampled resident memory was 14.73 GiB; this is a sampled maximum, not proof of the absence of paging. The separate encoder check returned 1,024 values.
 
 [PR #110](https://github.com/alex-alecu/garden-desk/pull/110) contains the measurements and earlier bounded Windows results on an RTX 5070 Ti. These checks meet the migration requirement in ADR 0019. They do not certify other hardware, the full M3 gate, the desktop UI, or production signed packages for this migration.
+
+## 2026-09-18 Ternary Bonsai 2 Candidate
+
+[ADR 0020](adr/0020-ternary-bonsai-2-prism-fork.md) moves the generation model to Ternary-Bonsai-2-27B `PQ2_0` on the PrismML llama.cpp fork `prism-b10685-7dffb15`. One approved smoke check ran on Windows with an RTX 5070 Ti (16 GiB) and the product server arguments at 32K context with Q4/Q4 context caches. The model loaded in 7.6 seconds. The server reported 6,861.74 MiB of GPU weights, a 576 MiB KV cache, a 149.62 MiB recurrent-state buffer, and a 189.27 MiB compute buffer. A plain question answered correctly at 62.3 tokens/s. A request with a `read_file` tool returned one well-formed tool call with the right path at 888 tokens/s prefill and 62.0 tokens/s generation. A game process held GPU memory during this check, so these numbers are not the comparison.
+
+The full comparison against Qwen3.8 27B Q4 (`pnpm model:compare`, `pnpm model:compare:agent`, `pnpm model:compare:report`) is pending an owner run. Bonsai 2 has no dspark drafter, so the speculative comparison uses the server's n-gram self-speculation (`ngram-mod`). The MLX 2-bit release is a Mac measurement target only. The context is now fitted to the memory budget (ADR 0020): 262,144 tokens on this Windows machine and 208,896 tokens on Mac. The Windows fitted size is unverified in a real run; the Mac run below loaded the fitted size.
+
+## 2026-09-19 Ternary Bonsai 2 On Apple Silicon
+
+`pnpm model:compare` ran once on physical Apple silicon with macOS 27.0, the pinned fork Metal archive, the product server arguments, no speculation, and Q8/Q8 context caches. The model loaded at the minimum context and at the fitted Mac context, and the server answered every request.
+
+| Context | Load | GPU | CPU |
+| --- | --- | --- | --- |
+| 32,768 tokens | 14.3 s | 8.11 GiB | 0.02 GiB |
+| 208,896 tokens (fitted) | 15.0 s | 14.58 GiB | 0.11 GiB |
+
+At 32,768 tokens, a 24,816-token prompt filled at 111.7 tokens/s. Generation gave 23.3 tokens/s for code, 22.8 tokens/s for prose, and 24.1 tokens/s for code with thinking on. Tool-call precision was 9 of 11 and specialist choice was 6 of 12. The result file is `packages/eval/.generated/model-comparison/bonsai2-mac-metal.json`.
+
+This run measures the new model alone on one machine. The Qwen3.8 27B Q4 comparison, the Windows measurements, the Windows agent stage, the MLX 2-bit measurement, and the full macOS gate stay open.
 
 ## Running The Golden Tasks
 

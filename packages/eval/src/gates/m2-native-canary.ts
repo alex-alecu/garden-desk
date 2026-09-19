@@ -2,13 +2,13 @@ import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir, totalmem } from "node:os";
 import { basename, join } from "node:path";
 import { createGardenDeskCore } from "@gardendesk/core";
-import type { EmbeddingResult, InferenceProfile } from "@gardendesk/shared";
+import { type EmbeddingResult, INFERENCE_PROFILE, type InferenceProfile } from "@gardendesk/shared";
 import { readCanonicalModelManifest, verifyModelFile } from "../models.js";
 
 const modelRoot = join(process.cwd(), "packages/eval/.generated/models");
 const modelFiles = new Map([
   ["qwen3-embedding-0.6b-q8_0", join(modelRoot, "qwen3-embedding-0.6b-q8_0.gguf")],
-  ["qwen3.8-27b-ud-iq4_xs", join(modelRoot, "qwen3.8-27b-ud-iq4_xs.gguf")],
+  [INFERENCE_PROFILE.modelId, join(modelRoot, `${INFERENCE_PROFILE.modelId}.gguf`)],
 ]);
 
 function platformName(): string {
@@ -28,7 +28,7 @@ async function prepareModelStore(): Promise<void> {
       modelId,
       sha256: asset.sha256,
       byteLength: asset.byteLength,
-      runtimeBuild: "llama.cpp@b10816",
+      runtimeBuild: INFERENCE_PROFILE.runtimeBuild,
       storeKey: basename(path),
       installedAt: new Date().toISOString(),
     });
@@ -88,13 +88,13 @@ try {
   await rm(workspaceDir, { recursive: true, force: true });
 }
 
-const local16 = await generate("local16", "qwen3.8-27b-ud-iq4_xs");
+const local16 = await generate("local16", INFERENCE_PROFILE.modelId);
 const report = {
   schemaVersion: 1,
   platform: process.platform,
   architecture: process.arch,
   totalMemoryBytes: totalmem(),
-  runtimeBuild: "llama.cpp@b10816",
+  runtimeBuild: INFERENCE_PROFILE.runtimeBuild,
   embedding: { dimensions: embedding.vector.length, memory: embedding.memory },
   local16: { value: local16.value, memory: local16.memory },
   cleanShutdown: true,

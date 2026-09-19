@@ -34,7 +34,7 @@ V1 uses only the components present under `packages/`. The table below is resear
 
 | Responsibility | Default component | Fallback | Why least code |
 |---|---|---|---|
-| Generation runtime | the pinned llama.cpp server (MIT) in a supervised inference worker | Pinned llama.cpp command adapter | Typed Node integration, Qwen3.8 Q4 GGUF, grammar-enforced JSON output, function calling, embeddings, and crash containment |
+| Generation runtime | the pinned llama.cpp fork server (MIT) in a supervised inference worker | Pinned llama.cpp command adapter | Typed Node integration, Ternary Bonsai 2 GGUF, grammar-enforced JSON output, function calling, embeddings, and crash containment |
 | Direct image inspection | The same private llama.cpp server with the generation model and its projector | Later reviewed local vision adapter | Same model and runtime family as generation, with one bounded offline process and no separate ML stack |
 | Post-V1 document vision and OCR | Later reviewed llama.cpp-compatible document model | Specialized no-network document worker | Keeps document extraction out of the V1 direct-image path and requires measured value before expansion |
 | Born-digital parsing | Native Node parsers in a no-network microVM: pdf.js, mammoth, ExcelJS/SheetJS, officeParser, mailparser | Process-only compatibility mode, not certified | Permissive licenses, covers most files, and places hostile inputs behind a VM boundary |

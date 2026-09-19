@@ -3,41 +3,41 @@
   "reviewOwner": "repository_owner",
   "models": [
     {
-      "family": "qwen3.8",
+      "family": "ternary-bonsai-2",
       "license": "Apache-2.0",
       "redistribution": {
         "status": "candidate_to_ship",
         "reviewOwner": "repository_owner"
       },
-      "id": "qwen3.8-27b-ud-iq4_xs",
+      "id": "ternary-bonsai-2-27b-pq2_0",
       "role": "generation",
       "source": {
         "host": "huggingface.co",
-        "repository": "unsloth/Qwen3.8-27B-GGUF",
-        "revision": "4ca720788d1e01f1bff70c033e0d0028fd02e502",
-        "file": "Qwen3.8-27B-UD-IQ4_XS.gguf"
+        "repository": "prism-ml/Ternary-Bonsai-2-27B-gguf",
+        "revision": "6ed5e12bf84b7a63069882c91dd9e9218647d17b",
+        "file": "Ternary-Bonsai-2-27B-PQ2_0.gguf"
       },
-      "byteLength": 14252845984,
-      "sha256": "40fac4050e940397dbf13087afd50f4734a11805bf9d65ef8ddd7483470e6199"
+      "byteLength": 7206168928,
+      "sha256": "3907dc1658db1f78a9826bf8d5bcb8dc65db0d466388937af57f2294fae62ec1"
     },
     {
-      "family": "qwen3.8",
+      "family": "ternary-bonsai-2",
       "license": "Apache-2.0",
       "redistribution": {
         "status": "candidate_to_ship",
         "reviewOwner": "repository_owner"
       },
-      "id": "qwen3.8-27b-mmproj-f16",
+      "id": "ternary-bonsai-2-27b-mmproj-q8_0",
       "role": "multimodal_projector",
-      "companionFor": "qwen3.8-27b-ud-iq4_xs",
+      "companionFor": "ternary-bonsai-2-27b-pq2_0",
       "source": {
         "host": "huggingface.co",
-        "repository": "unsloth/Qwen3.8-27B-GGUF",
-        "revision": "4ca720788d1e01f1bff70c033e0d0028fd02e502",
-        "file": "mmproj-F16.gguf"
+        "repository": "prism-ml/Ternary-Bonsai-2-27B-gguf",
+        "revision": "6ed5e12bf84b7a63069882c91dd9e9218647d17b",
+        "file": "Ternary-Bonsai-2-27B-mmproj-Q8_0.gguf"
       },
-      "byteLength": 927607488,
-      "sha256": "cbb841a9ee0636b2ec172f5bb8df2ea8dfeb01e90fe7c6126581d662a0b4e43e"
+      "byteLength": 629246976,
+      "sha256": "6807ede61d570bb86ba34b756a0fa109edc33668604de867c6ea6d8f1d631903"
     },
     {
       "id": "qwen3-embedding-0.6b-q8_0",

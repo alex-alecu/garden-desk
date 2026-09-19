@@ -8,6 +8,7 @@ const WORKER_CRASH_MESSAGE = "Inference worker stopped.";
 export interface InferenceExecution {
   request: InferenceWorkerRequest;
   modelPath?: string;
+  modelByteLength?: number;
   memoryBudgetBytes: number;
   timeoutMs: number;
   signal?: AbortSignal;

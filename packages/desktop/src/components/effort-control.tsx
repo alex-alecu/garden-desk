@@ -9,7 +9,7 @@ export const THINKING_LABELS: Record<ThinkingLevel, string> = {
   xhigh: "Extended",
 };
 
-const EFFORT_LEVELS = Object.keys(THINKING_LABELS) as ThinkingLevel[];
+const EFFORT_LEVELS: ThinkingLevel[] = ["none", "medium", "xhigh"];
 
 interface EffortControlProps {
   disabled: boolean;

@@ -4,6 +4,8 @@ export type { InferenceDiagnosticOperation } from "./inference/development-diagn
 export { recordDevelopmentHostFailure } from "./inference/development-diagnostics.js";
 export { waitForDevelopmentHostRecord } from "./inference/development-host-record-wait.js";
 export { FakeInferenceWorker } from "./inference/fake.js";
+export { serverRequest } from "./inference/server-http.js";
+export { startServer } from "./inference/server-runtime.js";
 export { decodeFrame, encodeFrame, FrameDecoder } from "./ipc.js";
 export type {
   AgentExecutionObserver,

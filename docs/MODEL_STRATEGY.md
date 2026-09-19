@@ -1,6 +1,6 @@
 # Model Strategy
 
-The current desktop target is Qwen3.8 27B Q4 with its F16 image projector and the existing Qwen3 embedding encoder. [ADR 0019](adr/0019-qwen38-private-server.md) defines the fixed profile and private server transport. Bounded Windows and Mac checks passed; see [current status](M3_STATUS.md).
+The current desktop target is Ternary Bonsai 2 27B with its Q8_0 image projector and the existing Qwen3 embedding encoder. [ADR 0020](adr/0020-ternary-bonsai-2-prism-fork.md) defines the model and runtime; [ADR 0019](adr/0019-qwen38-private-server.md) defines the fixed profile and private server transport. Bounded Windows checks are in progress; see [current status](M3_STATUS.md).
 
 The managed [catalog](../assets/models.json) pins each immutable revision, file size, and SHA-256 hash. The [runtime manifest](../assets/inference-runtime.json) pins the CUDA, Vulkan, and Metal archives and their dependencies. A changed hash fails installation.
 
@@ -71,7 +71,7 @@ For Garden Desk, MTP should be treated as:
 
 Use runtime adapters:
 
-- The pinned llama.cpp server is the current desktop runtime. It uses the private transport and fixed Qwen3.8 Q4 profile from ADR 0019.
+- The pinned PrismML llama.cpp fork server is the current desktop runtime. It uses the private transport and fixed profile from ADR 0019.
 - Ollama-compatible serving only when model packaging and context behavior are explicit, telemetry is absent or provably disabled, and no telemetry network path exists. Ollama's MLX backend currently has the most mature Gemma 4 MTP support on Apple Silicon.
 - MLX-family serving is a later Apple Silicon optimization candidate and must pass the same packaged workflow, citation, verification, compaction, and offline suite before certification.
 - Google LiteRT-LM as an emerging Google-first alternative to track: it ships an OpenAI-compatible local server and a JS/WASM API, added Gemma 4 12B support, and is Google's own optimized MTP test surface. MediaPipe LLM Inference is maintenance-only; do not build on it.

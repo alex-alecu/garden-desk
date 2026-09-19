@@ -167,7 +167,7 @@ it("dispatches a Markdown review with one extraction and no tool authority or su
     expect(requests).toHaveLength(2);
     expect(requests[0]).toMatchObject({
       tools: [],
-      maxTokens: 32_768,
+      maxTokens: 262_144,
       messages: [
         { role: "system" },
         { role: "user", text: "Compare the values." },

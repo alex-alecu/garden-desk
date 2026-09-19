@@ -86,7 +86,7 @@ OpenCode informs the persistent conversation, generic tool, sub-agent, and compa
 
 ## Inference Worker
 
-The runtime is the pinned llama.cpp server with a hash-verified Qwen3.8 27B Q4 model. It uses Metal, CUDA, or Vulkan inside the native OS boundary. Windows uses the no-capability AppContainer and one-process job. Mac permits only the exact private Unix socket. The Windows helper relays opaque bytes; TypeScript owns HTTP and parsing. No TCP, credentials, tools, or arbitrary workspace access is allowed. See [ADR 0019](adr/0019-qwen38-private-server.md).
+The runtime is the pinned PrismML llama.cpp fork server with a hash-verified Ternary Bonsai 2 27B model. It uses Metal, CUDA, or Vulkan inside the native OS boundary. Windows uses the no-capability AppContainer and one-process job. Mac permits only the exact private Unix socket. The Windows helper relays opaque bytes; TypeScript owns HTTP and parsing. No TCP, credentials, tools, or arbitrary workspace access is allowed. See [ADR 0019](adr/0019-qwen38-private-server.md) and [ADR 0020](adr/0020-ternary-bonsai-2-prism-fork.md).
 
 Core mediates all inference and retains tool authority. One resident server has one slot. The existing scheduler queues model turns and unloads generation before embedding or image work. Cancellation closes the request and waits at most one second for the slot to become idle; a failed server is then stopped. Shutdown stops the server and removes its private directory.
 

@@ -7,14 +7,14 @@ export interface ServerAllocations {
 
 function bufferAllocation(line: string) {
   const match =
-    /(?:load_tensors|llama_context|llama_kv_cache|llama_memory_recurrent|graph_reserve):\s+(\w+)\s+(model|KV|RS|compute|output) buffer size =\s+([\d.]+) MiB/u.exec(
+    /(?:load_tensors|llama_context|llama_kv_cache|llama_memory_recurrent|graph_reserve|sched_reserve):\s+(\w+)\s+(model|KV|RS|compute|output) buffer size =\s+([\d.]+) MiB/u.exec(
       line,
     );
   if (match === null) return undefined;
   const [, buffer = "", type, size] = match;
   const bytes = Math.round(Number(size) * 1024 ** 2);
   const host = buffer.startsWith("CPU") || buffer.endsWith("_Host");
-  if (!host && !/^(?:CUDA\d+|Vulkan\d+|Metal(?:_Mapped)?)$/u.test(buffer)) return undefined;
+  if (!host && !/^(?:CUDA\d+|Vulkan\d+|MTL\d+(?:_Mapped)?)$/u.test(buffer)) return undefined;
   if (!Number.isSafeInteger(bytes) || bytes < 0) return undefined;
   const kind: keyof ServerAllocations = host ? "cpuRamBytes" : "gpuMemoryBytes";
   return { key: `${buffer}:${type}`, type, kind, bytes };

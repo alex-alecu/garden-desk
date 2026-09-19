@@ -1,6 +1,7 @@
 import type { AgentRunSummary } from "@gardendesk/shared";
 import { useEffect, useRef } from "react";
 import type { DesktopState, TimelineItem } from "../state.js";
+import { desktopThinking } from "../steps.js";
 import { Conversation } from "./conversation.js";
 import { Icon } from "./icons.js";
 import { specialistIdentity } from "./specialist-run.js";
@@ -25,7 +26,7 @@ export function SpecialistView({
       text: run.assignment ?? specialistIdentity(run.agentId).name,
       runId: run.id,
     },
-    ...state.timeline.filter((item) => item.eventType !== "inference.started"),
+    ...state.timeline,
   ];
   if (unavailable || state.activeRun === undefined)
     timeline.push({
@@ -44,6 +45,7 @@ export function SpecialistView({
       performance={current.performance}
       runId={run.id}
       selectedStepId={state.selectedStepId}
+      thinkingByStep={desktopThinking(state).thinkingByStep}
       working={current.state === "queued" || current.state === "running"}
       activeRunState={current.state}
     />

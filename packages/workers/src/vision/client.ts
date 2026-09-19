@@ -33,7 +33,7 @@ export class LlamaVisionClient {
     const handle = await startServer(
       this.launcher,
       this.entryPath,
-      { ...input, contextTokens: INFERENCE_PROFILE.imageContextTokens },
+      { ...input, contextTokens: INFERENCE_PROFILE.imageContextTokens, speculation: "none" },
       signal,
     );
     try {

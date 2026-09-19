@@ -13,7 +13,7 @@ describe("desktop inference runtime resources", () => {
 
     expect(mac).toContain("llama-server");
     expect(windows).toContain("llama-server.exe");
-    expect(windows).toContain("libomp.dll");
+    expect(windows).toContain("ggml-vulkan.dll");
     expect(windows).toContain("vcruntime140_1.dll");
     expect(new Set(windows).size).toBe(windows.length);
   });

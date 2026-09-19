@@ -1,6 +1,6 @@
 # ADR 0019: Qwen3.8 and a private inference server
 
-Status: owner-approved migration. Bounded Windows and Mac checks passed; see [current status](../M3_STATUS.md). This decision replaces the model, runtime, and memory profiles in ADRs 0009, 0013, and 0016. It amends the native inference transport in ADR 0012. Their other contracts stay in effect.
+Status: owner-approved migration, completed. [ADR 0020](0020-ternary-bonsai-2-prism-fork.md) replaces the generation model, the image projector, the runtime build, the fixed 32,768-token context, the temperature-0 sampling, and the absence of a reasoning budget from this decision. The transport, memory profiles, reasoning rules, generation limit, compaction, and embedding encoder below stay in effect. This decision replaces the model, runtime, and memory profiles in ADRs 0009, 0013, and 0016. It amends the native inference transport in ADR 0012. Their other contracts stay in effect.
 
 Use Qwen3.8-27B `UD-IQ4_XS` and its F16 image projector on both platforms. Keep the Qwen3 embedding encoder. The managed catalog pins each file, revision, size, and hash. Use the verified `llama.cpp b10816` server for all inference.
 

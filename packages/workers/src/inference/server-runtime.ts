@@ -1,10 +1,12 @@
 import { setTimeout as delay } from "node:timers/promises";
-import { INFERENCE_PROFILE } from "@gardendesk/shared";
+import { type ContextCacheType, INFERENCE_PROFILE } from "@gardendesk/shared";
 import type { NativeWorkerHandle, NativeWorkerLauncher } from "../native/launcher.js";
 import { ServerError, serverFailure, serverRequest } from "./server-http.js";
 import { observeServerMemory, type ServerAllocations } from "./server-memory.js";
 
-const REASONING_BUDGET_TOKENS = 32_768;
+export function contextCacheType(backend: "metal" | "cuda" | "vulkan"): ContextCacheType {
+  return backend === "metal" ? "q8_0" : "q4_0";
+}
 
 // biome-ignore lint/complexity/noExcessiveLinesPerFunction: keep the fixed runtime arguments together.
 export function serverArguments(input: {
@@ -13,6 +15,7 @@ export function serverArguments(input: {
   contextTokens: number;
   embedding?: boolean;
   projectorPath?: string;
+  speculation: "none" | "ngram-mod";
 }): string[] {
   const device = { metal: "MTL0", cuda: "CUDA0", vulkan: "Vulkan0" }[input.backend];
   return [
@@ -37,8 +40,6 @@ export function serverArguments(input: {
     "on",
     "--ctx-size",
     String(input.contextTokens),
-    "--reasoning-budget",
-    String(REASONING_BUDGET_TOKENS),
     "--parallel",
     "1",
     "--no-context-shift",
@@ -48,9 +49,9 @@ export function serverArguments(input: {
     "--ubatch-size",
     String(input.embedding ? input.contextTokens : 256),
     "--cache-type-k",
-    input.embedding ? "f16" : input.backend === "metal" ? "q8_0" : "q4_0",
+    input.embedding ? "f16" : contextCacheType(input.backend),
     "--cache-type-v",
-    input.embedding ? "f16" : input.backend === "metal" ? "q8_0" : "q4_0",
+    input.embedding ? "f16" : contextCacheType(input.backend),
     "--ctx-checkpoints",
     "2",
     "--checkpoint-min-step",
@@ -58,8 +59,12 @@ export function serverArguments(input: {
     "--cache-ram",
     "0",
     "--log-verbosity",
-    "3",
-    ...(input.embedding ? ["--embedding", "--pooling", "last"] : []),
+    "4",
+    "--spec-type",
+    input.speculation,
+    ...(input.embedding
+      ? ["--embedding", "--pooling", "last"]
+      : ["--reasoning-budget", String(INFERENCE_PROFILE.reasoningBudgetTokens)]),
     ...(input.projectorPath === undefined
       ? []
       : [
@@ -80,6 +85,7 @@ export async function startServer(
     contextTokens: number;
     embedding?: boolean;
     projectorPath?: string;
+    speculation: "none" | "ngram-mod";
   },
   signal: AbortSignal,
 ): Promise<NativeWorkerHandle & { memory(): ServerAllocations }> {

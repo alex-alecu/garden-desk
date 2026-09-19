@@ -99,10 +99,10 @@ export class InferenceSupervisor extends ImageInferenceController implements Inf
     lease: ResourceLease,
     options: InferenceStreamCallbacks & { stagedModel?: StagedModel },
   ) {
-    const { stagedModel, ...streams } = options;
+    const { stagedModel: model, ...streams } = options;
     const response = await this.port.execute({
       request,
-      ...(stagedModel === undefined ? {} : { modelPath: stagedModel.path }),
+      ...(model === undefined ? {} : { modelPath: model.path, modelByteLength: model.byteLength }),
       memoryBudgetBytes: lease.memoryBudgetBytes,
       timeoutMs: Math.max(1, execution.timeoutMs - (Date.now() - execution.startedAt)),
       signal: execution.signal,

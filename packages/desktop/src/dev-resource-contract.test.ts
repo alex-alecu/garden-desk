@@ -34,11 +34,11 @@ describe("desktop development resource contract", () => {
     expect(contract.requiredOutputs.some((path) => path.includes("win-x64"))).toBe(false);
     expect(contract.inputRoots.some((path) => path.includes("windows-appcontainer"))).toBe(false);
     expect(contract.requiredOutputs.some((path) => path.includes("hyper-v-setup"))).toBe(false);
-    expect(contract.inputRoots.some((path) => path.endsWith("qwen3.8-27b-ud-iq4_xs.gguf"))).toBe(
-      true,
-    );
     expect(
-      contract.requiredOutputs.some((path) => path.endsWith("qwen3.8-27b-ud-iq4_xs.gguf")),
+      contract.inputRoots.some((path) => path.endsWith("ternary-bonsai-2-27b-pq2_0.gguf")),
+    ).toBe(true);
+    expect(
+      contract.requiredOutputs.some((path) => path.endsWith("ternary-bonsai-2-27b-pq2_0.gguf")),
     ).toBe(false);
   });
 });

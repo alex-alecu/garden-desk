@@ -137,7 +137,7 @@ Candidate adapter families (support status verified 2026-07-11; see [research/lo
 
 ONNX Runtime GenAI has no official Node.js bindings as of July 2026 and is not a candidate primary runtime.
 
-The current Windows and Mac certification target is Qwen3.8 Q4 through the private server in ADR 0019.
+The current Windows and Mac certification target is Ternary Bonsai 2 27B (ADR 0020) through the private server in ADR 0019.
 
 Use the fixed memory budget in [ADR 0019](adr/0019-qwen38-private-server.md).
 

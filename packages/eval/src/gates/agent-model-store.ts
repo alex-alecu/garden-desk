@@ -1,15 +1,16 @@
 import { writeFile } from "node:fs/promises";
 import { join } from "node:path";
+import { INFERENCE_PROFILE } from "@gardendesk/shared";
 import { readCanonicalModelManifest, verifyModelFile } from "../models.js";
 
-export const generationModelId = "qwen3.8-27b-ud-iq4_xs";
-export const projectorModelId = "qwen3.8-27b-mmproj-f16";
+export const generationModelId = INFERENCE_PROFILE.modelId;
+export const projectorModelId = INFERENCE_PROFILE.projectorId;
 
 export async function prepareAgentModelStore(modelRoot: string): Promise<void> {
   const manifest = await readCanonicalModelManifest();
   const requested = [
-    { id: generationModelId, runtimeBuild: "llama.cpp@b10816" },
-    { id: projectorModelId, runtimeBuild: "llama.cpp@b10816" },
+    { id: generationModelId, runtimeBuild: INFERENCE_PROFILE.runtimeBuild },
+    { id: projectorModelId, runtimeBuild: INFERENCE_PROFILE.runtimeBuild },
   ] as const;
   const installed = await Promise.all(
     requested.map(async (request) => {

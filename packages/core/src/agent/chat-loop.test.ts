@@ -171,7 +171,7 @@ describe("ChatAgentLoop automatic context", () => {
       ),
     );
 
-    expect(requests[0]).toMatchObject({ contextSize: "auto", maxTokens: 32_768 });
+    expect(requests[0]).toMatchObject({ contextSize: "auto", maxTokens: 262_144 });
     expect(requests[1]).toMatchObject({ contextSize: "auto", maxTokens: 16_384 });
   });
 });

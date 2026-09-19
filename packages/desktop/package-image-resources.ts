@@ -1,6 +1,7 @@
 import { chmod, copyFile, mkdir, readdir, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { basename, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { INFERENCE_PROFILE } from "@gardendesk/shared";
 import { reportDevelopmentResourceStage } from "./src/dev-resource-progress.js";
 import * as model from "./src/package-model-contract.js";
 import type { ResourceHashes } from "./src/resource-hashes.js";
@@ -80,7 +81,10 @@ export async function installRuntimeResources(
   await mkdir(join(resourcesRoot, "licenses"), { recursive: true });
   const licenses = [
     "llama.cpp-LICENSE.txt",
-    ...(process.platform === "win32" ? ["cuda-EULA.html", "llvm-OpenMP-LICENSE.txt"] : []),
+    "ternary-bonsai-2-LICENSE.txt",
+    "ternary-bonsai-2-NOTICE.txt",
+    "qwen3.8-LICENSE.txt",
+    ...(process.platform === "win32" ? ["cuda-EULA.html"] : []),
   ];
   for (const license of licenses)
     await copyFile(
@@ -101,13 +105,13 @@ export async function installImageModelResources(
       modelId: model.generationModelId,
       storeKey: model.generationModelFileName,
       source: model.canonicalGenerationModelPath(repositoryRoot),
-      runtimeBuild: "llama.cpp@b10816",
+      runtimeBuild: INFERENCE_PROFILE.runtimeBuild,
     },
     {
       modelId: model.projectorModelId,
       storeKey: model.projectorModelFileName,
       source: model.canonicalProjectorModelPath(repositoryRoot),
-      runtimeBuild: "llama.cpp@b10816",
+      runtimeBuild: INFERENCE_PROFILE.runtimeBuild,
     },
   ] as const;
   for (const candidate of candidates) {

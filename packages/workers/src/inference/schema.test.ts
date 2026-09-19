@@ -1,6 +1,7 @@
 import {
   type ChatGenerationRequest,
   ChatGenerationRequestSchema,
+  fittedContextTokens,
   StructuredGenerationRequestSchema,
 } from "@gardendesk/shared";
 import { describe, expect, it } from "vitest";
@@ -19,23 +20,23 @@ const request = {
 } as const;
 
 describe("generation context contract", () => {
-  it("accepts automatic context and the 32K product ceiling", () => {
+  it("accepts automatic context and the model maximum", () => {
     expect(
       StructuredGenerationRequestSchema.safeParse({ ...request, contextSize: "auto" }).success,
     ).toBe(true);
     expect(
-      StructuredGenerationRequestSchema.safeParse({ ...request, contextSize: 32_768 }).success,
+      StructuredGenerationRequestSchema.safeParse({ ...request, contextSize: 262_144 }).success,
     ).toBe(true);
   });
 
-  it("rejects explicit generation context above the product ceiling", () => {
+  it("rejects explicit generation context above the model maximum", () => {
     expect(
-      StructuredGenerationRequestSchema.safeParse({ ...request, contextSize: 32_769 }).success,
+      StructuredGenerationRequestSchema.safeParse({ ...request, contextSize: 262_145 }).success,
     ).toBe(false);
   });
 });
 
-it("sends the selected thinking level as the reasoning effort and no thinking budget", () => {
+it("sends the selected thinking level as the reasoning effort with its thinking budget", () => {
   const chat = (thinking: ChatGenerationRequest["thinking"]) =>
     ChatGenerationRequestSchema.parse({
       ...request,
@@ -48,15 +49,16 @@ it("sends the selected thinking level as the reasoning effort and no thinking bu
       temperature: 0,
       thinking,
     });
-  expect(chatBody(chat("low"), {}).chat_template_kwargs).toEqual({
-    preserve_thinking: false,
-    reasoning_effort: "low",
+  expect(chatBody(chat("medium"), {})).toMatchObject({
+    chat_template_kwargs: { preserve_thinking: false, reasoning_effort: "medium" },
+    thinking_budget_tokens: 2048,
   });
+  expect(chatBody(chat("xhigh"), {}).thinking_budget_tokens).toBe(8192);
   expect(chatBody(chat("none"), {}).chat_template_kwargs).toEqual({
     preserve_thinking: false,
     enable_thinking: false,
   });
-  expect(Object.keys(chatBody(chat("medium"), {}))).not.toContain("reasoning_budget_tokens");
+  expect(Object.keys(chatBody(chat("none"), {}))).not.toContain("thinking_budget_tokens");
 });
 
 it("uses the model card sampling values and the reasoning guardrail", () => {
@@ -87,16 +89,40 @@ it("uses the model card sampling values and the reasoning guardrail", () => {
   });
   const structured = StructuredGenerationRequestSchema.parse({ ...request, contextSize: "auto" });
   expect(chatBody(structured, {}).temperature).toBe(0);
-  const args = serverArguments({ backend: "metal", modelPath: "model.gguf", contextTokens: 32768 });
+  const args = serverArguments({
+    backend: "metal",
+    modelPath: "model.gguf",
+    contextTokens: 32768,
+    speculation: "none",
+  });
   expect(args[args.indexOf("--reasoning-budget") + 1]).toBe("32768");
 });
 
 it("uses the Metal buffer name accepted by the pinned server", () => {
-  const args = serverArguments({ backend: "metal", modelPath: "model.gguf", contextTokens: 32768 });
+  const args = serverArguments({
+    backend: "metal",
+    modelPath: "model.gguf",
+    contextTokens: 32768,
+    speculation: "none",
+  });
   expect(args[args.indexOf("--override-tensor") + 1]).toBe(".*=MTL0");
 });
 
 it("uses matching cache types for Metal Flash Attention", () => {
-  const args = serverArguments({ backend: "metal", modelPath: "model.gguf", contextTokens: 32768 });
+  const args = serverArguments({
+    backend: "metal",
+    modelPath: "model.gguf",
+    contextTokens: 32768,
+    speculation: "none",
+  });
   expect(args[args.indexOf("--cache-type-k") + 1]).toBe(args[args.indexOf("--cache-type-v") + 1]);
+});
+
+it("fits the context to the memory budget between the minimum and the model maximum", () => {
+  const fit = { memoryBudgetBytes: 16 * 1024 ** 3, modelByteLength: 7_206_168_928 };
+  expect(fittedContextTokens({ ...fit, cacheType: "q4_0" })).toBe(262_144);
+  expect(fittedContextTokens({ ...fit, cacheType: "q8_0" })).toBe(208_896);
+  expect(fittedContextTokens({ ...fit, memoryBudgetBytes: 8 * 1024 ** 3, cacheType: "q4_0" })).toBe(
+    32_768,
+  );
 });

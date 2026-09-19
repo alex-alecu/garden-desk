@@ -1,8 +1,9 @@
-import type {
-  ChatGenerationRequest,
-  ChatMessage,
-  InferencePerformance,
-  StructuredGenerationRequest,
+import {
+  type ChatGenerationRequest,
+  type ChatMessage,
+  INFERENCE_PROFILE,
+  type InferencePerformance,
+  type StructuredGenerationRequest,
 } from "@gardendesk/shared";
 import type { NativeWorkerHandle } from "../native/launcher.js";
 import { ServerError, serverRequest } from "./server-http.js";
@@ -153,6 +154,11 @@ function thinkingOptions(request: ChatGenerationRequest | StructuredGenerationRe
   return { preserve_thinking: false, reasoning_effort: request.thinking };
 }
 
+function thinkingBudget(request: ChatGenerationRequest | StructuredGenerationRequest) {
+  if (request.operation === "generate" || request.thinking === "none") return {};
+  return { thinking_budget_tokens: INFERENCE_PROFILE.thinkingBudgetTokens[request.thinking] };
+}
+
 const THINKING_SAMPLING = { top_p: 0.95, top_k: 20, min_p: 0, presence_penalty: 0 };
 const NON_THINKING_SAMPLING = { top_p: 0.8, top_k: 20, min_p: 0, presence_penalty: 1.5 };
 
@@ -175,6 +181,7 @@ export function chatBody(
     ...sampling(request),
     repeat_penalty: 1,
     chat_template_kwargs: thinkingOptions(request),
+    ...thinkingBudget(request),
     ...(request.operation === "generate"
       ? {
           response_format: {

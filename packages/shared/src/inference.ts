@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { GardenDeskErrorSchema } from "./errors.js";
 import { JobIdSchema, RequestIdSchema } from "./ids.js";
+import { INFERENCE_PROFILE } from "./inference-profile.js";
 
 export const InferenceProfileSchema = z.enum(["auto", "local16"]);
 export const InferenceOperationSchema = z.enum(["generate", "chat", "embed", "probe", "vision"]);
@@ -18,7 +19,7 @@ export const GenerationContextLimitReasonSchema = z.enum([
 
 const JsonSchemaSchema = z.record(z.string(), z.unknown());
 export const MAX_EFFECTIVE_GENERATION_PROMPT_CHARACTERS = 256_054;
-export const MAX_GENERATION_TOKENS = 32_768;
+export const MAX_GENERATION_TOKENS = INFERENCE_PROFILE.maximumContextTokens;
 const RequestBaseSchema = z.object({
   protocolVersion: z.literal(2),
   requestId: RequestIdSchema,
@@ -30,7 +31,10 @@ export const StructuredGenerationRequestSchema = RequestBaseSchema.extend({
   modelId: z.string().min(1),
   prompt: z.string().min(1).max(MAX_EFFECTIVE_GENERATION_PROMPT_CHARACTERS),
   jsonSchema: JsonSchemaSchema,
-  contextSize: z.union([z.literal("auto"), z.number().int().min(512).max(32_768)]),
+  contextSize: z.union([
+    z.literal("auto"),
+    z.number().int().min(512).max(INFERENCE_PROFILE.maximumContextTokens),
+  ]),
   maxTokens: z.number().int().positive().max(MAX_GENERATION_TOKENS),
 });
 
@@ -82,7 +86,10 @@ export const ChatGenerationRequestSchema = RequestBaseSchema.extend({
   modelId: z.string().min(1),
   messages: z.array(ChatMessageSchema).min(1).max(MAX_CHAT_MESSAGES),
   tools: z.array(ChatToolDefinitionSchema).max(MAX_CHAT_TOOLS).default([]),
-  contextSize: z.union([z.literal("auto"), z.number().int().min(512).max(32_768)]),
+  contextSize: z.union([
+    z.literal("auto"),
+    z.number().int().min(512).max(INFERENCE_PROFILE.maximumContextTokens),
+  ]),
   maxTokens: z.number().int().positive().max(MAX_GENERATION_TOKENS),
   temperature: z.number().min(0).max(2),
   thinking: ThinkingLevelSchema,
@@ -92,7 +99,7 @@ export const EmbeddingRequestSchema = RequestBaseSchema.extend({
   operation: z.literal("embed"),
   modelId: z.string().min(1),
   input: z.string().min(1).max(256_000),
-  contextSize: z.number().int().min(128).max(32_768),
+  contextSize: z.number().int().min(128).max(INFERENCE_PROFILE.maximumContextTokens),
 });
 
 export const NativeWorkerProbeRequestSchema = RequestBaseSchema.extend({

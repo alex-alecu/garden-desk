@@ -3,6 +3,7 @@ import { createReadStream } from "node:fs";
 import { copyFile, mkdir, readdir, rm, stat, writeFile } from "node:fs/promises";
 import { basename, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { INFERENCE_PROFILE } from "@gardendesk/shared";
 import { signExecutable } from "./build-signing.js";
 import {
   canonicalGenerationModelPath,
@@ -44,8 +45,8 @@ async function packageRecord(
 ): Promise<Record<string, unknown>> {
   const coreResources = join(packageRoot, "resources", "core");
   const resourceManifest = join(coreResources, "resource-manifest.json");
-  const model = join(coreResources, "models", "qwen3.8-27b-ud-iq4_xs.gguf");
-  const projector = join(coreResources, "models", "qwen3.8-27b-mmproj-f16.gguf");
+  const model = join(coreResources, "models", `${INFERENCE_PROFILE.modelId}.gguf`);
+  const projector = join(coreResources, "models", `${INFERENCE_PROFILE.projectorId}.gguf`);
   const inferenceRuntimes = nativeRuntimePackages();
   await Promise.all(
     inferenceRuntimes.map((name) =>

@@ -8,7 +8,6 @@ import {
   DEFAULT_THINKING_LEVEL,
   INFERENCE_PROFILE,
   JobIdSchema,
-  MAX_GENERATION_TOKENS,
 } from "@gardendesk/shared";
 import type { InferenceService } from "../runtime/inference.js";
 import { artifactCandidateNames } from "./artifact-results.js";
@@ -62,7 +61,7 @@ export class ChatAgentLoop {
       messages: withCurrentTimeContext(messages, this.clock),
       tools,
       contextSize: this.requestedContextSize,
-      maxTokens: Math.min(this.contextTokens, MAX_GENERATION_TOKENS),
+      maxTokens: this.contextTokens,
       temperature,
       thinking: input.thinking ?? DEFAULT_THINKING_LEVEL,
     } as const;
@@ -225,7 +224,7 @@ export class ChatAgentLoop {
     this.contextTokens =
       input.knownContextTokens ??
       (input.contextTokens === "auto"
-        ? INFERENCE_PROFILE.contextTokens
+        ? INFERENCE_PROFILE.maximumContextTokens
         : Math.max(8_192, input.contextTokens));
     const registry = createToolRegistry(input);
     const performance = emptyPerformance();

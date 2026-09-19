@@ -16,7 +16,7 @@ export function withActiveRun(snapshot: AgentRunSnapshot, active: ActiveRun | un
   return {
     ...snapshot,
     run: active === undefined ? snapshot.run : { ...snapshot.run, response: active.response },
-    thinking: active?.thinking ?? null,
+    thinking: active?.thinking ?? snapshot.thinking,
     question: active?.question?.request ?? null,
   };
 }

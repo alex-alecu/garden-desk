@@ -96,7 +96,7 @@ The composer is multiline and anchored to the bottom of the conversation pane.
 
 - The add button opens attachment actions; folder selection remains a separate grant action.
 - Context chips show the active folder or explicit attachments.
-- An **Effort** control sits immediately before Send. It shows a thinking icon, the word Effort, and the selected level: **None**, **Low**, **Medium**, or **Extended**. It starts at Medium and sets how much effort the model spends before it answers the next message. The choice applies to the primary agent for the messages the user sends after it. It stays in UI memory and returns to Medium on reload, so it adds no storage. Sub-agents and command workflows started by that message run at the same level as the primary agent.
+- An **Effort** control sits immediately before Send. It shows a thinking icon, the word Effort, and the selected level: **None**, **Medium**, or **Extended**. It starts at Medium and sets how much effort the model spends before it answers the next message. The choice applies to the primary agent for the messages the user sends after it. It stays in UI memory and returns to Medium on reload, so it adds no storage. Sub-agents and command workflows started by that message run at the same level as the primary agent.
 - Send becomes Stop while a run is active.
 - Command-Enter sends the current message on macOS; Enter remains available for multiline text.
 - Switching conversations does not stop a run. Other conversations may start work up to the RAM-derived VM capacity; additional work stays queued without booting another guest.

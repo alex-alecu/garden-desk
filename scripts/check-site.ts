@@ -139,7 +139,7 @@ requireText(home, "Nothing tracked", "home differentiation");
 requireText(home, "No way online", "home differentiation");
 requireText(home, 'class="format-strip"', "home static format strip");
 requireText(home, "data-reveal", "home scroll motion");
-requireText(home, "Qwen3.8-27B Q4", "home model");
+requireText(home, "Ternary Bonsai 2 27B", "home model");
 requireText(home, "24 GB unified memory", "home macOS requirement");
 requireText(home, "16 GB GPU VRAM", "home Windows requirement");
 requireText(home, "Open it. Point it. Ask it.", "home how it works");

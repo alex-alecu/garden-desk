@@ -58,16 +58,16 @@ Conversations, files, generated work, audit records, and diagnostic traces stay 
 
 ## How we are building it
 
-- **Generation and image model:** Qwen3.8-27B `UD-IQ4_XS` GGUF and its F16 projector. Bounded Windows and Mac checks passed; see [current status](docs/M3_STATUS.md).
+- **Generation and image model:** Ternary-Bonsai-2-27B `PQ2_0` GGUF (built from Qwen3.8-27B) and its Q8_0 projector. Bounded Windows checks are in progress; see [current status](docs/M3_STATUS.md).
 - **Retrieval encoder:** the official `Qwen3-Embedding-0.6B Q8_0` GGUF for local semantic search. Document retrieval is part of the post-V1 document-intelligence work; the encoder's local runtime path is already validated.
-- **Model runtime:** pinned `llama.cpp b10816` for text, images, and embeddings through a private socket. Model files are Apache-2.0 licensed; llama.cpp is MIT licensed.
+- **Model runtime:** pinned PrismML `llama.cpp` fork `prism-b10685-7dffb15` for text, images, and embeddings through a private socket. Model files are Apache-2.0 licensed; llama.cpp is MIT licensed.
 - **Desktop and control plane:** a [Tauri v2](https://tauri.app/) and React interface over a TypeScript and Node.js core that owns permissions, sessions, model requests, limits, audit, and recovery.
 
 The model uses no exposed network port. It runs in a separate, supervised process. Garden Desk Core communicates with it through HTTP over a private Unix socket. Core validates each result. Windows uses a native relay for the private connection. The process keeps local GPU acceleration. It has no network access, credentials, host shell, unrestricted file access, or approval authority. The operating system reclaims its memory when it stops.
 
 ## Local model operation
 
-Generation uses Q4 weights and a 32K context. Reasoning is shown live and stays outside stored conversations, traces, and audit records. The model proposes tool calls; Core controls execution inside the no-network microVM.
+Generation uses ternary weights and a context fitted to the memory budget, up to 256K tokens. Reasoning is shown live and stays outside stored conversations, traces, and audit records. The model proposes tool calls; Core controls execution inside the no-network microVM.
 
 ## Public website
 
